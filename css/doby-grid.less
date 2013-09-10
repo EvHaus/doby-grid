@@ -1,4 +1,347 @@
-@import "../libs/lesshat/lesshat";
+// doby-grid.less
+// (c) 2013 Evgueni Naverniouk, Globex Designs, Inc.
+// Doby may be freely distributed under the MIT license.
+// For all details and documentation:
+// https://github.com/globexdesigns/doby-grid
 
+@import "../libs/lesshat/lesshat";
 @w3c: true;
 
+.doby-grid {
+	background: #E8E8E8;
+	border: 1px solid #AAA;
+	font-size: 12px;
+	height: 100%;
+}
+
+.slick-header.ui-state-default,
+.slick-headerrow.ui-state-default {
+	border-left: 0;
+	overflow: hidden;
+	width: 100%;
+}
+
+.slick-header-columns, .slick-headerrow-columns {
+	cursor: default;
+	overflow: hidden;
+	position: relative;
+	white-space: nowrap;
+}
+
+.slick-header-column.ui-state-default {
+	border: 0;
+	border-right: 1px solid rgba(0,0,0,0.2);
+	display: inline-block;
+	float: left;
+	height: 22px;
+	line-height: 22px;
+	margin: 0;
+	padding: 4px;
+	position: relative;
+}
+
+.slick-headerrow-column.ui-state-default {
+	padding: 4px;
+}
+
+// Resize handle
+.slick-resizable-handle {
+	cursor: col-resize;
+	display: block;
+	font-size: 0.1px;
+	height: 100%;
+	position: absolute;
+	right: -6px;
+	top: 0;
+	width: 10px;
+
+	span {
+		border-color: rgba(0,0,0,0.2);
+		display: block;
+		height: 100%;
+		margin: 0 3px;
+		.transition(~'width 0.2s ease-in-out, margin 0.2s ease-in-out');
+		width: 1px;
+	}
+}
+
+.slick-resizable-handle:hover span,
+.slick-header-column-active .slick-resizable-handle span {
+	background: #AAA;
+	border-left: 1px solid rgba(255,255,255,0.8);
+	border-right: 1px solid rgba(0,0,0,0.5);
+	box-shadow: #333 0 0 2px inset;
+	margin: 0 1px;
+	width: 5px;
+}
+
+.grid-canvas {
+	outline: 0;
+	position: relative;
+}
+
+.slick-row {
+	border-bottom: 1px solid rgba(0,0,0,0.2);
+	border-top: 1px solid rgba(255,255,255,0.5);
+	position: absolute;
+	width: 100%;
+}
+
+.slick-cell, .slick-headerrow-column {
+	border-right: 1px dotted rgba(0,0,0,0.2);
+	cursor: default;
+	margin: 0;
+	overflow: hidden;
+	padding: 0 8px;
+	position: absolute;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+	z-index: 1;
+
+	&.nopad {
+		padding: 0
+	}
+}
+
+.slick-group-toggle {
+	cursor: pointer;
+}
+
+.slick-group-toggle .icon {
+	background: url(../img/fugue/fugue-16.png);
+	margin-right: 8px;
+}
+
+.slick-cell.highlighted {
+	background: rgba(0, 0, 255, 0.2);
+	.transition(~"all 0.5s ease-in-out");
+}
+
+.slick-cell.flashing {
+	border: 1px solid red !important;
+}
+
+.slick-cell.editable {
+	background: rgba(0,0,0,0.1);
+	box-shadow: rgba(0,0,0,0.4) 4px 4px 2px inset;
+	overflow: visible;
+	z-index: 11;
+}
+
+.slick-cell:focus {
+	outline: none;
+}
+
+.slick-reorder-proxy {
+	background: blue;
+	cursor: move;
+	display: inline-block;
+	opacity: 0.15;
+}
+
+.slick-reorder-guide {
+	background: blue;
+	display: inline-block;
+	height: 2px;
+	opacity: 0.7;
+}
+
+.slick-selection {
+	border: 2px dashed black;
+	position: absolute;
+	z-index: 10;
+}
+
+
+	.doby-grid-loader {
+		background: rgba(0,0,0,0.5) url(themes/default/img/loader-big.gif) no-repeat center center;
+		bottom: 0;
+		left: 0;
+		position: absolute;
+		right: 0;
+		text-align: center;
+		top: 0;
+		z-index: 100
+	}
+
+	.doby-grid-message {
+		bottom: 0;
+		display: table;
+		height: 100%;
+		left: 0;
+		position: absolute;
+		right: 0;
+		text-align: center;
+		top: 0;
+		width: 100%;
+		z-index: 100;
+	}
+
+		.doby-grid-message > div {
+			display: table-cell;
+			vertical-align: middle;
+		}
+
+			.doby-grid-message > div > div {
+				color: #E98;
+				margin: 0 auto;
+				min-width: 300px;
+				width: 50%;
+			}
+
+	.doby-grid-alert {
+		color: #999;
+		text-align: center;
+	}
+
+// Table
+.slicktable {
+	font-size: 12px;
+}
+
+// Header
+.slick-header {
+	border-bottom: 1px solid #999;
+	box-shadow: rgba(0,0,0,0.2) 0 4px 4px;
+}
+
+.slick-header-columns {
+	.gradient(~"linear-gradient(#EEE, #CCC)");
+	font-size: 14px;
+	text-indent: 4px;
+}
+
+	// Header Cell
+	.slick-header-column {
+		border-top: 1px solid #FFF;
+		color: #111;
+		.transition(~"background 0.2s ease-in-out, box-shadow 0.2s ease-in-out");
+
+		&.slick-header-sortable:hover {
+			background: rgba(0,0,0,0.05);
+			box-shadow: rgba(0,0,0,0.1) 2px 2px 2px inset;
+			cursor: pointer;
+		}
+	}
+
+		// Header Name
+		.slick-column-name {
+			display: block;
+			overflow: hidden;
+			text-overflow: ellipsis;
+			text-shadow: #FFF 0 1px 0;
+			width: 100%;
+		}
+
+	// Sorted
+	.slick-header-column.slick-header-column-sorted {
+		background: rgba(255,255,255,0.05);
+	}
+
+		.slick-sort-indicator {
+			background: url(../img/fugue/fugue-16.png);
+			display: none;
+			height: 16px;
+			position: absolute;
+			right: 5px;
+			top: 7px;
+			width: 16px;
+		}
+
+			.slick-sort-indicator-desc {background-position: -128px -64px;display:inline-block}
+			.slick-sort-indicator-asc {background-position: -112px -64px;display:inline-block}
+
+	// When re-ordering columns
+	.slick-sortable-placeholder {
+		background: rgba(0,0,0,0.1);
+		box-shadow: rgba(0,0,0,0.4) 0 0 10px inset;
+	}
+
+// Body
+.slick-row.odd:not(.slick-group) {
+	background: rgba(255,255,255,0.2)
+}
+
+	// Groups
+	.slick-group {
+		.gradient(~"linear-gradient(#111, #000)");
+		border-bottom-color: rgba(255,255,255,0.2);
+		border-top-color: rgba(255,255,255,0.2);
+	}
+
+		.slick-group-toggle {
+			&.expanded .icon {background-position: -496px -32px}
+			&.collapsed .icon {background-position: -336px -48px}
+		}
+
+		.slick-group-title {
+			font-weight: bold;
+
+			strong {
+				color: #999;
+				font-weight: 300;
+			}
+
+			.count {
+				color: #999;
+				font-size: 11px;
+				font-weight: 300;
+
+				strong {
+					color: #FB0;
+					font-weight: 400;
+				}
+			}
+		}
+
+	// Cell Editing
+	.slick-cell input.editor-text {
+		background: none;
+		border: 0;
+		box-shadow: none !important;
+		color: #FFF;
+		height: 100%;
+		margin: 0;
+		outline: none;
+		padding: 0;
+		text-indent: 0;
+		text-shadow: none;
+		width: 100%;
+
+		&:focus {
+			color: #FFF;
+		}
+	}
+
+// ui.grid() Header context menu
+.doby-grid-contextmenu.dropdown {
+	border-color: rgba(255,255,255,0.3) rgba(80,80,80,0.5) rgba(80,80,80,0.4);
+	border-radius: 6px;
+	padding: 4px 0;
+
+	.item {
+		cursor: pointer;
+		padding: 6px 30px 6px 14px;
+		position: relative;
+		.transition(~"background 0.3s ease-in-out");
+		white-space: nowrap;
+
+		&:hover {
+			background: rgba(255,255,255,0.1);
+		}
+
+		.icon {
+			display: none;
+			position: absolute;
+			right: 7px;
+			top: 7px;
+		}
+
+		&.on .icon {display: block}
+	}
+
+	.divider {
+		border-top: 1px solid rgba(255,255,255,0.2);
+		margin: 2px 0;
+	}
+}

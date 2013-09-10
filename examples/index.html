@@ -1,34 +1,106 @@
 <!DOCTYPE html>
 <html>
 	<head>
+		<title>Doby Grid - Examples</title>
 		<script src="../libs/require.js" type="text/javascript"></script>
 		<link rel="stylesheet/less" type="text/css" href="../css/doby-grid.less" />
+		<style>
+			html, body {
+				font-family: Helvetica, Arial, sans-serif;
+				height: 100%;
+				margin: 0;
+				padding: 0;
+			}
+
+			#gridwrapper {
+				bottom: 10px;
+				left: 10px;
+				position: absolute;
+				right: 10px;
+				top: 10px;
+			}
+		</style>
 		<script>
 		// Require.js Config
 		require.config({
 			baseUrl: "../",
 			paths: {
+				'backbone': 'libs/backbone',
 				'jquery': 'libs/jquery',
-				'dobygrid': '../doby-grid',
+
+				'jquery.ui': 'libs/jquery.ui',
+				'jquery.event.drag': 'libs/jquery.event.drag',
+
+				'dobygrid': 'dist/doby-grid',
 				'less': 'libs/less',
 				'underscore': 'libs/underscore',
 			},
 			shim: {
-				'dobygrid': {
-					deps: ['jquery','underscore'],
-					exports: 'DobyGrid'
+				'backbone': {
+					deps: ['underscore'],
+					exports: 'Backbone'
 				},
 				'underscore': {
 					exports: '_'
+				},
+
+				'jquery.ui': {
+					deps: ['jquery']
+				},
+				'jquery.event.drag': {
+					deps: ['jquery']
 				}
 			}
 		});
 
 		// Initialize doby
 		require(['less', 'dobygrid'], function(less, DobyGrid) {
-			var grid = new DobyGrid().appendTo($(document.body))
+
+			// Generate Data
+			var data = []
+			for (var i = 0; i < 100000; i++) {
+				data.push({
+					data: {
+						id: i,
+						name: "Pope John "+i,
+						age: "100 years",
+						city: ['Venice','Vatican City','Rome'][_.random(0,2)]
+					}
+				});
+			}
+
+			var grid = new DobyGrid({
+				columns: [{
+					id: "id",
+					name: "ID",
+					field: "id",
+					sortable: true
+				}, {
+					id: "name",
+					name: "Name",
+					field: "name",
+					minWidth: 100,
+					sortable: true
+				}, {
+					id: "age",
+					name: "Age",
+					field: "age",
+					sortable: true
+				}, {
+					id: "city",
+					name: "City",
+					field: "city",
+					sortable: true
+				}],
+				data: data,
+				editable: true,
+				reorderable: true
+			}).appendTo($('#gridwrapper'))
+
 		})
 		</script>
 	</head>
-	<body></body>
+	<body>
+		<div id="gridwrapper"></div>
+	</body>
 </html>
