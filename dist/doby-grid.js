@@ -4,7 +4,7 @@
 // For all details and documentation:
 // https://github.com/globexdesigns/doby-grid
 
-/*jslint vars: true, plusplus: true, devel: true, nomen: true, indent: 4, maxerr: 50 */
+/*jslint vars: true, plusplus: true, devel: true, nomen: true, indent: 4, maxerr: 50, -W116 */
 /*global define */
 
 
@@ -67,7 +67,6 @@ define([
 			fullWidthRows:		true,		// Will expand the table rows divs to the full width
 			groupable:			true,		// Can the values be grouped
 			headerMenu:			true,		// Display context menu for headers
-			headerRowHeight:	25,			// ??
 			leaveSpaceForNewRows: false,	// (TODO) Candidate for removal?
 			multiColumnSort:	true,		// Allow sorting by multiple columns
 			multiSelect:		true,		// ??
@@ -75,10 +74,7 @@ define([
 			reorderable:		true,		// Can the columns be re-ordered,
 			rowHeight:			28,			// The default height for all rows
 			rowPreprocess:		null,		// Function for pre-processing row styling
-			showHeaderRow:		false,		// ??
-			showTopPanel:		false,		// ??
 			selectedCellCssClass: "selected",	// CSS class to apply for selected cells
-			topPanelHeight:		25,			// ??
 			uid:				uid,		// TODO: Remove this from options when SlickGrid is gone
 			variableRowHeight:	false		// Will enable variable row height mode
 		}, options);
@@ -97,7 +93,7 @@ define([
 			selectable:			true,		// Are cells in this column selectable?
 			sortable:			true,		// Is the column sortable?
 			width:				this.options.defaultColumnWidth
-		}
+		};
 
 
 		// initialize()
@@ -122,15 +118,15 @@ define([
 
 			processData(function () {
 				// Create the grid
-				self.$el = $('<div class="doby-grid"></div>')
-				if (self.options.class) self.$el.addClass(self.options.class)
-				self.grid = createGrid()
+				self.$el = $('<div class="doby-grid"></div>');
+				if (self.options.class) self.$el.addClass(self.options.class);
+				self.grid = createGrid();
 
 				// Enable sorting
-				enableSort()
-			})
+				enableSort();
+			});
 
-			return self
+			return self;
 		};
 
 
@@ -146,13 +142,13 @@ define([
 			}
 
 			// Insert into target
-			this.$el.appendTo(target)
+			this.$el.appendTo(target);
 
 			// Initialize the Grid
 			try {
-				this.grid.init()
+				this.grid.init();
 			} catch (e) {
-				console.error(e)
+				console.error(e);
 			}
 
 			// Register the remote fetching when the viewport changes
@@ -165,17 +161,17 @@ define([
 
 			// Enable header menu
 			if (this.options.headerMenu) {
-				enableHeaderMenu()
+				enableHeaderMenu();
 			}
 
 			// Resize grid when window is changed
 			$(window).resize(function () {
 				// Only if the object is visible
-				if (!self.$el.is(':visible')) return
-				self.grid.resizeCanvas()
-			})
+				if (!self.$el.is(':visible')) return;
+				self.grid.resizeCanvas();
+			});
 
-			return this
+			return this;
 		};
 
 
@@ -188,7 +184,7 @@ define([
 			// Prepare container
 			self.$el.empty().addClass(self.options.uid);
 
-			var grid = new Grid(self.$el, self.dataView, self.options)
+			var grid = new Grid(self.$el, self.dataView, self.options);
 
 			// Add support for row events
 			// TODO: Do we still need this?
@@ -211,8 +207,8 @@ define([
 			})
 			*/
 
-			return grid
-		}
+			return grid;
+		};
 
 
 		// dataview()
@@ -446,7 +442,7 @@ define([
 				delete idxById[id];
 				items.splice(idx, 1);
 				updateIdxById(idx);
-				if (options.remote) length--
+				if (options.remote) length--;
 				this.refresh();
 			}
 
@@ -1243,9 +1239,6 @@ define([
 				$focusSink, $focusSink2,
 				$headerScroller,
 				$headers,
-				$headerRow, $headerRowScroller, $headerRowSpacer,
-				$topPanelScroller,
-				$topPanel,
 				$viewport,
 				$canvas,
 				$style,
@@ -1294,8 +1287,6 @@ define([
 				classfocussink = 'doby-grid-focus',
 				classheader = 'doby-grid-header',
 				classheadercolumns = 'doby-grid-header-columns',
-				classheaderrow = 'doby-grid-headerrow',
-				classheaderrowcolumns = 'doby-grid-headerrow-columns',
 
 
 			// async call handles
@@ -1345,29 +1336,6 @@ define([
 
 				$headers.width(getHeadersWidth());
 
-				$headerRowScroller = $('<div class="' + classheaderrow + '"></div>')
-					.appendTo($container);
-
-				$headerRow = $('<div class="' + classheaderrowcolumns + '"></div>')
-					.appendTo($headerRowScroller);
-
-				$headerRowSpacer = $('<span></span>')
-					.css("width", getCanvasWidth() + scrollbarDimensions.width + "px")
-					.appendTo($headerRowScroller);
-
-				var tps_class = 'slick-top-panel-scroller',
-					tps_style = 'overflow:hidden;position:relative'
-
-				$topPanelScroller = $("<div class='" + tps_class + "' style='" + tps_style + "' />").appendTo($container);
-				$topPanel = $("<div class='slick-top-panel' style='width:10000px' />").appendTo($topPanelScroller);
-
-				if (!options.showTopPanel) {
-					$topPanelScroller.hide();
-				}
-
-				if (!options.showHeaderRow) {
-					$headerRowScroller.hide();
-				}
 
 				$viewport = $("<div class='slick-viewport' style='width:100%;overflow:auto;outline:0;position:relative;;'>").appendTo($container);
 				$viewport.css("overflow-y", "auto");
@@ -1425,8 +1393,6 @@ define([
 					.bind("click", handleHeaderClick)
 					.delegate(".slick-header-column", "mouseenter", handleHeaderMouseEnter)
 					.delegate(".slick-header-column", "mouseleave", handleHeaderMouseLeave);
-				$headerRowScroller
-					.bind("scroll", handleHeaderRowScroll);
 				$focusSink.add($focusSink2)
 					.bind("keydown", handleKeyDown);
 				$canvas
@@ -1512,12 +1478,9 @@ define([
 
 				if (canvasWidth != oldCanvasWidth) {
 					$canvas.width(canvasWidth);
-					$headerRow.width(canvasWidth);
 					$headers.width(getHeadersWidth());
 					viewportHasHScroll = (canvasWidth > viewportW - scrollbarDimensions.width);
 				}
-
-				$headerRowSpacer.width(canvasWidth + (viewportHasVScroll ? scrollbarDimensions.width : 0));
 
 				if (canvasWidth != oldCanvasWidth || forceColumnWidthsUpdate) {
 					applyColumnWidths();
@@ -1596,16 +1559,6 @@ define([
 				}
 			}
 
-			function getHeaderRow() {
-				return $headerRow[0];
-			}
-
-			function getHeaderRowColumn(columnId) {
-				var idx = getColumnIndex(columnId);
-				var $header = $headerRow.children().eq(idx);
-				return $header && $header[0];
-			}
-
 			function createColumnHeaders() {
 				function onMouseEnter() {
 					$(this).addClass("ui-state-hover");
@@ -1627,18 +1580,6 @@ define([
 				});
 				$headers.empty();
 				$headers.width(getHeadersWidth());
-
-				$headerRow.find(".slick-headerrow-column")
-					.each(function () {
-					var columnDef = $(this).data("column");
-					if (columnDef) {
-						self.trigger('onBeforeHeaderRowCellDestroy', {
-							"node": this,
-							"column": columnDef
-						})
-					}
-				});
-				$headerRow.empty();
 
 				for (var i = 0; i < columns.length; i++) {
 					var m = columns[i];
@@ -1667,17 +1608,6 @@ define([
 						"node": header[0],
 						"column": m
 					})
-
-					if (options.showHeaderRow) {
-						var headerRowCell = $("<div class='slick-headerrow-column l" + i + " r" + i + "'></div>")
-							.data("column", m)
-							.appendTo($headerRow);
-
-						self.trigger('onHeaderRowCellRendered', {
-							"node": headerRowCell[0],
-							"column": m
-						})
-					}
 				}
 
 				setSortColumns(sortColumns);
@@ -2083,8 +2013,6 @@ define([
 				var rowHeight = (options.rowHeight - cellHeightDiff);
 				var rules = [
 					"." + uid + " .slick-header-column {left: 1000px}",
-					"." + uid + " .slick-top-panel {height:" + options.topPanelHeight + "px}",
-					"." + uid + " ."+classheaderrowcolumns+" {height:" + options.headerRowHeight + "px}",
 					"." + uid + " .slick-cell {height:" + rowHeight + "px;line-height:" + rowHeight + "px}",
 					"." + uid + " .slick-row {height:" + options.rowHeight + "px}"
 				];
@@ -2453,32 +2381,6 @@ define([
 				}
 			}
 
-			function getTopPanel() {
-				return $topPanel[0];
-			}
-
-			function setTopPanelVisibility(visible) {
-				if (options.showTopPanel != visible) {
-					options.showTopPanel = visible;
-					if (visible) {
-						$topPanelScroller.slideDown("fast", resizeCanvas);
-					} else {
-						$topPanelScroller.slideUp("fast", resizeCanvas);
-					}
-				}
-			}
-
-			function setHeaderRowVisibility(visible) {
-				if (options.showHeaderRow != visible) {
-					options.showHeaderRow = visible;
-					if (visible) {
-						$headerRowScroller.slideDown("fast", resizeCanvas);
-					} else {
-						$headerRowScroller.slideUp("fast", resizeCanvas);
-					}
-				}
-			}
-
 			function getContainerNode() {
 				return $container.get(0);
 			}
@@ -2774,9 +2676,7 @@ define([
 				return parseFloat($.css($container[0], "height", true)) -
 					parseFloat($.css($container[0], "paddingTop", true)) -
 					parseFloat($.css($container[0], "paddingBottom", true)) -
-					parseFloat($.css($headerScroller[0], "height")) - getVBoxDelta($headerScroller) -
-					(options.showTopPanel ? options.topPanelHeight + getVBoxDelta($topPanelScroller) : 0) -
-					(options.showHeaderRow ? options.headerRowHeight + getVBoxDelta($headerRowScroller) : 0);
+					parseFloat($.css($headerScroller[0], "height")) - getVBoxDelta($headerScroller);
 			}
 
 			function resizeCanvas() {
@@ -3229,13 +3129,6 @@ define([
 				h_render = null;
 			}
 
-			function handleHeaderRowScroll() {
-				var scrollLeft = $headerRowScroller[0].scrollLeft;
-				if (scrollLeft != $viewport[0].scrollLeft) {
-					$viewport[0].scrollLeft = scrollLeft;
-				}
-			}
-
 			function handleScroll() {
 				scrollTop = $viewport[0].scrollTop;
 				scrollLeft = $viewport[0].scrollLeft;
@@ -3245,8 +3138,6 @@ define([
 				if (hScrollDist) {
 					prevScrollLeft = scrollLeft;
 					$headerScroller[0].scrollLeft = scrollLeft;
-					$topPanelScroller[0].scrollLeft = scrollLeft;
-					$headerRowScroller[0].scrollLeft = scrollLeft;
 				}
 
 				if (vScrollDist) {
@@ -4632,11 +4523,6 @@ define([
 				"navigatePageUp": navigatePageUp,
 				"navigatePageDown": navigatePageDown,
 				"gotoCell": gotoCell,
-				"getTopPanel": getTopPanel,
-				"setTopPanelVisibility": setTopPanelVisibility,
-				"setHeaderRowVisibility": setHeaderRowVisibility,
-				"getHeaderRow": getHeaderRow,
-				"getHeaderRowColumn": getHeaderRowColumn,
 				"getGridPosition": getGridPosition,
 				"flashCell": flashCell,
 				"addCellCssStyles": addCellCssStyles,

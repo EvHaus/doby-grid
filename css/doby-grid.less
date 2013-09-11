@@ -4,9 +4,8 @@
 // For all details and documentation:
 // https://github.com/globexdesigns/doby-grid
 
-@import "../libs/lesshat/lesshat";
 @w3c: true;
-
+@import "../libs/lesshat/lesshat";
 
 .doby-grid {
 	background: #E8E8E8;
@@ -28,40 +27,24 @@
 }
 
 // Header
-.doby-grid-header,
-.doby-grid-headerrow {
+.doby-grid-header {
+	border-bottom: 1px solid #999;
 	border-left: 0;
+	box-shadow: rgba(0,0,0,0.2) 0 4px 4px;
 	overflow: hidden;
 	position: relative;
 	width: 100%;
 }
 
-.doby-grid-header {
-	border-bottom: 1px solid #999;
-	box-shadow: rgba(0,0,0,0.2) 0 4px 4px;
-}
-
-.doby-grid-header-columns,
-.doby-grid-headerrow-columns {
-	cursor: default;
-	overflow: hidden;
-	position: relative;
-	white-space: nowrap;
-}
-
-.doby-grid-headerrow span {
-	display: block;
-	height: 1px;
-	left: 0;
-	position: absolute;
-	top: 0;
-}
-
 .doby-grid-header-columns {
 	.gradient(~"linear-gradient(#EEE, #CCC)");
+	cursor: default;
 	font-size: 14px;
 	left: -1000px;
+	overflow: hidden;
+	position: relative;
 	text-indent: 4px;
+	white-space: nowrap;
 }
 
 // Header Cell
@@ -86,9 +69,6 @@
 	}
 }
 
-.slick-headerrow-column {
-	padding: 4px;
-}
 
 // Resize handle
 .slick-resizable-handle {
@@ -134,7 +114,7 @@
 	width: 100%;
 }
 
-.slick-cell, .slick-headerrow-column {
+.slick-cell {
 	border-right: 1px dotted rgba(0,0,0,0.2);
 	cursor: default;
 	margin: 0;
