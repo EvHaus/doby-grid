@@ -4,9 +4,8 @@
 // For all details and documentation:
 // https://github.com/globexdesigns/doby-grid
 
-/*jslint vars: true, plusplus: true, devel: true, nomen: true, indent: 4, maxerr: 50, -W116 */
-/*global define */
-
+/*jslint vars: true, plusplus: true, devel: true, nomen: true, indent: 4, maxerr: 50*/
+/*global define*/
 
 define([
 	'jquery',
@@ -20,26 +19,52 @@ define([
 ], function ($, _, Backbone) {
 	return function (options) {
 
+		// Name of Doby component
+		this.NAME = 'doby-grid',
+
 		// Current version of the library
 		this.VERSION = '0.0.1';
 
 		// Private
 		var self = this,
+			$canvas,
+			$container,
+			$focusSink,
+			$focusSink2,
+			$headers,
+			$headerScroller,
+			$viewport,
+			classfocussink = this.NAME + '-focus',
+			classheader = this.NAME + '-header',
+			classheadercolumns = this.NAME + '-header-columns',
+			classheadercolumn = this.NAME + '-header-column',
+			classheadercolumnactive = this.NAME + '-header-column-active',
+			classheadercolumnsorted = this.NAME + '-header-column-sorted',
+			classviewport = this.NAME + '-viewport',
+			classcanvas = this.NAME + '-canvas',
+			columnsById = {},
 			createGrid,
 			dataview,
 			defaultFormatter,
+			editController,		// TODO: Candidate for removal
 			enableHeaderMenu,
 			enableSort,
+			executeSorter,
 			getBrowserData,
+			getHeadersWidth,
 			getMaxCSSHeight,
 			getScrollbarSize,
 			Grid,
 			initialize,
+			initialized = false,
+			makeActiveCellNormal,
 			metadataprovider,
 			processData,
 			toggleHeaderContextMenu,
 			uid = "doby-grid-" + Math.round(1000000 * Math.random()),
-			validateColumns;
+			validateColumns,
+			viewportH,
+			viewportW;
 
 		// Default Grid Options
 		this.options = _.extend({
@@ -60,7 +85,6 @@ define([
 			enableAsyncPostRender: false,	// Enables cell post-processing
 			enableCellNavigation: true,		// ??
 			enableColumnReorder: true,		// Can columns be re-ordered?
-			enableTextSelectionOnCells: false,	// ??
 			forceFitColumns:	false,		// Prevent horizontal scrolling
 			forceSyncScrolling: false,		// ??
 			formatterFactory:	null,		// A factory object for creating a formatter
@@ -113,6 +137,12 @@ define([
 			// Validate and pre-process
 			validateColumns();
 
+			// TODO: Not sure what this is
+			editController = {
+				"commitCurrentEdit": commitCurrentEdit,
+				"cancelCurrentEdit": cancelCurrentEdit
+			};
+
 			// TODO: Remove me from here once getFormatter is no longer inside Grid()
 			self.options.defaultFormatter = defaultFormatter;
 
@@ -146,7 +176,58 @@ define([
 
 			// Initialize the Grid
 			try {
-				this.grid.init();
+				initialized = true;
+
+				// Calculate viewport width
+				viewportW = parseFloat($.css($container[0], "width", true));
+
+				// TODO: Fix these functions and combine into a cache collector
+				measureCellPaddingAndBorder();
+
+				disableSelection($headers);
+
+				updateColumnCaches();
+				createColumnHeaders();
+				setupColumnSort();
+				createCssRules();
+
+				if (options.variableRowHeight) {
+					initializeRowPositions();
+					cacheRowPositions();
+				}
+
+				resizeCanvas();
+				bindAncestorScrollEvents();
+
+				$container
+					.bind("resize.slickgrid", resizeCanvas);
+				$viewport
+					// TODO: This is in the SlickGrid 2.2 upgrade, but it breaks ui.grid()
+					// custom click handlers. Investigate a merge path.
+					//.bind("click", handleClick)
+					.bind("scroll", handleScroll);
+				$headerScroller
+					.bind("contextmenu", handleHeaderContextMenu)
+					.bind("click", handleHeaderClick)
+					.delegate("." + classheadercolumn, "mouseenter", handleHeaderMouseEnter)
+					.delegate("." + classheadercolumn, "mouseleave", handleHeaderMouseLeave);
+				$focusSink.add($focusSink2)
+					.bind("keydown", handleKeyDown);
+				$canvas
+					.bind("keydown", handleKeyDown)
+					.bind("click", handleClick)
+					.bind("dblclick", handleDblClick)
+					.bind("contextmenu", handleContextMenu)
+					.bind("draginit", handleDragInit)
+					.bind("dragstart", {
+					distance: 3
+				}, handleDragStart)
+					.bind("drag", handleDrag)
+					.bind("dragend", handleDragEnd)
+					.delegate(".slick-cell", "mouseenter", handleMouseEnter)
+					.delegate(".slick-cell", "mouseleave", handleMouseLeave);
+
+
 			} catch (e) {
 				console.error(e);
 			}
@@ -175,6 +256,95 @@ define([
 		};
 
 
+		// cancelCurrentEdit()
+		// TODO: Still needed?
+		function cancelCurrentEdit() {
+			makeActiveCellNormal();
+			return true;
+		}
+
+
+		// commitCurrentEdit()
+		// IEditor implementation for the editor lock in SlickGrid
+		// TODO: Still needed?
+		//
+		function commitCurrentEdit() {
+			var item = getDataItem(activeRow);
+			var column = columns[activeCell];
+
+			if (currentEditor) {
+				if (currentEditor.isValueChanged()) {
+					var validationResults = currentEditor.validate();
+
+					if (validationResults.valid) {
+						if (activeRow < getDataLength()) {
+							var editCommand = {
+								row: activeRow,
+								cell: activeCell,
+								editor: currentEditor,
+								serializedValue: currentEditor.serializeValue(),
+								prevSerializedValue: serializedEditorValue,
+								execute: function () {
+									this.editor.applyValue(item, this.serializedValue);
+									updateRow(this.row);
+								},
+								undo: function () {
+									this.editor.applyValue(item, this.prevSerializedValue);
+									updateRow(this.row);
+								}
+							};
+
+							if (options.editCommandHandler) {
+								makeActiveCellNormal();
+								options.editCommandHandler(item, column, editCommand);
+							} else {
+								editCommand.execute();
+								makeActiveCellNormal();
+							}
+
+							self.trigger('onCellChange', {}, {
+								row: activeRow,
+								cell: activeCell,
+								item: item
+							});
+						} else {
+							var newItem = {};
+							currentEditor.applyValue(newItem, currentEditor.serializeValue());
+							makeActiveCellNormal();
+
+							self.trigger('onAddNewRow', {}, {
+								item: newItem,
+								column: column
+							});
+						}
+
+						return true;
+					} else {
+						// Re-add the CSS class to trigger transitions, if any.
+						$(activeCellNode).removeClass("invalid");
+						$(activeCellNode).width(); // force layout
+						$(activeCellNode).addClass("invalid");
+
+						self.trigger('onValidationError', {}, {
+							editor: currentEditor,
+							cellNode: activeCellNode,
+							validationResults: validationResults,
+							row: activeRow,
+							cell: activeCell,
+							column: column
+						});
+
+						currentEditor.focus();
+						return false;
+					}
+				}
+
+				makeActiveCellNormal();
+			}
+			return true;
+		}
+
+
 		// createGrid()
 		// Generates the SlickGrid object
 		//
@@ -184,7 +354,26 @@ define([
 			// Prepare container
 			self.$el.empty().addClass(self.options.uid);
 
-			var grid = new Grid(self.$el, self.dataView, self.options);
+			// TODO: Remove $container and just use self.$el everywhere
+			$container = self.$el
+
+			// Create the global grid elements
+			$focusSink = $('<div class="' + classfocussink + '" tabIndex="0"></div>')
+				.appendTo($container);
+
+			$headerScroller = $('<div class="' + classheader + '"></div>')
+					.appendTo($container);
+
+			$headers = $('<div class="' + classheadercolumns + '"></div>')
+				.appendTo($headerScroller)
+				.width(getHeadersWidth());
+
+			$viewport = $('<div class="' + classviewport + '"></div>').appendTo($container);
+			$canvas = $('<div class="' + classcanvas + '"></div>').appendTo($viewport);
+
+			$focusSink2 = $focusSink.clone().appendTo($container);
+
+			var grid = new Grid(self.dataView, self.options);
 
 			// Add support for row events
 			// TODO: Do we still need this?
@@ -206,6 +395,7 @@ define([
 				})
 			})
 			*/
+
 
 			return grid;
 		};
@@ -852,17 +1042,17 @@ define([
 				refreshHints = {};
 
 				if (totalRowsBefore != totalRows) {
-					this.trigger('onPagingInfoChanged', this.getPagingInfo())
+					this.trigger('onPagingInfoChanged', {}, this.getPagingInfo())
 				}
 
 				if (countBefore != rows.length) {
-					this.trigger('onRowCountChanged', {
+					this.trigger('onRowCountChanged', {}, {
 						previous: countBefore,
 						current: rows.length
 					})
 				}
 				if (diff.length > 0) {
-					this.trigger('onRowsChanged', {
+					this.trigger('onRowsChanged', {}, {
 						rows: diff
 					})
 				}
@@ -956,7 +1146,7 @@ define([
 					pagenum = Math.min(args.pageNum, Math.max(0, Math.ceil(totalRows / pagesize) - 1));
 				}
 
-				this.trigger('onPagingInfoChanged', getPagingInfo())
+				this.trigger('onPagingInfoChanged', {}, getPagingInfo())
 
 				this.refresh();
 			}
@@ -1154,6 +1344,69 @@ define([
 		}
 
 
+		// executeSorter()
+		// Re-sorts the data set and re-renders the grid
+		//
+		// @param	args		object		Slick.Event sort data
+		//
+		executeSorter = function (args) {
+			var cols = args.sortCols;
+
+			// If remote, and not all data is fetched - sort on server
+			if (self.options.remote && !self.loader.isAllDataLoaded()) {
+				// Empty the collection so that Backbone can re-fetch results in the right order
+				self.options.data.reset()
+
+				// Invalidate Grid as we'll need to re-render it
+				self.invalidate()
+
+				// Ask the RemoteModel to refetch the data -- this time using the new sort settings
+				self.touchViewport()
+				return
+			}
+
+			self.dataView.sort(function (dataRow1, dataRow2) {
+				// If this item has a parent data reference object - use that for sorting
+				if (dataRow1.parent) dataRow1 = dataRow1.parent
+				if (dataRow2.parent) dataRow2 = dataRow2.parent
+
+				for (var i = 0, l = cols.length; i < l; i++) {
+					var column = cols[i].sortCol,
+						field = column.field,
+						sign = cols[i].sortAsc ? 1 : -1,
+						value1 = dataRow1 instanceof Backbone.Model ? dataRow1.get(field) : dataRow1.data[field],
+						value2 = dataRow2 instanceof Backbone.Model ? dataRow2.get(field) : dataRow2.data[field];
+
+					// Use custom column comparer if it exists
+					if (typeof(column.comparer) === 'function') {
+						return column.comparer(value1, value2) * sign
+					} else {
+						// Always keep null values on the bottom
+						if (value1 === null && value2 === null) return 0
+						if (value1 === null) return 1
+						if (value2 === null) return -1
+
+						// Keep sort case insensitive
+						value1 = typeof(value1) === 'string' ? value1.toLowerCase() : value1
+						value2 = typeof(value2) === 'string' ? value2.toLowerCase() : value2
+
+						var result = (value1 == value2 ? 0 : (value1 > value2 ? 1 : -1)) * sign;
+
+						if (result !== 0) {
+							return result;
+						}
+					}
+				}
+				return 0;
+			});
+
+			// SlickGrid docs say this is needed... but it seems to work fine without it...
+			// Most likely causing un-necessary processing
+			//self.grid.invalidate();
+			//self.grid.render();
+		}
+
+
 		// getBrowserData()
 		// Calculates some information about the browser window that will be shared
 		// with all grid instances.
@@ -1161,6 +1414,25 @@ define([
 		getBrowserData = function () {
 			window.maxSupportedCssHeight = window.maxSupportedCssHeight || getMaxCSSHeight();
 			window.scrollbarDimensions = window.scrollbarDimensions || getScrollbarSize();
+		}
+
+
+		// getHeadersWidth()
+		// Gets the total width of the column headers, or the viewport (whichever is bigger)
+		//
+		// @return integer
+		getHeadersWidth = function () {
+			var headersWidth = 0;
+
+			// For each column - get its width
+			for (var i = 0, l = self.options.columns.length; i < l; i++) {
+				headersWidth += self.options.columns[i].width;
+			}
+
+			// Include the width of the scrollbar
+			headersWidth += scrollbarDimensions.width;
+
+			return Math.max(headersWidth, viewportW) + 1000;
 		}
 
 
@@ -1215,11 +1487,10 @@ define([
 		 * Creates a new instance of the grid.
 		 * @class SlickGrid
 		 * @constructor
-		 * @param {Node}              container   Container node to create the grid in.
 		 * @param {Array,Object}      data        An array of objects for databinding.
 		 * @param {Object}            options     Grid options.
 		 **/
-		Grid = function (container, data, options) {
+		Grid = function (data, options) {
 			// settings
 			var self = this,
 				th,				// virtual height
@@ -1232,19 +1503,11 @@ define([
 				vScrollDir = 1,
 
 			// private
-				initialized = false,
 				columns = options.columns,
-				$container,
 				uid = options.uid, // TODO: Remove me from here when possible
-				$focusSink, $focusSink2,
-				$headerScroller,
-				$headers,
-				$viewport,
-				$canvas,
 				$style,
 				$boundAncestors,
 				stylesheet, columnCssRulesL, columnCssRulesR,
-				viewportH, viewportW,
 				canvasWidth,
 				viewportHasHScroll, viewportHasVScroll,
 				headerColumnWidthDiff = 0,
@@ -1260,7 +1523,6 @@ define([
 				activeCellNode = null,
 				currentEditor = null,
 				serializedEditorValue,
-				editController,
 
 				rowsCache = {},
 				rowPositionCache = {},
@@ -1279,17 +1541,9 @@ define([
 				plugins = [],
 				cellCssClasses = {},
 
-				columnsById = {},
 				sortColumns = [],
 				columnPosLeft = [],
 				columnPosRight = [],
-
-				classfocussink = 'doby-grid-focus',
-				classheader = 'doby-grid-header',
-				classheadercolumns = 'doby-grid-header-columns',
-				classheadercolumn = 'doby-grid-header-column',
-				classviewport = 'doby-grid-viewport',
-				classcanvas = 'doby-grid-canvas',
 
 			// async call handles
 				h_editorLoader = null,
@@ -1307,105 +1561,7 @@ define([
 			_.extend(this, Backbone.Events);
 
 
-			////////////////////////////////////////////////////////////////////////////////////////
-			// Initialization
 
-			this.init = function () {
-				initialized = true;
-
-				$container = $(container);
-
-				// Generate a columnsById cache
-				// TODO: This should be moved out of here and into the same place where we validate
-				// columns.
-				columnsById = {};
-				for (var i = 0, l = columns.length; i < l; i++) {
-					columnsById[columns[i].id] = i;
-				}
-
-				// TODO: Not sure what this is
-				editController = {
-					"commitCurrentEdit": commitCurrentEdit,
-					"cancelCurrentEdit": cancelCurrentEdit
-				};
-
-				$focusSink = $('<div class="'+classfocussink+'" tabIndex="0"></div>')
-					.appendTo($container);
-
-				$headerScroller = $('<div class="' + classheader + '"></div>')
-					.appendTo($container);
-
-				$headers = $('<div class="' + classheadercolumns + '"></div>')
-					.appendTo($headerScroller)
-					.width(getHeadersWidth());
-
-				$viewport = $('<div class="' + classviewport + '"></div>').appendTo($container);
-				$canvas = $('<div class="' + classcanvas + '"></div>').appendTo($viewport);
-
-				$focusSink2 = $focusSink.clone().appendTo($container);
-
-				viewportW = parseFloat($.css($container[0], "width", true));
-
-				measureCellPaddingAndBorder();
-
-				// for usability reasons, all text selection in SlickGrid is disabled
-				// with the exception of input and textarea elements (selection must
-				// be enabled there so that editors work as expected); note that
-				// selection in grid cells (grid body) is already unavailable in
-				// all browsers except IE
-				disableSelection($headers); // disable all text selection in header (including input and textarea)
-
-				if (!options.enableTextSelectionOnCells) {
-					// disable text selection in grid cells except in input and textarea elements
-					// (this is IE-specific, because selectstart event will only fire in IE)
-					$viewport.bind("selectstart.ui", function (event) {
-						return $(event.target).is("input,textarea");
-					});
-				}
-
-				updateColumnCaches();
-				createColumnHeaders();
-				setupColumnSort();
-				createCssRules();
-
-				if (options.variableRowHeight) {
-					initializeRowPositions();
-					cacheRowPositions();
-				}
-
-				resizeCanvas();
-				bindAncestorScrollEvents();
-
-				$container
-					.bind("resize.slickgrid", resizeCanvas);
-				$viewport
-					// TODO: This is in the SlickGrid 2.2 upgrade, but it breaks ui.grid()
-					// custom click handlers. Investigate a merge path.
-					//.bind("click", handleClick)
-					.bind("scroll", handleScroll);
-				$headerScroller
-					.bind("contextmenu", handleHeaderContextMenu)
-					.bind("click", handleHeaderClick)
-					.delegate("." + classheadercolumn, "mouseenter", handleHeaderMouseEnter)
-					.delegate("." + classheadercolumn, "mouseleave", handleHeaderMouseLeave);
-				$focusSink.add($focusSink2)
-					.bind("keydown", handleKeyDown);
-				$canvas
-					.bind("keydown", handleKeyDown)
-					.bind("click", handleClick)
-					.bind("dblclick", handleDblClick)
-					.bind("contextmenu", handleContextMenu)
-					.bind("draginit", handleDragInit)
-					.bind("dragstart", {
-					distance: 3
-				}, handleDragStart)
-					.bind("drag", handleDrag)
-					.bind("dragend", handleDragEnd)
-					.delegate(".slick-cell", "mouseenter", handleMouseEnter)
-					.delegate(".slick-cell", "mouseleave", handleMouseLeave);
-
-
-			}
 
 			function registerPlugin(plugin) {
 				plugins.unshift(plugin);
@@ -1447,16 +1603,6 @@ define([
 				return $canvas[0];
 			}
 
-			function getHeadersWidth() {
-				var headersWidth = 0;
-				for (var i = 0, ii = columns.length; i < ii; i++) {
-					var width = columns[i].width;
-					headersWidth += width;
-				}
-				headersWidth += scrollbarDimensions.width;
-				return Math.max(headersWidth, viewportW) + 1000;
-			}
-
 			function getCanvasWidth() {
 				var availableWidth = viewportHasVScroll ? viewportW - scrollbarDimensions.width : viewportW;
 				var rowWidth = 0;
@@ -1482,6 +1628,18 @@ define([
 				}
 			}
 
+
+			// disableSelection()
+			// Disable all text selection in header (including input and textarea).
+			//
+			// For usability reasons, all text selection in SlickGrid is disabled
+			// with the exception of input and textarea elements (selection must
+			// be enabled there so that editors work as expected); note that
+			// selection in grid cells (grid body) is already unavailable in
+			// all browsers except IE
+			//
+			// @param	$target		object		Target to use as selection curtain
+			//
 			function disableSelection($target) {
 				if ($target && $target.jquery) {
 					$target
@@ -1538,7 +1696,7 @@ define([
 						columns[idx].toolTip = toolTip;
 					}
 
-					self.trigger('onBeforeHeaderCellDestroy', {
+					self.trigger('onBeforeHeaderCellDestroy', {}, {
 						"node": $header[0],
 						"column": columnDef
 					})
@@ -1547,7 +1705,7 @@ define([
 						.attr("tooltip", toolTip || "")
 						.children().eq(0).html(title);
 
-					self.trigger('onHeaderCellRendered', {
+					self.trigger('onHeaderCellRendered', {}, {
 						"node": $header[0],
 						"column": columnDef
 					})
@@ -1567,7 +1725,7 @@ define([
 					.each(function () {
 					var columnDef = $(this).data("column");
 					if (columnDef) {
-						self.trigger('onBeforeHeaderCellDestroy', {
+						self.trigger('onBeforeHeaderCellDestroy', {}, {
 							"node": this,
 							"column": columnDef
 						})
@@ -1579,7 +1737,7 @@ define([
 				for (var i = 0; i < columns.length; i++) {
 					var m = columns[i];
 
-					var header = $('<div class="' + classheadercolumn+ '"></div>')
+					var header = $('<div class="' + classheadercolumn + '"></div>')
 						.html("<span class='slick-column-name'>" + m.name + "</span>")
 						.width(m.width - headerColumnWidthDiff)
 						.attr("id", "" + uid + m.id)
@@ -1599,7 +1757,7 @@ define([
 						header.append("<span class='slick-sort-indicator' />");
 					}
 
-					self.trigger('onHeaderCellRendered', {
+					self.trigger('onHeaderCellRendered', {}, {
 						"node": header[0],
 						"column": m
 					})
@@ -1661,13 +1819,13 @@ define([
 						setSortColumns(sortColumns);
 
 						if (!options.multiColumnSort) {
-							self.trigger('onSort', {
+							self.trigger('onSort', e, {
 								multiColumnSort: false,
 								sortCol: column,
 								sortAsc: sortOpts.sortAsc
 							})
 						} else {
-							self.trigger('onSort', {
+							self.trigger('onSort', e, {
 								multiColumnSort: true,
 								sortCols: $.map(sortColumns, function (col) {
 									return {
@@ -1693,10 +1851,10 @@ define([
 					placeholder: "slick-sortable-placeholder " + classheadercolumn,
 					forcePlaceholderSize: true,
 					start: function (e, ui) {
-						$(ui.helper).addClass("slick-header-column-active");
+						$(ui.helper).addClass(classheadercolumnactive);
 					},
 					beforeStop: function (e, ui) {
-						$(ui.helper).removeClass("slick-header-column-active");
+						$(ui.helper).removeClass(classheadercolumnactive);
 					},
 					stop: function (e) {
 						var reorderedIds = $headers.sortable("toArray");
@@ -1706,7 +1864,7 @@ define([
 						}
 						setColumns(reorderedColumns);
 
-						self.trigger('onColumnsReordered')
+						self.trigger('onColumnsReordered', e)
 						e.stopPropagation();
 						setupColumnResize();
 					}
@@ -1875,7 +2033,7 @@ define([
 
 					updateCanvasWidth(true);
 					render();
-					self.trigger('onColumnsResized')
+					self.trigger('onColumnsResized', {})
 				}
 
 				columnElements.each(function (i, e) {
@@ -1888,7 +2046,7 @@ define([
 						.appendTo(e)
 						.bind("dragstart", function (e, dd) {
 							pageX = e.pageX;
-							$(this).parent().addClass("slick-header-column-active");
+							$(this).parent().addClass(classheadercolumnactive);
 
 							// lock each column's width option to current width
 							lockColumnWidths(i)
@@ -1907,7 +2065,7 @@ define([
 							applyColWidths()
 						})
 						.bind("dragend", function (e, dd) {
-							$(this).parent().removeClass("slick-header-column-active");
+							$(this).parent().removeClass(classheadercolumnactive);
 							submitColResize()
 						})
 						.on("dblclick", function (event) {
@@ -2102,7 +2260,7 @@ define([
 			}
 
 			function destroy() {
-				self.trigger('onBeforeDestroy');
+				self.trigger('onBeforeDestroy', {});
 
 				var i = plugins.length;
 				while (i--) {
@@ -2249,7 +2407,7 @@ define([
 
 				var headerColumnEls = $headers.children();
 				headerColumnEls
-					.removeClass("slick-header-column-sorted")
+					.removeClass(classheadercolumnactive)
 					.find(".slick-sort-indicator")
 					.removeClass("slick-sort-indicator-asc slick-sort-indicator-desc");
 
@@ -2260,7 +2418,7 @@ define([
 					var columnIndex = getColumnIndex(col.columnId);
 					if (columnIndex !== null) {
 						headerColumnEls.eq(columnIndex)
-							.addClass("slick-header-column-sorted")
+							.addClass(classheadercolumnactive)
 							.find(".slick-sort-indicator")
 							.addClass(col.sortAsc ? "slick-sort-indicator-asc" : "slick-sort-indicator-desc");
 					}
@@ -2290,7 +2448,7 @@ define([
 
 				setCellCssStyles(options.selectedCellCssClass, hash);
 
-				self.trigger('onSelectedRowsChanged', {
+				self.trigger('onSelectedRowsChanged', e, {
 					rows: getSelectedRows()
 				})
 			}
@@ -2317,7 +2475,7 @@ define([
 				columnsById = {};
 				for (var i = 0, l = columns.length; i < l; i++) {
 					m = columns[i];
-					// TODO: Extend defaults
+					// TODO: Extend defaults here. It was removed during cleanup
 					columnsById[m.id] = i;
 					if (m.minWidth && m.width < m.minWidth) {
 						m.width = m.minWidth;
@@ -2329,7 +2487,7 @@ define([
 
 				updateColumnCaches();
 
-				self.trigger('onColumnsChanged', {
+				self.trigger('onColumnsChanged', {}, {
 					columns: columnDefinitions
 				})
 
@@ -2412,7 +2570,7 @@ define([
 					vScrollDir = (prevScrollTop + oldOffset < newScrollTop + offset) ? 1 : -1;
 					$viewport[0].scrollTop = (lastRenderedScrollTop = scrollTop = prevScrollTop = newScrollTop);
 
-					self.trigger('onViewportChanged')
+					self.trigger('onViewportChanged', {})
 				}
 			}
 
@@ -3176,11 +3334,11 @@ define([
 							h_render = setTimeout(render, 50);
 						}
 
-						self.trigger('onViewportChanged')
+						self.trigger('onViewportChanged', {})
 					}
 				}
 
-				self.trigger('onScroll', {
+				self.trigger('onScroll', {}, {
 					scrollLeft: scrollLeft,
 					scrollTop: scrollTop
 				})
@@ -3259,7 +3417,7 @@ define([
 				cellCssClasses[key] = hash;
 				updateCellCssStylesOnRenderedRows(hash, null);
 
-				self.trigger('onCellCssStylesChanged', {
+				self.trigger('onCellCssStylesChanged', {}, {
 					"key": key,
 					"hash": hash
 				})
@@ -3273,7 +3431,7 @@ define([
 				updateCellCssStylesOnRenderedRows(null, cellCssClasses[key]);
 				delete cellCssClasses[key];
 
-				self.trigger('onCellCssStylesChanged', {
+				self.trigger('onCellCssStylesChanged', {}, {
 					"key": key,
 					"hash": null
 				})
@@ -3285,7 +3443,7 @@ define([
 				cellCssClasses[key] = hash;
 				updateCellCssStylesOnRenderedRows(hash, prevHash);
 
-				self.trigger('onCellCssStylesChanged', {
+				self.trigger('onCellCssStylesChanged', {}, {
 					"key": key,
 					"hash": hash
 				})
@@ -3326,7 +3484,7 @@ define([
 					return false;
 				}
 
-				self.trigger('onDragInit', dd)
+				self.trigger('onDragInit', e, dd)
 
 				// if nobody claims to be handling drag'n'drop by stopping immediate propagation,
 				// cancel out of it
@@ -3339,21 +3497,21 @@ define([
 					return false;
 				}
 
-				self.trigger('onDragStart', dd)
+				self.trigger('onDragStart', e, dd)
 
 				return false;
 			}
 
 			function handleDrag(e, dd) {
-				self.trigger('onDrag', dd)
+				self.trigger('onDrag', e, dd)
 			}
 
 			function handleDragEnd(e, dd) {
-				self.trigger('onDragEnd', dd)
+				self.trigger('onDragEnd', e, dd)
 			}
 
 			function handleKeyDown(e) {
-				self.trigger('onKeyDown', {
+				self.trigger('onKeyDown', e, {
 					row: activeRow,
 					cell: activeCell
 				})
@@ -3426,7 +3584,7 @@ define([
 					return;
 				}
 
-				self.trigger('onClick', {
+				self.trigger('onClick', e, {
 					row: cell.row,
 					cell: cell.cell
 				})
@@ -3451,7 +3609,7 @@ define([
 					return;
 				}
 
-				self.trigger('onContextMenu')
+				self.trigger('onContextMenu', e)
 			}
 
 			function handleDblClick(e) {
@@ -3460,7 +3618,7 @@ define([
 					return;
 				}
 
-				self.trigger('onDblClick', {
+				self.trigger('onDblClick', e, {
 					row: cell.row,
 					cell: cell.cell
 				})
@@ -3474,41 +3632,41 @@ define([
 			}
 
 			function handleHeaderMouseEnter(e) {
-				self.trigger('onHeaderMouseEnter', {
+				self.trigger('onHeaderMouseEnter', e, {
 					"column": $(this).data("column")
 				})
 			}
 
 			function handleHeaderMouseLeave(e) {
-				self.trigger('onHeaderMouseLeave', {
+				self.trigger('onHeaderMouseLeave', e, {
 					"column": $(this).data("column")
 				})
 			}
 
 			function handleHeaderContextMenu(e) {
-				var $header = $(e.target).closest("." + slick-header-column, "." + classheadercolumns);
+				var $header = $(e.target).closest("." + classheadercolumn, "." + classheadercolumns);
 				var column = $header && $header.data("column");
-				self.trigger('onHeaderContextMenu', {
+				self.trigger('onHeaderContextMenu', e, {
 					column: column
 				})
 			}
 
 			function handleHeaderClick(e) {
-				var $header = $(e.target).closest("." + slick-header-column, "."+classheadercolumns);
+				var $header = $(e.target).closest("." + classheadercolumn, "." + classheadercolumns);
 				var column = $header && $header.data("column");
 				if (column) {
-					self.trigger('onHeaderClick', {
+					self.trigger('onHeaderClick', e, {
 						column: column
 					})
 				}
 			}
 
 			function handleMouseEnter(e) {
-				self.trigger('onMouseEnter')
+				self.trigger('onMouseEnter', e)
 			}
 
 			function handleMouseLeave(e) {
-				self.trigger('onMouseLeave')
+				self.trigger('onMouseLeave', e)
 			}
 
 			function cellExists(row, cell) {
@@ -3681,7 +3839,7 @@ define([
 				}
 
 				if (activeCellChanged) {
-					self.trigger('onActiveCellChanged', getActiveCell())
+					self.trigger('onActiveCellChanged', {}, getActiveCell())
 				}
 			}
 
@@ -3718,34 +3876,6 @@ define([
 				return true;
 			}
 
-			function makeActiveCellNormal() {
-				if (!currentEditor) {
-					return;
-				}
-				self.trigger('onBeforeCellEditorDestroy', {
-					editor: currentEditor
-				})
-				currentEditor.destroy();
-				currentEditor = null;
-
-				if (activeCellNode) {
-					var d = getDataItem(activeRow);
-					$(activeCellNode).removeClass("editable invalid");
-					if (d) {
-						var column = columns[activeCell];
-						var formatter = getFormatter(activeRow, column);
-						activeCellNode.innerHTML = formatter(activeRow, activeCell, getDataItemValueForColumn(d, column), column, d);
-						invalidatePostProcessingResults(activeRow);
-					}
-				}
-
-				// if there previously was text selected on a page (such as selected text in the edit cell just removed),
-				// IE can't set focus to anything else correctly
-				if (navigator.userAgent.toLowerCase().match(/msie/)) {
-					clearTextSelection();
-				}
-			}
-
 			function makeActiveCellEditable(editor) {
 				if (!activeCellNode) {
 					return;
@@ -3764,7 +3894,7 @@ define([
 				var columnDef = columns[activeCell];
 				var item = getDataItem(activeRow);
 
-				if (self.trigger('onCellCssStylesChanged', {
+				if (self.trigger('onCellCssStylesChanged', {}, {
 					row: activeRow,
 					cell: activeCell,
 					item: item,
@@ -3871,7 +4001,7 @@ define([
 					return;
 				}
 
-				self.trigger('onActiveCellPositionChanged')
+				self.trigger('onActiveCellPositionChanged', {})
 
 				if (currentEditor) {
 					var cellBox = getActiveCellPosition();
@@ -4351,89 +4481,7 @@ define([
 			}
 
 
-			//////////////////////////////////////////////////////////////////////////////////////////////
-			// IEditor implementation for the editor lock
 
-			function commitCurrentEdit() {
-				var item = getDataItem(activeRow);
-				var column = columns[activeCell];
-
-				if (currentEditor) {
-					if (currentEditor.isValueChanged()) {
-						var validationResults = currentEditor.validate();
-
-						if (validationResults.valid) {
-							if (activeRow < getDataLength()) {
-								var editCommand = {
-									row: activeRow,
-									cell: activeCell,
-									editor: currentEditor,
-									serializedValue: currentEditor.serializeValue(),
-									prevSerializedValue: serializedEditorValue,
-									execute: function () {
-										this.editor.applyValue(item, this.serializedValue);
-										updateRow(this.row);
-									},
-									undo: function () {
-										this.editor.applyValue(item, this.prevSerializedValue);
-										updateRow(this.row);
-									}
-								};
-
-								if (options.editCommandHandler) {
-									makeActiveCellNormal();
-									options.editCommandHandler(item, column, editCommand);
-								} else {
-									editCommand.execute();
-									makeActiveCellNormal();
-								}
-
-								self.trigger('onCellChange', {
-									row: activeRow,
-									cell: activeCell,
-									item: item
-								});
-							} else {
-								var newItem = {};
-								currentEditor.applyValue(newItem, currentEditor.serializeValue());
-								makeActiveCellNormal();
-
-								self.trigger('onAddNewRow', {
-									item: newItem,
-									column: column
-								});
-							}
-
-							return true;
-						} else {
-							// Re-add the CSS class to trigger transitions, if any.
-							$(activeCellNode).removeClass("invalid");
-							$(activeCellNode).width(); // force layout
-							$(activeCellNode).addClass("invalid");
-
-							self.trigger('onValidationError', {
-								editor: currentEditor,
-								cellNode: activeCellNode,
-								validationResults: validationResults,
-								row: activeRow,
-								cell: activeCell,
-								column: column
-							});
-
-							currentEditor.focus();
-							return false;
-						}
-					}
-
-					makeActiveCellNormal();
-				}
-				return true;
-			}
-
-			function cancelCurrentEdit() {
-				makeActiveCellNormal();
-				return true;
-			}
 
 			function rowsToRanges(rows) {
 				var ranges = [];
@@ -4676,6 +4724,39 @@ define([
 		}
 
 
+		// makeActiveCellNormal()
+		// Handler for cell styling when using an editor
+		// TODO: Needs review
+		//
+		makeActiveCellNormal = function () {
+			if (!currentEditor) {
+				return;
+			}
+			self.trigger('onBeforeCellEditorDestroy', {}, {
+				editor: currentEditor
+			})
+			currentEditor.destroy();
+			currentEditor = null;
+
+			if (activeCellNode) {
+				var d = getDataItem(activeRow);
+				$(activeCellNode).removeClass("editable invalid");
+				if (d) {
+					var column = columns[activeCell];
+					var formatter = getFormatter(activeRow, column);
+					activeCellNode.innerHTML = formatter(activeRow, activeCell, getDataItemValueForColumn(d, column), column, d);
+					invalidatePostProcessingResults(activeRow);
+				}
+			}
+
+			// if there previously was text selected on a page (such as selected text in the edit cell just removed),
+			// IE can't set focus to anything else correctly
+			if (navigator.userAgent.toLowerCase().match(/msie/)) {
+				clearTextSelection();
+			}
+		}
+
+
 		// processData()
 		// Parses the options.data parameter to ensure the data set is formatter correctly.
 		// Creates a new Data View object to handle the data.
@@ -4872,6 +4953,9 @@ define([
 				// If min/max width is set -- use it to reset given width
 				if (c.minWidth && c.width < c.minWidth) c.width = c.minWidth;
 				if (c.maxWidth && c.width > c.maxWidth)	c.width = c.maxWidth;
+
+				// Build column id cache
+				columnsById[c.id] = i;
 			}
 		}
 

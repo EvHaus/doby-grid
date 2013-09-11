@@ -69,4 +69,4 @@ Doby Grid tries to find a balance between performance and usability while offeri
 
 #### There's a bug in Internet Explorer, where...
 
-Doby Grid does not and will not support Internet Explorer. Don't bother asking.
+Doby Grid does not support Internet Explorer. Don't bother asking. If it's something that affects all browsers - definitely submit a new issue through Github, but if it's an issue specific to IE6 or IE7 or IE8 or even IE9 -- sorry, Doby Grid is not for you.
