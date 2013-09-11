@@ -1287,7 +1287,9 @@ define([
 				classfocussink = 'doby-grid-focus',
 				classheader = 'doby-grid-header',
 				classheadercolumns = 'doby-grid-header-columns',
-
+				classheadercolumn = 'doby-grid-header-column',
+				classviewport = 'doby-grid-viewport',
+				classcanvas = 'doby-grid-canvas',
 
 			// async call handles
 				h_editorLoader = null,
@@ -1309,6 +1311,8 @@ define([
 			// Initialization
 
 			this.init = function () {
+				initialized = true;
+
 				$container = $(container);
 
 				// Generate a columnsById cache
@@ -1332,25 +1336,16 @@ define([
 					.appendTo($container);
 
 				$headers = $('<div class="' + classheadercolumns + '"></div>')
-					.appendTo($headerScroller);
+					.appendTo($headerScroller)
+					.width(getHeadersWidth());
 
-				$headers.width(getHeadersWidth());
-
-
-				$viewport = $("<div class='slick-viewport' style='width:100%;overflow:auto;outline:0;position:relative;;'>").appendTo($container);
-				$viewport.css("overflow-y", "auto");
-
-				$canvas = $("<div class='grid-canvas' />").appendTo($viewport);
+				$viewport = $('<div class="' + classviewport + '"></div>').appendTo($container);
+				$canvas = $('<div class="' + classcanvas + '"></div>').appendTo($viewport);
 
 				$focusSink2 = $focusSink.clone().appendTo($container);
 
-				initialized = true;
-
-
 				viewportW = parseFloat($.css($container[0], "width", true));
 
-				// header columns and cells may have different padding/border skewing width calculations (box-sizing, hello?)
-				// calculate the diff so we can set consistent sizes
 				measureCellPaddingAndBorder();
 
 				// for usability reasons, all text selection in SlickGrid is disabled
@@ -1391,8 +1386,8 @@ define([
 				$headerScroller
 					.bind("contextmenu", handleHeaderContextMenu)
 					.bind("click", handleHeaderClick)
-					.delegate(".slick-header-column", "mouseenter", handleHeaderMouseEnter)
-					.delegate(".slick-header-column", "mouseleave", handleHeaderMouseLeave);
+					.delegate("." + classheadercolumn, "mouseenter", handleHeaderMouseEnter)
+					.delegate("." + classheadercolumn, "mouseleave", handleHeaderMouseLeave);
 				$focusSink.add($focusSink2)
 					.bind("keydown", handleKeyDown);
 				$canvas
@@ -1568,7 +1563,7 @@ define([
 					$(this).removeClass("ui-state-hover");
 				}
 
-				$headers.find(".slick-header-column")
+				$headers.find("." + classheadercolumn)
 					.each(function () {
 					var columnDef = $(this).data("column");
 					if (columnDef) {
@@ -1584,7 +1579,7 @@ define([
 				for (var i = 0; i < columns.length; i++) {
 					var m = columns[i];
 
-					var header = $("<div class='slick-header-column' />")
+					var header = $('<div class="' + classheadercolumn+ '"></div>')
 						.html("<span class='slick-column-name'>" + m.name + "</span>")
 						.width(m.width - headerColumnWidthDiff)
 						.attr("id", "" + uid + m.id)
@@ -1626,7 +1621,7 @@ define([
 						return;
 					}
 
-					var $col = $(e.target).closest(".slick-header-column");
+					var $col = $(e.target).closest("." + classheadercolumn);
 					if (!$col.length) {
 						return;
 					}
@@ -1695,7 +1690,7 @@ define([
 					cursor: "default",
 					tolerance: "intersection",
 					helper: "clone",
-					placeholder: "slick-sortable-placeholder slick-header-column",
+					placeholder: "slick-sortable-placeholder " + classheadercolumn,
 					forcePlaceholderSize: true,
 					start: function (e, ui) {
 						$(ui.helper).addClass("slick-header-column-active");
@@ -1979,12 +1974,17 @@ define([
 				return delta;
 			}
 
+			// measureCellPaddingAndBorder()
+			// Header columns and cells may have different padding/border skewing width
+			// calculations (box-sizing, hello?) calculate the diff so we can set consistent sizes
+			//
 			function measureCellPaddingAndBorder() {
-				var el;
-				var h = ["borderLeftWidth", "borderRightWidth", "paddingLeft", "paddingRight"];
-				var v = ["borderTopWidth", "borderBottomWidth", "paddingTop", "paddingBottom"];
+				var h = ["borderLeftWidth", "borderRightWidth", "paddingLeft", "paddingRight"],
+					v = ["borderTopWidth", "borderBottomWidth", "paddingTop", "paddingBottom"];
 
-				el = $("<div class='slick-header-column' style='visibility:hidden'>-</div>").appendTo($headers);
+				var el = $('<div class="' + classheadercolumn + '" style="visibility:hidden">-</div>')
+					.appendTo($headers);
+
 				headerColumnWidthDiff = headerColumnHeightDiff = 0;
 				$.each(h, function (n, val) {
 					headerColumnWidthDiff += parseFloat(el.css(val)) || 0;
@@ -2012,7 +2012,7 @@ define([
 				$style = $("<style type='text/css' rel='stylesheet' />").appendTo($("head"));
 				var rowHeight = (options.rowHeight - cellHeightDiff);
 				var rules = [
-					"." + uid + " .slick-header-column {left: 1000px}",
+					"." + uid + " ." + classheadercolumn + " {left: 1000px}",
 					"." + uid + " .slick-cell {height:" + rowHeight + "px;line-height:" + rowHeight + "px}",
 					"." + uid + " .slick-row {height:" + options.rowHeight + "px}"
 				];
@@ -3486,7 +3486,7 @@ define([
 			}
 
 			function handleHeaderContextMenu(e) {
-				var $header = $(e.target).closest(".slick-header-column", "."+classheadercolumns);
+				var $header = $(e.target).closest("." + slick-header-column, "." + classheadercolumns);
 				var column = $header && $header.data("column");
 				self.trigger('onHeaderContextMenu', {
 					column: column
@@ -3494,7 +3494,7 @@ define([
 			}
 
 			function handleHeaderClick(e) {
-				var $header = $(e.target).closest(".slick-header-column", "."+classheadercolumns);
+				var $header = $(e.target).closest("." + slick-header-column, "."+classheadercolumns);
 				var column = $header && $header.data("column");
 				if (column) {
 					self.trigger('onHeaderClick', {

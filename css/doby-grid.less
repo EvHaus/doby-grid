@@ -8,7 +8,7 @@
 @import "../libs/lesshat/lesshat";
 
 .doby-grid {
-	background: #E8E8E8;
+	background: #EAEAEA;
 	border: 1px solid #AAA;
 	font-size: 12px;
 	height: 100%;
@@ -37,7 +37,7 @@
 }
 
 .doby-grid-header-columns {
-	.gradient(~"linear-gradient(#EEE, #CCC)");
+	.gradient(~"linear-gradient(#EEE, #D1D1D1)");
 	cursor: default;
 	font-size: 14px;
 	left: -1000px;
@@ -48,7 +48,7 @@
 }
 
 // Header Cell
-.slick-header-column {
+.doby-grid-header-column {
 	border: 0;
 	border-right: 1px solid rgba(0,0,0,0.2);
 	box-shadow: #FFF 0 1px 0 inset;
@@ -67,8 +67,22 @@
 		box-shadow: rgba(0,0,0,0.1) 2px 2px 2px inset;
 		cursor: pointer;
 	}
+
+	&.ui-sortable-helper {
+		.gradient(~"linear-gradient(#EEE, #D1D1D1)");
+		border-left: 1px solid rgba(0,0,0,0.2);
+
+		.slick-resizable-handle {display: none}
+	}
 }
 
+// Viewport
+.doby-grid-viewport {
+	outline: 0;
+	overflow: auto;
+	position: relative;
+	width: 100%;
+}
 
 // Resize handle
 .slick-resizable-handle {
@@ -102,7 +116,7 @@
 	width: 5px;
 }
 
-.grid-canvas {
+.doby-grid-canvas {
 	outline: 0;
 	position: relative;
 }
@@ -237,7 +251,7 @@
 		}
 
 	// Sorted
-	.slick-header-column.slick-header-column-sorted {
+	.doby-grid-header-column.slick-header-column-sorted {
 		background: rgba(255,255,255,0.05);
 	}
 
