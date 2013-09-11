@@ -7,40 +7,86 @@
 @import "../libs/lesshat/lesshat";
 @w3c: true;
 
+
 .doby-grid {
 	background: #E8E8E8;
 	border: 1px solid #AAA;
 	font-size: 12px;
 	height: 100%;
+	outline: 0;
+	position: relative;
 }
 
-.slick-header.ui-state-default,
-.slick-headerrow.ui-state-default {
+// Focus Sink
+.doby-grid-focus {
+	height: 0;
+	left: 0;
+	outline: 0;
+	position: fixed;
+	top: 0;
+	width: 0
+}
+
+// Header
+.doby-grid-header,
+.doby-grid-headerrow {
 	border-left: 0;
 	overflow: hidden;
+	position: relative;
 	width: 100%;
 }
 
-.slick-header-columns, .slick-headerrow-columns {
+.doby-grid-header {
+	border-bottom: 1px solid #999;
+	box-shadow: rgba(0,0,0,0.2) 0 4px 4px;
+}
+
+.doby-grid-header-columns,
+.doby-grid-headerrow-columns {
 	cursor: default;
 	overflow: hidden;
 	position: relative;
 	white-space: nowrap;
 }
 
-.slick-header-column.ui-state-default {
+.doby-grid-headerrow span {
+	display: block;
+	height: 1px;
+	left: 0;
+	position: absolute;
+	top: 0;
+}
+
+.doby-grid-header-columns {
+	.gradient(~"linear-gradient(#EEE, #CCC)");
+	font-size: 14px;
+	left: -1000px;
+	text-indent: 4px;
+}
+
+// Header Cell
+.slick-header-column {
 	border: 0;
 	border-right: 1px solid rgba(0,0,0,0.2);
+	box-shadow: #FFF 0 1px 0 inset;
+	color: #111;
 	display: inline-block;
 	float: left;
-	height: 22px;
+	height: 21px;
 	line-height: 22px;
 	margin: 0;
 	padding: 4px;
 	position: relative;
+	.transition(~"background 0.2s ease-in-out, box-shadow 0.2s ease-in-out");
+
+	&.slick-header-sortable:hover {
+		background: rgba(0,0,0,0.05);
+		box-shadow: rgba(0,0,0,0.1) 2px 2px 2px inset;
+		cursor: pointer;
+	}
 }
 
-.slick-headerrow-column.ui-state-default {
+.slick-headerrow-column {
 	padding: 4px;
 }
 
@@ -54,6 +100,7 @@
 	right: -6px;
 	top: 0;
 	width: 10px;
+	z-index: 10;
 
 	span {
 		border-color: rgba(0,0,0,0.2);
@@ -114,7 +161,7 @@
 
 .slick-cell.highlighted {
 	background: rgba(0, 0, 255, 0.2);
-	.transition(~"all 0.5s ease-in-out");
+	.transition(~"all 0.3s ease-in-out");
 }
 
 .slick-cell.flashing {
@@ -199,30 +246,6 @@
 	font-size: 12px;
 }
 
-// Header
-.slick-header {
-	border-bottom: 1px solid #999;
-	box-shadow: rgba(0,0,0,0.2) 0 4px 4px;
-}
-
-.slick-header-columns {
-	.gradient(~"linear-gradient(#EEE, #CCC)");
-	font-size: 14px;
-	text-indent: 4px;
-}
-
-	// Header Cell
-	.slick-header-column {
-		border-top: 1px solid #FFF;
-		color: #111;
-		.transition(~"background 0.2s ease-in-out, box-shadow 0.2s ease-in-out");
-
-		&.slick-header-sortable:hover {
-			background: rgba(0,0,0,0.05);
-			box-shadow: rgba(0,0,0,0.1) 2px 2px 2px inset;
-			cursor: pointer;
-		}
-	}
 
 		// Header Name
 		.slick-column-name {

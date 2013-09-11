@@ -69,6 +69,7 @@
 				});
 			}
 
+			var start = new Date()
 			var grid = new DobyGrid({
 				columns: [{
 					id: "id",
@@ -96,6 +97,19 @@
 				editable: true,
 				reorderable: true
 			}).appendTo($('#gridwrapper'))
+			var end = new Date();
+
+
+			var diff = end-start;
+			var diffoffset = 10;
+			var prevdiff = parseInt(localStorage.prevdiff, 10)
+
+			if (prevdiff && diff > (prevdiff + diffoffset) && diff > 115) {
+				console.error("GRID BECAME SLOWER! Was: "+localStorage.prevdiff+"ms. Now: "+diff+"ms")
+			}
+
+			console.info('Grid rendered in '+diff+'ms')
+			localStorage.prevdiff = diff
 
 		})
 		</script>

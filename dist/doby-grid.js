@@ -38,6 +38,7 @@ define([
 			metadataprovider,
 			processData,
 			toggleHeaderContextMenu,
+			uid = "doby-grid-" + Math.round(1000000 * Math.random()),
 			validateColumns;
 
 		// Default Grid Options
@@ -78,6 +79,7 @@ define([
 			showTopPanel:		false,		// ??
 			selectedCellCssClass: "selected",	// CSS class to apply for selected cells
 			topPanelHeight:		25,			// ??
+			uid:				uid,		// TODO: Remove this from options when SlickGrid is gone
 			variableRowHeight:	false		// Will enable variable row height mode
 		}, options);
 
@@ -103,6 +105,11 @@ define([
 		//
 		// @return object
 		initialize = function () {
+
+			// Validate loaded JavaScript modules against requested options
+			if (self.options.enableColumnReorder && !$.fn.sortable) {
+				throw new Error('In other to use "enableColumnReorder", you must ensure the jquery-ui.sortable module is loaded.');
+			}
 
 			// Calculate some information about the browser window
 			getBrowserData();
@@ -177,6 +184,10 @@ define([
 		//
 		// @return object
 		createGrid = function () {
+
+			// Prepare container
+			self.$el.empty().addClass(self.options.uid);
+
 			var grid = new Grid(self.$el, self.dataView, self.options)
 
 			// Add support for row events
@@ -1228,7 +1239,7 @@ define([
 				initialized = false,
 				columns = options.columns,
 				$container,
-				uid = "slickgrid_" + Math.round(1000000 * Math.random()),
+				uid = options.uid, // TODO: Remove me from here when possible
 				$focusSink, $focusSink2,
 				$headerScroller,
 				$headers,
@@ -1280,6 +1291,12 @@ define([
 				columnPosLeft = [],
 				columnPosRight = [],
 
+				classfocussink = 'doby-grid-focus',
+				classheader = 'doby-grid-header',
+				classheadercolumns = 'doby-grid-header-columns',
+				classheaderrow = 'doby-grid-headerrow',
+				classheaderrowcolumns = 'doby-grid-headerrow-columns',
+
 
 			// async call handles
 				h_editorLoader = null,
@@ -1304,48 +1321,41 @@ define([
 				$container = $(container);
 
 				// Generate a columnsById cache
+				// TODO: This should be moved out of here and into the same place where we validate
+				// columns.
 				columnsById = {};
 				for (var i = 0, l = columns.length; i < l; i++) {
 					columnsById[columns[i].id] = i;
 				}
 
-				// Validate loaded JavaScript modules against requested options
-				if (options.enableColumnReorder && !$.fn.sortable) {
-					throw new Error("SlickGrid's 'enableColumnReorder = true' option requires jquery-ui.sortable module to be loaded");
-				}
-
+				// TODO: Not sure what this is
 				editController = {
 					"commitCurrentEdit": commitCurrentEdit,
 					"cancelCurrentEdit": cancelCurrentEdit
 				};
 
-				$container
-					.empty()
-					.css("outline", 0)
-					.addClass(uid)
-					.addClass("ui-widget");
+				$focusSink = $('<div class="'+classfocussink+'" tabIndex="0"></div>')
+					.appendTo($container);
 
-				// set up a positioning container if needed
-				if (!/relative|absolute|fixed/.test($container.css("position"))) {
-					$container.css("position", "relative");
-				}
+				$headerScroller = $('<div class="' + classheader + '"></div>')
+					.appendTo($container);
 
-				$focusSinkCSS = 'position:fixed;width:0;height:0;top:0;left:0;outline:0';
-				$focusSink = $("<div tabIndex='0' hideFocus style='" + $focusSinkCSS + "'></div>").appendTo($container);
+				$headers = $('<div class="' + classheadercolumns + '"></div>')
+					.appendTo($headerScroller);
 
-				$headerScroller = $("<div class='slick-header ui-state-default' style='overflow:hidden;position:relative;' />").appendTo($container);
-				$headers = $("<div class='slick-header-columns' style='left:-1000px' />").appendTo($headerScroller);
 				$headers.width(getHeadersWidth());
 
-				var hrs_class = 'slick-headerrow ui-state-default',
-					hrs_style = 'overflow:hidden;position:relative'
-				$headerRowScroller = $("<div class='" + hrs_class + "' style='" + hrs_style + "' />").appendTo($container);
-				$headerRow = $("<div class='slick-headerrow-columns' />").appendTo($headerRowScroller);
-				$headerRowSpacer = $("<div style='display:block;height:1px;position:absolute;top:0;left:0;'></div>")
+				$headerRowScroller = $('<div class="' + classheaderrow + '"></div>')
+					.appendTo($container);
+
+				$headerRow = $('<div class="' + classheaderrowcolumns + '"></div>')
+					.appendTo($headerRowScroller);
+
+				$headerRowSpacer = $('<span></span>')
 					.css("width", getCanvasWidth() + scrollbarDimensions.width + "px")
 					.appendTo($headerRowScroller);
 
-				var tps_class = 'slick-top-panel-scroller ui-state-default',
+				var tps_class = 'slick-top-panel-scroller',
 					tps_style = 'overflow:hidden;position:relative'
 
 				$topPanelScroller = $("<div class='" + tps_class + "' style='" + tps_style + "' />").appendTo($container);
@@ -1633,7 +1643,7 @@ define([
 				for (var i = 0; i < columns.length; i++) {
 					var m = columns[i];
 
-					var header = $("<div class='ui-state-default slick-header-column' />")
+					var header = $("<div class='slick-header-column' />")
 						.html("<span class='slick-column-name'>" + m.name + "</span>")
 						.width(m.width - headerColumnWidthDiff)
 						.attr("id", "" + uid + m.id)
@@ -1659,7 +1669,7 @@ define([
 					})
 
 					if (options.showHeaderRow) {
-						var headerRowCell = $("<div class='ui-state-default slick-headerrow-column l" + i + " r" + i + "'></div>")
+						var headerRowCell = $("<div class='slick-headerrow-column l" + i + " r" + i + "'></div>")
 							.data("column", m)
 							.appendTo($headerRow);
 
@@ -1755,7 +1765,7 @@ define([
 					cursor: "default",
 					tolerance: "intersection",
 					helper: "clone",
-					placeholder: "slick-sortable-placeholder ui-state-default slick-header-column",
+					placeholder: "slick-sortable-placeholder slick-header-column",
 					forcePlaceholderSize: true,
 					start: function (e, ui) {
 						$(ui.helper).addClass("slick-header-column-active");
@@ -2044,7 +2054,7 @@ define([
 				var h = ["borderLeftWidth", "borderRightWidth", "paddingLeft", "paddingRight"];
 				var v = ["borderTopWidth", "borderBottomWidth", "paddingTop", "paddingBottom"];
 
-				el = $("<div class='ui-state-default slick-header-column' style='visibility:hidden'>-</div>").appendTo($headers);
+				el = $("<div class='slick-header-column' style='visibility:hidden'>-</div>").appendTo($headers);
 				headerColumnWidthDiff = headerColumnHeightDiff = 0;
 				$.each(h, function (n, val) {
 					headerColumnWidthDiff += parseFloat(el.css(val)) || 0;
@@ -2074,7 +2084,7 @@ define([
 				var rules = [
 					"." + uid + " .slick-header-column {left: 1000px}",
 					"." + uid + " .slick-top-panel {height:" + options.topPanelHeight + "px}",
-					"." + uid + " .slick-headerrow-columns {height:" + options.headerRowHeight + "px}",
+					"." + uid + " ."+classheaderrowcolumns+" {height:" + options.headerRowHeight + "px}",
 					"." + uid + " .slick-cell {height:" + rowHeight + "px;line-height:" + rowHeight + "px}",
 					"." + uid + " .slick-row {height:" + options.rowHeight + "px}"
 				];
@@ -3585,7 +3595,7 @@ define([
 			}
 
 			function handleHeaderContextMenu(e) {
-				var $header = $(e.target).closest(".slick-header-column", ".slick-header-columns");
+				var $header = $(e.target).closest(".slick-header-column", "."+classheadercolumns);
 				var column = $header && $header.data("column");
 				self.trigger('onHeaderContextMenu', {
 					column: column
@@ -3593,7 +3603,7 @@ define([
 			}
 
 			function handleHeaderClick(e) {
-				var $header = $(e.target).closest(".slick-header-column", ".slick-header-columns");
+				var $header = $(e.target).closest(".slick-header-column", "."+classheadercolumns);
 				var column = $header && $header.data("column");
 				if (column) {
 					self.trigger('onHeaderClick', {
