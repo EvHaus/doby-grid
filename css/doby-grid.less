@@ -72,7 +72,7 @@
 		.gradient(~"linear-gradient(#EEE, #D1D1D1)");
 		border-left: 1px solid rgba(0,0,0,0.2);
 
-		.slick-resizable-handle {display: none}
+		.doby-grid-resizable-handle {display: none}
 	}
 }
 
@@ -85,7 +85,7 @@
 }
 
 // Resize handle
-.slick-resizable-handle {
+.doby-grid-resizable-handle {
 	cursor: col-resize;
 	display: block;
 	font-size: 0.1px;
@@ -106,7 +106,7 @@
 	}
 }
 
-.slick-resizable-handle:hover span {
+.doby-grid-resizable-handle:hover span {
 	background: #AAA;
 	border-left: 1px solid rgba(255,255,255,0.8);
 	border-right: 1px solid rgba(0,0,0,0.5);
@@ -240,21 +240,21 @@
 }
 
 
-		// Header Name
-		.slick-column-name {
-			display: block;
-			overflow: hidden;
-			text-overflow: ellipsis;
-			text-shadow: #FFF 0 1px 0;
-			width: 100%;
-		}
+	// Header Name
+	.doby-grid-column-name {
+		display: block;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		text-shadow: #FFF 0 1px 0;
+		width: 100%;
+	}
 
 	// Sorted
 	.doby-grid-header-column.doby-grid-header-column-sorted {
 		background: rgba(255,255,255,0.05);
 	}
 
-		.slick-sort-indicator {
+		.doby-grid-sort-indicator {
 			background: url(../img/fugue/fugue-16.png);
 			display: none;
 			height: 16px;
@@ -264,8 +264,8 @@
 			width: 16px;
 		}
 
-			.slick-sort-indicator-desc {background-position: -128px -64px;display:inline-block}
-			.slick-sort-indicator-asc {background-position: -112px -64px;display:inline-block}
+			.doby-grid-sort-indicator-desc {background-position: -128px -64px;display:inline-block}
+			.doby-grid-sort-indicator-asc {background-position: -112px -64px;display:inline-block}
 
 	// When re-ordering columns
 	.slick-sortable-placeholder {

@@ -4,7 +4,7 @@
 		<title>Doby Grid - Examples</title>
 		<script src="../libs/require.js" type="text/javascript"></script>
 		<link rel="stylesheet/less" type="text/css" href="../css/doby-grid.less" />
-		<style>
+		<style rel="stylesheet" type="text/css">
 			html, body {
 				font-family: Helvetica, Arial, sans-serif;
 				height: 100%;
@@ -93,11 +93,11 @@
 					field: "city",
 					sortable: true
 				}],
-				data: data,
-				editable: true,
-				reorderable: true
+				data: data
 			}).appendTo($('#gridwrapper'))
 			var end = new Date();
+
+			console.log(grid)
 
 
 			var diff = end-start;
