@@ -192,7 +192,6 @@
 	z-index: 10;
 }
 
-
 	.doby-grid-loader {
 		background: rgba(0,0,0,0.5) url(themes/default/img/loader-big.gif) no-repeat center center;
 		bottom: 0;
@@ -234,44 +233,38 @@
 		text-align: center;
 	}
 
-// Table
-.slicktable {
-	font-size: 12px;
+// Header Name
+.doby-grid-column-name {
+	display: block;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	text-shadow: #FFF 0 1px 0;
+	width: 100%;
 }
 
+// Sorted
+.doby-grid-header-column.doby-grid-header-column-sorted {
+	background: rgba(255,255,255,0.05);
+}
 
-	// Header Name
-	.doby-grid-column-name {
-		display: block;
-		overflow: hidden;
-		text-overflow: ellipsis;
-		text-shadow: #FFF 0 1px 0;
-		width: 100%;
+	.doby-grid-sort-indicator {
+		background: url(../img/fugue/fugue-16.png);
+		display: none;
+		height: 16px;
+		position: absolute;
+		right: 5px;
+		top: 7px;
+		width: 16px;
 	}
 
-	// Sorted
-	.doby-grid-header-column.doby-grid-header-column-sorted {
-		background: rgba(255,255,255,0.05);
-	}
+		.doby-grid-sort-indicator-desc {background-position: -128px -64px;display:inline-block}
+		.doby-grid-sort-indicator-asc {background-position: -112px -64px;display:inline-block}
 
-		.doby-grid-sort-indicator {
-			background: url(../img/fugue/fugue-16.png);
-			display: none;
-			height: 16px;
-			position: absolute;
-			right: 5px;
-			top: 7px;
-			width: 16px;
-		}
-
-			.doby-grid-sort-indicator-desc {background-position: -128px -64px;display:inline-block}
-			.doby-grid-sort-indicator-asc {background-position: -112px -64px;display:inline-block}
-
-	// When re-ordering columns
-	.slick-sortable-placeholder {
-		background: rgba(0,0,0,0.1);
-		box-shadow: rgba(0,0,0,0.4) 2px 2px 5px inset;
-	}
+// When re-ordering columns
+.doby-grid-sortable-placeholder {
+	background: rgba(0,0,0,0.1);
+	box-shadow: rgba(0,0,0,0.4) 2px 2px 5px inset;
+}
 
 // Body
 .doby-grid-row.odd:not(.slick-group) {
@@ -329,11 +322,18 @@
 		}
 	}
 
-// ui.grid() Header context menu
-.doby-grid-contextmenu.dropdown {
-	border-color: rgba(255,255,255,0.3) rgba(80,80,80,0.5) rgba(80,80,80,0.4);
-	border-radius: 6px;
-	padding: 4px 0;
+// Header context menu
+.doby-grid-dropdown {
+	background: rgba(255,255,255,0.95);
+	border: 1px solid;
+	border-color: #D2D2D2 #CCC #777;
+	border-radius: 5px;
+	box-shadow: #999 0 4px 4px;
+	left: 0;
+	padding: 5px 0;
+	position: absolute;
+	top: 0;
+	z-index: 2;
 
 	.item {
 		cursor: pointer;
@@ -341,9 +341,8 @@
 		position: relative;
 		.transition(~"background 0.3s ease-in-out");
 		white-space: nowrap;
-
 		&:hover {
-			background: rgba(255,255,255,0.1);
+			background: rgba(0,0,0,0.1);
 		}
 
 		.icon {
@@ -357,7 +356,7 @@
 	}
 
 	.divider {
-		border-top: 1px solid rgba(255,255,255,0.2);
+		border-top: 1px solid rgba(0,0,0,0.2);
 		margin: 2px 0;
 	}
 }

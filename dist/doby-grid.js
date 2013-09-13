@@ -63,6 +63,7 @@ define([
 			classcell = this.NAME + '-cell',
 			classcolumnname = this.NAME + '-column-name',
 			classcontextmenu = this.NAME + '-contextmenu',
+			classdropdown = this.NAME + '-dropdown',
 			classfocussink = this.NAME + '-focus',
 			classhandle = this.NAME + '-resizable-handle',
 			classheader = this.NAME + '-header',
@@ -71,6 +72,7 @@ define([
 			classheadercolumnactive = this.NAME + '-header-column-active',
 			classheadercolumnsorted = this.NAME + '-header-column-sorted',
 			classheadersortable = this.NAME + '-header-sortable',
+			classplaceholder = this.NAME + '-sortable-placeholder',
 			classrow = this.NAME + '-row',
 			classsortindicator = this.NAME + '-sort-indicator',
 			classsortindicatorasc = classsortindicator + '-asc',
@@ -97,6 +99,7 @@ define([
 			defaultFormatter,
 			destroy,
 			disableSelection,
+			dropdown,
 			editController,		// TODO: Candidate for removal
 			enableSort,
 			ensureCellNodesInRowsCache,
@@ -115,9 +118,9 @@ define([
 			getCellFromEvent,
 			getCellFromNode,
 			getCellNodeBox,
+			getColumnById,
 			getColumnCssRules,
 			getColumnIndex,
-			getColumns,
 			getColspan,
 			getContainerNode,
 			getData,
@@ -130,6 +133,7 @@ define([
 			getFormatter,
 			getGridPosition,
 			getHeadersWidth,
+			getLocale,
 			getMaxCSSHeight,
 			getOptions,
 			getRenderedRange,
@@ -139,7 +143,6 @@ define([
 			getScrollbarSize,
 			getSelectedRows,
 			getSelectionModel,
-			getSortColumns,
 			getVBoxDelta,
 			getViewportHeight,
 			getVisibleRange,
@@ -170,6 +173,8 @@ define([
 			handleMouseLeave,
 			handleScroll,
 			handleSelectedRangesChanged,
+			hasGrouping,
+			hasSorting,
 			headerColumnWidthDiff = 0,
 			headerColumnHeightDiff = 0, // border+padding
 			initialize,
@@ -181,6 +186,8 @@ define([
 			invalidateRow,
 			invalidateRows,
 			isCellPotentiallyEditable,
+			isGrouped,
+			isSorted,
 			lastRenderedScrollLeft = 0,
 			lastRenderedScrollTop = 0,
 			makeActiveCellEditable,
@@ -295,6 +302,36 @@ define([
 			groupable:			true,		// Can the values be grouped
 			headerMenu:			true,		// Display context menu for headers
 			leaveSpaceForNewRows: false,	// (TODO) Candidate for removal?
+			locale: {
+				column: {
+					add_group:				'Add Grouping By "{{name}}"',
+					add_sort_asc:			'Add Sort By "{{name}}" (Ascending)',
+					add_sort_desc:			'Add Sort By "{{name}}" (Descending)',
+					force_fit:				'Force Fit Columns',
+					group:					'Group By "{{name}}"',
+					groups_clear:			'Clear All Grouping',
+					groups_collapse:		'Collapse All Groups',
+					groups_expand:			'Expand All Groups',
+					remove:					'Remove "{{name}}" Column',
+					remove_group:			'Remove Grouping By "{{name}}"',
+					remove_sort:			'Remove Sort By "{{name}}"',
+					sort_asc:				'Sort By "{{name}}" (Ascending)',
+					sort_desc:				'Sort By "{{name}}" (Descending)'
+				},
+
+				error: {
+					after_before:			'Doby Grid cannot use "insertBefore" and "insertAfter" at the same time.',
+					bad_column_options:		'Doby Grid cannot set the sorting because the "column_options" parameter must be an array of objects.',
+					missing_column_id:		'Grid cannot sort by blank value. Column Id must be specified.',
+					missing_options:		'Doby Grid could not be initialized because the given "options" parameter must be an object.',
+					no_such_row:			'Doby Grid cannot invalidate row because no row with id "{{id}}" count be found.',
+					unable_to_fetch:		'Unable to fetch remote data set due to a server error.'
+				},
+
+				remote: {
+					no_results:				'No results found'
+				}
+			},
 			multiColumnSort:	true,		// Allow sorting by multiple columns
 			multiSelect:		true,		// ??
 			remote:				false,		// Use remote data set
@@ -581,7 +618,7 @@ define([
 			// Register the remote fetching when the viewport changes
 			if (this.options.remote) {
 				this.grid.onViewportChanged.subscribe(function (e, args) {
-					var vp = self.grid.getViewport();
+					var vp = getViewport();
 					self.loader.fetch(vp.top, vp.bottom);
 				});
 			}
@@ -941,7 +978,7 @@ define([
 
 
 		// createGrid()
-		// Generates the SlickGrid object
+		// Generates the grid elements
 		//
 		// @return object
 		createGrid = function () {
@@ -1297,7 +1334,7 @@ define([
 				var group,
 					val,
 					groups = [],
-					groupsByVal = [],
+					groupsByVal = {},
 					r,
 					level = parentGroup ? parentGroup.level + 1 : 0,
 					gi = groupingInfos[level],
@@ -1915,6 +1952,30 @@ define([
 		}
 
 
+		// destroy()
+		// ??
+		//
+		destroy = function () {
+			self.trigger('onBeforeDestroy', {});
+
+			var i = plugins.length;
+			while (i--) {
+				unregisterPlugin(plugins[i]);
+			}
+
+			if (self.options.enableColumnReorder) {
+				$headers.filter(":ui-sortable").sortable("destroy");
+			}
+
+			unbindAncestorScrollEvents();
+			self.$el.unbind("." + self.NAME);
+			removeCssRules();
+
+			$canvas.unbind("draginit dragstart dragend drag");
+			self.$el.empty().removeClass(uid);
+		}
+
+
 		// disableSelection()
 		// Disable all text selection in header (including input and textarea).
 		//
@@ -1935,6 +1996,121 @@ define([
 					return false;
 				}); // from jquery:ui.core.js 1.7.2
 			}
+		}
+
+
+
+		// dropdown()
+		// Creates a new dropdown menu.
+		//
+		// @param	event		object		Javascript event object
+		// @param	options		object		Additional dropdown options
+		//
+		// @return object
+		dropdown = function (event, options) {
+
+			var self = this;
+
+			// Is the dropdown currently shown?
+			this.open = false;
+
+			this.initialize = function () {
+				this.$parent = options.parent || $(event.currentTarget);
+				this.$el = options.menu;
+				this.id = [uid, classdropdown, options.id].join('_')
+
+				// Create data store in the parent object if it doesn't already exist
+				var existing = null;
+				if (!this.$parent.data(classdropdown)) {
+					this.$parent.data(classdropdown, [])
+				} else {
+					// Also find the existing dropdown for this id (if it exists)
+					existing = this.$parent.data(classdropdown).filter(function (i) {
+						return i.id == self.id;
+					})
+					if (existing) existing = existing[0]
+				}
+
+				// If this parent already has a dropdown enabled -- initializing will close it
+				if (existing && existing.open) {
+					existing.hide()
+				} else {
+					// Ensure dropdown has the right styling
+					this.$el.attr('id', this.id)
+					this.$el.addClass(classdropdown)
+					this.show()
+				}
+
+				// Clicking outside - closes the dropdown
+				var bodyEscape;
+				bodyEscape = function (e) {
+					if (e.target == event.target) return;
+					self.hide()
+					$(document).off('click', bodyEscape)
+				}
+
+				$(document).on('click', bodyEscape)
+
+				return this;
+			}
+
+
+			// show()
+			// Displays the dropdown
+			//
+			this.show = function () {
+				if (this.open) return;
+
+				this.$el
+					.hide()
+					.appendTo(this.$parent)
+					.fadeIn(150);
+
+				this.position();
+
+				var store = this.$parent.data(classdropdown)
+				store.push(this)
+				this.$parent.data(classdropdown, store)
+
+				this.open = true;
+			}
+
+
+			// hide()
+			// Hides the dropdown
+			//
+			this.hide = function () {
+				if (!this.open) return;
+
+				var store = this.$parent.data(classdropdown).filter(function (i) {
+					return i != self
+				})
+
+				this.$parent.data(classdropdown, store)
+
+				this.$el
+					.fadeOut(150, function () {
+						$(this).remove()
+					})
+
+				this.open = false;
+			}
+
+
+			// position()
+			// Positions the dropdown in the right spot
+			//
+			this.position = function () {
+				var top = event.clientY - this.$parent.offset().top,
+					left = event.clientX - this.$parent.offset().left;
+
+				this.$el.css({
+					left: left,
+					top: top
+				})
+			}
+
+			return this.initialize();
 		}
 
 
@@ -2007,8 +2183,8 @@ define([
 
 			// SlickGrid docs say this is needed... but it seems to work fine without it...
 			// Most likely causing un-necessary processing
-			//self.grid.invalidate();
-			//self.grid.render();
+			//invalidate();
+			//render();
 		}
 
 
@@ -2071,6 +2247,17 @@ define([
 					"cell": cell
 				};
 			}
+		}
+
+
+		// getColumnById()
+		// Returns the column object given the column id
+		//
+		// @param	column_id		string		Id the column to lookup
+		//
+		// @return object
+		getColumnById = function (column_id) {
+			return _.findWhere(self.options.columns, {id: column_id})
 		}
 
 
@@ -2232,6 +2419,33 @@ define([
 			headersWidth += scrollbarDimensions.width;
 
 			return Math.max(headersWidth, viewportW) + 1000;
+		}
+
+
+		// getLocale()
+		// Formats a string of text for display to the end user
+		//
+		// @param	key		string		Key string to fetch in locale object
+		// @param	data	object		Object to pass in
+		//
+		// @return string
+		getLocale = function (key, data) {
+			data = data || {}
+
+			// Convert "a.b.c" notation to reference in options.locale
+			var string = self.options.locale;
+			_.each(key.split('.'), function (p) {
+				string = string[p];
+			})
+
+			if (!string) {
+				throw new Error('Doby Grid does not have a locale string defined for "' + key + '"');
+			}
+
+			// Parse data object and return locale string
+			return _.template(string, data, {
+				interpolate: /\{\{(.+?)\}\}/gim
+			})
 		}
 
 
@@ -2716,26 +2930,6 @@ define([
 			}
 		}
 
-		destroy = function () {
-			self.trigger('onBeforeDestroy', {});
-
-			var i = plugins.length;
-			while (i--) {
-				unregisterPlugin(plugins[i]);
-			}
-
-			if (self.options.enableColumnReorder) {
-				$headers.filter(":ui-sortable").sortable("destroy");
-			}
-
-			unbindAncestorScrollEvents();
-			self.$el.unbind(".slickgrid");
-			removeCssRules();
-
-			$canvas.unbind("draginit dragstart dragend drag");
-			self.$el.empty().removeClass(uid);
-		}
-
 		ensureCellNodesInRowsCache = function (row) {
 			var cacheEntry = rowsCache[row];
 			if (cacheEntry) {
@@ -2894,11 +3088,6 @@ define([
 			};
 		}
 
-		// TODO: REMOVE THIS UGLY FUNCTION
-		getColumns = function () {
-			return self.options.columns;
-		}
-
 		getColspan = function (row, cell) {
 			var metadata = self.dataView.getItemMetadata && self.dataView.getItemMetadata(row);
 			if (!metadata || !metadata.columns) {
@@ -2970,10 +3159,6 @@ define([
 
 		getSelectionModel = function () {
 			return selectionModel;
-		}
-
-		getSortColumns = function () {
-			return sortColumns;
 		}
 
 		gotoCell = function (row, cell, forceEdit) {
@@ -3159,30 +3344,6 @@ define([
 			}
 		}
 
-		handleSelectedRangesChanged = function (e, ranges) {
-			selectedRows = [];
-			var hash = {};
-			for (var i = 0; i < ranges.length; i++) {
-				for (var j = ranges[i].fromRow; j <= ranges[i].toRow; j++) {
-					if (!hash[j]) { // prevent duplicates
-						selectedRows.push(j);
-						hash[j] = {};
-					}
-					for (var k = ranges[i].fromCell; k <= ranges[i].toCell; k++) {
-						if (canCellBeSelected(j, k)) {
-							hash[j][self.options.columns[k].id] = options.selectedCellCssClass;
-						}
-					}
-				}
-			}
-
-			setCellCssStyles(options.selectedCellCssClass, hash);
-
-			self.trigger('onSelectedRowsChanged', e, {
-				rows: getSelectedRows()
-			})
-		}
-
 		initializeRowPositions = function () {
 			rowPositionCache = {
 				0: {
@@ -3233,25 +3394,6 @@ define([
 					removeRowFromCache(rows[i]);
 				}
 			}
-		}
-
-		isCellPotentiallyEditable = function (row, cell) {
-			// is the data for this row loaded?
-			if (row < getDataLength() && !getDataItem(row)) {
-				return false;
-			}
-
-			// are we in the Add New row?  can we create new from this cell?
-			if (self.options.columns[cell].cannotTriggerInsert && row >= getDataLength()) {
-				return false;
-			}
-
-			// does this cell have an editor?
-			if (!getEditor(row, cell)) {
-				return false;
-			}
-
-			return true;
 		}
 
 		makeActiveCellEditable = function (editor) {
@@ -4061,6 +4203,36 @@ define([
 		}
 
 
+		// handleSelectedRangesChanges()
+		// Handles the event for when selection range is changed
+		//
+		// @param	e	object		Javascript event object
+		//
+		handleSelectedRangesChanged = function (e, ranges) {
+			selectedRows = [];
+			var hash = {};
+			for (var i = 0, l = ranges.length; i < l; i++) {
+				for (var j = ranges[i].fromRow; j <= ranges[i].toRow; j++) {
+					if (!hash[j]) { // prevent duplicates
+						selectedRows.push(j);
+						hash[j] = {};
+					}
+					for (var k = ranges[i].fromCell; k <= ranges[i].toCell; k++) {
+						if (canCellBeSelected(j, k)) {
+							hash[j][self.options.columns[k].id] = options.selectedCellCssClass;
+						}
+					}
+				}
+			}
+
+			setCellCssStyles(self.options.selectedCellCssClass, hash);
+
+			self.trigger('onSelectedRowsChanged', e, {
+				rows: getSelectedRows()
+			})
+		}
+
+
 		// handleScroll()
 		// Handles the offsets and event that need to fire when a user is scrolling
 		//
@@ -4119,6 +4291,81 @@ define([
 				scrollLeft: scrollLeft,
 				scrollTop: scrollTop
 			})
+		}
+
+
+		// hasGrouping()
+		// Returns list of column_ids that the grid has a grouping for.
+		// Otherwise returns false.
+		//
+		// @param	column_id	string		ID of the column to check grouping for
+		//
+		// @return boolean, array
+		hasGrouping = function (column_id) {
+			if (!column_id) return false
+			var column = getColumnById(column_id)
+			if (!column) return false
+			var grouping = self.dataView.getGrouping(),
+				column_ids = _.pluck(grouping, 'column_id')
+			return column_ids.indexOf(column_id) >= 0 ? column_ids : false
+		}
+
+
+		// hasSorting()
+		// Returns true if there is a sorting enabled for a given column id.
+		//
+		// @param	column_id	string		ID of the column to check sorting for
+		//
+		// @return boolean
+		hasSorting = function (column_id) {
+			if (!column_id) return false
+			var column_ids = _.pluck(sortColumns, 'columnId')
+			return column_ids.indexOf(column_id) >= 0;
+		}
+
+
+		// isCellPotentiallyEditable()
+		// Determines if a given cell is editable
+		//
+		// @param	row		integer		ID of the row
+		// @param	cell	integer		ID of the cell
+		//
+		// @return boolean
+		isCellPotentiallyEditable = function (row, cell) {
+			// is the data for this row loaded?
+			if (row < getDataLength() && !getDataItem(row)) {
+				return false;
+			}
+
+			// are we in the Add New row?  can we create new from this cell?
+			if (self.options.columns[cell].cannotTriggerInsert && row >= getDataLength()) {
+				return false;
+			}
+
+			// does this cell have an editor?
+			if (!getEditor(row, cell)) {
+				return false;
+			}
+
+			return true;
+		}
+
+
+		// isGrouped()
+		// Returns true if the grid is currently grouped by a value
+		//
+		// @return boolean
+		this.isGrouped = function () {
+			return this.dataView.getGrouping().length ? true : false
+		}
+
+
+		// isSorted()
+		// Returns true if the grid is currently sorted by a value
+		//
+		// @return boolean
+		this.isSorted = function () {
+			return sortColumns.length ? true : false
 		}
 
 
@@ -4305,23 +4552,29 @@ define([
 				.appendTo($headers);
 
 			headerColumnWidthDiff = headerColumnHeightDiff = 0;
-			$.each(h, function (n, val) {
-				headerColumnWidthDiff += parseFloat(el.css(val)) || 0;
-			});
-			$.each(v, function (n, val) {
-				headerColumnHeightDiff += parseFloat(el.css(val)) || 0;
-			});
+
+			if (el.css("box-sizing") != "border-box" && el.css("-moz-box-sizing") != "border-box" && el.css("-webkit-box-sizing") != "border-box") {
+				$.each(h, function (n, val) {
+					headerColumnWidthDiff += parseFloat(el.css(val)) || 0;
+				});
+				$.each(v, function (n, val) {
+					headerColumnHeightDiff += parseFloat(el.css(val)) || 0;
+				});
+			}
 			el.remove();
 
 			var r = $('<div class="' + classrow + '"></div>').appendTo($canvas);
 			el = $('<div class="' + classcell + '" style="visibility:hidden">-</div>').appendTo(r);
 			cellWidthDiff = cellHeightDiff = 0;
-			$.each(h, function (n, val) {
-				cellWidthDiff += parseFloat(el.css(val)) || 0;
-			});
-			$.each(v, function (n, val) {
-				cellHeightDiff += parseFloat(el.css(val)) || 0;
-			});
+
+			if (el.css("box-sizing") != "border-box" && el.css("-moz-box-sizing") != "border-box" && el.css("-webkit-box-sizing") != "border-box") {
+				$.each(h, function (n, val) {
+					cellWidthDiff += parseFloat(el.css(val)) || 0;
+				});
+				$.each(v, function (n, val) {
+					cellHeightDiff += parseFloat(el.css(val)) || 0;
+				});
+			}
 			r.remove();
 
 			absoluteColumnMinWidth = Math.max(headerColumnWidthDiff, cellWidthDiff);
@@ -4446,7 +4699,7 @@ define([
 				self.loader.onDataLoading.subscribe(function () {showLoader()});
 				self.loader.onDataLoaded.subscribe(function (e, args) {
 					for (var i = args.from; i <= args.to; i++) {
-						self.grid.invalidateRow(i);
+						invalidateRow(i);
 					}
 
 					// Display alert if empty
@@ -4461,8 +4714,8 @@ define([
 						self.dataView.setLength(1)
 					}
 
-					self.grid.updateRowCount();
-					self.grid.render();
+					updateRowCount();
+					render();
 
 					hideLoader()
 				});
@@ -4496,6 +4749,29 @@ define([
 				"key": key,
 				"hash": null
 			})
+		}
+
+
+		// removeColumn()
+		// Removes a column from the grid
+		//
+		// @param	column_id		integer		'id' key of the column definition
+		//
+		// @return object
+		this.removeColumn = function(column_id) {
+			if (!column_id) return this
+
+			var newcolumns = this.options.columns.filter(function(item) {
+				return item.id != column_id
+			})
+
+			// If column had a grouping - remove that grouping
+			if (hasGrouping(column_id)) {
+				this.removeGrouping(column_id)
+			}
+
+			setColumns(newcolumns);
+			return this
 		}
 
 
@@ -4625,7 +4901,7 @@ define([
 			viewportW = parseFloat($.css(self.$el[0], "width", true));
 			$viewport.height(viewportH);
 
-			if (options.forceFitColumns) {
+			if (self.options.forceFitColumns) {
 				autosizeColumns();
 			}
 
@@ -4742,6 +5018,25 @@ define([
 		}
 
 
+		// setOptions()
+		// Given a set of options, updates the grid accordingly
+		//
+		// @param	args		object		New options object data
+		//
+		this.setOptions = function (args) {
+			makeActiveCellNormal();
+
+			if (self.options.enableAddRow !== args.enableAddRow) {
+				invalidateRow(getDataLength());
+			}
+
+			self.options = $.extend(self.options, args);
+
+			$viewport.css("overflow-y", self.options.autoHeight ? "hidden" : "auto");
+			render();
+		}
+
+
 		// setSortColumns()
 		// Styles the column headers according to the current sorting data
 		//
@@ -4771,6 +5066,40 @@ define([
 		}
 
 
+		// setSorting()
+		// Sets the sorting for the grid data view.
+		//
+		// @param	column_options		array		List of column options to use for sorting
+		//
+		// @return object
+		this.setSorting = function(column_options) {
+			if (!$.isArray(column_options)) throw new Error(getLocale("error.bad_column_options"))
+
+			// This doesn't actually sort anything because SlickGrid is terrible
+			// at offering programmatic handlers... See:
+			// http://stackoverflow.com/questions/9678309/calling-sort-on-slickgrid
+			setSortColumns(column_options)
+
+			// Re-process column args into something the execute sorter can understand
+			var args = {
+				multiColumnSort: true,
+				sortCols: []
+			}
+
+			_.each(column_options, function(col, i) {
+				args.sortCols.push({
+					sortCol: getColumnById(col.columnId),
+					sortAsc: col.sortAsc
+				})
+			});
+
+			// Manually execute the sorter that will actually re-draw the table
+			executeSorter(args)
+
+			return this
+		}
+
+
 		// setupColumnReorder()
 		// Allows columns to be re-orderable
 		//
@@ -4783,9 +5112,9 @@ define([
 				cursor: "default",
 				tolerance: "intersection",
 				helper: "clone",
-				placeholder: "slick-sortable-placeholder " + classheadercolumn,
-				forcePlaceholderSize: true,
+				placeholder: classplaceholder + " " + classheadercolumn,
 				start: function (e, ui) {
+					ui.placeholder.width(ui.helper.outerWidth() - headerColumnWidthDiff);
 					$(ui.helper).addClass(classheadercolumnactive);
 				},
 				beforeStop: function (e, ui) {
@@ -5075,9 +5404,6 @@ define([
 		//
 		setupColumnSort = function () {
 			$headers.click(function (e) {
-				// temporary workaround for a bug in jQuery 1.7.1 (http://bugs.jquery.com/ticket/11328)
-				e.metaKey = e.metaKey || e.ctrlKey;
-
 				if ($(e.target).hasClass(classhandle) || $(e.target).closest("." + classhandle).length) {
 					return;
 				}
@@ -5088,58 +5414,74 @@ define([
 				}
 
 				var column = $col.data("column");
-				if (column.sortable) {
-					var sortOpts = null;
-					var i = 0;
-					for (; i < sortColumns.length; i++) {
-						if (sortColumns[i].columnId == column.id) {
-							sortOpts = sortColumns[i];
-							sortOpts.sortAsc = !sortOpts.sortAsc;
-							break;
-						}
-					}
+				if (!column.sortable) return
 
-					if (e.metaKey && options.multiColumnSort) {
-						if (sortOpts) {
-							sortColumns.splice(i, 1);
-						}
-					} else {
-						if ((!e.shiftKey && !e.metaKey) || !options.multiColumnSort) {
-							sortColumns = [];
-						}
-
-						if (!sortOpts) {
-							sortOpts = {
-								columnId: column.id,
-								sortAsc: column.defaultSortAsc
-							};
-							sortColumns.push(sortOpts);
-						} else if (sortColumns.length === 0) {
-							sortColumns.push(sortOpts);
-						}
-					}
-
-					setSortColumns(sortColumns);
-
-					if (!self.options.multiColumnSort) {
-						self.trigger('onSort', e, {
-							multiColumnSort: false,
-							sortCol: column,
-							sortAsc: sortOpts.sortAsc
-						})
-					} else {
-						self.trigger('onSort', e, {
-							multiColumnSort: true,
-							sortCols: $.map(sortColumns, function (col) {
-								return {
-									sortCol: self.options.columns[getColumnIndex(col.columnId)],
-									sortAsc: col.sortAsc
-								};
-							})
-						})
+				var sortOpts = null;
+				for (var i = 0, l = sortColumns.length; i < l; i++) {
+					if (sortColumns[i].columnId == column.id) {
+						sortOpts = sortColumns[i];
+						sortOpts.sortAsc = !sortOpts.sortAsc;
+						break;
 					}
 				}
+
+				if (e.metaKey && options.multiColumnSort) {
+					if (sortOpts) {
+						sortColumns.splice(i, 1);
+					}
+				} else {
+					if ((!e.shiftKey && !e.metaKey) || !options.multiColumnSort) {
+						sortColumns = [];
+					}
+
+					if (!sortOpts) {
+						sortOpts = {
+							columnId: column.id,
+							sortAsc: column.defaultSortAsc
+						};
+						sortColumns.push(sortOpts);
+					} else if (sortColumns.length === 0) {
+						sortColumns.push(sortOpts);
+					}
+				}
+
+				setSortColumns(sortColumns);
+
+				if (!self.options.multiColumnSort) {
+					self.trigger('onSort', e, {
+						multiColumnSort: false,
+						sortCol: column,
+						sortAsc: sortOpts.sortAsc
+					})
+				} else {
+					self.trigger('onSort', e, {
+						multiColumnSort: true,
+						sortCols: $.map(sortColumns, function (col) {
+							return {
+								sortCol: self.options.columns[getColumnIndex(col.columnId)],
+								sortAsc: col.sortAsc
+							};
+						})
+					})
+				}
 			});
+		}
+
+
+		// sortBy()
+		// Sort the grid by a given column id
+		//
+		// @param	column_id	string		Id of the column by which to sort
+		// @param	ascending	boolean		Is the sort direction ascending?
+		//
+		// @return object
+		this.sortBy = function(column_id, ascending) {
+			if (ascending === undefined) ascending = true
+			if (!column_id)	throw new Error($.t("ui:grid.error.missing_column_id"))
+			return this.setSorting([{
+				columnId: column_id,
+				sortAsc: ascending
+			}])
 		}
 
 
@@ -5160,12 +5502,12 @@ define([
 		// right-clicked.
 		//
 		// @param	event		object		Javascript event object
-		// @param	args		object		SlickGrid argument object
+		// @param	args		object		Event object data
 		//
 		toggleHeaderContextMenu = function (event, args) {
 			event.preventDefault();
 
-			var column = args.column || {}
+			var column = args.column || false
 
 			// Menu data object which will define what the menu will have
 			//
@@ -5175,111 +5517,108 @@ define([
 			// @param	fn			function	Function to execute when item clicked
 			//
 			var menuData = [{
-				enabled: column.removable,
-				name: $.t('ui:grid.column.remove', {name: column.name}),
+				enabled: column && column.removable,
+				name: column ? getLocale('column.remove', {name: column.name}) : '',
 				fn: function () {
 					self.removeColumn(column.id)
 				}
 			}, {
-				enabled: column.sortable,
+				enabled: column && column.sortable,
 				divider: true
 			}, {
-				enabled: column.sortable && !hasSorting(column.id),
-				name: $.t('ui:grid.column.sort_asc', {name: column.name}),
+				enabled: column && column.sortable && !hasSorting(column.id),
+				name: column ? getLocale('column.sort_asc', {name: column.name}) : '',
 				fn: function () {
 					self.sortBy(column.id, true)
 				}
 			}, {
-				enabled: column.sortable && !hasSorting(column.id),
-				name: $.t('ui:grid.column.sort_desc', {name: column.name}),
+				enabled: column && column.sortable && !hasSorting(column.id),
+				name: column ? getLocale('column.sort_desc', {name: column.name}) : '',
 				fn: function () {
 					self.sortBy(column.id, false)
 				}
 			}, {
-				enabled: column.sortable && self.isSorted() && !hasSorting(column.id),
-				name: $.t('ui:grid.column.add_sort_asc', {name: column.name}),
+				enabled: column && column.sortable && self.isSorted() && !hasSorting(column.id),
+				name: column ? getLocale('column.add_sort_asc', {name: column.name}) : '',
 				fn: function () {
-					sort = self.grid.getSortColumns()
-					sort.push({columnId: column.id, sortAsc: true})
+					sortColumns.push({columnId: column.id, sortAsc: true})
 					self.setSorting(sort)
 				}
 			}, {
-				enabled: column.sortable && self.isSorted() && !hasSorting(column.id),
-				name: $.t('ui:grid.column.add_sort_desc', {name: column.name}),
+				enabled: column && column.sortable && self.isSorted() && !hasSorting(column.id),
+				name: column ? getLocale('column.add_sort_desc', {name: column.name}) : '',
 				fn: function () {
-					sort = self.grid.getSortColumns()
-					sort.push({columnId: column.id, sortAsc: false})
+					sortColumns.push({columnId: column.id, sortAsc: false})
 					self.setSorting(sort)
 				}
 			}, {
-				enabled: column.sortable && hasSorting(column.id),
-				name: $.t('ui:grid.column.remove_sort', {name: column.name}),
+				enabled: column && column.sortable && hasSorting(column.id),
+				name: column ? getLocale('column.remove_sort', {name: column.name}) : '',
 				fn: function () {
-					sort = self.grid.getSortColumns()
-					sort = _.filter(sort, function (s) {
+					sort = _.filter(sortColumns, function (s) {
 						return s.columnId != column.id
 					})
 					self.setSorting(sort)
 				}
 			}, {
-				enabled: self.options.groupable && column.groupable,
+				enabled: self.options.groupable && column && column.groupable,
 				divider: true
 			}, {
-				enabled: self.options.groupable && column.groupable && (!hasGrouping(column.id) || !self.isGrouped()),
-				name: $.t('ui:grid.column.group', {name: column.name}),
+				enabled: self.options.groupable && column && column.groupable && (!hasGrouping(column.id) || !self.isGrouped()),
+				name: column ? getLocale('column.group', {name: column.name}) : '',
 				fn: function () {
 					self.setGrouping([column.id])
 					self.dataView.collapseAllGroups()
 				}
 			}, {
-				enabled: self.options.groupable && column.groupable && !hasGrouping(column.id) && self.isGrouped(),
-				name: $.t('ui:grid.column.add_group', {name: column.name}),
+				enabled: self.options.groupable && column && column.groupable && !hasGrouping(column.id) && self.isGrouped(),
+				name: column ? getLocale('column.add_group', {name: column.name}) : '',
 				fn: function () {
 					self.addGrouping(column.id)
 				}
 			}, {
-				enabled: self.options.groupable && hasGrouping(column.id),
-				name: $.t('ui:grid.column.remove_group', {name: column.name}),
+				enabled: self.options.groupable && column && hasGrouping(column.id),
+				name: column ? getLocale('column.remove_group', {name: column.name}) : '',
 				fn: function () {
 					self.removeGrouping(column.id)
 				}
 			}, {
-				enabled: self.options.groupable && self.isGrouped(),
-				name: $.t("ui:grid.column.groups_clear"),
+				enabled: self.options.groupable && column && self.isGrouped(),
+				name: getLocale("column.groups_clear"),
 				fn: function () {
 					self.setGrouping()
 				}
 			}, {
-				enabled: self.options.groupable && self.isGrouped(),
+				enabled: self.options.groupable && column && self.isGrouped(),
 				divider: true
 			}, {
-				enabled: self.options.groupable && self.isGrouped(),
-				name: $.t('ui:grid.column.groups_expand'),
+				enabled: self.options.groupable && column && self.isGrouped(),
+				name: getLocale('column.groups_expand'),
 				fn: function () {
 					self.dataView.expandAllGroups()
 				}
 			}, {
-				enabled: self.options.groupable && self.isGrouped(),
-				name: $.t('ui:grid.column.groups_collapse'),
+				enabled: self.options.groupable && column && self.isGrouped(),
+				name: getLocale('column.groups_collapse'),
 				fn: function () {
 					self.dataView.collapseAllGroups()
 				}
 			}, {
-				enabled: column.sortable || column.removable || column.groupable,
+				enabled: column && (column.sortable || column.removable || column.groupable),
 				divider: true
 			}, {
-				name: $.t('ui:grid.column.force_fit'),
-				value: self.grid.getOptions().forceFitColumns,
+				name: getLocale('column.force_fit'),
+				value: self.options.forceFitColumns,
 				fn: function () {
-					force = !self.grid.getOptions().forceFitColumns
-					self.grid.setOptions({
+					force = !self.options.forceFitColumns
+					self.setOptions({
 						forceFitColumns: force
 					});
-					if (force) self.grid.autosizeColumns();
+					if (force) autosizeColumns();
 
 					// Re-render columns
 					// Pending https://github.com/mleibman/SlickGrid/issues/686
-					self.grid.setColumns(self.getColumns());
+					setColumns(self.options.columns);
 				}
 			}]
 
@@ -5305,12 +5644,11 @@ define([
 			});
 
 			// Create dropdown
-			new ui.dropdown({
-				destroy:	true,
-				event:      event,
-				reposition: true,
-				menu:       $menu
-			}).appendTo(self.$el)
+			new dropdown(event, {
+				id: column.id,
+				menu: $menu,
+				parent: self.$el
+			})
 		}
 
 
