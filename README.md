@@ -20,6 +20,7 @@ Doby Grid is stand-alone module (and part of the Doby JS framework) for renderin
 - Support for editing and creating new rows, cells and columns on the fly just like a spreadsheet
 - Column grouping, data filtering, and footer aggregators
 - Integrates with your existing Backbone Collections and Models
+- Easily integrates with i18n libraries
 
 ### Dependencies
 
@@ -36,6 +37,10 @@ Download the *doby-grid.js* file and drop it into your web app. Then include int
 Then simply call:
 
 	new DobyGrid({...}).appendTo($(document.body))
+
+### Documentation
+
+_Coming Soon_
 
 ---
 

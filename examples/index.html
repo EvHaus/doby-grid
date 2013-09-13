@@ -53,12 +53,17 @@
 			}
 		});
 
+		// Less Config
+		var less = {
+			env: "production"
+		}
+
 		// Initialize doby
 		require(['less', 'dobygrid'], function(less, DobyGrid) {
 
 			// Generate Data
 			var data = []
-			for (var i = 0; i < 100000; i++) {
+			for (var i = 0; i < 1000000; i++) {
 				data.push({
 					data: {
 						id: i,

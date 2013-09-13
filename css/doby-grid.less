@@ -62,7 +62,7 @@
 	position: relative;
 	.transition(~"background 0.2s ease-in-out, box-shadow 0.2s ease-in-out");
 
-	&.slick-header-sortable:hover {
+	&.doby-grid-header-sortable:hover {
 		background: rgba(0,0,0,0.05);
 		box-shadow: rgba(0,0,0,0.1) 2px 2px 2px inset;
 		cursor: pointer;
@@ -120,14 +120,14 @@
 	position: relative;
 }
 
-.slick-row {
+.doby-grid-row {
 	border-bottom: 1px solid rgba(0,0,0,0.2);
 	border-top: 1px solid rgba(255,255,255,0.5);
 	position: absolute;
 	width: 100%;
 }
 
-.slick-cell {
+.doby-grid-cell {
 	border-right: 1px dotted rgba(0,0,0,0.2);
 	cursor: default;
 	margin: 0;
@@ -141,6 +141,10 @@
 	&.nopad {
 		padding: 0
 	}
+
+	&:focus {
+		outline: none;
+	}
 }
 
 .slick-group-toggle {
@@ -152,24 +156,20 @@
 	margin-right: 8px;
 }
 
-.slick-cell.highlighted {
+.doby-grid-cell.highlighted {
 	background: rgba(0, 0, 255, 0.2);
 	.transition(~"all 0.3s ease-in-out");
 }
 
-.slick-cell.flashing {
+.doby-grid-cell.flashing {
 	border: 1px solid red !important;
 }
 
-.slick-cell.editable {
+.doby-grid-cell.editable {
 	background: rgba(0,0,0,0.1);
 	box-shadow: rgba(0,0,0,0.4) 4px 4px 2px inset;
 	overflow: visible;
 	z-index: 11;
-}
-
-.slick-cell:focus {
-	outline: none;
 }
 
 .slick-reorder-proxy {
@@ -270,11 +270,11 @@
 	// When re-ordering columns
 	.slick-sortable-placeholder {
 		background: rgba(0,0,0,0.1);
-		box-shadow: rgba(0,0,0,0.4) 0 0 10px inset;
+		box-shadow: rgba(0,0,0,0.4) 2px 2px 5px inset;
 	}
 
 // Body
-.slick-row.odd:not(.slick-group) {
+.doby-grid-row.odd:not(.slick-group) {
 	background: rgba(255,255,255,0.2)
 }
 
@@ -311,7 +311,7 @@
 		}
 
 	// Cell Editing
-	.slick-cell input.editor-text {
+	.doby-grid-cell input.editor-text {
 		background: none;
 		border: 0;
 		box-shadow: none !important;
