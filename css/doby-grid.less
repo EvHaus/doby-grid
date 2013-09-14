@@ -6,6 +6,7 @@
 
 @w3c: true;
 @import "../libs/lesshat/lesshat";
+@url: "../dist/img/";
 
 .doby-grid {
 	background: #EAEAEA;
@@ -248,7 +249,7 @@
 }
 
 	.doby-grid-sort-indicator {
-		background: url(../img/fugue/fugue-16.png);
+		background: no-repeat 0 0;
 		display: none;
 		height: 16px;
 		position: absolute;
@@ -257,8 +258,15 @@
 		width: 16px;
 	}
 
-		.doby-grid-sort-indicator-desc {background-position: -128px -64px;display:inline-block}
-		.doby-grid-sort-indicator-asc {background-position: -112px -64px;display:inline-block}
+		.doby-grid-sort-indicator-desc {
+			background-image: url("/@{url}sort-alphabet-descending.png");
+			display: inline-block
+		}
+
+		.doby-grid-sort-indicator-asc {
+			background-image: url("/@{url}sort-alphabet.png");
+			display: inline-block
+		}
 
 // When re-ordering columns
 .doby-grid-sortable-placeholder {
@@ -352,7 +360,12 @@
 			top: 7px;
 		}
 
-		&.on .icon {display: block}
+		&.on .icon {
+			background: url("/@{url}tick.png") no-repeat;
+			display: block;
+			height: 16px;
+			width: 16px;
+		}
 	}
 
 	.divider {

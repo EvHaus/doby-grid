@@ -30,6 +30,8 @@ Doby Grid is stand-alone module (and part of the Doby JS framework) for renderin
 
 - jQuery.ui && jQuery.event.drag (Temporary... need to be removed)
 
+Default icon set used is copyright of <http://p.yusukekamiyamane.com/>.
+
 ### How To Use
 
 Download the *doby-grid.js* file and drop it into your web app. Then include into your app either via Require JS, or by adding a < script > tag after the required dependencies.

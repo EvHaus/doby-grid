@@ -19,6 +19,7 @@ define([
 ], function ($, _, Backbone) {
 	return function (options) {
 
+
 		// Name of this Doby component
 		this.NAME = 'doby-grid',
 
@@ -94,6 +95,7 @@ define([
 			createColumnHeaders,
 			createCssRules,
 			createGrid,
+			createGroupingObject,
 			currentEditor = null,
 			dataview,
 			defaultFormatter,
@@ -101,7 +103,6 @@ define([
 			disableSelection,
 			dropdown,
 			editController,		// TODO: Candidate for removal
-			enableSort,
 			ensureCellNodesInRowsCache,
 			executeSorter,
 			flashCell,
@@ -153,6 +154,7 @@ define([
 			gotoPrev,
 			gotoRight,
 			gotoUp,
+			Group,
 			h,				// real scrollable height
 			h_editorLoader = null,
 			h_render = null,
@@ -195,6 +197,7 @@ define([
 			measureCellPaddingAndBorder,
 			metadataprovider,
 			n,				// number of pages
+			naturalSort,
 			navigate,
 			navigateDown,
 			navigateLeft,
@@ -390,7 +393,9 @@ define([
 				createGrid();
 
 				// Enable sorting
-				enableSort();
+				self.on('onSort', function (e, args) {
+					executeSorter(args)
+				})
 			});
 
 			return self;
@@ -1028,6 +1033,44 @@ define([
 		};
 
 
+		// createGroupingObject()
+		// Generates a SlickGrid grouping object from a column id
+		//
+		// @param	column_id		string		ID of a column to create grouping object for
+		//
+		// @return object
+		createGroupingObject = function (column_id) {
+			var column = getColumnById(column_id)
+			return {
+				column_id: column.id,
+				getter: function (item) {
+					if (!item) return null
+
+					// If this item has a parent data reference object - use that for grouping
+					if (item.parent) {
+						item = item.parent
+					}
+
+					if (item instanceof Backbone.Model) {
+						return item.get(column.field)
+					} else {
+						return item.data[column.field]
+					}
+				},
+				formatter: function (g) {
+					var h = [
+						"<strong>" + column.name + ":</strong> ",
+						(g.value === null ? '-empty-' : g.value),
+						' <span class="count">(<strong>' + g.count + '</strong> item'
+					]
+					if (g.count !== 1) h.push("s")
+					h.push(")</span>")
+					return h.join('')
+				}
+			}
+		}
+
+
 		// dataview()
 		// This is a special class that will convert the given dataset into a Model and
 		// provide a filtered access to the underlying data.
@@ -1045,23 +1088,13 @@ define([
 				inlineFilters: false,
 				remote: false
 			},
-				idProperty = "id",	// property holding a unique row id
-				items = [],			// data by index
-				rows = [],			// data by row
-				idxById = {},		// indexes by id
-				rowsById = null,	// rows by id; lazy-calculated
-				filter = null,		// filter function
-				updated = null,		// updated item ids
-				suspend = false,	// suspends the recalculation
-				sortAsc = true,
-				sortComparer,
-				refreshHints = {},
-				prevRefreshHints = {},
-				filterArgs,
-				filteredItems = [],
 				compiledFilter,
 				compiledFilterWithCaching,
+				filter = null,		// filter function
+				filterArgs,
 				filterCache = [],
+				filteredItems = [],
+				groupingDelimiter = ':|:',
 				groupingInfoDefaults = {	// grouping
 					getter: null,
 					formatter: null,
@@ -1078,19 +1111,27 @@ define([
 				},
 				groupingInfos = [],
 				groups = [],
-				toggledGroupsByLevel = [],
-				groupingDelimiter = ':|:',
-				pagesize = 0,
+				idProperty = "id",	// property holding a unique row id
+				idxById = {},		// indexes by id
+				items = [],			// data by index
+				length = null, 		// Custom length of DataView, for Remote Models
 				pagenum = 0,
+				pagesize = 0,
+				prevRefreshHints = {},
+				refreshHints = {},
+				rows = [],			// data by row
+				rowsById = null,	// rows by id; lazy-calculated
+				sortAsc = true,
+				sortComparer,
+				suspend = false,	// suspends the recalculation
+				toggledGroupsByLevel = [],
 				totalRows = 0,
-				length = null; // Custom length of DataView, for Remote Models
+				updated = null;		// updated item ids
 
 			// Events
 			_.extend(this, Backbone.Events);
 
-
 			options = $.extend(true, {}, defaults, options);
-
 
 			this.addItem = function (item) {
 				items.push(item);
@@ -1153,7 +1194,7 @@ define([
 			}
 
 			// collapseGroup()
-			// @param	varArgs		Either a Slick.Group's "groupingKey" property, or a
+			// @param	varArgs		Either a Group's "groupingKey" property, or a
 			//						variable argument list of grouping values denoting a
 			//						unique path to the row. For example, calling
 			//						collapseGroup('high', '10%') will collapse the '10%' subgroup of
@@ -1295,7 +1336,7 @@ define([
 			}
 
 			// expandGroup()
-			// @param	varArgs		Either a Slick.Group's "groupingKey" property, or a
+			// @param	varArgs		Either a Group's "groupingKey" property, or a
 			//						variable argument list of grouping values denoting a
 			//						unique path to the row. For example, calling
 			//						expandGroup('high', '10%') will expand the '10%' subgroup of
@@ -1346,7 +1387,7 @@ define([
 					val = gi[predef];
 					group = groupsByVal[val];
 					if (!group) {
-						group = new Slick.Group();
+						group = new Group();
 						group.value = val;
 						group.level = level;
 						group.groupingKey = (parentGroup ? parentGroup.groupingKey + groupingDelimiter : '') + val;
@@ -1360,7 +1401,7 @@ define([
 					val = gi.getterIsAFn ? gi.getter(r) : r[gi.getter];
 					group = groupsByVal[val];
 					if (!group) {
-						group = new Slick.Group();
+						group = new Group();
 						group.value = val;
 						group.level = level;
 						group.groupingKey = (parentGroup ? parentGroup.groupingKey + groupingDelimiter : '') + val;
@@ -1999,7 +2040,6 @@ define([
 		}
 
 
-
 		// dropdown()
 		// Creates a new dropdown menu.
 		//
@@ -2114,16 +2154,6 @@ define([
 		}
 
 
-		// enableSort()
-		// Adds ability to sort the grid
-		//
-		enableSort = function () {
-			self.on('onSort', function (e, args) {
-				executeSorter(args)
-			})
-		}
-
-
 		// executeSorter()
 		// Re-sorts the data set and re-renders the grid
 		//
@@ -2156,7 +2186,8 @@ define([
 						field = column.field,
 						sign = cols[i].sortAsc ? 1 : -1,
 						value1 = dataRow1 instanceof Backbone.Model ? dataRow1.get(field) : dataRow1.data[field],
-						value2 = dataRow2 instanceof Backbone.Model ? dataRow2.get(field) : dataRow2.data[field];
+						value2 = dataRow2 instanceof Backbone.Model ? dataRow2.get(field) : dataRow2.data[field],
+						v1, v2;
 
 					// Use custom column comparer if it exists
 					if (typeof(column.comparer) === 'function') {
@@ -2168,14 +2199,10 @@ define([
 						if (value2 === null) return -1
 
 						// Keep sort case insensitive
-						value1 = typeof(value1) === 'string' ? value1.toLowerCase() : value1
-						value2 = typeof(value2) === 'string' ? value2.toLowerCase() : value2
+						v1 = sign + value1
+						v2 = sign + value2
 
-						var result = (value1 == value2 ? 0 : (value1 > value2 ? 1 : -1)) * sign;
-
-						if (result !== 0) {
-							return result;
-						}
+						return naturalSort(v1, v2) * sign
 					}
 				}
 				return 0;
@@ -3344,6 +3371,103 @@ define([
 			}
 		}
 
+
+		// Group()
+		// Stores information about a group of rows
+		//
+		Group = function () {
+			this.__group = true;
+
+			/**
+			 * Grouping level, starting with 0.
+			 * @property level
+			 * @type {Number}
+			 */
+			this.level = 0;
+
+			/***
+			 * Number of rows in the group.
+			 * @property count
+			 * @type {Integer}
+			 */
+			this.count = 0;
+
+			/***
+			 * Grouping value.
+			 * @property value
+			 * @type {Object}
+			 */
+			this.value = null;
+
+			/***
+			 * Formatted display value of the group.
+			 * @property title
+			 * @type {String}
+			 */
+			this.title = null;
+
+			/***
+			 * Whether a group is collapsed.
+			 * @property collapsed
+			 * @type {Boolean}
+			 */
+			this.collapsed = false;
+
+			/***
+			 * GroupTotals, if any.
+			 * @property totals
+			 * @type {GroupTotals}
+			 */
+			this.totals = null;
+
+			/**
+			 * Rows that are part of the group.
+			 * @property rows
+			 * @type {Array}
+			 */
+			this.rows = [];
+
+			/**
+			 * Sub-groups that are part of the group.
+			 * @property groups
+			 * @type {Array}
+			 */
+			this.groups = null;
+
+			/**
+			 * A unique key used to identify the group.  This key can be used in calls to DataView
+			 * collapseGroup() or expandGroup().
+			 * @property groupingKey
+			 * @type {Object}
+			 */
+			this.groupingKey = null;
+		}
+
+		/***
+		 * A base class that all special / non-data rows (like Group and GroupTotals) derive from.
+		 * @class NonDataItem
+		 * @constructor
+		 */
+		function NonDataItem() {
+			this.__nonDataRow = true;
+		}
+
+		Group.prototype = new NonDataItem();
+
+		/***
+		 * Compares two Group instances.
+		 * @method equals
+		 * @return {Boolean}
+		 * @param group {Group} Group instance to compare to.
+		 */
+		Group.prototype.equals = function (group) {
+			return this.value === group.value &&
+				this.count === group.count &&
+				this.collapsed === group.collapsed &&
+				this.title === group.title;
+		};
+
+
 		initializeRowPositions = function () {
 			rowPositionCache = {
 				0: {
@@ -3454,6 +3578,55 @@ define([
 				handleActiveCellPositionChange();
 			}
 		}
+
+
+		// naturalSort()
+		// Natural Sort algorithm for Javascript - Version 0.7 - Released under MIT license
+		// Author: Jim Palmer (based on chunking idea from Dave Koelle
+		//
+		naturalSort = function (a, b) {
+			var re = /(^-?[0-9]+(\.?[0-9]*)[df]?e?[0-9]?$|^0x[0-9a-f]+$|[0-9]+)/gi,
+				sre = /(^[ ]*|[ ]*$)/g,
+				dre = /(^([\w ]+,?[\w ]+)?[\w ]+,?[\w ]+\d+:\d+(:\d+)?[\w ]?|^\d{1,4}[\/\-]\d{1,4}[\/\-]\d{1,4}|^\w+, \w+ \d+, \d{4})/,
+				hre = /^0x[0-9a-f]+$/i,
+				ore = /^0/,
+				i = function (s) {
+					return ('' + s).toLowerCase() || '' + s
+				},
+				// convert all to strings strip whitespace
+				x = i(a).replace(sre, '') || '',
+				y = i(b).replace(sre, '') || '',
+				// chunk/tokenize
+				xN = x.replace(re, '\0$1\0').replace(/\0$/, '').replace(/^\0/, '').split('\0'),
+				yN = y.replace(re, '\0$1\0').replace(/\0$/, '').replace(/^\0/, '').split('\0'),
+				// numeric, hex or date detection
+				xD = parseInt(x.match(hre), 10) || (xN.length != 1 && x.match(dre) && Date.parse(x)),
+				yD = parseInt(y.match(hre), 10) || xD && y.match(dre) && Date.parse(y) || null,
+				oFxNcL, oFyNcL;
+			// first try and sort Hex codes or Dates
+			if (yD)
+				if (xD < yD) return -1;
+				else if (xD > yD) return 1;
+			// natural sorting through split numeric strings and default strings
+			for (var cLoc = 0, numS = Math.max(xN.length, yN.length); cLoc < numS; cLoc++) {
+				// find floats not starting with '0', string or 0 if not defined (Clint Priest)
+				oFxNcL = !(xN[cLoc] || '').match(ore) && parseFloat(xN[cLoc]) || xN[cLoc] || 0;
+				oFyNcL = !(yN[cLoc] || '').match(ore) && parseFloat(yN[cLoc]) || yN[cLoc] || 0;
+				// handle numeric vs string comparison - number < string - (Kyle Adams)
+				if (isNaN(oFxNcL) !== isNaN(oFyNcL)) {
+					return (isNaN(oFxNcL)) ? 1 : -1;
+				}
+				// rely on string comparison if different types - i.e. '02' < 2 != '02' < '2'
+				else if (typeof oFxNcL !== typeof oFyNcL) {
+					oFxNcL += '';
+					oFyNcL += '';
+				}
+				if (oFxNcL < oFyNcL) return -1;
+				if (oFxNcL > oFyNcL) return 1;
+			}
+			return 0;
+		}
+
 
 		/**
 		 * @param {string} dir Navigation direction.
@@ -4370,7 +4543,7 @@ define([
 
 
 		// metadataprovider()
-		// Provides item metadata for group (Slick.Group) and totals (Slick.Totals)
+		// Provides item metadata for group and totals (Slick.Totals)
 		// rows produced by the DataView. This metadata overrides the default behavior
 		// and formatting of those rows so that they appear and function correctly when
 		// processed by the grid.
@@ -4439,7 +4612,7 @@ define([
 				var item = this.getDataItem(args.row),
 					isToggler = $(e.target).hasClass(options.toggleCssClass) || $(e.target).closest('.' + options.toggleCssClass).length
 
-				if (item && item instanceof Slick.Group && isToggler) {
+				if (item && item instanceof Group && isToggler) {
 					if (item.collapsed) {
 						this.getData().expandGroup(item.groupingKey);
 					} else {
@@ -4458,7 +4631,7 @@ define([
 					var activeCell = this.getActiveCell();
 					if (activeCell) {
 						var item = this.getDataItem(activeCell.row);
-						if (item && item instanceof Slick.Group) {
+						if (item && item instanceof Group) {
 							if (item.collapsed) {
 								this.getData().expandGroup(item.groupingKey);
 							} else {
@@ -4583,11 +4756,11 @@ define([
 
 		// processData()
 		// Parses the options.data parameter to ensure the data set is formatter correctly.
-		// Creates a new Data View object to handle the data.
+		// Creates a new special Backbone.Collection that will be used for processing Doby Grid
+		// operations.
 		//
 		// @param	callback	function	Callback function
 		//
-		// @return
 		processData = function (callback) {
 
 			// Create a new Data View
@@ -4758,10 +4931,10 @@ define([
 		// @param	column_id		integer		'id' key of the column definition
 		//
 		// @return object
-		this.removeColumn = function(column_id) {
+		this.removeColumn = function (column_id) {
 			if (!column_id) return this
 
-			var newcolumns = this.options.columns.filter(function(item) {
+			var newcolumns = this.options.columns.filter(function (item) {
 				return item.id != column_id
 			})
 
@@ -5018,6 +5191,23 @@ define([
 		}
 
 
+		// setGrouping()
+		// Sets the grouping for the grid data view.
+		//
+		// @param	column_ids		array		List of column ids to group by
+		//
+		// @return object
+		this.setGrouping = function (column_ids) {
+			var options = []
+			_.each(column_ids, function (cid) {
+				options.push(createGroupingObject(cid))
+			})
+
+			this.dataView.setGrouping(options);
+			return this
+		}
+
+
 		// setOptions()
 		// Given a set of options, updates the grid accordingly
 		//
@@ -5072,7 +5262,7 @@ define([
 		// @param	column_options		array		List of column options to use for sorting
 		//
 		// @return object
-		this.setSorting = function(column_options) {
+		this.setSorting = function (column_options) {
 			if (!$.isArray(column_options)) throw new Error(getLocale("error.bad_column_options"))
 
 			// This doesn't actually sort anything because SlickGrid is terrible
@@ -5086,7 +5276,7 @@ define([
 				sortCols: []
 			}
 
-			_.each(column_options, function(col, i) {
+			_.each(column_options, function (col, i) {
 				args.sortCols.push({
 					sortCol: getColumnById(col.columnId),
 					sortAsc: col.sortAsc
@@ -5475,7 +5665,7 @@ define([
 		// @param	ascending	boolean		Is the sort direction ascending?
 		//
 		// @return object
-		this.sortBy = function(column_id, ascending) {
+		this.sortBy = function (column_id, ascending) {
 			if (ascending === undefined) ascending = true
 			if (!column_id)	throw new Error($.t("ui:grid.error.missing_column_id"))
 			return this.setSorting([{
@@ -5633,7 +5823,7 @@ define([
 					cls = ""
 					if (item.value !== undefined) {
 						if (item.value) cls = " on"
-						label += '<span class="icon icon16 fugueTick"></span>'
+						label += '<span class="icon"></span>'
 					}
 					$('<div class="item' + cls + '">' + label + '</div>')
 						.appendTo($menu)
