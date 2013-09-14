@@ -1075,10 +1075,11 @@ define([
 		// This is a special class that will convert the given dataset into a Model and
 		// provide a filtered access to the underlying data.
 		//
+		// @param	data		object		Raw data set that will be converted to a Data View
 		// @param	options		object		Data View options
 		//
 		// @return object
-		dataview = function (options) {
+		dataview = function (data, options) {
 
 			// private
 
@@ -1133,14 +1134,47 @@ define([
 
 			options = $.extend(true, {}, defaults, options);
 
+
+			// initialize()
+			// Initializes the Data View
+			//
+			this.initialize = function() {
+				if (data) {
+					suspend = true;
+
+					// Backbone.Collection
+					// TODO: Re-enable this when ready
+					if (data instanceof Backbone.Collection) {
+						data.each(function (item) {
+							self.addItem(item)
+						})
+					}
+
+					// Normal Data
+					else {
+						// Make sure every row has an id
+						for (var i = 0, l = data.length; i < l; i++) {
+							item = data[i];
+
+							// Make sure an ID is set on the item
+							if (!item.id) item.id = item.data.id
+						}
+
+						this.setItems(data)
+					}
+
+					suspend = false;
+					this.refresh();
+				}
+
+				return this;
+			}
+
+
 			this.addItem = function (item) {
 				items.push(item);
 				updateIdxById(items.length - 1);
 				this.refresh();
-			}
-
-			this.beginUpdate = function () {
-				suspend = true;
 			}
 
 			// TODO:  lazy totals calculation
@@ -1301,11 +1335,6 @@ define([
 				items.splice(idx, 1);
 				updateIdxById(idx);
 				if (self.options.remote) length--;
-				this.refresh();
-			}
-
-			this.endUpdate = function () {
-				suspend = false;
 				this.refresh();
 			}
 
@@ -1966,6 +1995,8 @@ define([
 				updated[id] = true;
 				this.refresh();
 			}
+
+			return this.initialize();
 		}
 
 
@@ -4764,7 +4795,7 @@ define([
 		processData = function (callback) {
 
 			// Create a new Data View
-			self.dataView = new dataview({
+			self.dataView = new dataview(self.options.data, {
 				remote: self.options.remote
 			})
 
@@ -4823,33 +4854,6 @@ define([
 
 				return obj
 			}
-
-			if (self.options.data) {
-				self.dataView.beginUpdate();
-
-				// Backbone.Collection
-				if (self.options.data instanceof Backbone.Collection) {
-					self.options.data.each(function (item) {
-						self.dataView.addItem(item)
-					})
-				}
-
-				// Normal Data
-				else {
-					// Make sure every row has an id
-					for (var i = 0, l = self.options.data.length; i < l; i++) {
-						item = self.options.data[i];
-						if (!item.id) {
-							item.id = item.data.id
-						}
-					}
-
-					self.dataView.setItems(self.options.data)
-				}
-
-				self.dataView.endUpdate();
-			}
-
 
 			// Data View Events
 			self.dataView.on('onRowCountChanged', function (e, args) {
