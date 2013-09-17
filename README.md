@@ -53,7 +53,7 @@ _Coming Soon_
 The Backbone is used for in Doby Grid for two reasons:
 
 1) To make use of Backbone's great Events objects for generating custom events
-2) To make sure of the Backbone Collection object for data processing
+2) To easily integrate Doby Grid into the Doby framework (coming soon)
 
 You can easily use another MVC module in your application, but Doby Grid needs Backbone to do its internal processing. If you're not a fan of Backbone -- don't worry -- it shouldn't affect anything you may be doing in your app with other frameworks.
 
@@ -63,7 +63,6 @@ SlickGrid gives you module pieces and a raw foundation for building grid, and ex
 
 Additionally, there are several other key differences. Doby Grid will:
 
-- supports all SlickGrid features with easily configured options
 - supports variable row heights
 - has additional events required for tight integration
 - provides a way to interact with cell and row DOM elements without compromising on performance
@@ -73,6 +72,14 @@ Additionally, there are several other key differences. Doby Grid will:
 - be open minded to all feature request, pull requests and suggestions
 
 Doby Grid tries to find a balance between performance and usability while offering developers ways to control which features they want to enable at a potential performance cost.
+
+#### So it's BackGrid then...
+
+Nope. BackGrid has Backbone at its core for everything. Although it offers great flexibility because of the simplicity of having a Backbone API -- putting Backbone into the heart of the grid processing has made it much slower in processing your data sets. Doby Grid tries its best to keep up the speed of SlickGrid.
+
+#### So it's like SlickBack then...
+
+Not really. SlickBack is a bridge between Backbone and SlickGrid. It tries to make the two work together nicely. Doby Grid is pretty detached from Backbone and SlickGrid and can be a standalone module that doesn't rely on either.
 
 #### There's a bug in Internet Explorer, where...
 

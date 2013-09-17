@@ -5,20 +5,30 @@
 // https://github.com/globexdesigns/doby-grid
 
 /*jslint vars: true, plusplus: true, devel: true, nomen: true, indent: 4, maxerr: 50*/
-/*global define*/
 
-define([
-	'jquery',
-	'underscore',
-	'backbone',
+(function (root, factory) {
+	// Add AMD support
+	if (typeof define === 'function' && define.amd) {
+		// TODO: Find a way to remove jQuery UI and event drag modules from requirements
+		define([
+			'jquery',
+			'underscore',
+			'backbone',
 
-	// TODO: Find a way to remove jQuery UI and event drag modules from requirements
-	'jquery.ui',
-	'jquery.event.drag'
+			'jquery.ui',
+			'jquery.event.drag'
+		], function ($, _, Backbone) {
+			// Export global even in AMD case in case this script is loaded with
+			// others that may still expect a global Backbone.
+			return factory(root, $, _, Backbone);
+		});
+	} else {
+		// Browser globals
+		root.DobyGrid = factory(root, (root.jQuery || root.$), root._, root.Backbone);
+	}
+}(this, function (root, $, _, Backbone) {
 
-], function ($, _, Backbone) {
-	return function (options) {
-
+	var DobyGrid = function (options) {
 
 		// Name of this Doby component
 		this.NAME = 'doby-grid',
@@ -26,6 +36,10 @@ define([
 		// Current version of the library
 		this.VERSION = '0.0.1';
 
+		// Ensure options are an object
+		if (typeof options !== "object" || _.isArray(options)) {
+			throw new TypeError('The "options" param must be an object.')
+		}
 
 		// Private
 		var self = this,
@@ -43,7 +57,6 @@ define([
 			activeCellNode = null,
 			activePosX,
 			activeRow,
-			addCellCssStyles,
 			appendCellHtml,
 			appendRowHtml,
 			applyColumnHeaderWidths,
@@ -56,16 +69,22 @@ define([
 			canCellBeActive,
 			canCellBeSelected,
 			canvasWidth,
-			cellCssClasses = {},
 			cellExists,
 			cellHeightDiff = 0,
 			cellWidthDiff = 0,
 			cj,				// "jumpiness" coefficient
+			classalert = this.NAME + '-alert',
 			classcell = this.NAME + '-cell',
+			classcollapsed = 'collapsed',
 			classcolumnname = this.NAME + '-column-name',
 			classcontextmenu = this.NAME + '-contextmenu',
 			classdropdown = this.NAME + '-dropdown',
+			classexpanded = 'expanded',
 			classfocussink = this.NAME + '-focus',
+			classgroup = this.NAME + '-group',
+			classgrouptitle = this.NAME + '-group-title',
+			classgrouptoggle = this.NAME + '-group-toggle',
+			classgrouptotals = this.NAME + '-group-totals',
 			classhandle = this.NAME + '-resizable-handle',
 			classheader = this.NAME + '-header',
 			classheadercolumns = this.NAME + '-header-columns',
@@ -109,12 +128,10 @@ define([
 			findFirstFocusableCell,
 			findLastFocusableCell,
 			getActiveCell,
-			getActiveCellNode,
 			getActiveCellPosition,
 			getBrowserData,
 			getCanvasNode,
 			getCanvasWidth,
-			getCellCssStyles,
 			getCellEditor,
 			getCellFromEvent,
 			getCellFromNode,
@@ -195,7 +212,6 @@ define([
 			makeActiveCellEditable,
 			makeActiveCellNormal,
 			measureCellPaddingAndBorder,
-			metadataprovider,
 			n,				// number of pages
 			naturalSort,
 			navigate,
@@ -212,15 +228,12 @@ define([
 			offset = 0,		// current page offset
 			page = 0,		// current page
 			ph,				// page height
-			plugins = [],
 			postProcessedRows = {},
 			postProcessFromRow = null,
 			postProcessToRow = null,
 			prevScrollLeft = 0,
 			prevScrollTop = 0,
 			processData,
-			registerPlugin,
-			removeCellCssStyles,
 			removeCssRules,
 			removeRowFromCache,
 			render,
@@ -243,7 +256,6 @@ define([
 			serializedEditorValue,
 			setActiveCell,
 			setActiveCellInternal,
-			setCellCssStyles,
 			setColumns,
 			setData,
 			setFocus,
@@ -262,7 +274,6 @@ define([
 			toggleHeaderContextMenu,
 			uid = "doby-grid-" + Math.round(1000000 * Math.random()),
 			unbindAncestorScrollEvents,
-			unregisterPlugin,
 			updateCanvasWidth,
 			updateCell,
 			updateCellCssStylesOnRenderedRows,
@@ -297,7 +308,6 @@ define([
 			enableAddRow:		false,		// If true, a blank row will be displayed at the bottom
 			enableAsyncPostRender: false,	// Enables cell post-processing
 			enableCellNavigation: true,		// ??
-			enableColumnReorder: true,		// Can columns be re-ordered?
 			forceFitColumns:	false,		// Prevent horizontal scrolling
 			forceSyncScrolling: false,		// ??
 			formatterFactory:	null,		// A factory object for creating a formatter
@@ -321,16 +331,6 @@ define([
 					sort_asc:				'Sort By "{{name}}" (Ascending)',
 					sort_desc:				'Sort By "{{name}}" (Descending)'
 				},
-
-				error: {
-					after_before:			'Doby Grid cannot use "insertBefore" and "insertAfter" at the same time.',
-					bad_column_options:		'Doby Grid cannot set the sorting because the "column_options" parameter must be an array of objects.',
-					missing_column_id:		'Grid cannot sort by blank value. Column Id must be specified.',
-					missing_options:		'Doby Grid could not be initialized because the given "options" parameter must be an object.',
-					no_such_row:			'Doby Grid cannot invalidate row because no row with id "{{id}}" count be found.',
-					unable_to_fetch:		'Unable to fetch remote data set due to a server error.'
-				},
-
 				remote: {
 					no_results:				'No results found'
 				}
@@ -372,8 +372,8 @@ define([
 		initialize = function () {
 
 			// Validate loaded JavaScript modules against requested options
-			if (self.options.enableColumnReorder && !$.fn.sortable) {
-				throw new Error('In other to use "enableColumnReorder", you must ensure the jquery-ui.sortable module is loaded.');
+			if (self.options.reorderable && !$.fn.sortable) {
+				throw new Error('In other to use "reorderable", you must ensure the jquery-ui.sortable module is loaded.');
 			}
 
 			// Calculate some information about the browser window
@@ -402,24 +402,47 @@ define([
 		};
 
 
-		// addCellCssStyles()
-		// ?
+		// absBox()
+		// TODO: Find out what absBox is.
 		//
-		// @param	key		??
-		// @param	hash	??
-		//
-		addCellCssStyles = function (key, hash) {
-			if (cellCssClasses[key]) {
-				throw "addCellCssStyles: cell CSS hash with key '" + key + "' already exists.";
+		absBox = function (elem) {
+			var box = {
+				top: elem.offsetTop,
+				left: elem.offsetLeft,
+				bottom: 0,
+				right: 0,
+				width: $(elem).outerWidth(),
+				height: $(elem).outerHeight(),
+				visible: true
+			};
+			box.bottom = box.top + box.height;
+			box.right = box.left + box.width;
+
+			// walk up the tree
+			var offsetParent = elem.offsetParent;
+			while ((elem = elem.parentNode) != document.body) {
+				if (box.visible && elem.scrollHeight != elem.offsetHeight && $(elem).css("overflowY") != "visible") {
+					box.visible = box.bottom > elem.scrollTop && box.top < elem.scrollTop + elem.clientHeight;
+				}
+
+				if (box.visible && elem.scrollWidth != elem.offsetWidth && $(elem).css("overflowX") != "visible") {
+					box.visible = box.right > elem.scrollLeft && box.left < elem.scrollLeft + elem.clientWidth;
+				}
+
+				box.left -= elem.scrollLeft;
+				box.top -= elem.scrollTop;
+
+				if (elem === offsetParent) {
+					box.left += elem.offsetLeft;
+					box.top += elem.offsetTop;
+					offsetParent = elem.offsetParent;
+				}
+
+				box.bottom = box.top + box.height;
+				box.right = box.left + box.width;
 			}
 
-			cellCssClasses[key] = hash;
-			updateCellCssStylesOnRenderedRows(hash, null);
-
-			self.trigger('onCellCssStylesChanged', {}, {
-				"key": key,
-				"hash": hash
-			})
+			return box;
 		}
 
 
@@ -442,13 +465,6 @@ define([
 				cellCss += (" active");
 			}
 
-			// TODO:  merge them together in the setter
-			for (var key in cellCssClasses) {
-				if (cellCssClasses[key][row] && cellCssClasses[key][row][m.id]) {
-					cellCss += (" " + cellCssClasses[key][row][m.id]);
-				}
-			}
-
 			if (!self.options.variableRowHeight) {
 				stringArray.push("<div class='" + cellCss + "'>");
 			} else {
@@ -463,7 +479,8 @@ define([
 				stringArray.push(">");
 			}
 
-			// if there is a corresponding row (if not, this is the Add New row or this data hasn't been loaded yet)
+			// if there is a corresponding row (if not, this is the Add New row or
+			// this data hasn't been loaded yet)
 			if (item) {
 				var value = getDataItemValueForColumn(item, m);
 				try {
@@ -936,7 +953,7 @@ define([
 					.addClass(m.headerCssClass || "")
 					.appendTo($headers);
 
-				if (self.options.enableColumnReorder || m.sortable) {
+				if (self.options.reorderable || m.sortable) {
 					header
 						.on('mouseenter', onMouseEnter)
 						.on('mouseleave', onMouseLeave);
@@ -955,7 +972,7 @@ define([
 
 			setSortColumns(sortColumns);
 			setupColumnResize();
-			if (self.options.enableColumnReorder) {
+			if (self.options.reordrable) {
 				setupColumnReorder();
 			}
 		}
@@ -1085,16 +1102,31 @@ define([
 
 			var self = this,
 				defaults = {
-				groupItemMetadataProvider: metadataprovider,
 				inlineFilters: false,
 				remote: false
 			},
+				calculateGroupTotals,
+				calculateTotals,
+				collapseGroup,
+				compileAccumulatorLoop,
+				compileFilter,
 				compiledFilter,
+				compileFilterWithCaching,
 				compiledFilterWithCaching,
+				expandCollapseGroup,
+				expandGroup,
+				ensureIdUniqueness,
+				ensureRowsByIdCache,
+				extractGroups,
 				filter = null,		// filter function
 				filterArgs,
 				filterCache = [],
 				filteredItems = [],
+				finalizeGroups,
+				flattenGroupedRows,
+				getFilteredAndPagedItems,
+				getFunctionInfo,
+				getRowDiffs,
 				groupingDelimiter = ':|:',
 				groupingInfoDefaults = {	// grouping
 					getter: null,
@@ -1113,9 +1145,9 @@ define([
 				groupingInfos = [],
 				groups = [],
 				idProperty = "id",	// property holding a unique row id
-				idxById = {},		// indexes by id
+				indexById = {},
 				items = [],			// data by index
-				length = null, 		// Custom length of DataView, for Remote Models
+				length = null,		// Custom length of DataView, for Remote Models
 				pagenum = 0,
 				pagesize = 0,
 				prevRefreshHints = {},
@@ -1127,7 +1159,11 @@ define([
 				suspend = false,	// suspends the recalculation
 				toggledGroupsByLevel = [],
 				totalRows = 0,
-				updated = null;		// updated item ids
+				uncompiledFilter,
+				uncompiledFilterWithCaching,
+				updated = null,		// updated item ids
+				updateIndexById;
+
 
 			// Events
 			_.extend(this, Backbone.Events);
@@ -1138,47 +1174,36 @@ define([
 			// initialize()
 			// Initializes the Data View
 			//
-			this.initialize = function() {
+			// @return object
+			this.initialize = function () {
 				if (data) {
-					suspend = true;
-
-					// Backbone.Collection
-					// TODO: Re-enable this when ready
+					// TODO: Don't convert to Backbone Collection -- use initial collection
 					if (data instanceof Backbone.Collection) {
-						data.each(function (item) {
-							self.addItem(item)
-						})
+						this.setItems(data.models);
+					} else {
+						this.setItems(data);
 					}
-
-					// Normal Data
-					else {
-						// Make sure every row has an id
-						for (var i = 0, l = data.length; i < l; i++) {
-							item = data[i];
-
-							// Make sure an ID is set on the item
-							if (!item.id) item.id = item.data.id
-						}
-
-						this.setItems(data)
-					}
-
-					suspend = false;
-					this.refresh();
 				}
-
 				return this;
 			}
 
 
-			this.addItem = function (item) {
+			// add()
+			// Add an item for the collection
+			//
+			// @param	item	object		Object to add to the collection
+			//
+			// @return object
+			this.add = function (item) {
 				items.push(item);
-				updateIdxById(items.length - 1);
+				updateIndexById(items.length - 1);
 				this.refresh();
+				return this;
 			}
 
+
 			// TODO:  lazy totals calculation
-			function calculateGroupTotals(group) {
+			calculateGroupTotals = function (group) {
 				// TODO:  try moving iterating over groups into compiled accumulator
 				var gi = groupingInfos[group.level];
 				var isLeafLevel = (group.level == groupingInfos.length);
@@ -1194,7 +1219,7 @@ define([
 				group.totals = totals;
 			}
 
-			function calculateTotals(groups, level) {
+			calculateTotals = function (groups, level) {
 				level = level || 0;
 				var gi = groupingInfos[level];
 				var idx = groups.length,
@@ -1218,14 +1243,16 @@ define([
 				}
 			}
 
+
 			// collapseAllGroups()
 			//
 			// @param	level	integer		Optional level to collapse.
 			//								If not specified, applies to all levels.
 			//
 			this.collapseAllGroups = function (level) {
-				expandCollapseAllGroups(level, true);
+				this.expandCollapseAllGroups(level, true);
 			}
+
 
 			// collapseGroup()
 			// @param	varArgs		Either a Group's "groupingKey" property, or a
@@ -1234,9 +1261,9 @@ define([
 			//						collapseGroup('high', '10%') will collapse the '10%' subgroup of
 			//						the 'high' setGrouping.
 			//
-			function collapseGroup(varArgs) {
-				var args = Array.prototype.slice.call(arguments);
-				var arg0 = args[0];
+			collapseGroup = function (varArgs) {
+				var args = Array.prototype.slice.call(arguments),
+					arg0 = args[0];
 				if (args.length == 1 && arg0.indexOf(groupingDelimiter) != -1) {
 					expandCollapseGroup(arg0.split(groupingDelimiter).length - 1, arg0, true);
 				} else {
@@ -1244,7 +1271,7 @@ define([
 				}
 			}
 
-			function compileAccumulatorLoop(aggregator) {
+			compileAccumulatorLoop = function (aggregator) {
 				var accumulatorInfo = getFunctionInfo(aggregator.accumulate);
 				var fn = new Function(
 					"_items",
@@ -1256,7 +1283,7 @@ define([
 				return fn;
 			}
 
-			function compileFilter() {
+			compileFilter = function () {
 				var filterInfo = getFunctionInfo(filter);
 
 				var filterBody = filterInfo.body
@@ -1289,7 +1316,7 @@ define([
 				return fn;
 			}
 
-			function compileFilterWithCaching() {
+			compileFilterWithCaching = function () {
 				var filterInfo = getFunctionInfo(filter);
 
 				var filterBody = filterInfo.body
@@ -1327,26 +1354,34 @@ define([
 			}
 
 			this.deleteItem = function (id) {
-				var idx = idxById[id];
+				var idx = indexById[id];
 				if (idx === undefined) {
 					throw "Unable to delete dataview item. Invalid id (" + id + ") supplied.";
 				}
-				delete idxById[id];
+				delete indexById[id];
 				items.splice(idx, 1);
-				updateIdxById(idx);
+				updateIndexById(idx);
 				if (self.options.remote) length--;
 				this.refresh();
 			}
+
 
 			// expandAllGroups()
 			// @param	level	integer		Optional level to expand.
 			//								If not specified, applies to all levels.
 			//
 			this.expandAllGroups = function (level) {
-				expandCollapseAllGroups(level, false);
+				this.expandCollapseAllGroups(level, false);
 			}
 
-			function expandCollapseAllGroups(level, collapse) {
+
+			// expandCollapseAllGroups()
+			// Handles expading/collapsing for all groups in batch
+			//
+			// @param	level		integer		Optional level to expand.
+			// @param	collapse	boolean		Collapse or expand?
+			//
+			this.expandCollapseAllGroups = function (level, collapse) {
 				if (level === null || level === undefined) {
 					for (var i = 0; i < groupingInfos.length; i++) {
 						toggledGroupsByLevel[i] = {};
@@ -1356,13 +1391,16 @@ define([
 					toggledGroupsByLevel[level] = {};
 					groupingInfos[level].collapsed = collapse;
 				}
+
 				this.refresh();
 			}
 
-			function expandCollapseGroup(level, groupingKey, collapse) {
+
+			expandCollapseGroup = function (level, groupingKey, collapse) {
 				toggledGroupsByLevel[level][groupingKey] = groupingInfos[level].collapsed ^ collapse;
 				self.refresh();
 			}
+
 
 			// expandGroup()
 			// @param	varArgs		Either a Group's "groupingKey" property, or a
@@ -1371,7 +1409,7 @@ define([
 			//						expandGroup('high', '10%') will expand the '10%' subgroup of
 			//						the 'high' setGrouping.
 			//
-			function expandGroup(varArgs) {
+			expandGroup = function (varArgs) {
 				var args = Array.prototype.slice.call(arguments);
 				var arg0 = args[0];
 				if (args.length == 1 && arg0.indexOf(groupingDelimiter) != -1) {
@@ -1381,26 +1419,26 @@ define([
 				}
 			}
 
-			function ensureIdUniqueness() {
+			ensureIdUniqueness = function () {
 				var id;
 				for (var i = 0, l = items.length; i < l; i++) {
-					id = items[i][idProperty];
-					if (id === undefined || idxById[id] !== i) {
+					id = items[i].data[idProperty];
+					if (id === undefined || indexById[id] !== i) {
 						throw "Each data element must implement a unique 'id' property";
 					}
 				}
 			}
 
-			function ensureRowsByIdCache() {
+			ensureRowsByIdCache = function () {
 				if (!rowsById) {
 					rowsById = {};
 					for (var i = 0, l = rows.length; i < l; i++) {
-						if (rows[i]) rowsById[rows[i][idProperty]] = i;
+						if (rows[i]) rowsById[rows[i].data[idProperty]] = i;
 					}
 				}
 			}
 
-			function extractGroups(rows, parentGroup) {
+			extractGroups = function (rows, parentGroup) {
 				var group,
 					val,
 					groups = [],
@@ -1453,7 +1491,7 @@ define([
 				return groups;
 			}
 
-			function finalizeGroups(groups, level) {
+			finalizeGroups = function (groups, level) {
 				level = level || 0;
 				var gi = groupingInfos[level],
 					groupCollapsed = gi.collapsed,
@@ -1476,7 +1514,7 @@ define([
 				}
 			}
 
-			function flattenGroupedRows(groups, level) {
+			flattenGroupedRows = function (groups, level) {
 				level = level || 0;
 				var gi = groupingInfos[level],
 					groupedRows = [],
@@ -1501,7 +1539,7 @@ define([
 				return groupedRows;
 			}
 
-			function getFilteredAndPagedItems(items) {
+			getFilteredAndPagedItems = function (items) {
 				if (filter) {
 					var batchFilter = self.options.inlineFilters ? compiledFilter : uncompiledFilter;
 					var batchFilterWithCaching = self.options.inlineFilters ? compiledFilterWithCaching : uncompiledFilterWithCaching;
@@ -1537,7 +1575,7 @@ define([
 				};
 			}
 
-			function getFunctionInfo(fn) {
+			getFunctionInfo = function (fn) {
 				var fnRegex = new RegExp(/^function[^(]*\(([^)]*)\)\s*\{([\s\S]*)\}$/),
 					matches = fn.toString().match(fnRegex);
 				return {
@@ -1554,16 +1592,13 @@ define([
 				return groups;
 			}
 
-			this.getIdxById = function (id) {
-				return idxById[id];
-			}
-
 			this.getItem = function (i) {
+
 				return rows[i];
 			}
 
 			this.getItemById = function (id) {
-				return items[idxById[id]];
+				return items[indexById[id]];
 			}
 
 			this.getItemByIdx = function (i) {
@@ -1612,7 +1647,7 @@ define([
 				return rowsById[id];
 			}
 
-			function getRowDiffs(rows, newRows) {
+			getRowDiffs = function (rows, newRows) {
 				var item, r, eitherIsNonData, diff = [];
 				var from = 0,
 					to = newRows.length;
@@ -1635,28 +1670,38 @@ define([
 						r = rows[i];
 						eitherIsNonData = (item && item.__nonDataRow) || (r && r.__nonDataRow)
 
-						if (item && r && (
-							(groupingInfos.length && eitherIsNonData &&
-							(item && item.__group !== r.__group) ||
-							(item && item.__group) && !item.equals(r)) ||
-							// no good way to compare totals since they are arbitrary DTOs
-							// deep object comparison is pretty expensive
-							// always considering them 'dirty' seems easier for the time being
-							(eitherIsNonData && (item.__groupTotals || r.__groupTotals)) ||
+						console.log(item, r)
+
+						if (item && r &&
 							(
-								item && item[idProperty] != r[idProperty] ||
-								(updated && updated[item[idProperty]])
-							))) {
+								(
+									groupingInfos.length && eitherIsNonData &&
+									(item && item.__group !== r.__group) ||
+									(item && item.__group) && !item.equals(r)
+								) ||
+								// no good way to compare totals since they are arbitrary DTOs
+								// deep object comparison is pretty expensive
+								// always considering them 'dirty' seems easier for the time being
+								(eitherIsNonData && (item.__groupTotals || r.__groupTotals)) ||
+								(
+									item && item.data[idProperty] != r.data[idProperty] ||
+									(updated && updated[item.data[idProperty]])
+								)
+							)
+						) {
 							diff[diff.length] = i;
 						}
 					}
 				}
+
+				console.log(diff);
+
 				return diff;
 			}
 
 			this.insertItem = function (insertBefore, item) {
 				items.splice(insertBefore, 0, item);
-				updateIdxById(insertBefore);
+				updateIndexById(insertBefore);
 				if (self.options.remote) length++
 				this.refresh();
 			}
@@ -1682,7 +1727,7 @@ define([
 				var ids = [];
 				for (var i = 0, l = rowArray.length; i < l; i++) {
 					if (rowArray[i] < rows.length) {
-						ids[ids.length] = rows[rowArray[i]][idProperty];
+						ids[ids.length] = rows[rowArray[i]].data[idProperty];
 					}
 				}
 				return ids;
@@ -1804,16 +1849,28 @@ define([
 				this.refresh();
 			}
 
+
+			// setItems()
+			// Given an array of items, binds those items to the data view collection, generates
+			// index caches and checks for id uniqueness.
+			//
+			// @param	data				array		Array of objects
+			// @param	objectIdPorperty	string		Key that holds the ID property
+			//
 			this.setItems = function (data, objectIdProperty) {
+				suspend = true;
 				if (objectIdProperty !== undefined) {
 					idProperty = objectIdProperty;
 				}
 				items = filteredItems = data;
-				idxById = {};
-				updateIdxById();
+				indexById = {};
+				updateIndexById();
 				ensureIdUniqueness();
+				suspend = false;
+
 				this.refresh();
 			}
+
 
 			// setLength()
 			// When using a remote model, it's necessary to set the total length
@@ -1862,8 +1919,8 @@ define([
 				if (ascending === false) {
 					items.reverse();
 				}
-				idxById = {};
-				updateIdxById();
+				indexById = {};
+				updateIndexById();
 				this.refresh();
 			}
 
@@ -1891,56 +1948,7 @@ define([
 				});
 			}
 
-			this.syncGridCellCssStyles = function (grid, key) {
-				var hashById,
-					inHandler;
-
-				// since this method can be called after the cell styles have been set,
-				// get the existing ones right away
-				storeCellCssStyles(grid.getCellCssStyles(key));
-
-				function storeCellCssStyles(hash) {
-					hashById = {};
-					for (var row in hash) {
-						var id = rows[row][idProperty];
-						hashById[id] = hash[row];
-					}
-				}
-
-				function update() {
-					if (hashById) {
-						inHandler = true;
-						ensureRowsByIdCache();
-						var newHash = {};
-						for (var id in hashById) {
-							var row = rowsById[id];
-							if (row !== undefined) {
-								newHash[row] = hashById[id];
-							}
-						}
-						grid.setCellCssStyles(key, newHash);
-						inHandler = false;
-					}
-				}
-
-				grid.onCellCssStylesChanged.subscribe(function (e, args) {
-					if (inHandler) {
-						return;
-					}
-					if (key != args.key) {
-						return;
-					}
-					if (args.hash) {
-						storeCellCssStyles(args.hash);
-					}
-				});
-
-
-				this.on('onRowsChanged', function () {update(); })
-				this.on('onRowCountChanged', function () {update(); })
-			}
-
-			function uncompiledFilter(items, args) {
+			uncompiledFilter = function (items, args) {
 				var retval = [],
 					idx = 0;
 
@@ -1953,7 +1961,7 @@ define([
 				return retval;
 			}
 
-			function uncompiledFilterWithCaching(items, args, cache) {
+			uncompiledFilterWithCaching = function (items, args, cache) {
 				var retval = [],
 					idx = 0,
 					item;
@@ -1971,24 +1979,24 @@ define([
 				return retval;
 			}
 
-			function updateIdxById(startingIndex) {
+			updateIndexById = function (startingIndex) {
 				startingIndex = startingIndex || 0;
 				var id;
 				for (var i = startingIndex, l = items.length; i < l; i++) {
 					if (items[i] === null) continue;
-					id = items[i][idProperty];
+					id = items[i].data[idProperty];
 					if (id === undefined) {
 						throw "Each data element must implement a unique 'id' property";
 					}
-					idxById[id] = i;
+					indexById[id] = i;
 				}
 			}
 
 			this.updateItem = function (id, item) {
-				if (idxById[id] === undefined || id !== item[idProperty]) {
+				if (indexById[id] === undefined || id !== item.data[idProperty]) {
 					throw "Invalid or non-matching id";
 				}
-				items[idxById[id]] = item;
+				items[indexById[id]] = item;
 				if (!updated) {
 					updated = {};
 				}
@@ -2030,12 +2038,7 @@ define([
 		destroy = function () {
 			self.trigger('onBeforeDestroy', {});
 
-			var i = plugins.length;
-			while (i--) {
-				unregisterPlugin(plugins[i]);
-			}
-
-			if (self.options.enableColumnReorder) {
+			if (self.options.reorderable) {
 				$headers.filter(":ui-sortable").sortable("destroy");
 			}
 
@@ -2108,7 +2111,7 @@ define([
 				} else {
 					// Ensure dropdown has the right styling
 					this.$el.attr('id', this.id)
-					this.$el.addClass(classdropdown)
+					this.$el.addClass(['off', classdropdown].join(' '))
 					this.show()
 				}
 
@@ -2132,16 +2135,18 @@ define([
 			this.show = function () {
 				if (this.open) return;
 
-				this.$el
-					.hide()
-					.appendTo(this.$parent)
-					.fadeIn(150);
+				this.$el.appendTo(this.$parent)
 
 				this.position();
 
 				var store = this.$parent.data(classdropdown)
 				store.push(this)
 				this.$parent.data(classdropdown, store)
+
+				// Animate fade in
+				setTimeout(function () {
+					self.$el.removeClass('off');
+				}, 150)
 
 				this.open = true;
 			}
@@ -2159,10 +2164,12 @@ define([
 
 				this.$parent.data(classdropdown, store)
 
-				this.$el
-					.fadeOut(150, function () {
-						$(this).remove()
-					})
+				this.$el.addClass('off')
+
+				// Animate fade out
+				setTimeout(function () {
+					self.$el.remove()
+				}, 150)
 
 				this.open = false;
 			}
@@ -2206,19 +2213,20 @@ define([
 				return
 			}
 
-
 			self.dataView.sort(function (dataRow1, dataRow2) {
 				// If this item has a parent data reference object - use that for sorting
-				if (dataRow1.parent) dataRow1 = dataRow1.parent
-				if (dataRow2.parent) dataRow2 = dataRow2.parent
+				if (dataRow1.parent) dataRow1 = dataRow1.parent;
+				if (dataRow2.parent) dataRow2 = dataRow2.parent;
 
+				var column, field, sign, value1, value2;
+
+				// Loops through the columns by which we are sorting
 				for (var i = 0, l = cols.length; i < l; i++) {
-					var column = cols[i].sortCol,
-						field = column.field,
-						sign = cols[i].sortAsc ? 1 : -1,
-						value1 = dataRow1 instanceof Backbone.Model ? dataRow1.get(field) : dataRow1.data[field],
-						value2 = dataRow2 instanceof Backbone.Model ? dataRow2.get(field) : dataRow2.data[field],
-						v1, v2;
+					column = cols[i].sortCol;
+					field = column.field;
+					sign = cols[i].sortAsc ? 1 : -1;
+					value1 = dataRow1.get ? dataRow1.get(field) : dataRow1.data[field];
+					value2 = dataRow2.get ? dataRow2.get(field) : dataRow2.data[field];
 
 					// Use custom column comparer if it exists
 					if (typeof(column.comparer) === 'function') {
@@ -2229,20 +2237,38 @@ define([
 						if (value1 === null) return 1
 						if (value2 === null) return -1
 
-						// Keep sort case insensitive
-						v1 = sign + value1
-						v2 = sign + value2
-
-						return naturalSort(v1, v2) * sign
+						// Use natural sort by default
+						return naturalSort(value1, value2) * sign;
 					}
 				}
+
 				return 0;
 			});
+		}
 
-			// SlickGrid docs say this is needed... but it seems to work fine without it...
-			// Most likely causing un-necessary processing
-			//invalidate();
-			//render();
+
+		// getActive()
+		// Gets the active cell row/cell indexes
+		//
+		// @return object
+		getActiveCell = function () {
+			if (!activeCellNode) {
+				return null;
+			} else {
+				return {
+					row: activeRow,
+					cell: activeCell
+				};
+			}
+		}
+
+
+		// getActiveCellPosition()
+		// Gets the position of the active cell
+		//
+		// @return object
+		getActiveCellPosition = function () {
+			return absBox(activeCellNode);
 		}
 
 
@@ -2268,17 +2294,6 @@ define([
 				rowWidth += self.options.columns[i].width;
 			}
 			return self.options.fullWidthRows ? Math.max(rowWidth, availableWidth) : rowWidth;
-		}
-
-
-		// getCellCssStyles()
-		// ??
-		//
-		// @param	key		??
-		//
-		// @return ??
-		getCellCssStyles = function (key) {
-			return cellCssClasses[key];
 		}
 
 
@@ -2410,6 +2425,9 @@ define([
 			if (item instanceof Backbone.Model) {
 				return item.get(columnDef.field)
 			}
+
+			// Group headers
+			if (item.__group) return item.value;
 
 			return item.data[columnDef.field]
 		}
@@ -2712,46 +2730,6 @@ define([
 		/*************** MOVE THIS INTO ALPHABETICAL ORDER **********/
 
 
-		absBox = function (elem) {
-			var box = {
-				top: elem.offsetTop,
-				left: elem.offsetLeft,
-				bottom: 0,
-				right: 0,
-				width: $(elem).outerWidth(),
-				height: $(elem).outerHeight(),
-				visible: true
-			};
-			box.bottom = box.top + box.height;
-			box.right = box.left + box.width;
-
-			// walk up the tree
-			var offsetParent = elem.offsetParent;
-			while ((elem = elem.parentNode) != document.body) {
-				if (box.visible && elem.scrollHeight != elem.offsetHeight && $(elem).css("overflowY") != "visible") {
-					box.visible = box.bottom > elem.scrollTop && box.top < elem.scrollTop + elem.clientHeight;
-				}
-
-				if (box.visible && elem.scrollWidth != elem.offsetWidth && $(elem).css("overflowX") != "visible") {
-					box.visible = box.right > elem.scrollLeft && box.left < elem.scrollLeft + elem.clientWidth;
-				}
-
-				box.left -= elem.scrollLeft;
-				box.top -= elem.scrollTop;
-
-				if (elem === offsetParent) {
-					box.left += elem.offsetLeft;
-					box.top += elem.offsetTop;
-					offsetParent = elem.offsetParent;
-				}
-
-				box.bottom = box.top + box.height;
-				box.right = box.left + box.width;
-			}
-
-			return box;
-		}
-
 		asyncPostProcessRows = function () {
 			while (postProcessFromRow <= postProcessToRow) {
 				var row = (vScrollDir >= 0) ? postProcessFromRow++ : postProcessToRow--;
@@ -3045,25 +3023,6 @@ define([
 				cell += getColspan(row, cell);
 			}
 			return lastFocusableCell;
-		}
-
-		getActiveCell = function () {
-			if (!activeCellNode) {
-				return null;
-			} else {
-				return {
-					row: activeRow,
-					cell: activeCell
-				};
-			}
-		}
-
-		getActiveCellNode = function () {
-			return activeCellNode;
-		}
-
-		getActiveCellPosition = function () {
-			return absBox(activeCellNode);
 		}
 
 		getCanvasNode = function () {
@@ -3738,11 +3697,6 @@ define([
 			return navigate("up");
 		}
 
-		registerPlugin = function (plugin) {
-			plugins.unshift(plugin);
-			plugin.init(self);
-		}
-
 		removeCssRules = function () {
 			$style.remove();
 			stylesheet = null;
@@ -3953,143 +3907,13 @@ define([
 			}]);
 		}
 
-		unbindAncestorScrollEvents = function () {
-			if (!$boundAncestors) {
-				return;
-			}
-			$boundAncestors.unbind("scroll." + uid);
-			$boundAncestors = null;
-		}
 
-		unregisterPlugin = function (plugin) {
-			for (var i = plugins.length; i >= 0; i--) {
-				if (plugins[i] === plugin) {
-					if (plugins[i].destroy) {
-						plugins[i].destroy();
-					}
-					plugins.splice(i, 1);
-					break;
-				}
-			}
-		}
 
-		updateCell = function (row, cell) {
-			var cellNode = getCellNode(row, cell);
-			if (!cellNode) {
-				return;
-			}
 
-			var m = self.options.columns[cell],
-				d = getDataItem(row);
-			if (currentEditor && activeRow === row && activeCell === cell) {
-				currentEditor.loadValue(d);
-			} else {
-				cellNode.innerHTML = d ? getFormatter(row, m)(row, cell, getDataItemValueForColumn(d, m), m, d) : "";
-				invalidatePostProcessingResults(row);
-			}
-		}
 
-		updateCellCssStylesOnRenderedRows = function (addedHash, removedHash) {
-			var node, columnId, addedRowHash, removedRowHash;
-			for (var row in rowsCache) {
-				removedRowHash = removedHash && removedHash[row];
-				addedRowHash = addedHash && addedHash[row];
 
-				if (removedRowHash) {
-					for (columnId in removedRowHash) {
-						if (!addedRowHash || removedRowHash[columnId] != addedRowHash[columnId]) {
-							node = getCellNode(row, getColumnIndex(columnId));
-							if (node) {
-								$(node).removeClass(removedRowHash[columnId]);
-							}
-						}
-					}
-				}
 
-				if (addedRowHash) {
-					for (columnId in addedRowHash) {
-						if (!removedRowHash || removedRowHash[columnId] != addedRowHash[columnId]) {
-							node = getCellNode(row, getColumnIndex(columnId));
-							if (node) {
-								$(node).addClass(addedRowHash[columnId]);
-							}
-						}
-					}
-				}
-			}
-		}
 
-		updateColumnHeader = function (columnId, title, toolTip) {
-			if (!initialized) {
-				return;
-			}
-			var idx = getColumnIndex(columnId);
-			if (idx === null) {
-				return;
-			}
-
-			var columnDef = self.options.columns[idx];
-			var $header = $headers.children().eq(idx);
-			if ($header) {
-				if (title !== undefined) {
-					self.options.columns[idx].name = title;
-				}
-				if (toolTip !== undefined) {
-					self.options.columns[idx].toolTip = toolTip;
-				}
-
-				self.trigger('onBeforeHeaderCellDestroy', {}, {
-					"node": $header[0],
-					"column": columnDef
-				})
-
-				$header
-					.attr("tooltip", toolTip || "")
-					.children().eq(0).html(title);
-
-				self.trigger('onHeaderCellRendered', {}, {
-					"node": $header[0],
-					"column": columnDef
-				})
-			}
-		}
-
-		updateRow = function (row) {
-			var cacheEntry = rowsCache[row];
-			if (!cacheEntry) {
-				return;
-			}
-
-			ensureCellNodesInRowsCache(row);
-
-			var d = getDataItem(row);
-
-			for (var columnIdx in cacheEntry.cellNodesByColumnIdx) {
-				if (!cacheEntry.cellNodesByColumnIdx.hasOwnProperty(columnIdx)) {
-					continue;
-				}
-
-				columnIdx = columnIdx | 0;
-				var m = self.options.columns[columnIdx],
-					node = cacheEntry.cellNodesByColumnIdx[columnIdx];
-
-				if (row === activeRow && columnIdx === activeCell && currentEditor) {
-					currentEditor.loadValue(d);
-				} else if (d) {
-					node.innerHTML = getFormatter(row, m)(row, columnIdx, getDataItemValueForColumn(d, m), m, d);
-				} else {
-					node.innerHTML = "";
-				}
-			}
-
-			invalidatePostProcessingResults(row);
-		}
-
-		updateRowPositions = function () {
-			for (var row in rowsCache) {
-				rowsCache[row].rowNode.style.top = getRowTop(row) + "px";
-			}
-		}
 
 
 
@@ -4429,8 +4253,6 @@ define([
 				}
 			}
 
-			setCellCssStyles(self.options.selectedCellCssClass, hash);
-
 			self.trigger('onSelectedRowsChanged', e, {
 				rows: getSelectedRows()
 			})
@@ -4573,144 +4395,6 @@ define([
 		}
 
 
-		// metadataprovider()
-		// Provides item metadata for group and totals (Slick.Totals)
-		// rows produced by the DataView. This metadata overrides the default behavior
-		// and formatting of those rows so that they appear and function correctly when
-		// processed by the grid.
-		//
-		// This class also acts as a grid plugin providing event handlers to expand & collapse
-		// groups. If "grid.registerPlugin(...)" is not called, expand & collapse will not work.
-		//
-		// @param	options		object		Data View options
-		//
-		// @return object
-		metadataprovider = function (options) {
-			var _grid;
-			var _defaults = {
-				groupCssClass: "slick-group",
-				groupTitleCssClass: "slick-group-title",
-				totalsCssClass: "slick-group-totals",
-				groupFocusable: true,
-				totalsFocusable: false,
-				toggleCssClass: "slick-group-toggle",
-				toggleExpandedCssClass: "expanded",
-				toggleCollapsedCssClass: "collapsed",
-				enableExpandCollapse: true,
-				groupFormatter: defaultGroupCellFormatter,
-				totalsFormatter: defaultTotalsCellFormatter
-			};
-
-			options = $.extend(true, {}, _defaults, options);
-
-
-			function defaultGroupCellFormatter(row, cell, value, columnDef, item) {
-				if (!options.enableExpandCollapse) {
-					return item.title;
-				}
-
-				var indentation = item.level * 15 + "px";
-
-				return "<span class='" + options.toggleCssClass + " " +
-					(item.collapsed ? options.toggleCollapsedCssClass : options.toggleExpandedCssClass) +
-					"' style='margin-left:" + indentation + "'>" +
-					"<span class='icon icon16'></span>" +
-					"<span class='" + options.groupTitleCssClass + "' level='" + item.level + "'>" +
-					item.title +
-					"</span></span>";
-			}
-
-			function defaultTotalsCellFormatter(row, cell, value, columnDef, item) {
-				return (columnDef.groupTotalsFormatter && columnDef.groupTotalsFormatter(item, columnDef)) || "";
-			}
-
-
-			function init(grid) {
-				_grid = grid;
-				_grid.onClick.subscribe(handleGridClick);
-				_grid.onKeyDown.subscribe(handleGridKeyDown);
-
-			}
-
-			function destroy() {
-				if (_grid) {
-					_grid.onClick.unsubscribe(handleGridClick);
-					_grid.onKeyDown.unsubscribe(handleGridKeyDown);
-				}
-			}
-
-			function handleGridClick(e, args) {
-				var item = this.getDataItem(args.row),
-					isToggler = $(e.target).hasClass(options.toggleCssClass) || $(e.target).closest('.' + options.toggleCssClass).length
-
-				if (item && item instanceof Group && isToggler) {
-					if (item.collapsed) {
-						this.getData().expandGroup(item.groupingKey);
-					} else {
-						this.getData().collapseGroup(item.groupingKey);
-					}
-
-					e.stopImmediatePropagation();
-					e.preventDefault();
-				}
-			}
-
-			// TODO:  add -/+ handling
-
-			function handleGridKeyDown(e, args) {
-				if (options.enableExpandCollapse && (e.which == $.ui.keyCode.SPACE)) {
-					var activeCell = this.getActiveCell();
-					if (activeCell) {
-						var item = this.getDataItem(activeCell.row);
-						if (item && item instanceof Group) {
-							if (item.collapsed) {
-								this.getData().expandGroup(item.groupingKey);
-							} else {
-								this.getData().collapseGroup(item.groupingKey);
-							}
-
-							e.stopImmediatePropagation();
-							e.preventDefault();
-						}
-					}
-				}
-			}
-
-			function getGroupRowMetadata(item) {
-				return {
-					selectable: false,
-					focusable: options.groupFocusable,
-					cssClasses: options.groupCssClass,
-					columns: {
-						0: {
-							colspan: "*",
-							formatter: options.groupFormatter,
-							editor: null
-						}
-					}
-				};
-			}
-
-			function getTotalsRowMetadata(item) {
-				return {
-					selectable: false,
-					focusable: options.totalsFocusable,
-					cssClasses: options.totalsCssClass,
-					formatter: options.totalsFormatter,
-					editor: null
-				};
-			}
-
-
-			return {
-				"init": init,
-				"destroy": destroy,
-				"getGroupRowMetadata": getGroupRowMetadata,
-				"getTotalsRowMetadata": getTotalsRowMetadata
-			};
-		}
-
-
 		// makeActiveCellNormal()
 		// Handler for cell styling when using an editor
 		// TODO: Needs review
@@ -4812,7 +4496,7 @@ define([
 					return {
 						selectable: false,
 						focusable: false,
-						cssClasses: "ui-grid-alert",
+						cssClasses: classalert,
 						columns: {
 							0: {
 								colspan: "*",
@@ -4826,7 +4510,27 @@ define([
 				}
 
 				// Group headers should return their own metadata object
-				if (item.__nonDataRow) return self.gimp.getGroupRowMetadata(item)
+				if (item.__nonDataRow) {
+					return {
+						selectable: false,
+						cssClasses: [classgroup, classgrouptoggle, (item.collapsed ? classcollapsed : classexpanded)].join(' '),
+						columns: {
+							0: {
+								colspan: "*",
+								formatter: function (row, cell, value, columnDef, item) {
+									var indent = item.level * 15;
+									return [(indent ? '<span style="margin-left:' + indent + 'px">' : ''),
+										'<span class="icon"></span>',
+										'<span class="' + classgrouptitle + '" level="' + item.level + '">',
+										item.title,
+										'</span>',
+										(indent ? '</span>' : '')
+									].join('');
+								}
+							}
+						}
+					}
+				}
 
 				var obj = {
 					columns: {},
@@ -4906,26 +4610,6 @@ define([
 			}
 
 			return callback()
-		}
-
-
-		// removeCellCssStyles()
-		// ??
-		//
-		// @param	key		??
-		//
-		removeCellCssStyles = function (key) {
-			if (!cellCssClasses[key]) {
-				return;
-			}
-
-			updateCellCssStylesOnRenderedRows(null, cellCssClasses[key]);
-			delete cellCssClasses[key];
-
-			self.trigger('onCellCssStylesChanged', {}, {
-				"key": key,
-				"hash": null
-			})
 		}
 
 
@@ -5121,25 +4805,6 @@ define([
 		}
 
 
-		// setCellCssStyles()
-		// ??
-		//
-		// @param	key		??
-		// @param	hash	??
-		//
-		setCellCssStyles = function (key, hash) {
-			var prevHash = cellCssClasses[key];
-
-			cellCssClasses[key] = hash;
-			updateCellCssStylesOnRenderedRows(hash, prevHash);
-
-			self.trigger('onCellCssStylesChanged', {}, {
-				"key": key,
-				"hash": hash
-			})
-		}
-
-
 		// setColumns()
 		// Given a new column definitions object -- updates the grid to use it
 		//
@@ -5267,7 +4932,9 @@ define([
 		//
 		// @return object
 		this.setSorting = function (column_options) {
-			if (!$.isArray(column_options)) throw new Error(getLocale("error.bad_column_options"))
+			if (!$.isArray(column_options)) {
+				throw new Error('Doby Grid cannot set the sorting because the "column_options" parameter must be an array of objects.')
+			}
 
 			// This doesn't actually sort anything because SlickGrid is terrible
 			// at offering programmatic handlers... See:
@@ -5578,7 +5245,7 @@ define([
 
 						var newWidth = Math.max.apply(null, cellWidths)
 
-						if (currentWidth < newWidth) {
+						if (currentWidth != newWidth) {
 							var diff = newWidth - column.width
 
 							// Duplicate the drag functionality
@@ -5671,7 +5338,7 @@ define([
 		// @return object
 		this.sortBy = function (column_id, ascending) {
 			if (ascending === undefined) ascending = true
-			if (!column_id)	throw new Error($.t("ui:grid.error.missing_column_id"))
+			if (!column_id)	throw new Error('Grid cannot sort by blank value. Column Id must be specified.')
 			return this.setSorting([{
 				columnId: column_id,
 				sortAsc: ascending
@@ -5846,6 +5513,15 @@ define([
 		}
 
 
+		unbindAncestorScrollEvents = function () {
+			if (!$boundAncestors) {
+				return;
+			}
+			$boundAncestors.unbind("scroll." + uid);
+			$boundAncestors = null;
+		}
+
+
 		// updateCanvasWidth()
 		// Resizes the canvas width
 		//
@@ -5867,6 +5543,53 @@ define([
 		}
 
 
+		updateCell = function (row, cell) {
+			var cellNode = getCellNode(row, cell);
+			if (!cellNode) {
+				return;
+			}
+
+			var m = self.options.columns[cell],
+				d = getDataItem(row);
+			if (currentEditor && activeRow === row && activeCell === cell) {
+				currentEditor.loadValue(d);
+			} else {
+				cellNode.innerHTML = d ? getFormatter(row, m)(row, cell, getDataItemValueForColumn(d, m), m, d) : "";
+				invalidatePostProcessingResults(row);
+			}
+		}
+
+		updateCellCssStylesOnRenderedRows = function (addedHash, removedHash) {
+			var node, columnId, addedRowHash, removedRowHash;
+			for (var row in rowsCache) {
+				removedRowHash = removedHash && removedHash[row];
+				addedRowHash = addedHash && addedHash[row];
+
+				if (removedRowHash) {
+					for (columnId in removedRowHash) {
+						if (!addedRowHash || removedRowHash[columnId] != addedRowHash[columnId]) {
+							node = getCellNode(row, getColumnIndex(columnId));
+							if (node) {
+								$(node).removeClass(removedRowHash[columnId]);
+							}
+						}
+					}
+				}
+
+				if (addedRowHash) {
+					for (columnId in addedRowHash) {
+						if (!removedRowHash || removedRowHash[columnId] != addedRowHash[columnId]) {
+							node = getCellNode(row, getColumnIndex(columnId));
+							if (node) {
+								$(node).addClass(addedRowHash[columnId]);
+							}
+						}
+					}
+				}
+			}
+		}
+
+
 		// updateColumnCaches()
 		// Recalculates the widths of columns.
 		//
@@ -5880,6 +5603,74 @@ define([
 				columnPosRight[i] = x + self.options.columns[i].width;
 				x += self.options.columns[i].width;
 			}
+		}
+
+
+		updateColumnHeader = function (columnId, title, toolTip) {
+			if (!initialized) {
+				return;
+			}
+			var idx = getColumnIndex(columnId);
+			if (idx === null) {
+				return;
+			}
+
+			var columnDef = self.options.columns[idx];
+			var $header = $headers.children().eq(idx);
+			if ($header) {
+				if (title !== undefined) {
+					self.options.columns[idx].name = title;
+				}
+				if (toolTip !== undefined) {
+					self.options.columns[idx].toolTip = toolTip;
+				}
+
+				self.trigger('onBeforeHeaderCellDestroy', {}, {
+					"node": $header[0],
+					"column": columnDef
+				})
+
+				$header
+					.attr("tooltip", toolTip || "")
+					.children().eq(0).html(title);
+
+				self.trigger('onHeaderCellRendered', {}, {
+					"node": $header[0],
+					"column": columnDef
+				})
+			}
+		}
+
+
+		updateRow = function (row) {
+			var cacheEntry = rowsCache[row];
+			if (!cacheEntry) {
+				return;
+			}
+
+			ensureCellNodesInRowsCache(row);
+
+			var d = getDataItem(row);
+
+			for (var columnIdx in cacheEntry.cellNodesByColumnIdx) {
+				if (!cacheEntry.cellNodesByColumnIdx.hasOwnProperty(columnIdx)) {
+					continue;
+				}
+
+				columnIdx = columnIdx | 0;
+				var m = self.options.columns[columnIdx],
+					node = cacheEntry.cellNodesByColumnIdx[columnIdx];
+
+				if (row === activeRow && columnIdx === activeCell && currentEditor) {
+					currentEditor.loadValue(d);
+				} else if (d) {
+					node.innerHTML = getFormatter(row, m)(row, columnIdx, getDataItemValueForColumn(d, m), m, d);
+				} else {
+					node.innerHTML = "";
+				}
+			}
+
+			invalidatePostProcessingResults(row);
 		}
 
 
@@ -5977,6 +5768,13 @@ define([
 		}
 
 
+		updateRowPositions = function () {
+			for (var row in rowsCache) {
+				rowsCache[row].rowNode.style.top = getRowTop(row) + "px";
+			}
+		}
+
+
 		// validateColumns()
 		// Parses the options.columns list to ensure column data is correctly configured.
 		//
@@ -6032,4 +5830,6 @@ define([
 		// Initialize the class
 		return initialize();
 	};
-})
+
+	return DobyGrid;
+}));

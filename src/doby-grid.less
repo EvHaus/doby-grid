@@ -1,0 +1,414 @@
+/*! doby-grid.less
+ * (c) 2013 Evgueni Naverniouk, Globex Designs, Inc.
+ * Doby may be freely distributed under the MIT license.
+ * For all details and documentation:
+ * https://github.com/globexdesigns/doby-grid */
+
+@w3c: true;
+@import "../libs/lesshat/lesshat";
+@url: "../assets/img/";
+
+
+// Containers
+// ==================================================================================================
+
+
+.doby-grid {
+	background: #EAEAEA;
+	border: 1px solid #AAA;
+	font-size: 12px;
+	height: 100%;
+	outline: 0;
+	position: relative;
+}
+
+// Focus Sink
+.doby-grid-focus {
+	height: 0;
+	left: 0;
+	outline: 0;
+	position: fixed;
+	top: 0;
+	width: 0
+}
+
+
+// Header
+// ==================================================================================================
+
+
+.doby-grid-header {
+	border-bottom: 1px solid #999;
+	border-left: 0;
+	box-shadow: rgba(0,0,0,0.2) 0 4px 4px;
+	overflow: hidden;
+	position: relative;
+	width: 100%;
+}
+
+	.doby-grid-header-columns {
+		.gradient(~"linear-gradient(#EEE, #D1D1D1)");
+		cursor: default;
+		font-size: 14px;
+		left: -1000px;
+		overflow: hidden;
+		position: relative;
+		text-indent: 4px;
+		white-space: nowrap;
+	}
+
+		.doby-grid-header-column {
+			border: 0;
+			border-right: 1px solid rgba(0,0,0,0.2);
+			box-shadow: #FFF 0 1px 0 inset;
+			color: #111;
+			display: inline-block;
+			float: left;
+			height: 21px;
+			line-height: 22px;
+			margin: 0;
+			padding: 4px;
+			position: relative;
+			.transition(~"background 0.2s ease-in-out, box-shadow 0.2s ease-in-out");
+
+			&.doby-grid-header-sortable:hover {
+				background: rgba(0,0,0,0.05);
+				box-shadow: rgba(0,0,0,0.1) 2px 2px 2px inset;
+				cursor: pointer;
+			}
+
+			&.ui-sortable-helper {
+				.gradient(~"linear-gradient(#EEE, #D1D1D1)");
+				border-left: 1px solid rgba(0,0,0,0.2);
+
+				.doby-grid-resizable-handle {display: none}
+			}
+
+			// Sorted
+			&.doby-grid-header-column-sorted {
+				background: rgba(255,255,255,0.05);
+			}
+		}
+
+			.doby-grid-column-name {
+				display: block;
+				overflow: hidden;
+				text-overflow: ellipsis;
+				text-shadow: #FFF 0 1px 0;
+				width: 100%;
+			}
+
+			// Resize handle
+			.doby-grid-resizable-handle {
+				cursor: col-resize;
+				display: block;
+				font-size: 0.1px;
+				height: 100%;
+				position: absolute;
+				right: -6px;
+				top: 0;
+				width: 10px;
+				z-index: 10;
+
+				span {
+					border-color: rgba(0,0,0,0.2);
+					display: block;
+					height: 100%;
+					margin: 0 3px;
+					.transition(~'width 0.2s ease-in-out, margin 0.2s ease-in-out');
+					width: 1px;
+				}
+
+				&:hover span {
+					background: #AAA;
+					border-left: 1px solid rgba(255,255,255,0.8);
+					border-right: 1px solid rgba(0,0,0,0.5);
+					box-shadow: #333 0 0 2px inset;
+					margin: 0 1px;
+					width: 5px;
+				}
+			}
+
+		// Sorting Indicator
+		.doby-grid-sort-indicator {
+			background: no-repeat 0 0;
+			display: none;
+			height: 16px;
+			position: absolute;
+			right: 5px;
+			top: 7px;
+			width: 16px;
+		}
+
+			.doby-grid-sort-indicator-desc {
+				background-image: url("/@{url}sort-alphabet-descending.png");
+				display: inline-block
+			}
+
+			.doby-grid-sort-indicator-asc {
+				background-image: url("/@{url}sort-alphabet.png");
+				display: inline-block
+			}
+
+		// Placeholder when re-ordering columns
+		.doby-grid-sortable-placeholder {
+			background: rgba(0,0,0,0.1);
+			box-shadow: rgba(0,0,0,0.4) 2px 2px 5px inset;
+		}
+
+
+// Header Context Menu
+// ==================================================================================================
+
+
+.doby-grid-dropdown {
+	background: rgba(255,255,255,0.95);
+	border: 1px solid;
+	border-color: #D2D2D2 #CCC #888;
+	border-radius: 5px;
+	box-shadow: #999 0 4px 4px;
+	left: 0;
+	opacity: 1;
+	padding: 5px 0;
+	position: absolute;
+	top: 0;
+	.transition(~"opacity 0.15s ease-in-out");
+	z-index: 2;
+
+	&.off {opacity: 0}
+
+	.item {
+		cursor: pointer;
+		padding: 6px 30px 6px 14px;
+		position: relative;
+		.transition(~"background 0.3s ease-in-out");
+		white-space: nowrap;
+		&:hover {
+			background: rgba(0,0,0,0.1);
+		}
+
+		.icon {
+			display: none;
+			position: absolute;
+			right: 7px;
+			top: 7px;
+		}
+
+		&.on .icon {
+			background: url("/@{url}tick.png") no-repeat;
+			display: block;
+			height: 16px;
+			width: 16px;
+		}
+	}
+
+	.divider {
+		border-top: 1px solid rgba(0,0,0,0.2);
+		margin: 2px 0;
+	}
+}
+
+
+// Body
+// ==================================================================================================
+
+
+.doby-grid-viewport {
+	outline: 0;
+	overflow: auto;
+	position: relative;
+	width: 100%;
+}
+
+	.doby-grid-canvas {
+		outline: 0;
+		position: relative;
+	}
+
+
+// Rows
+// ==================================================================================================
+
+
+.doby-grid-row {
+	border-bottom: 1px solid rgba(0,0,0,0.2);
+	border-top: 1px solid rgba(255,255,255,0.5);
+	position: absolute;
+	width: 100%;
+
+	&.odd:not(.doby-grid-group) {
+		background: rgba(255,255,255,0.2)
+	}
+}
+
+	.doby-grid-cell {
+		border-right: 1px dotted rgba(0,0,0,0.2);
+		cursor: default;
+		margin: 0;
+		overflow: hidden;
+		padding: 0 8px;
+		position: absolute;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+		z-index: 1;
+
+		&.nopad {
+			padding: 0
+		}
+
+		&:focus {
+			outline: none;
+		}
+
+		&.highlighted {
+			background: rgba(0, 0, 255, 0.2);
+			.transition(~"all 0.3s ease-in-out");
+		}
+
+		&.flashing {
+			border: 1px solid red !important;
+		}
+
+		&.editable {
+			background: rgba(0,0,0,0.1);
+			box-shadow: rgba(0,0,0,0.4) 4px 4px 2px inset;
+			overflow: visible;
+			z-index: 11;
+		}
+	}
+
+
+// Groups
+// ==================================================================================================
+
+
+.doby-grid-group {
+	.gradient(~"linear-gradient(#EEE, #DDD)");
+	border-bottom-color: rgba(0,0,0,0.2);
+	border-top-color: rgba(0,0,0,0.2);
+
+	&:first-child {
+		border-top: 0
+	}
+}
+
+	.doby-grid-group-title {
+		font-weight: bold;
+		text-shadow: rgba(255,255,255,0.5) 0 1px 1px;
+
+		strong {
+			color: #333;
+			font-weight: 300;
+		}
+
+		.count {
+			color: #333;
+			font-size: 11px;
+			font-weight: 300;
+
+			strong {
+				color: #1F7BFF;
+				font-weight: 400;
+			}
+		}
+	}
+
+	// Click this to expand/collapse groups
+	.doby-grid-group-toggle {
+		cursor: pointer;
+		.transition(~"box-shadow 0.2s ease-in-out");
+
+		&:hover {
+			.gradient(~"linear-gradient(#E0E0E0, #D0D0D0)");
+			box-shadow: rgba(0,0,0,0.5) 2px 2px 5px inset;
+		}
+
+		.doby-grid-cell {cursor: inherit}
+
+		.icon {
+			background-position: 0 0;
+			background-repeat: no-repeat;
+			display: inline-block;
+			height: 16px;
+			margin-right: 8px;
+			vertical-align: middle;
+			width: 16px;
+		}
+
+		&.expanded .icon {background-image: url("/@{url}minus-circle.png")}
+		&.collapsed .icon {background-image: url("/@{url}plus-circle.png")}
+	}
+
+
+// Row Alert
+// ==================================================================================================
+
+
+.doby-grid-alert {
+	color: #999;
+	text-align: center;
+}
+
+
+// Editing
+// ==================================================================================================
+
+
+.doby-grid-cell input.editor-text {
+	background: none;
+	border: 0;
+	box-shadow: none !important;
+	color: #FFF;
+	height: 100%;
+	margin: 0;
+	outline: none;
+	padding: 0;
+	text-indent: 0;
+	text-shadow: none;
+	width: 100%;
+
+	&:focus {
+		color: #FFF;
+	}
+}
+
+
+// Remote Loading Spinner
+// ==================================================================================================
+
+
+.doby-grid-loader {
+	background: rgba(0,0,0,0.5) url(themes/default/img/loader-big.gif) no-repeat center center;
+	bottom: 0;
+	left: 0;
+	position: absolute;
+	right: 0;
+	text-align: center;
+	top: 0;
+	z-index: 100
+}
+
+.doby-grid-message {
+	bottom: 0;
+	display: table;
+	height: 100%;
+	left: 0;
+	position: absolute;
+	right: 0;
+	text-align: center;
+	top: 0;
+	width: 100%;
+	z-index: 100;
+}
+
+	.doby-grid-message > div {
+		display: table-cell;
+		vertical-align: middle;
+	}
+
+		.doby-grid-message > div > div {
+			color: #E98;
+			margin: 0 auto;
+			min-width: 300px;
+			width: 50%;
+		}

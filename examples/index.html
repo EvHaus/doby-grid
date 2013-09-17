@@ -3,7 +3,7 @@
 	<head>
 		<title>Doby Grid - Examples</title>
 		<script src="../libs/require.js" type="text/javascript"></script>
-		<link rel="stylesheet/less" type="text/css" href="../css/doby-grid.less" />
+		<link rel="stylesheet/less" type="text/css" href="../src/doby-grid.less" />
 		<style rel="stylesheet" type="text/css">
 			html, body {
 				font-family: Helvetica, Arial, sans-serif;
@@ -27,13 +27,14 @@
 			paths: {
 				'backbone': 'libs/backbone',
 				'jquery': 'libs/jquery',
+				'underscore': 'libs/underscore',
+				'less': 'libs/less',
+				'lazy': 'libs/lazy',
 
 				'jquery.ui': 'libs/jquery.ui',
 				'jquery.event.drag': 'libs/jquery.event.drag',
 
-				'dobygrid': 'dist/doby-grid',
-				'less': 'libs/less',
-				'underscore': 'libs/underscore',
+				'dobygrid': 'src/doby-grid'
 			},
 			shim: {
 				'backbone': {
@@ -43,7 +44,6 @@
 				'underscore': {
 					exports: '_'
 				},
-
 				'jquery.ui': {
 					deps: ['jquery']
 				},
@@ -63,7 +63,7 @@
 
 			// Generate Data
 			var data = []
-			for (var i = 0; i < 100000; i++) {
+			for (var i = 0; i < 1000; i++) {
 				data.push({
 					data: {
 						id: i,
