@@ -446,6 +446,48 @@
 		}
 
 
+		// addColumn()
+		// Inserts a new column into the grid
+		//
+		// @param	data			object		Column data object
+		// @param	insertBefore	integer		Index of the column to insert in front
+		//
+		// @return object
+		this.addColumn = function (data, insertBefore) {
+			if (!data || typeof(data) !== 'object') return this
+
+			var columns = this.options.columns
+			if (!insertBefore && insertBefore !== 0) {
+				columns.push(data);
+			} else {
+				columns.splice(insertBefore, 0, data);
+			}
+
+			// Set the grid columns
+			setColumns(columns);
+			return this;
+		}
+
+
+		// addGrouping()
+		// Add to the grouping object given the 'id' of a column. Allows you to
+		// create nested groupings.
+		//
+		// @param	column_id		string		Id of the column to group by
+		//
+		// @return object
+		this.addGrouping = function (column_id) {
+			var column_ids = hasGrouping(column_id)
+			if (!column_ids) {
+				var grouping = this.dataView.getGrouping();
+				column_ids = _.pluck(grouping, 'column_id');
+				column_ids.push(column_id)
+				this.setGrouping(column_ids)
+			}
+			return this
+		}
+
+
 		// appendCellHtml()
 		// Generates the HTML content for a given cell and adds it to the output cache
 		//
@@ -1107,14 +1149,12 @@
 			},
 				calculateGroupTotals,
 				calculateTotals,
-				collapseGroup,
 				compileAccumulatorLoop,
 				compileFilter,
 				compiledFilter,
 				compileFilterWithCaching,
 				compiledFilterWithCaching,
 				expandCollapseGroup,
-				expandGroup,
 				ensureIdUniqueness,
 				ensureRowsByIdCache,
 				extractGroups,
@@ -1184,6 +1224,25 @@
 						this.setItems(data);
 					}
 				}
+
+				/*
+				// Default dataview events that auto refresh the grid when data is changed
+				this.on('onRowCountChanged', function (e, args) {
+					console.log('count changed')
+					// Re-render when rows are inserted or removed
+					updateRowCount();
+					render();
+				})
+
+				this.on('onRowsChanged', function (e, args) {
+					console.log('rows changed')
+
+					// Re-render when rows are changed
+					invalidateRows(args.rows);
+					render();
+				});
+				*/
+
 				return this;
 			}
 
@@ -1261,7 +1320,7 @@
 			//						collapseGroup('high', '10%') will collapse the '10%' subgroup of
 			//						the 'high' setGrouping.
 			//
-			collapseGroup = function (varArgs) {
+			this.collapseGroup = function (varArgs) {
 				var args = Array.prototype.slice.call(arguments),
 					arg0 = args[0];
 				if (args.length == 1 && arg0.indexOf(groupingDelimiter) != -1) {
@@ -1378,7 +1437,7 @@
 			// expandCollapseAllGroups()
 			// Handles expading/collapsing for all groups in batch
 			//
-			// @param	level		integer		Optional level to expand.
+			// @param	level		integer		Optional level to expand
 			// @param	collapse	boolean		Collapse or expand?
 			//
 			this.expandCollapseAllGroups = function (level, collapse) {
@@ -1396,7 +1455,16 @@
 			}
 
 
+			// expandCollapseGroup()
+			// Handles collapsing and expanding of groups
+			//
+			// @param	level			integer		Which level are we toggling
+			// @param	groupingKey		integer		Which group key are we toggling
+			// @param	collapse		boolean		Collapse? Otherwise expand.
+			//
 			expandCollapseGroup = function (level, groupingKey, collapse) {
+				// TODO: Find out why this doesn't do anything
+
 				toggledGroupsByLevel[level][groupingKey] = groupingInfos[level].collapsed ^ collapse;
 				self.refresh();
 			}
@@ -1409,7 +1477,7 @@
 			//						expandGroup('high', '10%') will expand the '10%' subgroup of
 			//						the 'high' setGrouping.
 			//
-			expandGroup = function (varArgs) {
+			this.expandGroup = function (varArgs) {
 				var args = Array.prototype.slice.call(arguments);
 				var arg0 = args[0];
 				if (args.length == 1 && arg0.indexOf(groupingDelimiter) != -1) {
@@ -1418,6 +1486,7 @@
 					expandCollapseGroup(args.length - 1, args.join(groupingDelimiter), false);
 				}
 			}
+
 
 			ensureIdUniqueness = function () {
 				var id;
@@ -1647,6 +1716,15 @@
 				return rowsById[id];
 			}
 
+
+			// getRowDiffs()
+			// Given two lists of row data objects, returns a list of indexes of the rows which
+			// are changed. This will tell the grid what needs to be re-cached and re-rendered.
+			//
+			// @param	rows		array		List of current rows
+			// @param	newRows		array		List of new rows
+			//
+			// @return array
 			getRowDiffs = function (rows, newRows) {
 				var item, r, eitherIsNonData, diff = [];
 				var from = 0,
@@ -1670,8 +1748,6 @@
 						r = rows[i];
 						eitherIsNonData = (item && item.__nonDataRow) || (r && r.__nonDataRow)
 
-						console.log(item, r)
-
 						if (item && r &&
 							(
 								(
@@ -1679,10 +1755,10 @@
 									(item && item.__group !== r.__group) ||
 									(item && item.__group) && !item.equals(r)
 								) ||
-								// no good way to compare totals since they are arbitrary DTOs
+								// no good way to compare non-data rows
 								// deep object comparison is pretty expensive
 								// always considering them 'dirty' seems easier for the time being
-								(eitherIsNonData && (item.__groupTotals || r.__groupTotals)) ||
+								eitherIsNonData ||
 								(
 									item && item.data[idProperty] != r.data[idProperty] ||
 									(updated && updated[item.data[idProperty]])
@@ -1694,10 +1770,9 @@
 					}
 				}
 
-				console.log(diff);
-
 				return diff;
 			}
+
 
 			this.insertItem = function (insertBefore, item) {
 				items.splice(insertBefore, 0, item);
@@ -1827,6 +1902,7 @@
 			}
 
 			this.setGrouping = function (groupingInfo) {
+
 				groups = [];
 				toggledGroupsByLevel = [];
 				groupingInfo = groupingInfo || [];
@@ -1834,6 +1910,8 @@
 
 				for (var i = 0, l = groupingInfos.length; i < l; i++) {
 					var gi = groupingInfos[i] = $.extend(true, {}, groupingInfoDefaults, groupingInfos[i]);
+					console.log(gi)
+
 					gi.getterIsAFn = typeof gi.getter === "function";
 
 					// pre-compile accumulator loops
@@ -3973,10 +4051,33 @@
 				return;
 			}
 
+			// Get item from cell
+			var item = getDataItem(cell.row)
+
+			// Handle group expand/collapse
+			if (item && item instanceof Group) {
+				var isToggler = $(e.target).hasClass(classgrouptoggle) || $(e.target).closest('.' + classgrouptoggle).length;
+
+				if (isToggler) {
+					if (item.collapsed) {
+						self.dataView.expandGroup(item.groupingKey);
+					} else {
+						self.dataView.collapseGroup(item.groupingKey);
+					}
+
+					e.stopImmediatePropagation();
+					e.preventDefault();
+
+					return
+				}
+			}
+
 			self.trigger('onClick', e, {
 				row: cell.row,
-				cell: cell.cell
+				cell: cell.cell,
+				item: item
 			})
+
 			if (e.isImmediatePropagationStopped()) {
 				return;
 			}
@@ -4636,6 +4737,25 @@
 		}
 
 
+		// removeGrouping()
+		// Remove column grouping for a given 'id' of a column.
+		//
+		// @param	column_id		string		Id of the column to remove group
+		//
+		// @return object
+		this.removeGrouping = function (column_id) {
+			var column_ids = hasGrouping(column_id)
+			if (column_ids) {
+				var idx = column_ids.indexOf(column_id);
+				if (idx >= 0) {
+					column_ids.splice(idx, 1)
+				}
+				this.setGrouping(column_ids)
+			}
+			return this
+		}
+
+
 		// removeRowFromCache()
 		// Given a row index, removes that row from the cache
 		//
@@ -4829,6 +4949,8 @@
 					m.width = m.maxWidth;
 				}
 			}
+
+			processColumns()
 
 			updateColumnCaches();
 
