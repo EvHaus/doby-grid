@@ -90,6 +90,7 @@
 			classheadercolumns = this.NAME + '-header-columns',
 			classheadercolumn = this.NAME + '-header-column',
 			classheadercolumnactive = this.NAME + '-header-column-active',
+			classheadercolumndrag = this.NAME + '-header-column-dragging',
 			classheadercolumnsorted = this.NAME + '-header-column-sorted',
 			classheadersortable = this.NAME + '-header-sortable',
 			classplaceholder = this.NAME + '-sortable-placeholder',
@@ -961,14 +962,6 @@
 		// Creates the column header elements.
 		//
 		createColumnHeaders = function () {
-			function onMouseEnter() {
-				$(this).addClass("ui-state-hover");
-			}
-
-			function onMouseLeave() {
-				$(this).removeClass("ui-state-hover");
-			}
-
 			$headers.find("." + classheadercolumn)
 				.each(function () {
 				var columnDef = $(this).data("column");
@@ -994,12 +987,6 @@
 					.data("column", m)
 					.addClass(m.headerCssClass || "")
 					.appendTo($headers);
-
-				if (self.options.reorderable || m.sortable) {
-					header
-						.on('mouseenter', onMouseEnter)
-						.on('mouseleave', onMouseLeave);
-				}
 
 				if (m.sortable) {
 					header.addClass(classheadersortable);
@@ -1191,6 +1178,7 @@
 				pagenum = 0,
 				pagesize = 0,
 				prevRefreshHints = {},
+				recalc,
 				refreshHints = {},
 				rows = [],			// data by row
 				rowsById = null,	// rows by id; lazy-calculated
@@ -1224,24 +1212,6 @@
 						this.setItems(data);
 					}
 				}
-
-				/*
-				// Default dataview events that auto refresh the grid when data is changed
-				this.on('onRowCountChanged', function (e, args) {
-					console.log('count changed')
-					// Re-render when rows are inserted or removed
-					updateRowCount();
-					render();
-				})
-
-				this.on('onRowsChanged', function (e, args) {
-					console.log('rows changed')
-
-					// Re-render when rows are changed
-					invalidateRows(args.rows);
-					render();
-				});
-				*/
 
 				return this;
 			}
@@ -1463,8 +1433,6 @@
 			// @param	collapse		boolean		Collapse? Otherwise expand.
 			//
 			expandCollapseGroup = function (level, groupingKey, collapse) {
-				// TODO: Find out why this doesn't do anything
-
 				toggledGroupsByLevel[level][groupingKey] = groupingInfos[level].collapsed ^ collapse;
 				self.refresh();
 			}
@@ -1478,8 +1446,9 @@
 			//						the 'high' setGrouping.
 			//
 			this.expandGroup = function (varArgs) {
-				var args = Array.prototype.slice.call(arguments);
-				var arg0 = args[0];
+				var args = Array.prototype.slice.call(arguments),
+					arg0 = args[0];
+
 				if (args.length == 1 && arg0.indexOf(groupingDelimiter) != -1) {
 					expandCollapseGroup(arg0.split(groupingDelimiter).length - 1, arg0, false);
 				} else {
@@ -1596,7 +1565,7 @@
 
 					if (!g.collapsed) {
 						rows = g.groups ? flattenGroupedRows(g.groups, level + 1) : g.rows;
-						for (var j = 0, m = rows; j < m; j++) {
+						for (var j = 0, m = rows.length; j < m; j++) {
 							groupedRows[gl++] = rows[j];
 						}
 					}
@@ -1605,6 +1574,7 @@
 						groupedRows[gl++] = g.totals;
 					}
 				}
+
 				return groupedRows;
 			}
 
@@ -1662,7 +1632,6 @@
 			}
 
 			this.getItem = function (i) {
-
 				return rows[i];
 			}
 
@@ -1748,19 +1717,29 @@
 						r = rows[i];
 						eitherIsNonData = (item && item.__nonDataRow) || (r && r.__nonDataRow)
 
+						// Determine if 'r' is different from 'item'
 						if (item && r &&
 							(
+								// Compare group with non group
+								(item.__group && !r.__group) ||
+								(!item.__group && r.__group) ||
+								// Compare between groups
 								(
 									groupingInfos.length && eitherIsNonData &&
 									(item && item.__group !== r.__group) ||
 									(item && item.__group) && !item.equals(r)
 								) ||
-								// no good way to compare non-data rows
-								// deep object comparison is pretty expensive
-								// always considering them 'dirty' seems easier for the time being
-								eitherIsNonData ||
+								// Compare between different non-data types
 								(
-									item && item.data[idProperty] != r.data[idProperty] ||
+									eitherIsNonData &&
+									// no good way to compare totals since they are arbitrary DTOs
+									// deep object comparison is pretty expensive
+									// always considering them 'dirty' seems easier for the time being
+									(item.__groupTotals || r.__groupTotals)
+								) ||
+								// Compare between different data objects
+								(
+									item && item.data && r.data && item.data[idProperty] != r.data[idProperty] ||
 									(updated && updated[item.data[idProperty]])
 								)
 							)
@@ -1808,7 +1787,7 @@
 				return ids;
 			}
 
-			function recalc(_items) {
+			recalc = function (_items) {
 				rowsById = null;
 
 				if (refreshHints.isFilterNarrowing != prevRefreshHints.isFilterNarrowing ||
@@ -1842,10 +1821,9 @@
 					return;
 				}
 
-				var countBefore = rows.length;
-				var totalRowsBefore = totalRows;
-
-				var diff = recalc(items, filter); // pass as direct refs to avoid closure perf hit
+				var countBefore = rows.length,
+					totalRowsBefore = totalRows,
+					diff = recalc(items, filter); // pass as direct refs to avoid closure perf hit
 
 				// if the current page is no longer valid, go to last page and recalc
 				// we suffer a performance penalty here, but the main loop (recalc) remains highly optimized
@@ -1901,16 +1879,15 @@
 				filterArgs = args;
 			}
 
-			this.setGrouping = function (groupingInfo) {
+			this.setGrouping = function (options) {
+				options = options || [];
 
 				groups = [];
 				toggledGroupsByLevel = [];
-				groupingInfo = groupingInfo || [];
-				groupingInfos = (groupingInfo instanceof Array) ? groupingInfo : [groupingInfo];
+				groupingInfos = (options instanceof Array) ? options : [options];
 
 				for (var i = 0, l = groupingInfos.length; i < l; i++) {
 					var gi = groupingInfos[i] = $.extend(true, {}, groupingInfoDefaults, groupingInfos[i]);
-					console.log(gi)
 
 					gi.getterIsAFn = typeof gi.getter === "function";
 
@@ -3572,21 +3549,28 @@
 			invalidateRows([row]);
 		}
 
+
+		// invalidateRows()
+		// Clear the cache for a given set of rows
+		//
+		// @param	rows	array		List of row indices to invalidate
+		//
 		invalidateRows = function (rows) {
-			var i, rl;
-			if (!rows || !rows.length) {
-				return;
-			}
+			if (!rows || !rows.length) return;
+
 			vScrollDir = 0;
-			for (i = 0, rl = rows.length; i < rl; i++) {
+
+			for (var i = 0, l = rows.length; i < l; i++) {
 				if (currentEditor && activeRow === rows[i]) {
 					makeActiveCellNormal();
 				}
+
 				if (rowsCache[rows[i]]) {
 					removeRowFromCache(rows[i]);
 				}
 			}
 		}
+
 
 		makeActiveCellEditable = function (editor) {
 			if (!activeCellNode) {
@@ -5305,7 +5289,7 @@
 					.appendTo(e)
 					.bind("dragstart", function (e, dd) {
 						pageX = e.pageX;
-						$(this).parent().addClass(classheadercolumnactive);
+						$(this).parent().addClass(classheadercolumndrag);
 
 						// lock each column's width option to current width
 						lockColumnWidths(i)
@@ -5324,7 +5308,7 @@
 						applyColWidths()
 					})
 					.bind("dragend", function (e, dd) {
-						$(this).parent().removeClass(classheadercolumnactive);
+						$(this).parent().removeClass(classheadercolumndrag);
 						submitColResize()
 					})
 					.on("dblclick", function (event) {

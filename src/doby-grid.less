@@ -115,19 +115,23 @@
 					display: block;
 					height: 100%;
 					margin: 0 3px;
-					.transition(~'width 0.2s ease-in-out, margin 0.2s ease-in-out');
+					.transition(~'all 0.2s ease-in-out');
 					width: 1px;
 				}
 
-				&:hover span {
-					background: #AAA;
-					border-left: 1px solid rgba(255,255,255,0.8);
-					border-right: 1px solid rgba(0,0,0,0.5);
-					box-shadow: #333 0 0 2px inset;
-					margin: 0 1px;
-					width: 5px;
-				}
+
 			}
+
+		// Resize handle hover/active
+		.doby-grid-header-column-dragging .doby-grid-resizable-handle span,
+		.doby-grid-resizable-handle:hover span {
+			background: #AAA;
+			border-left: 1px solid rgba(255,255,255,0.8);
+			border-right: 1px solid rgba(0,0,0,0.5);
+			box-shadow: #333 0 0 2px inset;
+			margin: 0 1px;
+			width: 5px;
+		}
 
 		// Sorting Indicator
 		.doby-grid-sort-indicator {
@@ -320,7 +324,7 @@
 
 		&:hover {
 			.gradient(~"linear-gradient(#E0E0E0, #D0D0D0)");
-			box-shadow: rgba(0,0,0,0.5) 2px 2px 5px inset;
+			box-shadow: rgba(0,0,0,0.3) 2px 2px 5px inset;
 		}
 
 		.doby-grid-cell {cursor: inherit}
