@@ -14,6 +14,9 @@ describe("Initialization and validation", function () {
 	})
 
 
+	// ==========================================================================================
+
+
 	it("should be AMD compatible", function () {
 		var loaded = false;
 		runs(function () {
@@ -28,7 +31,7 @@ describe("Initialization and validation", function () {
 					'underscore': {
 						exports: '_'
 					},
-					'jquery.ui': {
+					'jquery-ui': {
 						deps: ['jquery']
 					},
 					'jquery.event.drag': {
@@ -54,7 +57,18 @@ describe("Initialization and validation", function () {
 	})
 
 
-	it("should throw a TypeError if a require option is not found", function () {
+	// ==========================================================================================
+
+
+	it("should be able to initialize a grid with default options", function () {
+		expect(function () {new DobyGrid(function () {})}).toThrow();
+	})
+
+
+	// ==========================================================================================
+
+
+	it("should throw a TypeError the given options param is not an object", function () {
 		var tp = new TypeError('The "options" param must be an object.');
 		expect(function () {new DobyGrid(1)}).toThrow(tp);
 		expect(function () {new DobyGrid('testing')}).toThrow(tp);
@@ -63,8 +77,29 @@ describe("Initialization and validation", function () {
 	})
 
 
-	it("should be able to initialize a grid with default options", function () {
-		expect(function () {new DobyGrid(function () {})}).toThrow();
+	// ==========================================================================================
+
+
+	it("should throw a TypeError if the given columns object is not an array", function () {
+		var tp = new TypeError('The "columns" option must be an array.');
+		expect(function () {
+			new DobyGrid({
+				columns: {}
+			})
+		}).toThrow(tp);
+	})
+
+
+	// ==========================================================================================
+
+
+	it("should throw a TypeError if the given data object is not an array", function () {
+		var tp = new TypeError('The "data" option must be an array.');
+		expect(function () {
+			new DobyGrid({
+				data: {}
+			})
+		}).toThrow(tp);
 	})
 
 })

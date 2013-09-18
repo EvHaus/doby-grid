@@ -4,22 +4,28 @@
 		<meta charset="utf-8">
 		<title>Doby Grid Jasmine Spec Runner</title>
 		<link rel="stylesheet" type="text/css" href="../libs/jasmine/jasmine.css">
-		<script src="../libs/jasmine/jasmine.js"></script>
-		<script src="../libs/jasmine/jasmine-html.js"></script>
 
 		<script src="../libs/jquery.js"></script>
+		<script src="../libs/jasmine/jasmine.js"></script>
+		<script src="../libs/jasmine/jasmine-html.js"></script>
+		<script src="../libs/jasmine/jasmine-jquery.js"></script>
+
 		<script src="../libs/underscore.js"></script>
 		<script src="../libs/backbone.js"></script>
-		<script src="../libs/jquery.ui.js"></script>
-		<script src="../libs/jquery.event.drag.js"></script>
+		<script src="../libs/jquery-ui.js"></script>
 
 		<script src="../src/doby-grid.js"></script>
 
 		<script src="common.js"></script>
+		<script src="rendering.js"></script>
+
 		<script>
 			(function() {
 				var jasmineEnv = jasmine.getEnv();
 				jasmineEnv.updateInterval = 1000;
+
+				// jasmine-jquery configuration
+				jasmine.getFixtures().fixturesPath = '/test';
 
 				var htmlReporter = new jasmine.HtmlReporter();
 

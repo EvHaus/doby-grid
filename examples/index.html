@@ -27,14 +27,10 @@
 			paths: {
 				'backbone': 'libs/backbone',
 				'jquery': 'libs/jquery',
-				'underscore': 'libs/underscore',
+				'jquery-ui': 'libs/jquery-ui',
+				'dobygrid': 'src/doby-grid',
 				'less': 'libs/less',
-				'lazy': 'libs/lazy',
-
-				'jquery.ui': 'libs/jquery.ui',
-				'jquery.event.drag': 'libs/jquery.event.drag',
-
-				'dobygrid': 'src/doby-grid'
+				'underscore': 'libs/underscore'
 			},
 			shim: {
 				'backbone': {
@@ -44,10 +40,7 @@
 				'underscore': {
 					exports: '_'
 				},
-				'jquery.ui': {
-					deps: ['jquery']
-				},
-				'jquery.event.drag': {
+				'jquery-ui': {
 					deps: ['jquery']
 				}
 			}
@@ -59,11 +52,11 @@
 		}
 
 		// Initialize doby
-		require(['less', 'dobygrid'], function(less, DobyGrid) {
+		require(['less', 'dobygrid', 'jquery-ui'], function(less, DobyGrid) {
 
 			// Generate Data
 			var data = []
-			for (var i = 0; i < 1000; i++) {
+			for (var i = 0; i < 10000; i++) {
 				data.push({
 					data: {
 						id: i,

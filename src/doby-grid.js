@@ -9,14 +9,10 @@
 (function (root, factory) {
 	// Add AMD support
 	if (typeof define === 'function' && define.amd) {
-		// TODO: Find a way to remove jQuery UI and event drag modules from requirements
 		define([
 			'jquery',
 			'underscore',
-			'backbone',
-
-			'jquery.ui',
-			'jquery.event.drag'
+			'backbone'
 		], function ($, _, Backbone) {
 			// Export global even in AMD case in case this script is loaded with
 			// others that may still expect a global Backbone.
@@ -45,8 +41,6 @@
 		var self = this,
 			$boundAncestors,
 			$canvas,
-			$focusSink,
-			$focusSink2,
 			$headers,
 			$headerScroller,
 			$style,
@@ -65,7 +59,6 @@
 			autosizeColumns,
 			bindAncestorScrollEvents,
 			cacheRowPositions,
-			cancelEditAndSetFocus,
 			canCellBeActive,
 			canCellBeSelected,
 			canvasWidth,
@@ -80,7 +73,6 @@
 			classcontextmenu = this.NAME + '-contextmenu',
 			classdropdown = this.NAME + '-dropdown',
 			classexpanded = 'expanded',
-			classfocussink = this.NAME + '-focus',
 			classgroup = this.NAME + '-group',
 			classgrouptitle = this.NAME + '-group-title',
 			classgrouptoggle = this.NAME + '-group-toggle',
@@ -181,9 +173,6 @@
 			handleClick,
 			handleContextMenu,
 			handleDblClick,
-			handleDrag,
-			handleDragEnd,
-			handleDragInit,
 			handleHeaderContextMenu,
 			handleHeaderClick,
 			handleHeaderMouseEnter,
@@ -259,17 +248,15 @@
 			setActiveCellInternal,
 			setColumns,
 			setData,
-			setFocus,
 			setSelectedRows,
 			setSelectionModel,
-			setSortColumn,
-			setSortColumns,
 			setupColumnReorder,
 			setupColumnResize,
 			setupColumnSort,
 			sortColumns = [],
 			startPostProcessing,
 			stylesheet,
+			styleSortColumns,
 			tabbingDirection = 1,
 			th,				// virtual height
 			toggleHeaderContextMenu,
@@ -284,6 +271,7 @@
 			updateRowCount,
 			updateRowPositions,
 			validateColumns,
+			validateOptions,
 			viewportH,
 			viewportHasHScroll,
 			viewportHasVScroll,
@@ -292,30 +280,30 @@
 
 		// Default Grid Options
 		this.options = _.extend({
-			alertOnEmpty:		false,		// Display a "no items" message when dataset is empty?
-			asyncEditorLoadDelay: 100,		// Delay amount for asyncEditorLoading
-			asyncEditorLoading: false,		// Makes cell editors load asynchronously after a delay
-			asyncPostRenderDelay: 50,		// Delay before attempt to post-process cells
-			autoEdit:			true,		// Automaticaly go into edit mode when cell is selected
-			cellFlashingCssClass: "flashing",	// CSS class to apply for flashing cells via flashCell
-			class:				null,		// CSS class to add to the main element
-			columns:			[],			// Columns data set
-			data:				[],			// An array of objects to render
-			dataExtractor:		null,		// Function that gets a column's value from its row data
-			defaultColumnWidth: 80,			// Default width for columns
-			defaultFormatter:	null,		// Default function for formatting all cells
-			editable:			false,		// Can the values of this table be edited
-			editorFactory:		null,		// A factory object responsible for creating an editor
-			enableAddRow:		false,		// If true, a blank row will be displayed at the bottom
-			enableAsyncPostRender: false,	// Enables cell post-processing
-			enableCellNavigation: true,		// ??
-			forceFitColumns:	false,		// Prevent horizontal scrolling
-			forceSyncScrolling: false,		// ??
-			formatterFactory:	null,		// A factory object for creating a formatter
-			fullWidthRows:		true,		// Will expand the table rows divs to the full width
-			groupable:			true,		// Can the values be grouped
-			headerMenu:			true,		// Display context menu for headers
-			leaveSpaceForNewRows: false,	// (TODO) Candidate for removal?
+			alertOnEmpty:		false,
+			asyncEditorLoadDelay: 100,
+			asyncEditorLoading: false,
+			asyncPostRenderDelay: 50,
+			autoEdit:			true,
+			cellFlashingCssClass: "flashing",
+			class:				null,
+			columns:			[],
+			data:				[],
+			dataExtractor:		null,
+			defaultColumnWidth: 80,
+			defaultFormatter:	null,
+			editable:			false,
+			editorFactory:		null,
+			enableAddRow:		false,
+			enableAsyncPostRender: false,
+			enableCellNavigation: true,		// TODO: ??
+			forceFitColumns:	false,
+			forceSyncScrolling: false,		// TODO: ??
+			formatterFactory:	null,
+			fullWidthRows:		true,
+			groupable:			true,
+			headerMenu:			true,
+			leaveSpaceForNewRows: false,
 			locale: {
 				column: {
 					add_group:				'Add Grouping By "{{name}}"',
@@ -336,14 +324,15 @@
 					no_results:				'No results found'
 				}
 			},
-			multiColumnSort:	true,		// Allow sorting by multiple columns
-			multiSelect:		true,		// ??
-			remote:				false,		// Use remote data set
-			reorderable:		true,		// Can the columns be re-ordered,
-			rowHeight:			28,			// The default height for all rows
-			rowPreprocess:		null,		// Function for pre-processing row styling
-			selectedCellCssClass: "selected",	// CSS class to apply for selected cells
-			variableRowHeight:	false		// Will enable variable row height mode
+			multiColumnSort:	true,
+			multiSelect:		true,		// TODO: ??
+			remote:				false,
+			resizable:			true,
+			resizeCells:		true,
+			reorderable:		true,
+			rowHeight:			28,
+			rowPreprocess:		null,
+			selectedCellCssClass: "selected"
 		}, options);
 
 		// Default Column Options
@@ -372,16 +361,11 @@
 		// @return object
 		initialize = function () {
 
-			// Validate loaded JavaScript modules against requested options
-			if (self.options.reorderable && !$.fn.sortable) {
-				throw new Error('In other to use "reorderable", you must ensure the jquery-ui.sortable module is loaded.');
-			}
+			// Ensure the options we were given are all valid and complete
+			validateOptions();
 
 			// Calculate some information about the browser window
 			getBrowserData();
-
-			// Validate and pre-process
-			validateColumns();
 
 			// TODO: Not sure what this is
 			editController = {
@@ -492,13 +476,13 @@
 		// appendCellHtml()
 		// Generates the HTML content for a given cell and adds it to the output cache
 		//
-		// @param	stringArray		array		Output array to which to append
-		// @param	row				integer		Current row index
-		// @param	cell			integer		Current cell index
-		// @param	colspan			integer		Colspan of this cell
-		// @param	item			object		Data object for this cell
+		// @param	result		array		Output array to which to append
+		// @param	row			integer		Current row index
+		// @param	cell		integer		Current cell index
+		// @param	colspan		integer		Colspan of this cell
+		// @param	item		object		Data object for this cell
 		//
-		appendCellHtml = function (stringArray, row, cell, colspan, item) {
+		appendCellHtml = function (result, row, cell, colspan, item) {
 			var m = self.options.columns[cell],
 				rowI = Math.min(self.options.columns.length - 1, cell + colspan - 1),
 				mClass = (m.cssClass ? " " + m.cssClass : ""),
@@ -508,33 +492,27 @@
 				cellCss += (" active");
 			}
 
-			if (!self.options.variableRowHeight) {
-				stringArray.push("<div class='" + cellCss + "'>");
-			} else {
-				stringArray.push("<div class='");
-				stringArray.push(cellCss);
-				stringArray.push("'");
+			result.push("<div class='" + cellCss + "'");
 
-				if (rowPositionCache[row].height != self.options.rowHeight) {
-					stringArray.push("style='height:" + (rowPositionCache[row].height - cellHeightDiff) + "px'");
-				}
-
-				stringArray.push(">");
+			if (rowPositionCache[row].height != self.options.rowHeight) {
+				result.push("style='height:" + (rowPositionCache[row].height - cellHeightDiff) + "px'");
 			}
+
+			result.push(">");
 
 			// if there is a corresponding row (if not, this is the Add New row or
 			// this data hasn't been loaded yet)
 			if (item) {
 				var value = getDataItemValueForColumn(item, m);
 				try {
-					stringArray.push(getFormatter(row, m)(row, cell, value, m, item));
+					result.push(getFormatter(row, m)(row, cell, value, m, item));
 				} catch (e) {
-					stringArray.push('')
+					result.push('')
 					console.error("Cell failed to render due to failed column formatter. Error: " + e.message, e)
 				}
 			}
 
-			stringArray.push("</div>");
+			result.push("</div>");
 
 			rowsCache[row].cellRenderQueue.push(cell);
 			rowsCache[row].cellColSpans[cell] = colspan;
@@ -564,18 +542,11 @@
 				rowCss += " " + metadata.cssClasses;
 			}
 
-			if (!self.options.variableRowHeight) {
-				stringArray.push("<div class='" + rowCss + "' style='top:" + getRowTop(row) + "px'>");
-			} else {
-				stringArray.push("<div class='");
-				stringArray.push(rowCss);
-				stringArray.push("' style='top:");
-				stringArray.push(rowPositionCache[row].top);
-				stringArray.push("px;");
-				stringArray.push(
-				(rowPositionCache[row].height != self.options.rowHeight) ? "height:" + rowPositionCache[row].height + "px;" : "");
-				stringArray.push("'>");
-			}
+			stringArray.push("<div class='" + rowCss + "' ");
+			stringArray.push("style='top:" + rowPositionCache[row].top + "px;");
+			stringArray.push(
+			(rowPositionCache[row].height != self.options.rowHeight) ? "height:" + rowPositionCache[row].height + "px;" : "");
+			stringArray.push("'>");
 
 			var colspan, m;
 			for (var i = 0, l = self.options.columns.length; i < l; i++) {
@@ -639,10 +610,9 @@
 				setupColumnSort();
 				createCssRules();
 
-				if (self.options.variableRowHeight) {
-					initializeRowPositions();
-					cacheRowPositions();
-				}
+				// Recalculate variable row heights
+				initializeRowPositions();
+				cacheRowPositions();
 
 				resizeCanvas();
 				bindAncestorScrollEvents();
@@ -659,19 +629,11 @@
 					.bind("click", handleHeaderClick)
 					.delegate("." + classheadercolumn, "mouseenter", handleHeaderMouseEnter)
 					.delegate("." + classheadercolumn, "mouseleave", handleHeaderMouseLeave);
-				$focusSink.add($focusSink2)
-					.bind("keydown", handleKeyDown);
 				$canvas
 					.bind("keydown", handleKeyDown)
 					.bind("click", handleClick)
 					.bind("dblclick", handleDblClick)
 					.bind("contextmenu", handleContextMenu)
-					.bind("draginit", handleDragInit)
-					.bind("dragstart", {
-					distance: 3
-				}, handleDragStart)
-					.bind("drag", handleDrag)
-					.bind("dragend", handleDragEnd)
 					.delegate("." + classcell, "mouseenter", handleMouseEnter)
 					.delegate("." + classcell, "mouseleave", handleMouseLeave);
 
@@ -760,7 +722,7 @@
 					} else {
 						$boundAncestors = $boundAncestors.add($elem);
 					}
-					$elem.bind("scroll." + uid, handleActiveCellPositionChange);
+					$elem.bind("scroll#" + uid, handleActiveCellPositionChange);
 				}
 			}
 		}
@@ -982,7 +944,7 @@
 				var header = $('<div class="' + classheadercolumn + '"></div>')
 					.html('<span class="' + classcolumnname + '">' + m.name + "</span>")
 					.width(m.width - headerColumnWidthDiff)
-					.attr("id", "" + uid + m.id)
+					.attr("id", uid + m.id)
 					.attr("tooltip", m.toolTip || "")
 					.data("column", m)
 					.addClass(m.headerCssClass || "")
@@ -999,9 +961,12 @@
 				})
 			}
 
-			setSortColumns(sortColumns);
+			// Style the column headers accordingly
+			styleSortColumns();
+
 			setupColumnResize();
-			if (self.options.reordrable) {
+
+			if (self.options.reorderable) {
 				setupColumnReorder();
 			}
 		}
@@ -1014,14 +979,13 @@
 			$style = $('<style type="text/css" rel="stylesheet"></style>').appendTo($("head"));
 			var rowHeight = (self.options.rowHeight - cellHeightDiff);
 			var rules = [
-				"." + uid + " ." + classheadercolumn + "{left:1000px}",
-				"." + uid + " ." + classcell + "{height:" + rowHeight + "px;line-height:" + rowHeight + "px}",
-				"." + uid + " ." + classrow + "{height:" + self.options.rowHeight + "px}"
+				"#" + uid + " ." + classcell + "{height:" + rowHeight + "px;line-height:" + rowHeight + "px}",
+				"#" + uid + " ." + classrow + "{height:" + self.options.rowHeight + "px}"
 			];
 
 			for (var i = 0, l = self.options.columns.length; i < l; i++) {
-				rules.push("." + uid + " .l" + i + "{}");
-				rules.push("." + uid + " .r" + i + "{}");
+				rules.push("#" + uid + " .l" + i + "{}");
+				rules.push("#" + uid + " .r" + i + "{}");
 			}
 
 			$style[0].appendChild(document.createTextNode(rules.join("\n")));
@@ -1035,15 +999,12 @@
 		createGrid = function () {
 
 			// Create the container
-			var cclasses = [self.NAME, uid]
+			var cclasses = [self.NAME]
 			if (self.options.class) cclasses.push(self.options.class);
 
-			self.$el = $('<div class="' + cclasses.join(' ') + '"></div>');
+			self.$el = $('<div class="' + cclasses.join(' ') + '" id="' + uid + '"></div>');
 
 			// Create the global grid elements
-			$focusSink = $('<div class="' + classfocussink + '" tabIndex="0"></div>')
-				.appendTo(self.$el);
-
 			$headerScroller = $('<div class="' + classheader + '"></div>')
 					.appendTo(self.$el);
 
@@ -1054,28 +1015,6 @@
 			$viewport = $('<div class="' + classviewport + '"></div>').appendTo(self.$el);
 			$canvas = $('<div class="' + classcanvas + '"></div>').appendTo($viewport);
 
-			$focusSink2 = $focusSink.clone().appendTo(self.$el);
-
-			// Add support for row events
-			// TODO: Do we still need this?
-			/*
-			_.each(['onClick', 'onContextMenu', 'onDblClick', 'onMouseEnter', 'onMouseLeave'], function(e) {
-				grid[e].subscribe(function(event, args) {
-					// Fill in bizarre missing gaps in SlickGrid event args
-					if (args.row === undefined || args.cell === undefined) {
-						cellargs = grid.getCellFromEvent(event)
-						args = _.extend(args, cellargs)
-					}
-
-					if (args.row) {
-						item = grid.getDataItem(args.row)
-						if (item && typeof(item[e]) === 'function') {
-							item[e](event, args, item)
-						}
-					}
-				})
-			})
-			*/
 		};
 
 
@@ -1841,12 +1780,17 @@
 				}
 
 				if (countBefore != rows.length) {
+					updateRowCount();
+
 					this.trigger('onRowCountChanged', {}, {
 						previous: countBefore,
 						current: rows.length
 					})
 				}
 				if (diff.length > 0) {
+					invalidateRows(diff);
+					render();
+
 					this.trigger('onRowsChanged', {}, {
 						rows: diff
 					})
@@ -2100,9 +2044,6 @@
 			unbindAncestorScrollEvents();
 			self.$el.unbind("." + self.NAME);
 			removeCssRules();
-
-			$canvas.unbind("draginit dragstart dragend drag");
-			self.$el.empty().removeClass(uid);
 		}
 
 
@@ -2273,7 +2214,7 @@
 				if (dataRow1.parent) dataRow1 = dataRow1.parent;
 				if (dataRow2.parent) dataRow2 = dataRow2.parent;
 
-				var column, field, sign, value1, value2;
+				var column, field, sign, value1, value2, result = 0;
 
 				// Loops through the columns by which we are sorting
 				for (var i = 0, l = cols.length; i < l; i++) {
@@ -2293,11 +2234,11 @@
 						if (value2 === null) return -1
 
 						// Use natural sort by default
-						return naturalSort(value1, value2) * sign;
+						result += naturalSort(value1, value2) * sign;
 					}
 				}
 
-				return 0;
+				return result;
 			});
 		}
 
@@ -2493,6 +2434,7 @@
 		//
 		// @return integer
 		getDataLength = function () {
+			if (!self.dataView) return 0;
 			if (self.dataView.getLength) {
 				return self.dataView.getLength();
 			} else {
@@ -2614,13 +2556,8 @@
 		// @param	viewportTop		integer
 		getRenderedRange = function (viewportTop, viewportLeft) {
 			var range = getVisibleRange(viewportTop, viewportLeft),
-				buffer = null;
-			if (!self.options.variableRowHeight) {
-				buffer = Math.round(viewportH / self.options.rowHeight);
-			} else {
-				buffer = Math.round(getRowFromPosition(viewportH));
-			}
-			var minBuffer = 3;
+				buffer = Math.round(getRowFromPosition(viewportH)),
+				minBuffer = 3;
 
 			if (vScrollDir == -1) {
 				range.top -= buffer;
@@ -2653,36 +2590,31 @@
 		//
 		// @return integer
 		getRowFromPosition = function (maxPosition) {
-			var result = null
-			if (!self.options.variableRowHeight) {
-				result = Math.floor((maxPosition + offset) / self.options.rowHeight);
-			} else {
+			var result = null,
+				row = 0,
+				rowsInPosCache = getDataLength();
 
-				var row = 0;
-				var rowsInPosCache = getDataLength();
-
-				if (rowsInPosCache) {
-					// Loop through the row position cache and break when
-					// the row is found
-					for (var i = 0; i < rowsInPosCache; i++) {
-						if (rowPositionCache[i].top <= maxPosition && rowPositionCache[i].bottom >= maxPosition) {
-							row = i;
-							continue;
-						}
+			if (rowsInPosCache) {
+				// Loop through the row position cache and break when
+				// the row is found
+				for (var i = 0; i < rowsInPosCache; i++) {
+					if (rowPositionCache[i].top <= maxPosition && rowPositionCache[i].bottom >= maxPosition) {
+						row = i;
+						continue;
 					}
-
-					// Return the last row in the grid
-					if (maxPosition > rowPositionCache[rowsInPosCache - 1].bottom) {
-						row = rowsInPosCache - 1;
-					}
-				} else {
-					// TODO: This is a hack to get remote+variableRowHeight working. I'm not sure
-					// why this works as. Investigate later.
-					row = Math.floor((maxPosition + offset) / self.options.rowHeight)
 				}
 
-				result = row;
+				// Return the last row in the grid
+				if (maxPosition > rowPositionCache[rowsInPosCache - 1].bottom) {
+					row = rowsInPosCache - 1;
+				}
+			} else {
+				// TODO: This was a hack to get remote+variableRowHeight working. I'm not sure
+				// why this works as. Investigate later.
+				row = Math.floor((maxPosition + offset) / self.options.rowHeight)
 			}
+
+			result = row;
 
 			return result
 		}
@@ -2761,24 +2693,15 @@
 				viewportLeft = scrollLeft;
 			}
 
-			if (!self.options.variableRowHeight) {
-				return {
-					top: getRowFromPosition(viewportTop),
-					bottom: getRowFromPosition(viewportTop + viewportH) + 1,
-					leftPx: viewportLeft,
-					rightPx: viewportLeft + viewportW
-				};
-			} else {
-				var rowTop = Math.floor(getRowFromPosition(viewportTop + offset));
-				var rowBottom = Math.ceil(getRowFromPosition(viewportTop + offset + viewportH));
+			var rowTop = Math.floor(getRowFromPosition(viewportTop + offset));
+			var rowBottom = Math.ceil(getRowFromPosition(viewportTop + offset + viewportH));
 
-				return {
-					top: rowTop,
-					bottom: rowBottom,
-					leftPx: viewportLeft,
-					rightPx: viewportLeft + viewportW
-				};
-			}
+			return {
+				top: rowTop,
+				bottom: rowBottom,
+				leftPx: viewportLeft,
+				rightPx: viewportLeft + viewportW
+			};
 		}
 
 
@@ -2910,10 +2833,6 @@
 			}
 		}
 
-		cancelEditAndSetFocus = function () {
-			setFocus();
-		}
-
 		canCellBeActive = function (row, cell) {
 			if (!self.options.enableCellNavigation || row >= getDataLengthIncludingAddNew() ||
 				row < 0 || cell >= self.options.columns.length || cell < 0) {
@@ -3015,7 +2934,6 @@
 		commitEditAndSetFocus = function () {
 			// if the commit fails, it would do so due to a validation error
 			// if so, do not steal the focus from the editor
-			setFocus();
 			if (self.options.autoEdit) {
 				navigateDown();
 			}
@@ -3098,16 +3016,10 @@
 		}
 
 		getCellFromPoint = function (x, y) {
-			var row;
-			if (!self.options.variableRowHeight) {
-				row = getRowFromPosition(y);
-			} else {
-				row = Math.floor(getRowFromPosition(y + offset));
-			}
+			var row = Math.floor(getRowFromPosition(y + offset)),
+				cell = 0,
+				w = 0;
 
-			var cell = 0;
-
-			var w = 0;
 			for (var i = 0, l = self.options.columns.length; i < l && w < x; i++) {
 				w += self.options.columns[i].width;
 				cell++;
@@ -3136,15 +3048,8 @@
 				return null;
 			}
 
-			var y1, y2;
-
-			if (!self.options.variableRowHeight) {
-				y1 = getRowTop(row);
-				y2 = y1 + self.options.rowHeight - 1;
-			} else {
-				y1 = rowPositionCache[row].top - offset;
-				y2 = y1 + rowPositionCache[row].height - 1;
-			}
+			var y1 = rowPositionCache[row].top - offset;
+			var y2 = y1 + rowPositionCache[row].height - 1;
 
 			var x1 = 0;
 			for (var i = 0; i < cell; i++) {
@@ -3247,11 +3152,6 @@
 
 			// if selecting the 'add new' row, start editing right away
 			setActiveCellInternal(newCell, forceEdit || (row === getDataLength()) || self.options.autoEdit);
-
-			// if no editor was created, set the focus back on the grid
-			if (!currentEditor) {
-				setFocus();
-			}
 		}
 
 		gotoDown = function (row, cell, posX) {
@@ -3596,7 +3496,6 @@
 				item: item,
 				column: columnDef
 			}) === false) {
-				setFocus();
 				return;
 			}
 
@@ -3616,8 +3515,7 @@
 				container: activeCellNode,
 				column: columnDef,
 				item: item || {},
-				commitChanges: commitEditAndSetFocus,
-				cancelChanges: cancelEditAndSetFocus
+				commitChanges: commitEditAndSetFocus
 			});
 
 			if (item) {
@@ -3693,8 +3591,6 @@
 				return false;
 			}
 
-			setFocus();
-
 			var tabbingDirections = {
 				"up": -1,
 				"down": 1,
@@ -3757,11 +3653,6 @@
 
 		navigateUp = function () {
 			return navigate("up");
-		}
-
-		removeCssRules = function () {
-			$style.remove();
-			stylesheet = null;
 		}
 
 		resetActiveCell = function () {
@@ -3873,27 +3764,13 @@
 		}
 
 		scrollRowIntoView = function (row, doPaging) {
-			var rowAtTop, rowAtBottom;
-
-			if (!options.variableRowHeight) {
-				rowAtTop = row * options.rowHeight;
-				rowAtBottom = (row + 1) * options.rowHeight - viewportH + (viewportHasHScroll ? scrollbarDimensions.height : 0);
-			} else {
-				rowAtTop = rowPositionCache[row].top;
+			var rowAtTop = rowPositionCache[row].top,
 				rowAtBottom = rowPositionCache[row].bottom - viewportH + (viewportHasHScroll ? scrollbarDimensions.height : 0);
-			}
 
 
 			// need to page down?
-			var pgdwn,
-				pgup;
-			if (!options.variableRowHeight) {
-				pgdwn = (row + 1) * options.rowHeight > scrollTop + viewportH + offset
-				pgup = row * options.rowHeight < scrollTop + offset
-			} else {
-				pgdwn = rowPositionCache[row].bottom > scrollTop + viewportH + offset
+			var pgdwn = rowPositionCache[row].bottom > scrollTop + viewportH + offset,
 				pgup = rowPositionCache[row].top < scrollTop + offset
-			}
 
 			if (pgdwn) {
 				scrollTo(doPaging ? rowAtTop : rowAtBottom);
@@ -3907,11 +3784,7 @@
 		}
 
 		scrollRowToTop = function (row) {
-			if (!options.variableRowHeight) {
-				scrollTo(row * options.rowHeight);
-			} else {
-				scrollTo(rowPositionCache[row].top);
-			}
+			scrollTo(rowPositionCache[row].top);
 			render();
 		}
 
@@ -3962,12 +3835,7 @@
 			}
 		}
 
-		setSortColumn = function (columnId, ascending) {
-			setSortColumns([{
-				columnId: columnId,
-				sortAsc: ascending
-			}]);
-		}
+
 
 
 
@@ -4020,16 +3888,6 @@
 		// @param	e	object		Javascript event object
 		//
 		handleClick = function (e) {
-			if (!currentEditor) {
-				// if this click resulted in some cell child node getting focus,
-				// don't steal it back - keyboard events will still bubble up
-				// IE9+ seems to default DIVs to tabIndex=0 instead of -1, so check for cell
-				// clicks directly.
-				if (e.target != document.activeElement || $(e.target).hasClass(classcell)) {
-					setFocus();
-				}
-			}
-
 			var cell = getCellFromEvent(e);
 			if (!cell || (currentEditor !== null && activeRow == cell.row && activeCell == cell.cell)) {
 				return;
@@ -4118,66 +3976,6 @@
 		}
 
 
-		// handleDrag()
-		// Handles the drag events on cells
-		//
-		// @param	e	object		Javascript event object
-		// @param	dd	object		jQuery Drag options object
-		//
-		handleDrag = function (e, dd) {
-			self.trigger('onDrag', e, dd)
-		}
-
-
-		// handleDragEnd()
-		// Handles the drag end events on cells
-		//
-		// @param	e	object		Javascript event object
-		// @param	dd	object		jQuery Drag options object
-		//
-		handleDragEnd = function (e, dd) {
-			self.trigger('onDragEnd', e, dd)
-		}
-
-
-		// handleDragInit()
-		// Handles the drag init events on cells
-		//
-		// @param	e	object		Javascript event object
-		// @param	dd	object		jQuery Drag options object
-		//
-		handleDragInit = function (e, dd) {
-			var cell = getCellFromEvent(e);
-			if (!cell || !cellExists(cell.row, cell.cell)) {
-				return false;
-			}
-
-			self.trigger('onDragInit', e, dd)
-
-			// if nobody claims to be handling drag'n'drop by stopping immediate propagation,
-			// cancel out of it
-			return false;
-		}
-
-
-		// handleDragStart()
-		// Handles the drag start events on cells
-		//
-		// @param	e	object		Javascript event object
-		// @param	dd	object		jQuery Drag options object
-		//
-		handleDragStart = function (e, dd) {
-			var cell = getCellFromEvent(e);
-			if (!cell || !cellExists(cell.row, cell.cell)) {
-				return false;
-			}
-
-			self.trigger('onDragStart', e, dd)
-
-			return false;
-		}
-
-
 		// handleHeaderClick()
 		// Handles the header click events
 		//
@@ -4246,9 +4044,7 @@
 
 			if (!handled) {
 				if (!e.shiftKey && !e.altKey && !e.ctrlKey) {
-					if (e.which == 27) {
-						cancelEditAndSetFocus();
-					} else if (e.which == 34) {
+					if (e.which == 34) {
 						navigatePageDown();
 						handled = true;
 					} else if (e.which == 33) {
@@ -4644,20 +4440,6 @@
 				return obj
 			}
 
-			// Data View Events
-			self.dataView.on('onRowCountChanged', function (e, args) {
-				// Re-render when rows are inserted or removed
-				updateRowCount();
-				render();
-			})
-
-			self.dataView.on('onRowsChanged', function (e, args) {
-				// Re-render when rows are changed
-				invalidateRows(args.rows);
-				render();
-			});
-
-
 			// Remote Data Handling
 			if (self.options.remote) {
 				self.loader = new RemoteModel(self.options.data)
@@ -4718,6 +4500,15 @@
 
 			setColumns(newcolumns);
 			return this
+		}
+
+
+		// removeCssRules()
+		// Removes the CSS rules specific to this grid instance
+		//
+		removeCssRules = function () {
+			$style.remove();
+			stylesheet = null;
 		}
 
 
@@ -4858,11 +4649,7 @@
 
 			viewportH = getViewportHeight();
 
-			if (!self.options.variableRowHeight) {
-				numVisibleRows = Math.ceil(viewportH / self.options.rowHeight);
-			} else {
-				numVisibleRows = Math.ceil(getRowFromPosition(viewportH));
-			}
+			numVisibleRows = Math.ceil(getRowFromPosition(viewportH));
 			viewportW = parseFloat($.css(self.$el[0], "width", true));
 			$viewport.height(viewportH);
 
@@ -4897,7 +4684,6 @@
 			if (offset != oldOffset) {
 				var range = getVisibleRange(newScrollTop);
 				cleanupRows(range);
-				if (!options.variableRowHeight) updateRowPositions();
 			}
 
 			if (prevScrollTop != newScrollTop) {
@@ -4934,7 +4720,7 @@
 				}
 			}
 
-			processColumns()
+			validateColumns()
 
 			updateColumnCaches();
 
@@ -4950,18 +4736,6 @@
 				resizeCanvas();
 				applyColumnWidths();
 				handleScroll();
-			}
-		}
-
-
-		// setFocus()
-		// Focus sink handler for focus events
-		//
-		setFocus = function () {
-			if (tabbingDirection == -1) {
-				$focusSink[0].focus();
-			} else {
-				$focusSink2[0].focus();
 			}
 		}
 
@@ -4997,42 +4771,15 @@
 
 			self.options = $.extend(self.options, args);
 
+			validateOptions()
+
 			$viewport.css("overflow-y", self.options.autoHeight ? "hidden" : "auto");
 			render();
 		}
 
 
-		// setSortColumns()
-		// Styles the column headers according to the current sorting data
-		//
-		// @param	cols		array	Sorting columns data
-		//
-		setSortColumns = function (cols) {
-			sortColumns = cols;
-
-			var headerColumnEls = $headers.children();
-			headerColumnEls
-				.removeClass(classheadercolumnactive)
-				.find("." + classsortindicator)
-				.removeClass(classsortindicatorasc + " " + classsortindicatordesc);
-
-			$.each(sortColumns, function (i, col) {
-				if (col.sortAsc === null) {
-					col.sortAsc = true;
-				}
-				var columnIndex = getColumnIndex(col.columnId);
-				if (columnIndex !== null) {
-					headerColumnEls.eq(columnIndex)
-						.addClass(classheadercolumnactive)
-						.find("." + classsortindicator)
-						.addClass(col.sortAsc ? classsortindicatorasc : classsortindicatordesc);
-				}
-			});
-		}
-
-
 		// setSorting()
-		// Sets the sorting for the grid data view.
+		// Sets the sorting for the grid data view
 		//
 		// @param	column_options		array		List of column options to use for sorting
 		//
@@ -5042,10 +4789,11 @@
 				throw new Error('Doby Grid cannot set the sorting because the "column_options" parameter must be an array of objects.')
 			}
 
-			// This doesn't actually sort anything because SlickGrid is terrible
-			// at offering programmatic handlers... See:
-			// http://stackoverflow.com/questions/9678309/calling-sort-on-slickgrid
-			setSortColumns(column_options)
+			// Updating the sorting dictionary
+			sortColumns = column_options;
+
+			// Update the sorting data
+			styleSortColumns()
 
 			// Re-process column args into something the execute sorter can understand
 			var args = {
@@ -5258,7 +5006,7 @@
 
 			var applyColWidths = function () {
 				applyColumnHeaderWidths();
-				if (self.options.syncColumnCellResize) {
+				if (self.options.resizeCells) {
 					applyColumnWidths();
 				}
 			}
@@ -5285,53 +5033,23 @@
 				}
 				$col = $(e);
 
+				// If resizable columns are disabled -- return
+				if (!self.options.resizable) return
+
+				// Find the column data object
+				column = self.options.columns[i];
+
 				$('<div class="' + classhandle + '"><span></span></div>')
 					.appendTo(e)
-					.bind("dragstart", function (e, dd) {
-						pageX = e.pageX;
-						$(this).parent().addClass(classheadercolumndrag);
-
-						// lock each column's width option to current width
-						lockColumnWidths(i)
-
-						// Ensures the leeway has another room to move around
-						prepareLeeway(i, pageX)
-					})
-					.bind("drag", function (e, dd) {
-
-						var d = Math.min(maxPageX, Math.max(minPageX, e.pageX)) - pageX;
-
-						// Sets the new column widths
-						resizeColumn(i, d)
-
-						// Save changes
-						applyColWidths()
-					})
-					.bind("dragend", function (e, dd) {
-						$(this).parent().removeClass(classheadercolumndrag);
-						submitColResize()
-					})
+					// Auto resize on double click
 					.on("dblclick", function (event) {
 						var columnEl = $(event.currentTarget).parent(),
 							currentWidth = columnEl.width(),
 							headerPadding = columnEl.outerWidth() - columnEl.width(),
-							column_index,
-							column;
-
-						// Find the column data object
-						for (q = 0, l = columnElements.length; q < l; q++) {
-							if (columnElements[q] == columnEl[0]) {
-								column_index = q
-								column = self.options.columns[q]
-								break
-							}
-						}
-
-						// Column is not resizable -- goodbye
-						if (!column.resizable) return
+							column_index;
 
 						// Determine the width of the column name text
-						var name = columnEl.children('.slick-column-name:first')
+						var name = columnEl.children('.' + classcolumnname + ':first')
 						name.css('overflow', 'visible')
 						columnEl.width('auto')
 						var headerWidth = columnEl.outerWidth() + 3
@@ -5359,6 +5077,40 @@
 							prepareLeeway(i, pageX)
 							resizeColumn(i, diff)
 							applyColWidths()
+							submitColResize()
+						}
+					})
+					// Custom drag to resize
+					.draggable({
+						axis: "x",
+						helper: "clone",
+						start: function (event, ui) {
+							// TODO: The helper here ensures the original isn't actually moved.
+							// But we don't even want the helper to exist. Nothing should move since
+							// all is handled by grid functions. Find a way to get the same effect
+							// without having to forcefully kill the helper.
+							$(ui.helper).remove()
+
+							pageX = event.pageX;
+							$(this).parent().addClass(classheadercolumndrag);
+
+							// lock each column's width option to current width
+							lockColumnWidths(i)
+
+							// Ensures the leeway has another room to move around
+							prepareLeeway(i, pageX)
+						},
+						drag: function (event, ui) {
+							var delta = ui.position.left - ui.originalPosition.left
+
+							// Sets the new column widths
+							resizeColumn(i, delta)
+
+							// Save changes
+							applyColWidths()
+						},
+						stop: function (event, ui) {
+							$(this).parent().removeClass(classheadercolumndrag);
 							submitColResize()
 						}
 					})
@@ -5412,7 +5164,7 @@
 					}
 				}
 
-				setSortColumns(sortColumns);
+				styleSortColumns(sortColumns);
 
 				if (!self.options.multiColumnSort) {
 					self.trigger('onSort', e, {
@@ -5464,6 +5216,32 @@
 		}
 
 
+		// styleSortColumns()
+		// Styles the column headers according to the current sorting data
+		//
+		styleSortColumns = function () {
+
+			var headerColumnEls = $headers.children();
+			headerColumnEls
+				.removeClass(classheadercolumnactive)
+				.find("." + classsortindicator)
+				.removeClass(classsortindicatorasc + " " + classsortindicatordesc);
+
+			$.each(sortColumns, function (i, col) {
+				if (col.sortAsc === null) {
+					col.sortAsc = true;
+				}
+				var columnIndex = getColumnIndex(col.columnId);
+				if (columnIndex !== null) {
+					headerColumnEls.eq(columnIndex)
+						.addClass(classheadercolumnactive)
+						.find("." + classsortindicator)
+						.addClass(col.sortAsc ? classsortindicatorasc : classsortindicatordesc);
+				}
+			});
+		}
+
+
 		// toggleHeaderContextMenu()
 		// Toggles the display of the context menu that appears when the column headers are
 		// right-clicked.
@@ -5509,23 +5287,23 @@
 				name: column ? getLocale('column.add_sort_asc', {name: column.name}) : '',
 				fn: function () {
 					sortColumns.push({columnId: column.id, sortAsc: true})
-					self.setSorting(sort)
+					self.setSorting(sortColumns)
 				}
 			}, {
 				enabled: column && column.sortable && self.isSorted() && !hasSorting(column.id),
 				name: column ? getLocale('column.add_sort_desc', {name: column.name}) : '',
 				fn: function () {
 					sortColumns.push({columnId: column.id, sortAsc: false})
-					self.setSorting(sort)
+					self.setSorting(sortColumns)
 				}
 			}, {
 				enabled: column && column.sortable && hasSorting(column.id),
 				name: column ? getLocale('column.remove_sort', {name: column.name}) : '',
 				fn: function () {
-					sort = _.filter(sortColumns, function (s) {
+					sortColumns = _.filter(sortColumns, function (s) {
 						return s.columnId != column.id
 					})
-					self.setSorting(sort)
+					self.setSorting(sortColumns)
 				}
 			}, {
 				enabled: self.options.groupable && column && column.groupable,
@@ -5534,6 +5312,8 @@
 				enabled: self.options.groupable && column && column.groupable && (!hasGrouping(column.id) || !self.isGrouped()),
 				name: column ? getLocale('column.group', {name: column.name}) : '',
 				fn: function () {
+					// TODO: Optimize this so setGrouping can auto-collapse groups when created
+					// otherwise this will fire 2 render calls
 					self.setGrouping([column.id])
 					self.dataView.collapseAllGroups()
 				}
@@ -5623,7 +5403,7 @@
 			if (!$boundAncestors) {
 				return;
 			}
-			$boundAncestors.unbind("scroll." + uid);
+			$boundAncestors.unbind("scroll#" + uid);
 			$boundAncestors = null;
 		}
 
@@ -5788,24 +5568,19 @@
 
 			if (!initialized) return;
 
-			if (self.options.variableRowHeight) {
-				cacheRowPositions();
-			}
+			// Recalculate variable row heights
+			cacheRowPositions();
 
 			var numberOfRows = getDataLengthIncludingAddNew() +
 				(self.options.leaveSpaceForNewRows ? numVisibleRows - 1 : 0);
 
 			var oldViewportHasVScroll = viewportHasVScroll;
 
-			if (!self.options.variableRowHeight) {
-				viewportHasVScroll = numberOfRows * self.options.rowHeight > viewportH;
+			if (numberOfRows === 0) {
+				viewportHasVScroll = false
 			} else {
-				if (numberOfRows === 0) {
-					viewportHasVScroll = false
-				} else {
-					var rpc = rowPositionCache[numberOfRows - 1]
-					viewportHasVScroll = rpc && (rpc.bottom > viewportH);
-				}
+				var rpc = rowPositionCache[numberOfRows - 1]
+				viewportHasVScroll = rpc && (rpc.bottom > viewportH);
 			}
 
 			// remove the rows that are now outside of the data range
@@ -5822,19 +5597,15 @@
 			}
 
 			var oldH = h;
-			if (!self.options.variableRowHeight) {
-				th = Math.max(self.options.rowHeight * numberOfRows, viewportH - scrollbarDimensions.height);
+			if (numberOfRows === 0) {
+				th = viewportH - scrollbarDimensions.height
 			} else {
-				if (numberOfRows === 0) {
-					th = viewportH - scrollbarDimensions.height
-				} else {
-					var rps = rowPositionCache[numberOfRows - 1];
-					var	rowMax = rps.bottom;
+				var rps = rowPositionCache[numberOfRows - 1];
+				var	rowMax = rps.bottom;
 
-					if (self.options.enableAddRow) rowMax += self.options.rowHeight
+				if (self.options.enableAddRow) rowMax += self.options.rowHeight
 
-					th = Math.max(rowMax, viewportH - scrollbarDimensions.height);
-				}
+				th = Math.max(rowMax, viewportH - scrollbarDimensions.height);
 			}
 
 			if (th < maxSupportedCssHeight) {
@@ -5930,6 +5701,33 @@
 				// Build column id cache
 				columnsById[c.id] = i;
 			}
+		},
+
+
+		// validateOptions()
+		// Ensures that the given options are valid and complete
+		//
+		validateOptions = function() {
+			// Validate loaded JavaScript modules against requested options
+			if (self.options.resizable && !$.fn.draggable) {
+				throw new Error('In other to use "resizable", you must ensure the jquery-ui.draggable module is loaded.');
+			}
+			if (self.options.reorderable && !$.fn.sortable) {
+				throw new Error('In other to use "reorderable", you must ensure the jquery-ui.sortable module is loaded.');
+			}
+
+			// Ensure "columns" option is an array
+			if (!_.isArray(self.options.columns)) {
+				throw new TypeError('The "columns" option must be an array.');
+			}
+
+			// Ensure "data" option is an array
+			if (!_.isArray(self.options.data)) {
+				throw new TypeError('The "data" option must be an array.');
+			}
+
+			// Validate and pre-process
+			validateColumns();
 		}
 
 

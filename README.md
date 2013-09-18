@@ -1,36 +1,56 @@
 Doby Grid
 =========
 
-Doby Grid is stand-alone module (and part of the Doby JS framework) for rendering a data-driven grid. It's based loosely on SlickGrid <https://github.com/mleibman/SlickGrid>.
+Doby Grid is stand-alone module (and part of the Doby JS framework) for rendering a dynamic, data-driven grid. It's basically a <table> element on steroids and is loosely based on SlickGrid <https://github.com/mleibman/SlickGrid>.
 
-**====================================================================================**
-**DOBY GRID IS NOT READY FOR USE. WE WILL MAKE A FORMAL ANNOUNCEMENT WHEN IT IS READY.**
-**====================================================================================**
+**===================================================================================**
+** DOBYGRID IS NOT READY FOR PUBLIC USE AND CHANGES FREQUENTLY. DOCS MAY BE MISSING  **
+**===================================================================================**
 
 ---
 
 ### Features
 
-- Adaptive virtual scrolling (handle millions of rows with extreme responsiveness)
-- Table header that sticks to the top
 - Extremely fast rendering speed
-- Full keyboard navigation
-- Column resize/reorder/show/hide/auto-resize
+- Adaptive virtual scrolling (handle millions of rows with extreme responsiveness)
 - Data driven and fully MVC oriented
-- Support for editing and creating new rows, cells and columns on the fly just like a spreadsheet
-- Column grouping, data filtering, and footer aggregators
-- Integrates with your existing Backbone Collections and Models
+- Table header that sticks to the top when you scroll
+- Ability to resize/reorder/show/hide/auto-resize columns
+- Ability to sort by more than 1 column at a time (multi-sort)
+- Ability to group rows by a column value (including nested groups)
+- Ability to double-click on column separator to maximize the column based its contents
 - Easily integrates with i18n libraries
+- (TOOD) Variable row heights and dynamic row scaling
+- (TODO) Full keyboard navigation
+- (TODO) Support for editing and creating new rows, cells and columns on the fly just like a spreadsheet
+- (TODO) Support for Backbone.Collection objects as data sets (including remote data fetching)
+- (TODO) Ability to select rows, including common keyboard conventions such as shift+click to multi-select
+- (TODO) Ability to click+drag to select cells
+- (TODO) Ability to export/import CSV/JSON data
+- (TODO) Support for column footers with data aggregators
+- (TODO) Support for on-the-fly filtering of column data (and searching)
 
 ### Dependencies
 
 - jQuery 2.0.3 <http://jquery.com/>
-- Backbone 1.0.0 <http://backbonejs.org/>
 - Underscore 1.4.4 <http://underscorejs.org/>
+- Backbone 1.0.0 <http://backbonejs.org/>
 
-- jQuery.ui && jQuery.event.drag (Temporary... need to be removed)
+### Optional Dependencies
+
+- jQuery.ui.draggable (for column re-sizing)
+- jQuery.ui.sortable (for column re-ordering)
+
+### Other Dependencies
 
 Default icon set used is copyright of <http://p.yusukekamiyamane.com/>.
+
+### Limitations
+
+- If the grid is rendered inside an invisible element, or an element that is resized - you will need to manually detect it and call "resize()" to correct the rendering. Window resizing is auto-detected.
+- Using variable row heights will have a severe speed impact. If you can get away with predefined row heights - that will make the grid faster.
+
+---
 
 ### How To Use
 
@@ -42,7 +62,7 @@ Then simply call:
 
 ### Documentation
 
-_Coming Soon_
+See <https://github.com/globexdesigns/doby-grid/wiki>.
 
 ---
 
@@ -80,6 +100,46 @@ Nope. BackGrid has Backbone at its core for everything. Although it offers great
 #### So it's like SlickBack then...
 
 Not really. SlickBack is a bridge between Backbone and SlickGrid. It tries to make the two work together nicely. Doby Grid is pretty detached from Backbone and SlickGrid and can be a standalone module that doesn't rely on either.
+
+#### I have a button inside a grid cell and I want to add a click event that picks up the id of the row data? How do I attach this event?
+
+You have to attach the event to the whole grid and then isolate the cell you want. Attaching events is expensive so all events are attached to the container and then filtered down to the cell you want to focus on.
+
+```
+grid.on('on', function (event, args) {
+	if ($(event.target).hasClass("my-button")) {
+		var item = grid.getItem(args.row);
+	}
+});
+```
+
+#### Why can't I assign events directly to my button?
+
+This would require the grid to be rendered with DOM references - making it much, MUCH slower. If you want to use DobyGrid() you must assign events as shown in the question above.
+
+#### Ok, well what about if I absolutely cannot draw my cell until DobyGrid() has finished rendering? Maybe it's a cell that's rendered after an Ajax event is fired, or has some other external conditions...
+
+If delegating events isn't enough, then you can use post-processing as demonstrated here: <http://INSERT_LIKE_TO_WIKI_HERE>. Keep in mind that this is going to have a very significant rendering performance hit and is not recommended on large grids.
+
+```
+columns = [{
+	field: 'user',
+	name: 'user',
+	id: 'user',
+	formatter: function() {
+		return 'loading...'
+	},
+	asyncPostRender: function(cellNode, row, dataContext, colDef) {
+		$('<div>MyData</div>').appendTo($(cellNode))
+	}
+}]
+```
+
+And just to be clear -- do not use this for trying to assign events to your cell. It won't work and will only make your grid slow. All those references will be wiped when the grid is re-rendered. Don't bother.
+
+#### When using post-processing, my rows keep getting re-rendered when I scroll up and down. How do I stop that?
+
+SlickGrid had this problem and wasn't going to fix it (<https://github.com/mleibman/SlickGrid/issues/681>). In DobyGrid you can enable post-processing caching. This is not recommended for large grid however as it will eat up a lot of memory.
 
 #### There's a bug in Internet Explorer, where...
 
