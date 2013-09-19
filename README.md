@@ -38,8 +38,8 @@ Doby Grid is stand-alone module (and part of the Doby JS framework) for renderin
 
 ### Optional Dependencies
 
-- jQuery.ui.draggable (for column re-sizing)
-- jQuery.ui.sortable (for column re-ordering)
+- jQuery.ui.sortable <http://jqueryui.com/> (for column re-ordering)
+- jquery.event.drag <http://threedubmedia.com/code/event/drag> (for column and row re-sizing and cell range selection)
 
 ### Other Dependencies
 
@@ -90,6 +90,7 @@ Additionally, there are several other key differences. Doby Grid will:
 - supports variable row heights
 - has additional events required for tight integration
 - provides a way to interact with cell and row DOM elements without compromising on performance
+- provide easy access to common functionality such as cell range selection, grouping or editing without the need to write "plugins"
 - integrates with Backbone Models and Collections
 - does *not* support jQuery UI Themes
 - comes in a single AMD-supported library, instead of various pieces that need to be compiled together

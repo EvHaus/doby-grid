@@ -109,7 +109,7 @@
 			createGrid,
 			createGroupingObject,
 			currentEditor = null,
-			dataview,
+			defaultEditor,
 			defaultFormatter,
 			destroy,
 			disableSelection,
@@ -270,6 +270,7 @@
 			asyncEditorLoading: false,
 			asyncPostRenderDelay: 25,
 			autoEdit:			true,
+			cellRangeSelect:	true,
 			columns:			[],
 			data:				[],
 			dataExtractor:		null,
@@ -307,7 +308,7 @@
 				}
 			},
 			multiColumnSort:	true,
-			multiSelect:		true,		// TODO: ??
+			multiSelect:		true,		// TODO: What is multiSelect ??
 			remote:				false,
 			resizable:			true,
 			resizeCells:		true,
@@ -358,6 +359,10 @@
 					executeSorter(args)
 				})
 			});
+
+			if (self.options.cellRangeSelect) {
+				// TODO: Merge slick.cellrangeselector into here
+			}
 
 			return self;
 		};
@@ -440,7 +445,7 @@
 		this.addGrouping = function (column_id) {
 			var column_ids = hasGrouping(column_id)
 			if (!column_ids) {
-				var grouping = this.dataView.getGrouping();
+				var grouping = this.collection.getGrouping();
 				column_ids = _.pluck(grouping, 'column_id');
 				column_ids.push(column_id)
 				this.setGrouping(column_ids)
@@ -514,7 +519,7 @@
 				(dataLoading ? " loading" : "") +
 				(row === activeRow ? " active" : "") +
 				(row % 2 == 1 ? " odd" : ""),
-				data = self.dataView;
+				data = self.collection;
 
 			var metadata = data.getItemMetadata && data.getItemMetadata(row);
 
@@ -841,7 +846,7 @@
 			initializeRowPositions();
 
 			for (var i = 0, l = getDataLength(); i < l; i++) {
-				var metadata = self.dataView.getItemMetadata && self.dataView.getItemMetadata(i);
+				var metadata = self.collection.getItemMetadata && self.collection.getItemMetadata(i);
 
 				rowPositionCache[i] = {
 					top: (rowPositionCache[i - 1]) ? (rowPositionCache[i - 1].bottom - offset) : 0,
@@ -874,7 +879,7 @@
 				return false;
 			}
 
-			var rowMetadata = self.dataView.getItemMetadata && self.dataView.getItemMetadata(row);
+			var rowMetadata = self.collection.getItemMetadata && self.collection.getItemMetadata(row);
 			if (rowMetadata && typeof rowMetadata.focusable === "boolean") {
 				return rowMetadata.focusable;
 			}
@@ -907,7 +912,7 @@
 				return false;
 			}
 
-			var rowMetadata = self.dataView.getItemMetadata && self.dataView.getItemMetadata(row);
+			var rowMetadata = self.collection.getItemMetadata && self.collection.getItemMetadata(row);
 			if (rowMetadata && typeof rowMetadata.selectable === "boolean") {
 				return rowMetadata.selectable;
 			}
@@ -960,7 +965,7 @@
 				// Render missing cells.
 				cellsAdded = 0;
 
-				var metadata = self.dataView.getItemMetadata && self.dataView.getItemMetadata(row);
+				var metadata = self.collection.getItemMetadata && self.collection.getItemMetadata(row);
 				metadata = metadata && metadata.columns;
 
 				var d = getDataItem(row);
@@ -1237,8 +1242,8 @@
 			$style = $('<style type="text/css" rel="stylesheet"></style>').appendTo($("head"));
 			var rowHeight = (self.options.rowHeight - cellHeightDiff);
 			var rules = [
-				"#" + uid + " ." + classcell + "{height:" + rowHeight + "px;line-height:" + rowHeight + "px}",
-				"#" + uid + " ." + classrow + "{height:" + self.options.rowHeight + "px}"
+				"#" + uid + " ." + classcell + ".active{height:" + (rowHeight - 1) + "px;line-height:" + (rowHeight - 1) + "px}",
+				"#" + uid + " ." + classrow + "{height:" + rowHeight + "px;line-height:" + rowHeight + "px}"
 			];
 
 			for (var i = 0, l = self.options.columns.length; i < l; i++) {
@@ -1325,15 +1330,19 @@
 		}
 
 
-		// dataview()
-		// This is a special class that will convert the given dataset into a Model and
-		// provide a filtered access to the underlying data.
+		// Collection()
+		// This is a special class that looks an awful lot like Backbone.Collection and it
+		// stores and manipulates the data set for this grid. Why not just use a Backbone.Collection?
+		//	1) It's super slow for large data sets: https://github.com/jashkenas/backbone/issues/2760
+		//	2) In order for 'remote' fetching to work nicely with scrolling, the collection has to
+		//		simulate objects that haven't been fetched from the server yet. Backbone doesn't allow
+		//		you to have "fake" data in their collections.
 		//
 		// @param	data		object		Raw data set that will be converted to a Data View
 		// @param	options		object		Data View options
 		//
 		// @return object
-		dataview = function (data, options) {
+		Collection = function (data, options) {
 
 			// private
 
@@ -1368,7 +1377,7 @@
 				idProperty = "id",	// property holding a unique row id
 				indexById = {},
 				items = [],			// data by index
-				length = null,		// Custom length of DataView, for Remote Models
+				length = null,		// Custom length of collection, for Remote Models
 				pagenum = 0,
 				pagesize = 0,
 				prevRefreshHints = {},
@@ -1579,7 +1588,7 @@
 			this.deleteItem = function (id) {
 				var idx = indexById[id];
 				if (idx === undefined) {
-					throw "Unable to delete dataview item. Invalid id (" + id + ") supplied.";
+					throw "Unable to delete collection item. Invalid id (" + id + ") supplied.";
 				}
 				delete indexById[id];
 				items.splice(idx, 1);
@@ -2153,7 +2162,7 @@
 			// When using a remote model, it's necessary to set the total length
 			// since not all data is available on the client at the time of request
 			//
-			// @param	count	integer		Number of items in the dataview
+			// @param	count	integer		Number of items in the collection
 			//
 			this.setLength = function (count) {
 				length = count
@@ -2282,6 +2291,81 @@
 			}
 
 			return this.initialize();
+		}
+
+
+		// defaultEditor()
+		// Default editor object that handles cell reformatting and processing of edits
+		//
+		// @param	args		object		Editor arguments
+		//
+		defaultEditor = function (args) {
+			var $input;
+			var defaultValue;
+			var scope = this;
+
+			this.init = function () {
+				$input = $('<input type="text" class="editor-text"/>')
+					.appendTo(args.container)
+					.bind("keydown.nav", function (e) {
+						if (e.keyCode === $.ui.keyCode.LEFT || e.keyCode === $.ui.keyCode.RIGHT) {
+							e.stopImmediatePropagation();
+						}
+					})
+					.focus()
+					.select();
+			};
+
+			this.destroy = function () {
+				$input.remove();
+			};
+
+			this.focus = function () {
+				$input.focus();
+			};
+
+			this.getValue = function () {
+				return $input.val();
+			};
+
+			this.setValue = function (val) {
+				$input.val(val);
+			};
+
+			this.loadValue = function (item) {
+				defaultValue = item[args.column.field] || "";
+				$input.val(defaultValue);
+				$input[0].defaultValue = defaultValue;
+				$input.select();
+			};
+
+			this.serializeValue = function () {
+				return $input.val();
+			};
+
+			this.applyValue = function (item, state) {
+				item[args.column.field] = state;
+			};
+
+			this.isValueChanged = function () {
+				return (!($input.val() === "" && defaultValue === null)) && ($input.val() != defaultValue);
+			};
+
+			this.validate = function () {
+				if (args.column.validator) {
+					var validationResults = args.column.validator($input.val());
+					if (!validationResults.valid) {
+						return validationResults;
+					}
+				}
+
+				return {
+					valid: true,
+					msg: null
+				};
+			};
+
+			return this.init();
 		}
 
 
@@ -2477,7 +2561,7 @@
 			// If remote, and not all data is fetched - sort on server
 			if (self.options.remote && !self.loader.isAllDataLoaded()) {
 				// Empty the collection so that Backbone can re-fetch results in the right order
-				self.dataView.reset()
+				self.collection.reset()
 
 				// Invalidate Grid as we'll need to re-render it
 				self.invalidate()
@@ -2487,7 +2571,7 @@
 				return
 			}
 
-			self.dataView.sort(function (dataRow1, dataRow2) {
+			self.collection.sort(function (dataRow1, dataRow2) {
 				// If this item has a parent data reference object - use that for sorting
 				if (dataRow1.parent) dataRow1 = dataRow1.parent;
 				if (dataRow2.parent) dataRow2 = dataRow2.parent;
@@ -2674,7 +2758,7 @@
 		//
 		// return integer
 		getColspan = function (row, cell) {
-			var metadata = self.dataView.getItemMetadata && self.dataView.getItemMetadata(row);
+			var metadata = self.collection.getItemMetadata && self.collection.getItemMetadata(row);
 			if (!metadata || !metadata.columns) {
 				return 1;
 			}
@@ -2769,10 +2853,10 @@
 		//
 		// @return object
 		getDataItem = function (i) {
-			if (self.dataView.getItem) {
-				return self.dataView.getItem(i);
+			if (self.collection.getItem) {
+				return self.collection.getItem(i);
 			} else {
-				return self.dataView[i];
+				return self.collection[i];
 			}
 		}
 
@@ -2806,11 +2890,11 @@
 		//
 		// @return integer
 		getDataLength = function () {
-			if (!self.dataView) return 0;
-			if (self.dataView.getLength) {
-				return self.dataView.getLength();
+			if (!self.collection) return 0;
+			if (self.collection.getLength) {
+				return self.collection.getLength();
 			} else {
-				return self.dataView.length;
+				return self.collection.length;
 			}
 		}
 
@@ -2833,7 +2917,7 @@
 		// @return function
 		getEditor = function (row, cell) {
 			var column = self.options.columns[cell];
-			var rowMetadata = self.dataView.getItemMetadata && self.dataView.getItemMetadata(row);
+			var rowMetadata = self.collection.getItemMetadata && self.collection.getItemMetadata(row);
 			var columnMetadata = rowMetadata && rowMetadata.columns;
 
 			if (columnMetadata && columnMetadata[column.id] && columnMetadata[column.id].editor !== undefined) {
@@ -2855,7 +2939,7 @@
 		//
 		// @return function
 		getFormatter = function (row, column) {
-			var rowMetadata = self.dataView.getItemMetadata && self.dataView.getItemMetadata(row);
+			var rowMetadata = self.collection.getItemMetadata && self.collection.getItemMetadata(row);
 
 			// look up by id, then index
 			var columnOverrides = rowMetadata &&
@@ -3429,9 +3513,9 @@
 
 				if (isToggler) {
 					if (item.collapsed) {
-						self.dataView.expandGroup(item.id);
+						self.collection.expandGroup(item.id);
 					} else {
-						self.dataView.collapseGroup(item.id);
+						self.collection.collapseGroup(item.id);
 					}
 
 					e.stopImmediatePropagation();
@@ -3451,6 +3535,7 @@
 				return;
 			}
 
+			// Set clicked cella s active
 			if ((activeCell != cell.cell || activeRow != cell.row) && canCellBeActive(cell.row, cell.cell)) {
 				scrollRowIntoView(cell.row, false);
 				setActiveCellInternal(getCellNode(cell.row, cell.cell));
@@ -3493,6 +3578,7 @@
 				row: cell.row,
 				cell: cell.cell
 			})
+
 			if (e.isImmediatePropagationStopped()) {
 				return;
 			}
@@ -3748,7 +3834,7 @@
 			if (!column_id) return false
 			var column = getColumnById(column_id)
 			if (!column) return false
-			var grouping = self.dataView.getGrouping(),
+			var grouping = self.collection.getGrouping(),
 				column_ids = _.pluck(grouping, 'column_id')
 			return column_ids.indexOf(column_id) >= 0 ? column_ids : false
 		}
@@ -3881,7 +3967,7 @@
 		//
 		// @return boolean
 		this.isGrouped = function () {
-			return this.dataView.getGrouping().length ? true : false
+			return this.collection.getGrouping().length ? true : false
 		}
 
 
@@ -4144,13 +4230,13 @@
 		processData = function (callback) {
 
 			// Create a new Data View
-			self.dataView = new dataview(self.options.data, {
+			self.collection = new Collection(self.options.data, {
 				remote: self.options.remote
 			})
 
 			// Item Metadata overwrites. This provides support for row-specific overwrites
 			// like custom row height and colspans.
-			self.dataView.getItemMetadata = function (row) {
+			self.collection.getItemMetadata = function (row) {
 				var item = this.getItem(row);
 
 				// For remote models -- skip rows that don't have data yet
@@ -4235,15 +4321,15 @@
 					}
 
 					// Display alert if empty
-					if (self.options.alertOnEmpty && self.dataView.getLength() === 0) {
-						// Need to clear cache to reset dataview lengths
+					if (self.options.alertOnEmpty && self.collection.getLength() === 0) {
+						// Need to clear cache to reset collection lengths
 						self.loader.clearCache()
 
 						// Insert row
 						insertEmptyAlert()
 
 						// Manually tell collection it's 1 units long
-						self.dataView.setLength(1)
+						self.collection.setLength(1)
 					}
 
 					updateRowCount();
@@ -4255,7 +4341,7 @@
 				return callback()
 			} else {
 				// Display alert if empty
-				if (self.options.alertOnEmpty && self.dataView.getLength() === 0) {
+				if (self.options.alertOnEmpty && self.collection.getLength() === 0) {
 					insertEmptyAlert()
 				}
 			}
@@ -4475,6 +4561,7 @@
 			var ranges = [],
 				lastCell = self.options.columns.length - 1;
 
+			console.log('rowToRanges')
 			for (var i = 0; i < rows.length; i++) {
 				ranges.push(new Slick.Range(rows[i], 0, rows[i], lastCell));
 			}
@@ -4746,7 +4833,7 @@
 				grps.push(createGroupingObject(cid))
 			})
 
-			this.dataView.setGrouping(grps);
+			this.collection.setGrouping(grps);
 			return this
 		}
 
@@ -5073,32 +5160,31 @@
 					.on("dblclick", function (event) {
 						var columnEl = $(event.currentTarget).parent(),
 							currentWidth = columnEl.width(),
-							headerPadding = columnEl.outerWidth() - columnEl.width(),
-							column_index;
+							headerPadding = columnEl.outerWidth() - columnEl.width();
 
 						// Determine the width of the column name text
 						var name = columnEl.children('.' + classcolumnname + ':first')
 						name.css('overflow', 'visible')
 						columnEl.width('auto')
-						var headerWidth = columnEl.outerWidth() + 3
+						var headerWidth = columnEl.outerWidth()
 						name.css('overflow', '')
 						columnEl.width(currentWidth)
 
 						// Determine the width of the widest visible value
 						var cellWidths = [headerWidth],
 							right;
-						$canvas.find('.l' + column_index + ':visible')
-							.removeClass('r' + column_index)
+						$canvas.find('.l' + i + ':visible')
+							.removeClass('r' + i)
 							.each(function () {
 								w = $(this).outerWidth() + headerPadding
 								if (cellWidths.indexOf(w) < 0) cellWidths.push(w)
 							})
-							.addClass('r' + column_index)
+							.addClass('r' + i)
 
 						var newWidth = Math.max.apply(null, cellWidths)
 
 						if (currentWidth != newWidth) {
-							var diff = newWidth - column.width
+							var diff = newWidth - currentWidth
 
 							// Duplicate the drag functionality
 							lockColumnWidths(i)
@@ -5109,38 +5195,28 @@
 						}
 					})
 					// Custom drag to resize
-					.draggable({
-						axis: "x",
-						helper: "clone",
-						start: function (event, ui) {
-							// TODO: The helper here ensures the original isn't actually moved.
-							// But we don't even want the helper to exist. Nothing should move since
-							// all is handled by grid functions. Find a way to get the same effect
-							// without having to forcefully kill the helper.
-							$(ui.helper).remove()
+					.on('dragstart', function (event, dd) {
+						pageX = event.pageX;
+						$(this).parent().addClass(classheadercolumndrag);
 
-							pageX = event.pageX;
-							$(this).parent().addClass(classheadercolumndrag);
+						// lock each column's width option to current width
+						lockColumnWidths(i)
 
-							// lock each column's width option to current width
-							lockColumnWidths(i)
+						// Ensures the leeway has another room to move around
+						prepareLeeway(i, pageX)
+					})
+					.on('drag', function (event, dd) {
+						var delta = Math.min(maxPageX, Math.max(minPageX, event.pageX)) - pageX;
 
-							// Ensures the leeway has another room to move around
-							prepareLeeway(i, pageX)
-						},
-						drag: function (event, ui) {
-							var delta = ui.position.left - ui.originalPosition.left
+						// Sets the new column widths
+						resizeColumn(i, delta)
 
-							// Sets the new column widths
-							resizeColumn(i, delta)
-
-							// Save changes
-							applyColWidths()
-						},
-						stop: function (event, ui) {
-							$(this).parent().removeClass(classheadercolumndrag);
-							submitColResize()
-						}
+						// Save changes
+						applyColWidths()
+					})
+					.on('dragend', function (event, dd) {
+						$(this).parent().removeClass(classheadercolumndrag);
+						submitColResize()
 					})
 			});
 		}
@@ -5365,13 +5441,13 @@
 				enabled: self.options.groupable && column && self.isGrouped(),
 				name: getLocale('column.groups_expand'),
 				fn: function () {
-					self.dataView.expandAllGroups()
+					self.collection.expandAllGroups()
 				}
 			}, {
 				enabled: self.options.groupable && column && self.isGrouped(),
 				name: getLocale('column.groups_collapse'),
 				fn: function () {
-					self.dataView.collapseAllGroups()
+					self.collection.collapseAllGroups()
 				}
 			}, {
 				enabled: column && (column.sortable || column.removable || column.groupable),
@@ -5699,7 +5775,7 @@
 				if (!c.id) c.id = c.field + '_' + i || c.name + '_' + i
 
 				// TODO: If editable, ensure columns have a default "Slick.Editors.Text" editor set
-				//if (self.options.editable && c.editor === undefined) c.editor = Slick.Editors.Text
+				if (self.options.editable && c.editor === undefined) c.editor = defaultEditor
 
 				// TODO: This is temporarily here until grouping via remote data can be enabled
 				if (self.options.remote) c.groupable = false
@@ -5729,7 +5805,7 @@
 		//
 		validateOptions = function () {
 			// Validate loaded JavaScript modules against requested options
-			if (self.options.resizable && !$.fn.draggable) {
+			if (self.options.resizable && !$.fn.drag) {
 				throw new Error('In other to use "resizable", you must ensure the jquery-ui.draggable module is loaded.');
 			}
 			if (self.options.reorderable && !$.fn.sortable) {

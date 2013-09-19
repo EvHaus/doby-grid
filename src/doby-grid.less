@@ -240,6 +240,7 @@
 	.doby-grid-cell {
 		border-right: 1px dotted rgba(0,0,0,0.2);
 		cursor: default;
+		height: 100%;
 		margin: 0;
 		overflow: hidden;
 		padding: 0 8px;
@@ -253,7 +254,9 @@
 		}
 
 		&.active {
-			outline: 2px solid rgba(0,0,0,0.6);
+			background: rgba(20,90,255,0.1);
+			border: 1px solid rgba(10,70,180,0.3);
+			margin: 0 0 0 -1px
 		}
 
 		&.highlighted {
@@ -263,13 +266,6 @@
 
 		&.flashing {
 			border: 1px solid red !important;
-		}
-
-		&.editable {
-			background: rgba(0,0,0,0.1);
-			box-shadow: rgba(0,0,0,0.4) 4px 4px 2px inset;
-			overflow: visible;
-			z-index: 11;
 		}
 	}
 
@@ -350,21 +346,27 @@
 // ==================================================================================================
 
 
-.doby-grid-cell input.editor-text {
-	background: none;
-	border: 0;
-	box-shadow: none !important;
-	color: #FFF;
-	height: 100%;
-	margin: 0;
-	outline: none;
-	padding: 0;
-	text-indent: 0;
-	text-shadow: none;
-	width: 100%;
+.doby-grid-cell {
+	// Focused cell
+	&.editable {
+		background: rgba(10,70,200,0.1);
+		box-shadow: rgba(20,80,200,0.3) 4px 4px 2px inset;
+		overflow: visible;
+		z-index: 11;
+	}
 
-	&:focus {
-		color: #FFF;
+	// Input field
+	input.editor-text {
+		background: none;
+		border: 0;
+		box-shadow: none !important;
+		height: 100%;
+		margin: 0;
+		outline: none;
+		padding: 0;
+		text-indent: 0;
+		text-shadow: none;
+		width: 100%;
 	}
 }
 

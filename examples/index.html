@@ -51,6 +51,7 @@
 				'backbone': 'libs/backbone',
 				'jquery': 'libs/jquery',
 				'jquery-ui': 'libs/jquery-ui',
+				'jquery.event.drag': 'libs/jquery.event.drag',
 				'dobygrid': 'src/doby-grid',
 				'less': 'libs/less',
 				'underscore': 'libs/underscore'
@@ -65,6 +66,9 @@
 				},
 				'jquery-ui': {
 					deps: ['jquery']
+				},
+				'jquery.event.drag': {
+					deps: ['jquery']
 				}
 			}
 		});
@@ -75,7 +79,7 @@
 		}
 
 		// Initialize doby
-		require(['less', 'dobygrid', 'jquery-ui'], function(less, DobyGrid) {
+		require(['less', 'dobygrid', 'jquery-ui' ,'jquery.event.drag'], function(less, DobyGrid) {
 
 			// Load an example file
 			var loadExample = function(name) {
@@ -105,6 +109,7 @@
 		<ul id="examplemenu">
 			<li><a href="#basic">Basic Grid</a></li>
 			<li><a href="#postprocess">Column Post-Processing</a></li>
+			<li><a href="#editable">Editable Grid</a></li>
 		</ul>
 
 		<div id="gridwrapper"></div>
