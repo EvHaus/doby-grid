@@ -64,6 +64,10 @@ Then simply call:
 
 See <https://github.com/globexdesigns/doby-grid/wiki>.
 
+### Submitting Bugs and Feature Requests
+
+Please use GitHub issues: <https://github.com/globexdesigns/doby-grid/issues>
+
 ---
 
 ### FAQ
@@ -143,4 +147,4 @@ SlickGrid had this problem and wasn't going to fix it (<https://github.com/mleib
 
 #### There's a bug in Internet Explorer, where...
 
-Doby Grid does not support Internet Explorer. Don't bother asking. If it's something that affects all browsers - definitely submit a new issue through Github, but if it's an issue specific to IE6 or IE7 or IE8 or even IE9 -- sorry, Doby Grid is not for you.
+Doby Grid does not support Internet Explorer. Don't bother asking. If it's something that affects all browsers - definitely submit a new issue through GitHub, but if it's an issue specific to IE6 or IE7 or IE8 or even IE9 -- sorry, Doby Grid is not for you.

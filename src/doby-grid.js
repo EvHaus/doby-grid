@@ -101,7 +101,7 @@
 			columnPosLeft = [],
 			columnPosRight = [],
 			columnsById = {},
-			commitEditAndSetFocus,
+			commitCurrentEdit,
 			counter_rows_removed = 0,
 			counter_rows_rendered = 0,
 			createColumnHeaders,
@@ -114,46 +114,35 @@
 			destroy,
 			disableSelection,
 			dropdown,
-			editController,		// TODO: Candidate for removal
 			ensureCellNodesInRowsCache,
 			executeSorter,
-			flashCell,
 			findFirstFocusableCell,
 			findLastFocusableCell,
 			getActiveCell,
 			getActiveCellPosition,
 			getBrowserData,
-			getCanvasNode,
 			getCanvasWidth,
-			getCellEditor,
 			getCellFromEvent,
 			getCellFromNode,
-			getCellNodeBox,
 			getColumnById,
 			getColumnCssRules,
 			getColumnIndex,
 			getColspan,
-			getContainerNode,
-			getData,
 			getDataItem,
 			getDataItemValueForColumn,
 			getDataLength,
 			getDataLengthIncludingAddNew,
-			getEditController,
 			getEditor,
 			getFormatter,
-			getGridPosition,
 			getHeadersWidth,
 			getLocale,
 			getMaxCSSHeight,
-			getOptions,
 			getRenderedRange,
 			getRowFromNode,
 			getRowFromPosition,
 			getRowTop,
 			getScrollbarSize,
 			getSelectedRows,
-			getSelectionModel,
 			getVBoxDelta,
 			getViewportHeight,
 			getVisibleRange,
@@ -205,14 +194,10 @@
 			n,				// number of pages
 			naturalSort,
 			navigate,
-			navigateDown,
-			navigateLeft,
-			navigateNext,
-			navigatePageDown,
-			navigatePageUp,
-			navigatePrev,
-			navigateRight,
-			navigateUp,
+			NonDataItem = function () {
+				// A base class that all special / non-data rows (like Group) derive from.
+				this.__nonDataRow = true;
+			},
 			numberOfRows = 0,
 			numVisibleRows,
 			offset = 0,		// current page offset
@@ -285,8 +270,6 @@
 			asyncEditorLoading: false,
 			asyncPostRenderDelay: 50,
 			autoEdit:			true,
-			cellFlashingCssClass: "flashing",
-			class:				null,
 			columns:			[],
 			data:				[],
 			dataExtractor:		null,
@@ -366,12 +349,6 @@
 
 			// Calculate some information about the browser window
 			getBrowserData();
-
-			// TODO: Not sure what this is
-			editController = {
-				"commitCurrentEdit": commitCurrentEdit,
-				"cancelCurrentEdit": cancelCurrentEdit
-			};
 
 			processData(function () {
 				// Create the grid
@@ -708,6 +685,124 @@
 		}
 
 
+		// asyncPostProcessRows()
+		// Processing the post-render action on all cells that need it
+		//
+		asyncPostProcessRows = function () {
+			while (postProcessFromRow <= postProcessToRow) {
+				var row = (vScrollDir >= 0) ? postProcessFromRow++ : postProcessToRow--;
+				var cacheEntry = rowsCache[row];
+				if (!cacheEntry || row >= getDataLength()) {
+					continue;
+				}
+
+				if (!postProcessedRows[row]) {
+					postProcessedRows[row] = {};
+				}
+
+				ensureCellNodesInRowsCache(row);
+				for (var columnIdx in cacheEntry.cellNodesByColumnIdx) {
+					if (!cacheEntry.cellNodesByColumnIdx.hasOwnProperty(columnIdx)) {
+						continue;
+					}
+
+					columnIdx = columnIdx | 0;
+
+					var m = columns[columnIdx];
+					if (m.asyncPostRender && !postProcessedRows[row][columnIdx]) {
+						var node = cacheEntry.cellNodesByColumnIdx[columnIdx];
+						if (node) {
+							m.asyncPostRender(node, row, getDataItem(row), m);
+						}
+						if (postProcessedRows[row]) postProcessedRows[row][columnIdx] = true;
+					}
+				}
+
+				h_postrender = setTimeout(asyncPostProcessRows, self.options.asyncPostRenderDelay);
+				return;
+			}
+		}
+
+
+		// autosizeColumns()
+		// Resizes all column to try and fit them into the available screen width
+		//
+		autosizeColumns = function () {
+			var i, c,
+				widths = [],
+				shrinkLeeway = 0,
+				total = 0,
+				prevTotal,
+				availWidth = viewportHasVScroll ? viewportW - scrollbarDimensions.width : viewportW;
+
+			for (i = 0; i < self.options.columns.length; i++) {
+				c = self.options.columns[i];
+				widths.push(c.width);
+				total += c.width;
+				if (c.resizable) {
+					shrinkLeeway += c.width - Math.max(c.minWidth, absoluteColumnMinWidth);
+				}
+			}
+
+			// shrink
+			prevTotal = total;
+			while (total > availWidth && shrinkLeeway) {
+				var shrinkProportion = (total - availWidth) / shrinkLeeway;
+				for (i = 0; i < self.options.columns.length && total > availWidth; i++) {
+					c = self.options.columns[i];
+					var width = widths[i];
+					if (!c.resizable || width <= c.minWidth || width <= absoluteColumnMinWidth) {
+						continue;
+					}
+					var absMinWidth = Math.max(c.minWidth, absoluteColumnMinWidth);
+					var shrinkSize = Math.floor(shrinkProportion * (width - absMinWidth)) || 1;
+					shrinkSize = Math.min(shrinkSize, width - absMinWidth);
+					total -= shrinkSize;
+					shrinkLeeway -= shrinkSize;
+					widths[i] -= shrinkSize;
+				}
+				if (prevTotal == total) { // avoid infinite loop
+					break;
+				}
+				prevTotal = total;
+			}
+
+			// grow
+			prevTotal = total;
+			while (total < availWidth) {
+				var growProportion = availWidth / total;
+				for (i = 0; i < self.options.columns.length && total < availWidth; i++) {
+					c = self.options.columns[i];
+					if (!c.resizable || c.maxWidth <= c.width) {
+						continue;
+					}
+					var growSize = Math.min(Math.floor(growProportion * c.width) - c.width, (c.maxWidth - c.width) || 1000000) || 1;
+					total += growSize;
+					widths[i] += growSize;
+				}
+				if (prevTotal == total) { // avoid infinite loop
+					break;
+				}
+				prevTotal = total;
+			}
+
+			var reRender = false;
+			for (i = 0; i < self.options.columns.length; i++) {
+				if (self.options.columns[i].rerenderOnResize && self.options.columns[i].width != widths[i]) {
+					reRender = true;
+				}
+				self.options.columns[i].width = widths[i];
+			}
+
+			applyColumnHeaderWidths();
+			updateCanvasWidth(true);
+			if (reRender) {
+				invalidateAllRows();
+				render();
+			}
+		}
+
+
 		// bindAncestorScrollEvents()
 		// ??
 		//
@@ -728,11 +823,102 @@
 		}
 
 
+		// cacheRowPositions()
+		// Walks through the data and caches positions for all the rows into the 'rowPositionCache'
+		//
+		cacheRowPositions = function () {
+			initializeRowPositions();
+
+			for (var i = 0, l = getDataLength(); i < l; i++) {
+				var metadata = self.dataView.getItemMetadata && self.dataView.getItemMetadata(i);
+
+				rowPositionCache[i] = {
+					top: (rowPositionCache[i - 1]) ? (rowPositionCache[i - 1].bottom - offset) : 0,
+					height: (metadata && metadata.rows && metadata.rows[i]) ? metadata.rows[i].height : self.options.rowHeight
+				}
+
+				rowPositionCache[i].bottom = rowPositionCache[i].top + rowPositionCache[i].height;
+			}
+		}
+
+
 		// cancelCurrentEdit()
 		// TODO: Still needed?
 		cancelCurrentEdit = function () {
 			makeActiveCellNormal();
 			return true;
+		}
+
+
+		// canCellBeActive()
+		// Can a given cell be activated?
+		//
+		// @param	row		integer		Row index
+		// @param	cell	integer		Cell index
+		//
+		// @return boolean
+		canCellBeActive = function (row, cell) {
+			if (!self.options.enableCellNavigation || row >= getDataLengthIncludingAddNew() ||
+				row < 0 || cell >= self.options.columns.length || cell < 0) {
+				return false;
+			}
+
+			var rowMetadata = self.dataView.getItemMetadata && self.dataView.getItemMetadata(row);
+			if (rowMetadata && typeof rowMetadata.focusable === "boolean") {
+				return rowMetadata.focusable;
+			}
+
+			var columnMetadata = rowMetadata && rowMetadata.columns;
+			if (
+				columnMetadata &&
+				columnMetadata[self.options.columns[cell].id] &&
+				typeof columnMetadata[self.options.columns[cell].id].focusable === "boolean"
+			) {
+				return columnMetadata[self.options.columns[cell].id].focusable;
+			}
+			if (columnMetadata && columnMetadata[cell] && typeof columnMetadata[cell].focusable === "boolean") {
+				return columnMetadata[cell].focusable;
+			}
+
+			return self.options.columns[cell].focusable;
+		}
+
+
+		// canCellBeSelected()
+		// Can a given cell be selected?
+		//
+		// @param	row		integer		Row index
+		// @param	cell	integer		Cell index
+		//
+		// @return boolean
+		canCellBeSelected = function (row, cell) {
+			if (row >= getDataLength() || row < 0 || cell >= self.options.columns.length || cell < 0) {
+				return false;
+			}
+
+			var rowMetadata = self.dataView.getItemMetadata && self.dataView.getItemMetadata(row);
+			if (rowMetadata && typeof rowMetadata.selectable === "boolean") {
+				return rowMetadata.selectable;
+			}
+
+			var columnMetadata = rowMetadata && rowMetadata.columns && (rowMetadata.columns[columns[cell].id] || rowMetadata.columns[cell]);
+			if (columnMetadata && typeof columnMetadata.selectable === "boolean") {
+				return columnMetadata.selectable;
+			}
+
+			return self.options.columns[cell].selectable;
+		}
+
+
+		// cellExists()
+		// Returns true if the requested cell exists in the data set
+		//
+		// @param	row		integer		Index of the row
+		// @param	cell	integer		Index of the cell
+		//
+		// @return bolean
+		cellExists = function (row, cell) {
+			return !(row < 0 || row >= getDataLength() || cell < 0 || cell >= self.options.columns.length);
 		}
 
 
@@ -825,6 +1011,49 @@
 		}
 
 
+		// cleanUpCells()
+		// Cleanup the cell cache
+		//
+		// @param	range	object		Data about the range to clean up
+		// @param	row		integer		Which row to clean up
+		//
+		cleanUpCells = function (range, row) {
+			var totalCellsRemoved = 0;
+			var cacheEntry = rowsCache[row];
+
+			// Remove cells outside the range.
+			var cellsToRemove = [];
+			for (var i in cacheEntry.cellNodesByColumnIdx) {
+				// I really hate it when people mess with Array.prototype.
+				if (!cacheEntry.cellNodesByColumnIdx.hasOwnProperty(i)) {
+					continue;
+				}
+
+				// This is a string, so it needs to be cast back to a number.
+				i = i | 0;
+
+				var colspan = cacheEntry.cellColSpans[i];
+				if (columnPosLeft[i] > range.rightPx ||
+					columnPosRight[Math.min(self.options.columns.length - 1, i + colspan - 1)] < range.leftPx) {
+					if (!(row == activeRow && i == activeCell)) {
+						cellsToRemove.push(i);
+					}
+				}
+			}
+
+			var cellToRemove;
+			while ((cellToRemove = cellsToRemove.pop()) !== null && cellToRemove) {
+				cacheEntry.rowNode.removeChild(cacheEntry.cellNodesByColumnIdx[cellToRemove]);
+				delete cacheEntry.cellColSpans[cellToRemove];
+				delete cacheEntry.cellNodesByColumnIdx[cellToRemove];
+				if (postProcessedRows[row]) {
+					delete postProcessedRows[row][cellToRemove];
+				}
+				totalCellsRemoved++;
+			}
+		}
+
+
 		// cleanupRows()
 		// Cleans the row cache
 		//
@@ -834,6 +1063,24 @@
 			for (var i in rowsCache) {
 				if (((i = parseInt(i, 10)) !== activeRow) && (i < rangeToKeep.top || i > rangeToKeep.bottom)) {
 					removeRowFromCache(i);
+				}
+			}
+		}
+
+
+		// clearTextSelection()
+		// If user has somethinge selected - clears that selection
+		//
+		clearTextSelection = function () {
+			if (document.selection && document.selection.empty) {
+				try {
+					//IE fails here if selected element is not in dom
+					document.selection.empty();
+				} catch (e) {}
+			} else if (window.getSelection) {
+				var sel = window.getSelection();
+				if (sel && sel.removeAllRanges) {
+					sel.removeAllRanges();
 				}
 			}
 		}
@@ -1026,8 +1273,18 @@
 		// @return object
 		createGroupingObject = function (column_id) {
 			var column = getColumnById(column_id)
+
 			return {
+				aggregators: [],
+				aggregateEmpty: false,
+				aggregateCollapsed: false,
+				aggregateChildGroups: false,
+				collapsed: true,		// All groups start off being collapsed
 				column_id: column.id,
+				comparer: function (a, b) {
+					return a.value - b.value;
+				},
+				displayTotalsRow: true,
 				getter: function (item) {
 					if (!item) return null
 
@@ -1051,7 +1308,8 @@
 					if (g.count !== 1) h.push("s")
 					h.push(")</span>")
 					return h.join('')
-				}
+				},
+				predefinedValues: [],
 			}
 		}
 
@@ -1094,20 +1352,6 @@
 				getFunctionInfo,
 				getRowDiffs,
 				groupingDelimiter = ':|:',
-				groupingInfoDefaults = {	// grouping
-					getter: null,
-					formatter: null,
-					comparer: function (a, b) {
-						return a.value - b.value;
-					},
-					predefinedValues: [],
-					aggregators: [],
-					aggregateEmpty: false,
-					aggregateCollapsed: false,
-					aggregateChildGroups: false,
-					collapsed: false,
-					displayTotalsRow: true
-				},
 				groupingInfos = [],
 				groups = [],
 				idProperty = "id",	// property holding a unique row id
@@ -1223,7 +1467,7 @@
 
 
 			// collapseGroup()
-			// @param	varArgs		Either a Group's "groupingKey" property, or a
+			// @param	varArgs		Either a Group's "id" property, or a
 			//						variable argument list of grouping values denoting a
 			//						unique path to the row. For example, calling
 			//						collapseGroup('high', '10%') will collapse the '10%' subgroup of
@@ -1368,17 +1612,17 @@
 			// Handles collapsing and expanding of groups
 			//
 			// @param	level			integer		Which level are we toggling
-			// @param	groupingKey		integer		Which group key are we toggling
+			// @param	group_id		integer		Which group key are we toggling
 			// @param	collapse		boolean		Collapse? Otherwise expand.
 			//
-			expandCollapseGroup = function (level, groupingKey, collapse) {
-				toggledGroupsByLevel[level][groupingKey] = groupingInfos[level].collapsed ^ collapse;
+			expandCollapseGroup = function (level, group_id, collapse) {
+				toggledGroupsByLevel[level][group_id] = groupingInfos[level].collapsed ^ collapse;
 				self.refresh();
 			}
 
 
 			// expandGroup()
-			// @param	varArgs		Either a Group's "groupingKey" property, or a
+			// @param	varArgs		Either a Group's "id" property, or a
 			//						variable argument list of grouping values denoting a
 			//						unique path to the row. For example, calling
 			//						expandGroup('high', '10%') will expand the '10%' subgroup of
@@ -1392,6 +1636,21 @@
 					expandCollapseGroup(arg0.split(groupingDelimiter).length - 1, arg0, false);
 				} else {
 					expandCollapseGroup(args.length - 1, args.join(groupingDelimiter), false);
+				}
+			}
+
+
+			ensureCellNodesInRowsCache = function (row) {
+				var cacheEntry = rowsCache[row];
+				if (cacheEntry) {
+					if (cacheEntry.cellRenderQueue.length) {
+						var lastChild = cacheEntry.rowNode.lastChild;
+						while (cacheEntry.cellRenderQueue.length) {
+							var columnIdx = cacheEntry.cellRenderQueue.pop();
+							cacheEntry.cellNodesByColumnIdx[columnIdx] = lastChild;
+							lastChild = lastChild.previousSibling;
+						}
+					}
 				}
 			}
 
@@ -1434,7 +1693,7 @@
 						group = new Group();
 						group.value = val;
 						group.level = level;
-						group.groupingKey = (parentGroup ? parentGroup.groupingKey + groupingDelimiter : '') + val;
+						group.id = (parentGroup ? parentGroup.id + groupingDelimiter : '') + val;
 						groups[groups.length] = group;
 						groupsByVal[val] = group;
 					}
@@ -1442,13 +1701,13 @@
 
 				for (i = 0, l = rows.length; i < l; i++) {
 					r = rows[i];
-					val = gi.getterIsAFn ? gi.getter(r) : r[gi.getter];
+					val = typeof gi.getter === "function" ? gi.getter(r) : r[gi.getter];
 					group = groupsByVal[val];
 					if (!group) {
 						group = new Group();
 						group.value = val;
 						group.level = level;
-						group.groupingKey = (parentGroup ? parentGroup.groupingKey + groupingDelimiter : '') + val;
+						group.id = (parentGroup ? parentGroup.id + groupingDelimiter : '') + val;
 						groups[groups.length] = group;
 						groupsByVal[val] = group;
 					}
@@ -1468,6 +1727,13 @@
 				return groups;
 			}
 
+
+			// finalizeGroups()
+			// Ensure the group objects have valid data and the states are set correctly
+			//
+			// @param	group		array		Groups to validate
+			// @param	level		integer		Which level to validate
+			//
 			finalizeGroups = function (groups, level) {
 				level = level || 0;
 				var gi = groupingInfos[level],
@@ -1478,7 +1744,7 @@
 
 				while (idx--) {
 					g = groups[idx];
-					g.collapsed = groupCollapsed ^ toggledGroups[g.groupingKey];
+					g.collapsed = groupCollapsed ^ toggledGroups[g.id];
 					g.title = gi.formatter ? gi.formatter(g) : g.value;
 
 					if (g.groups) {
@@ -1564,10 +1830,6 @@
 
 			this.getGrouping = function () {
 				return groupingInfos;
-			}
-
-			this.getGroups = function () {
-				return groups;
 			}
 
 			this.getItem = function (i) {
@@ -1666,7 +1928,8 @@
 								(
 									groupingInfos.length && eitherIsNonData &&
 									(item && item.__group !== r.__group) ||
-									(item && item.__group) && !item.equals(r)
+									(item && item.__group) && (item.id != r.id) ||
+									(item && item.__group) && (item.collapsed != r.collapsed)
 								) ||
 								// Compare between different non-data types
 								(
@@ -1823,6 +2086,12 @@
 				filterArgs = args;
 			}
 
+
+			// setGrouping()
+			// Sets the current grouping settings
+			//
+			// @param	options		array		List of grouping objects
+			//
 			this.setGrouping = function (options) {
 				options = options || [];
 
@@ -1831,9 +2100,7 @@
 				groupingInfos = (options instanceof Array) ? options : [options];
 
 				for (var i = 0, l = groupingInfos.length; i < l; i++) {
-					var gi = groupingInfos[i] = $.extend(true, {}, groupingInfoDefaults, groupingInfos[i]);
-
-					gi.getterIsAFn = typeof gi.getter === "function";
+					gi = groupingInfos[i]
 
 					// pre-compile accumulator loops
 					gi.compiledAccumulators = [];
@@ -2243,6 +2510,43 @@
 		}
 
 
+		// findFirstFocusableCell()
+		// Given a row, returns the index of first focusable cell in that row
+		//
+		// @param	row		integer		Row index
+		//
+		// return integer
+		findFirstFocusableCell = function (row) {
+			var cell = 0;
+			while (cell < self.options.columns.length) {
+				if (canCellBeActive(row, cell)) {
+					return cell;
+				}
+				cell += getColspan(row, cell);
+			}
+			return null;
+		}
+
+
+		// findLastFocusableCell()
+		// Given a row, returns the index of last focusable cell in that row
+		//
+		// @param	row		integer		Row index
+		//
+		// return integer
+		findLastFocusableCell = function (row) {
+			var cell = 0;
+			var lastFocusableCell = null;
+			while (cell < self.options.columns.length) {
+				if (canCellBeActive(row, cell)) {
+					lastFocusableCell = cell;
+				}
+				cell += getColspan(row, cell);
+			}
+			return lastFocusableCell;
+		}
+
+
 		// getActive()
 		// Gets the active cell row/cell indexes
 		//
@@ -2293,6 +2597,38 @@
 		}
 
 
+		// getCellFromNode()
+		// Given a cell node, returns the cell index in that row
+		//
+		// @param	cellNode	DOM		DOM object for the cell
+		//
+		// @return integer
+		getCellFromNode = function (cellNode) {
+			// read column number from .l<columnNumber> CSS class
+			var cls = /l\d+/.exec(cellNode.className);
+			if (!cls) {
+				throw "getCellFromNode: cannot get cell - " + cellNode.className;
+			}
+			return parseInt(cls[0].substr(1, cls[0].length - 1), 10);
+		}
+
+
+		// getCellNode()
+		// Given a row and cell index, returns the DOM node for that cell
+		//
+		// @param	row		integer		Row index
+		// @param	cell	integer		Cell index
+		//
+		// @return DOM object
+		getCellNode = function (row, cell) {
+			if (rowsCache[row]) {
+				ensureCellNodesInRowsCache(row);
+				return rowsCache[row].cellNodesByColumnIdx[cell];
+			}
+			return null;
+		}
+
+
 		// getCellFromEvent()
 		// Given an event object, gets the cell that generated the event
 		//
@@ -2316,6 +2652,31 @@
 					"cell": cell
 				};
 			}
+		}
+
+
+		// getColspan()
+		// Given a row and cell index, returns the colspan for that cell
+		//
+		// @param	row		integer		Row index
+		// @param	cell	integer		Cell index
+		//
+		// return integer
+		getColspan = function (row, cell) {
+			var metadata = self.dataView.getItemMetadata && self.dataView.getItemMetadata(row);
+			if (!metadata || !metadata.columns) {
+				return 1;
+			}
+
+			var columnData = metadata.columns[self.options.columns[cell].id] || metadata.columns[cell];
+			var colspan = (columnData && columnData.colspan);
+			if (colspan === "*") {
+				colspan = self.options.columns.length - cell;
+			} else {
+				colspan = colspan || 1;
+			}
+
+			return colspan;
 		}
 
 
@@ -2452,6 +2813,29 @@
 		}
 
 
+		// getEditor()
+		// Given a row and cell index, returns the editor factory for that cell
+		//
+		// @param	row		integer		Row index
+		// @param	cell	integer		Cell index
+		//
+		// @return function
+		getEditor = function (row, cell) {
+			var column = self.options.columns[cell];
+			var rowMetadata = self.dataView.getItemMetadata && self.dataView.getItemMetadata(row);
+			var columnMetadata = rowMetadata && rowMetadata.columns;
+
+			if (columnMetadata && columnMetadata[column.id] && columnMetadata[column.id].editor !== undefined) {
+				return columnMetadata[column.id].editor;
+			}
+			if (columnMetadata && columnMetadata[cell] && columnMetadata[cell].editor !== undefined) {
+				return columnMetadata[cell].editor;
+			}
+
+			return column.editor || (self.options.editorFactory && self.options.editorFactory.getEditor(column));
+		}
+
+
 		// getFormatter()
 		// Given a row and column, returns the formatter function for that cell
 		//
@@ -2583,6 +2967,23 @@
 		}
 
 
+		// getRowFromNode()
+		// Given a DOM node, returns the row index for that row
+		//
+		// @param	rowNode		object		DOM object
+		//
+		// @return integer
+		getRowFromNode = function (rowNode) {
+			for (var row in rowsCache) {
+				if (rowsCache[row].rowNode === rowNode) {
+					return row | 0;
+				}
+			}
+
+			return null;
+		}
+
+
 		// getRowFromPosition()
 		// ??
 		//
@@ -2650,6 +3051,18 @@
 		}
 
 
+		// getSelectedRows()
+		// Returns the selected row model
+		//
+		// @return array
+		getSelectedRows = function () {
+			if (!selectionModel) {
+				throw "Selection model is not set";
+			}
+			return selectedRows;
+		}
+
+
 		// getVBoxDelta()
 		// Given an elements, gets its padding and border offset size
 		//
@@ -2705,439 +3118,13 @@
 		}
 
 
-		/*************** MOVE THIS INTO ALPHABETICAL ORDER **********/
-
-
-		asyncPostProcessRows = function () {
-			while (postProcessFromRow <= postProcessToRow) {
-				var row = (vScrollDir >= 0) ? postProcessFromRow++ : postProcessToRow--;
-				var cacheEntry = rowsCache[row];
-				if (!cacheEntry || row >= getDataLength()) {
-					continue;
-				}
-
-				if (!postProcessedRows[row]) {
-					postProcessedRows[row] = {};
-				}
-
-				ensureCellNodesInRowsCache(row);
-				for (var columnIdx in cacheEntry.cellNodesByColumnIdx) {
-					if (!cacheEntry.cellNodesByColumnIdx.hasOwnProperty(columnIdx)) {
-						continue;
-					}
-
-					columnIdx = columnIdx | 0;
-
-					var m = columns[columnIdx];
-					if (m.asyncPostRender && !postProcessedRows[row][columnIdx]) {
-						var node = cacheEntry.cellNodesByColumnIdx[columnIdx];
-						if (node) {
-							m.asyncPostRender(node, row, getDataItem(row), m);
-						}
-						if (postProcessedRows[row]) postProcessedRows[row][columnIdx] = true;
-					}
-				}
-
-				h_postrender = setTimeout(asyncPostProcessRows, self.options.asyncPostRenderDelay);
-				return;
-			}
-		}
-
-		autosizeColumns = function () {
-			var i, c,
-				widths = [],
-				shrinkLeeway = 0,
-				total = 0,
-				prevTotal,
-				availWidth = viewportHasVScroll ? viewportW - scrollbarDimensions.width : viewportW;
-
-			for (i = 0; i < self.options.columns.length; i++) {
-				c = self.options.columns[i];
-				widths.push(c.width);
-				total += c.width;
-				if (c.resizable) {
-					shrinkLeeway += c.width - Math.max(c.minWidth, absoluteColumnMinWidth);
-				}
-			}
-
-			// shrink
-			prevTotal = total;
-			while (total > availWidth && shrinkLeeway) {
-				var shrinkProportion = (total - availWidth) / shrinkLeeway;
-				for (i = 0; i < self.options.columns.length && total > availWidth; i++) {
-					c = self.options.columns[i];
-					var width = widths[i];
-					if (!c.resizable || width <= c.minWidth || width <= absoluteColumnMinWidth) {
-						continue;
-					}
-					var absMinWidth = Math.max(c.minWidth, absoluteColumnMinWidth);
-					var shrinkSize = Math.floor(shrinkProportion * (width - absMinWidth)) || 1;
-					shrinkSize = Math.min(shrinkSize, width - absMinWidth);
-					total -= shrinkSize;
-					shrinkLeeway -= shrinkSize;
-					widths[i] -= shrinkSize;
-				}
-				if (prevTotal == total) { // avoid infinite loop
-					break;
-				}
-				prevTotal = total;
-			}
-
-			// grow
-			prevTotal = total;
-			while (total < availWidth) {
-				var growProportion = availWidth / total;
-				for (i = 0; i < self.options.columns.length && total < availWidth; i++) {
-					c = self.options.columns[i];
-					if (!c.resizable || c.maxWidth <= c.width) {
-						continue;
-					}
-					var growSize = Math.min(Math.floor(growProportion * c.width) - c.width, (c.maxWidth - c.width) || 1000000) || 1;
-					total += growSize;
-					widths[i] += growSize;
-				}
-				if (prevTotal == total) { // avoid infinite loop
-					break;
-				}
-				prevTotal = total;
-			}
-
-			var reRender = false;
-			for (i = 0; i < self.options.columns.length; i++) {
-				if (self.options.columns[i].rerenderOnResize && self.options.columns[i].width != widths[i]) {
-					reRender = true;
-				}
-				self.options.columns[i].width = widths[i];
-			}
-
-			applyColumnHeaderWidths();
-			updateCanvasWidth(true);
-			if (reRender) {
-				invalidateAllRows();
-				render();
-			}
-		}
-
-		cacheRowPositions = function () {
-			initializeRowPositions();
-
-			for (var i = 0, l = getDataLength(); i < l; i++) {
-				var metadata = self.dataView.getItemMetadata && self.dataView.getItemMetadata(i);
-
-				rowPositionCache[i] = {
-					top: (rowPositionCache[i - 1]) ? (rowPositionCache[i - 1].bottom - offset) : 0,
-					height: (metadata && metadata.rows && metadata.rows[i]) ? metadata.rows[i].height : self.options.rowHeight
-				}
-
-				rowPositionCache[i].bottom = rowPositionCache[i].top + rowPositionCache[i].height;
-			}
-		}
-
-		canCellBeActive = function (row, cell) {
-			if (!self.options.enableCellNavigation || row >= getDataLengthIncludingAddNew() ||
-				row < 0 || cell >= self.options.columns.length || cell < 0) {
-				return false;
-			}
-
-			var rowMetadata = self.dataView.getItemMetadata && self.dataView.getItemMetadata(row);
-			if (rowMetadata && typeof rowMetadata.focusable === "boolean") {
-				return rowMetadata.focusable;
-			}
-
-			var columnMetadata = rowMetadata && rowMetadata.columns;
-			if (
-				columnMetadata &&
-				columnMetadata[self.options.columns[cell].id] &&
-				typeof columnMetadata[self.options.columns[cell].id].focusable === "boolean"
-			) {
-				return columnMetadata[self.options.columns[cell].id].focusable;
-			}
-			if (columnMetadata && columnMetadata[cell] && typeof columnMetadata[cell].focusable === "boolean") {
-				return columnMetadata[cell].focusable;
-			}
-
-			return self.options.columns[cell].focusable;
-		}
-
-		canCellBeSelected = function (row, cell) {
-			if (row >= getDataLength() || row < 0 || cell >= self.options.columns.length || cell < 0) {
-				return false;
-			}
-
-			var rowMetadata = self.dataView.getItemMetadata && self.dataView.getItemMetadata(row);
-			if (rowMetadata && typeof rowMetadata.selectable === "boolean") {
-				return rowMetadata.selectable;
-			}
-
-			var columnMetadata = rowMetadata && rowMetadata.columns && (rowMetadata.columns[columns[cell].id] || rowMetadata.columns[cell]);
-			if (columnMetadata && typeof columnMetadata.selectable === "boolean") {
-				return columnMetadata.selectable;
-			}
-
-			return self.options.columns[cell].selectable;
-		}
-
-		cellExists = function (row, cell) {
-			return !(row < 0 || row >= getDataLength() || cell < 0 || cell >= self.options.columns.length);
-		}
-
-		cleanUpCells = function (range, row) {
-			var totalCellsRemoved = 0;
-			var cacheEntry = rowsCache[row];
-
-			// Remove cells outside the range.
-			var cellsToRemove = [];
-			for (var i in cacheEntry.cellNodesByColumnIdx) {
-				// I really hate it when people mess with Array.prototype.
-				if (!cacheEntry.cellNodesByColumnIdx.hasOwnProperty(i)) {
-					continue;
-				}
-
-				// This is a string, so it needs to be cast back to a number.
-				i = i | 0;
-
-				var colspan = cacheEntry.cellColSpans[i];
-				if (columnPosLeft[i] > range.rightPx ||
-					columnPosRight[Math.min(self.options.columns.length - 1, i + colspan - 1)] < range.leftPx) {
-					if (!(row == activeRow && i == activeCell)) {
-						cellsToRemove.push(i);
-					}
-				}
-			}
-
-			var cellToRemove;
-			while ((cellToRemove = cellsToRemove.pop()) !== null && cellToRemove) {
-				cacheEntry.rowNode.removeChild(cacheEntry.cellNodesByColumnIdx[cellToRemove]);
-				delete cacheEntry.cellColSpans[cellToRemove];
-				delete cacheEntry.cellNodesByColumnIdx[cellToRemove];
-				if (postProcessedRows[row]) {
-					delete postProcessedRows[row][cellToRemove];
-				}
-				totalCellsRemoved++;
-			}
-		}
-
-		clearTextSelection = function () {
-			if (document.selection && document.selection.empty) {
-				try {
-					//IE fails here if selected element is not in dom
-					document.selection.empty();
-				} catch (e) {}
-			} else if (window.getSelection) {
-				var sel = window.getSelection();
-				if (sel && sel.removeAllRanges) {
-					sel.removeAllRanges();
-				}
-			}
-		}
-
-		commitEditAndSetFocus = function () {
-			// if the commit fails, it would do so due to a validation error
-			// if so, do not steal the focus from the editor
-			if (self.options.autoEdit) {
-				navigateDown();
-			}
-		}
-
-		ensureCellNodesInRowsCache = function (row) {
-			var cacheEntry = rowsCache[row];
-			if (cacheEntry) {
-				if (cacheEntry.cellRenderQueue.length) {
-					var lastChild = cacheEntry.rowNode.lastChild;
-					while (cacheEntry.cellRenderQueue.length) {
-						var columnIdx = cacheEntry.cellRenderQueue.pop();
-						cacheEntry.cellNodesByColumnIdx[columnIdx] = lastChild;
-						lastChild = lastChild.previousSibling;
-					}
-				}
-			}
-		}
-
-		flashCell = function (row, cell, speed) {
-			speed = speed || 100;
-			if (rowsCache[row]) {
-				var $cell = $(getCellNode(row, cell));
-
-				var toggleCellClassfunction = function (times) {
-					if (!times) {
-						return;
-					}
-					setTimeout(function () {
-						$cell.queue(function () {
-							$cell.toggleClass(self.options.cellFlashingCssClass).dequeue();
-							toggleCellClass(times - 1);
-						});
-					},
-						speed);
-				}
-
-				toggleCellClass(4);
-			}
-		}
-
-		findFirstFocusableCell = function (row) {
-			var cell = 0;
-			while (cell < self.options.columns.length) {
-				if (canCellBeActive(row, cell)) {
-					return cell;
-				}
-				cell += getColspan(row, cell);
-			}
-			return null;
-		}
-
-		findLastFocusableCell = function (row) {
-			var cell = 0;
-			var lastFocusableCell = null;
-			while (cell < self.options.columns.length) {
-				if (canCellBeActive(row, cell)) {
-					lastFocusableCell = cell;
-				}
-				cell += getColspan(row, cell);
-			}
-			return lastFocusableCell;
-		}
-
-		getCanvasNode = function () {
-			return $canvas[0];
-		}
-
-		getCellEditor = function () {
-			return currentEditor;
-		}
-
-		getCellFromNode = function (cellNode) {
-			// read column number from .l<columnNumber> CSS class
-			var cls = /l\d+/.exec(cellNode.className);
-			if (!cls) {
-				throw "getCellFromNode: cannot get cell - " + cellNode.className;
-			}
-			return parseInt(cls[0].substr(1, cls[0].length - 1), 10);
-		}
-
-		getCellFromPoint = function (x, y) {
-			var row = Math.floor(getRowFromPosition(y + offset)),
-				cell = 0,
-				w = 0;
-
-			for (var i = 0, l = self.options.columns.length; i < l && w < x; i++) {
-				w += self.options.columns[i].width;
-				cell++;
-			}
-
-			if (cell < 0) {
-				cell = 0;
-			}
-
-			return {
-				row: row,
-				cell: cell - 1
-			};
-		}
-
-		getCellNode = function (row, cell) {
-			if (rowsCache[row]) {
-				ensureCellNodesInRowsCache(row);
-				return rowsCache[row].cellNodesByColumnIdx[cell];
-			}
-			return null;
-		}
-
-		getCellNodeBox = function (row, cell) {
-			if (!cellExists(row, cell)) {
-				return null;
-			}
-
-			var y1 = rowPositionCache[row].top - offset;
-			var y2 = y1 + rowPositionCache[row].height - 1;
-
-			var x1 = 0;
-			for (var i = 0; i < cell; i++) {
-				x1 += self.options.columns[i].width;
-			}
-			var x2 = x1 + self.options.columns[cell].width;
-
-			return {
-				top: y1,
-				left: x1,
-				bottom: y2,
-				right: x2
-			};
-		}
-
-		getColspan = function (row, cell) {
-			var metadata = self.dataView.getItemMetadata && self.dataView.getItemMetadata(row);
-			if (!metadata || !metadata.columns) {
-				return 1;
-			}
-
-			var columnData = metadata.columns[self.options.columns[cell].id] || metadata.columns[cell];
-			var colspan = (columnData && columnData.colspan);
-			if (colspan === "*") {
-				colspan = self.options.columns.length - cell;
-			} else {
-				colspan = colspan || 1;
-			}
-
-			return colspan;
-		}
-
-		getContainerNode = function () {
-			return self.$el.get(0);
-		}
-
-		getData = function () {
-			return data;
-		}
-
-		getEditController = function () {
-			return editController;
-		}
-
-		getEditor = function (row, cell) {
-			var column = self.options.columns[cell];
-			var rowMetadata = self.dataView.getItemMetadata && self.dataView.getItemMetadata(row);
-			var columnMetadata = rowMetadata && rowMetadata.columns;
-
-			if (columnMetadata && columnMetadata[column.id] && columnMetadata[column.id].editor !== undefined) {
-				return columnMetadata[column.id].editor;
-			}
-			if (columnMetadata && columnMetadata[cell] && columnMetadata[cell].editor !== undefined) {
-				return columnMetadata[cell].editor;
-			}
-
-			return column.editor || (self.options.editorFactory && self.options.editorFactory.getEditor(column));
-		}
-
-		getGridPosition = function () {
-			return absBox(self.$el[0])
-		}
-
-		getOptions = function () {
-			return options;
-		}
-
-		getRowFromNode = function (rowNode) {
-			for (var row in rowsCache) {
-				if (rowsCache[row].rowNode === rowNode) {
-					return row | 0;
-				}
-			}
-
-			return null;
-		}
-
-		getSelectedRows = function () {
-			if (!selectionModel) {
-				throw "Selection model is not set";
-			}
-			return selectedRows;
-		}
-
-		getSelectionModel = function () {
-			return selectionModel;
-		}
-
+		// gotoCell()
+		// Activates a given cell
+		//
+		// @param	row			integer		Index of the row
+		// @param	cell		integer		Index of the cell
+		// @param	forceEdit	boolean		TODO: ???
+		//
 		gotoCell = function (row, cell, forceEdit) {
 			if (!initialized) {
 				return;
@@ -3154,6 +3141,14 @@
 			setActiveCellInternal(newCell, forceEdit || (row === getDataLength()) || self.options.autoEdit);
 		}
 
+
+		// gotoDown()
+		// Activates the cell below the currently active one
+		//
+		// @param	row			integer		Index of the row
+		// @param	cell		integer		Index of the cell
+		// @param	posX		integer		TODO: ???
+		//
 		gotoDown = function (row, cell, posX) {
 			var prevCell;
 			while (true) {
@@ -3177,6 +3172,14 @@
 			}
 		}
 
+
+		// gotoLeft()
+		// Activates the cell to the left the currently active one
+		//
+		// @param	row			integer		Index of the row
+		// @param	cell		integer		Index of the cell
+		// @param	posX		integer		TODO: ???
+		//
 		gotoLeft = function (row, cell, posX) {
 			if (cell <= 0) {
 				return null;
@@ -3205,6 +3208,14 @@
 			}
 		}
 
+
+		// gotoNext()
+		// Activates the next available cell in the grid (either left, or first in next row)
+		//
+		// @param	row			integer		Index of the row
+		// @param	cell		integer		Index of the cell
+		// @param	posX		integer		TODO: ???
+		//
 		gotoNext = function (row, cell, posX) {
 			if (row === null && cell === null) {
 				row = cell = posX = 0;
@@ -3236,6 +3247,14 @@
 			return null;
 		}
 
+
+		// gotoPrev()
+		// Activates the previous cell to the current one
+		//
+		// @param	row			integer		Index of the row
+		// @param	cell		integer		Index of the cell
+		// @param	posX		integer		TODO: ???
+		//
 		gotoPrev = function (row, cell, posX) {
 			if (row === null && cell === null) {
 				row = getDataLengthIncludingAddNew() - 1;
@@ -3273,6 +3292,14 @@
 			return pos;
 		}
 
+
+		// gotoRight()
+		// Activates the cell to the right the currently active one
+		//
+		// @param	row			integer		Index of the row
+		// @param	cell		integer		Index of the cell
+		// @param	posX		integer		TODO: ???
+		//
 		gotoRight = function (row, cell, posX) {
 			if (cell >= self.options.columns.length) {
 				return null;
@@ -3293,6 +3320,14 @@
 			return null;
 		}
 
+
+		// gotoUp()
+		// Activates the cell above the currently active one
+		//
+		// @param	row			integer		Index of the row
+		// @param	cell		integer		Index of the cell
+		// @param	posX		integer		TODO: ???
+		//
 		gotoUp = function (row, cell, posX) {
 			var prevCell;
 			while (true) {
@@ -3318,342 +3353,39 @@
 
 
 		// Group()
-		// Stores information about a group of rows
+		// Class that stores information about a group of rows.
 		//
 		Group = function () {
-			this.__group = true;
-
-			/**
-			 * Grouping level, starting with 0.
-			 * @property level
-			 * @type {Number}
-			 */
-			this.level = 0;
-
-			/***
-			 * Number of rows in the group.
-			 * @property count
-			 * @type {Integer}
-			 */
-			this.count = 0;
-
-			/***
-			 * Grouping value.
-			 * @property value
-			 * @type {Object}
-			 */
-			this.value = null;
-
-			/***
-			 * Formatted display value of the group.
-			 * @property title
-			 * @type {String}
-			 */
-			this.title = null;
-
-			/***
-			 * Whether a group is collapsed.
-			 * @property collapsed
-			 * @type {Boolean}
-			 */
-			this.collapsed = false;
-
-			/***
-			 * GroupTotals, if any.
-			 * @property totals
-			 * @type {GroupTotals}
-			 */
-			this.totals = null;
-
-			/**
-			 * Rows that are part of the group.
-			 * @property rows
-			 * @type {Array}
-			 */
-			this.rows = [];
-
-			/**
-			 * Sub-groups that are part of the group.
-			 * @property groups
-			 * @type {Array}
-			 */
-			this.groups = null;
-
-			/**
-			 * A unique key used to identify the group.  This key can be used in calls to DataView
-			 * collapseGroup() or expandGroup().
-			 * @property groupingKey
-			 * @type {Object}
-			 */
-			this.groupingKey = null;
-		}
-
-		/***
-		 * A base class that all special / non-data rows (like Group and GroupTotals) derive from.
-		 * @class NonDataItem
-		 * @constructor
-		 */
-		function NonDataItem() {
-			this.__nonDataRow = true;
+			this.__group = true;		// TODO: Is this even needed? Can't we just check instanceof? Which is faster?
+			this.collapsed = false;		// Whether the group is collapsed
+			this.count = 0;				// Number of rows in the group
+			this.groups = null;			// Sub-groups that are part of this group
+			this.id = null;				// A unique key used to identify the group
+			this.level = 0;				// Grouping level, starting with 0 (for nesting groups)
+			this.rows = [];				// Rows that are part of this group
+			this.title = null;			// Formatted display value of the group
+			this.totals = null;			// GroupTotals, if any
+			this.value = null;			// Grouping value
 		}
 
 		Group.prototype = new NonDataItem();
 
-		/***
-		 * Compares two Group instances.
-		 * @method equals
-		 * @return {Boolean}
-		 * @param group {Group} Group instance to compare to.
-		 */
-		Group.prototype.equals = function (group) {
-			return this.value === group.value &&
-				this.count === group.count &&
-				this.collapsed === group.collapsed &&
-				this.title === group.title;
-		};
 
 
-		initializeRowPositions = function () {
-			rowPositionCache = {
-				0: {
-					top: 0,
-					height: options.rowHeight,
-					bottom: options.rowHeight
-				}
-			};
-		}
-
-		invalidate = function () {
-			updateRowCount();
-			invalidateAllRows();
-			render();
-		}
-
-		invalidateAllRows = function () {
-			if (currentEditor) {
-				makeActiveCellNormal();
-			}
-			for (var row in rowsCache) {
-				removeRowFromCache(row);
-			}
-		}
-
-		invalidatePostProcessingResults = function (row) {
-			delete postProcessedRows[row];
-			postProcessFromRow = Math.min(postProcessFromRow, row);
-			postProcessToRow = Math.max(postProcessToRow, row);
-			startPostProcessing();
-		}
-
-		invalidateRow = function (row) {
-			invalidateRows([row]);
-		}
 
 
-		// invalidateRows()
-		// Clear the cache for a given set of rows
-		//
-		// @param	rows	array		List of row indices to invalidate
-		//
-		invalidateRows = function (rows) {
-			if (!rows || !rows.length) return;
-
-			vScrollDir = 0;
-
-			for (var i = 0, l = rows.length; i < l; i++) {
-				if (currentEditor && activeRow === rows[i]) {
-					makeActiveCellNormal();
-				}
-
-				if (rowsCache[rows[i]]) {
-					removeRowFromCache(rows[i]);
-				}
-			}
-		}
+		/*************** MOVE THIS INTO ALPHABETICAL ORDER **********/
 
 
-		makeActiveCellEditable = function (editor) {
-			if (!activeCellNode) {
-				return;
-			}
-			if (!options.editable) {
-				throw "Grid : makeActiveCellEditable : should never get called when options.editable is false";
-			}
-
-			// cancel pending async call if there is one
-			clearTimeout(h_editorLoader);
-
-			if (!isCellPotentiallyEditable(activeRow, activeCell)) {
-				return;
-			}
-
-			var columnDef = self.options.columns[activeCell];
-			var item = getDataItem(activeRow);
-
-			if (self.trigger('onCellCssStylesChanged', {}, {
-				row: activeRow,
-				cell: activeCell,
-				item: item,
-				column: columnDef
-			}) === false) {
-				return;
-			}
-
-			$(activeCellNode).addClass("editable");
-
-			// don't clear the cell if a custom editor is passed through
-			if (!editor) {
-				activeCellNode.innerHTML = "";
-			}
-
-			var edtr = editor || getEditor(activeRow, activeCell)
-
-			currentEditor = new edtr({
-				grid: self,
-				gridPosition: absBox(self.$el[0]),
-				position: absBox(activeCellNode),
-				container: activeCellNode,
-				column: columnDef,
-				item: item || {},
-				commitChanges: commitEditAndSetFocus
-			});
-
-			if (item) {
-				currentEditor.loadValue(item);
-			}
-
-			serializedEditorValue = currentEditor.serializeValue();
-
-			if (currentEditor.position) {
-				handleActiveCellPositionChange();
-			}
-		}
 
 
-		// naturalSort()
-		// Natural Sort algorithm for Javascript - Version 0.7 - Released under MIT license
-		// Author: Jim Palmer (based on chunking idea from Dave Koelle
-		//
-		naturalSort = function (a, b) {
-			var re = /(^-?[0-9]+(\.?[0-9]*)[df]?e?[0-9]?$|^0x[0-9a-f]+$|[0-9]+)/gi,
-				sre = /(^[ ]*|[ ]*$)/g,
-				dre = /(^([\w ]+,?[\w ]+)?[\w ]+,?[\w ]+\d+:\d+(:\d+)?[\w ]?|^\d{1,4}[\/\-]\d{1,4}[\/\-]\d{1,4}|^\w+, \w+ \d+, \d{4})/,
-				hre = /^0x[0-9a-f]+$/i,
-				ore = /^0/,
-				i = function (s) {
-					return ('' + s).toLowerCase() || '' + s
-				},
-				// convert all to strings strip whitespace
-				x = i(a).replace(sre, '') || '',
-				y = i(b).replace(sre, '') || '',
-				// chunk/tokenize
-				xN = x.replace(re, '\0$1\0').replace(/\0$/, '').replace(/^\0/, '').split('\0'),
-				yN = y.replace(re, '\0$1\0').replace(/\0$/, '').replace(/^\0/, '').split('\0'),
-				// numeric, hex or date detection
-				xD = parseInt(x.match(hre), 10) || (xN.length != 1 && x.match(dre) && Date.parse(x)),
-				yD = parseInt(y.match(hre), 10) || xD && y.match(dre) && Date.parse(y) || null,
-				oFxNcL, oFyNcL;
-			// first try and sort Hex codes or Dates
-			if (yD)
-				if (xD < yD) return -1;
-				else if (xD > yD) return 1;
-			// natural sorting through split numeric strings and default strings
-			for (var cLoc = 0, numS = Math.max(xN.length, yN.length); cLoc < numS; cLoc++) {
-				// find floats not starting with '0', string or 0 if not defined (Clint Priest)
-				oFxNcL = !(xN[cLoc] || '').match(ore) && parseFloat(xN[cLoc]) || xN[cLoc] || 0;
-				oFyNcL = !(yN[cLoc] || '').match(ore) && parseFloat(yN[cLoc]) || yN[cLoc] || 0;
-				// handle numeric vs string comparison - number < string - (Kyle Adams)
-				if (isNaN(oFxNcL) !== isNaN(oFyNcL)) {
-					return (isNaN(oFxNcL)) ? 1 : -1;
-				}
-				// rely on string comparison if different types - i.e. '02' < 2 != '02' < '2'
-				else if (typeof oFxNcL !== typeof oFyNcL) {
-					oFxNcL += '';
-					oFyNcL += '';
-				}
-				if (oFxNcL < oFyNcL) return -1;
-				if (oFxNcL > oFyNcL) return 1;
-			}
-			return 0;
-		}
 
 
-		/**
-		 * @param {string} dir Navigation direction.
-		 * @return {boolean} Whether navigation resulted in a change of active cell.
-		 */
-		navigate = function (dir) {
-			if (!options.enableCellNavigation) {
-				return false;
-			}
 
-			if (!activeCellNode && dir != "prev" && dir != "next") {
-				return false;
-			}
 
-			var tabbingDirections = {
-				"up": -1,
-				"down": 1,
-				"left": -1,
-				"right": 1,
-				"prev": -1,
-				"next": 1
-			};
-			tabbingDirection = tabbingDirections[dir];
 
-			var stepFunctions = {
-				"up": gotoUp,
-				"down": gotoDown,
-				"left": gotoLeft,
-				"right": gotoRight,
-				"prev": gotoPrev,
-				"next": gotoNext
-			};
-			var stepFn = stepFunctions[dir];
-			var pos = stepFn(activeRow, activeCell, activePosX);
-			if (pos) {
-				var isAddNewRow = (pos.row == getDataLength());
-				scrollCellIntoView(pos.row, pos.cell, !isAddNewRow);
-				setActiveCellInternal(getCellNode(pos.row, pos.cell));
-				activePosX = pos.posX;
-				return true;
-			} else {
-				setActiveCellInternal(getCellNode(activeRow, activeCell));
-				return false;
-			}
-		}
 
-		navigateDown = function () {
-			return navigate("down");
-		}
 
-		navigateLeft = function () {
-			return navigate("left");
-		}
-
-		navigateNext = function () {
-			return navigate("next");
-		}
-
-		navigatePageDown = function () {
-			scrollPage(1);
-		}
-
-		navigatePageUp = function () {
-			scrollPage(-1);
-		}
-
-		navigatePrev = function () {
-			return navigate("prev");
-		}
-
-		navigateRight = function () {
-			return navigate("right");
-		}
-
-		navigateUp = function () {
-			return navigate("up");
-		}
 
 		resetActiveCell = function () {
 			setActiveCellInternal(null, false);
@@ -3902,9 +3634,9 @@
 
 				if (isToggler) {
 					if (item.collapsed) {
-						self.dataView.expandGroup(item.groupingKey);
+						self.dataView.expandGroup(item.id);
 					} else {
-						self.dataView.collapseGroup(item.groupingKey);
+						self.dataView.collapseGroup(item.id);
 					}
 
 					e.stopImmediatePropagation();
@@ -4031,7 +3763,7 @@
 
 
 		// handleKeyDown()
-		// Handles the key down events on cells
+		// Handles the key down events on cells. These are our keyboard shortcuts.
 		//
 		// @param	e	object		Javascript event object
 		//
@@ -4044,37 +3776,44 @@
 
 			if (!handled) {
 				if (!e.shiftKey && !e.altKey && !e.ctrlKey) {
+					// Page Down
 					if (e.which == 34) {
-						navigatePageDown();
+						scrollPage(-1);
 						handled = true;
+					// Page Up
 					} else if (e.which == 33) {
-						navigatePageUp();
+						scrollPage(1);
 						handled = true;
+					// Left Arrow
 					} else if (e.which == 37) {
-						handled = navigateLeft();
+						handled = navigate("left");
+					// Right Arrow
 					} else if (e.which == 39) {
-						handled = navigateRight();
+						handled = navigate("right");
+					// Up Arrow
 					} else if (e.which == 38) {
-						handled = navigateUp();
+						handled = navigate("up");
+					// Down Arrow
 					} else if (e.which == 40) {
-						handled = navigateDown();
+						handled = navigate("down");
+					// Tab
 					} else if (e.which == 9) {
-						handled = navigateNext();
+						handled = navigate("next");
+					// Enter
 					} else if (e.which == 13) {
 						if (options.editable) {
 							if (currentEditor) {
 								// adding new row
-								if (activeRow === getDataLength()) {
-									navigateDown();
-								} else {
-									commitEditAndSetFocus();
+								if (activeRow === getDataLength() || self.options.autoEdit) {
+									navigate("down");
 								}
 							}
 						}
 						handled = true;
 					}
+				// Shift Tab
 				} else if (e.which == 9 && e.shiftKey && !e.ctrlKey && !e.altKey) {
-					handled = navigatePrev();
+					handled = navigate("prev")
 				}
 			}
 
@@ -4258,6 +3997,88 @@
 		}
 
 
+		// initializeRowPositions()
+		// Initializes the 'rowPositionCache' object which will store row positions
+		//
+		initializeRowPositions = function () {
+			rowPositionCache = {
+				0: {
+					top: 0,
+					height: options.rowHeight,
+					bottom: options.rowHeight
+				}
+			};
+		}
+
+
+		// invalidate()
+		// Clears the caching for all rows counts and positions
+		//
+		invalidate = function () {
+			updateRowCount();
+			invalidateAllRows();
+			render();
+		}
+
+
+		// invalidateAllRows()
+		// Clears the caching for all rows caches
+		//
+		invalidateAllRows = function () {
+			if (currentEditor) {
+				makeActiveCellNormal();
+			}
+			for (var row in rowsCache) {
+				removeRowFromCache(row);
+			}
+		}
+
+
+		// invalidatePostProcessingResults()
+		// Clears the caching for all post processing for a row
+		//
+		// @param	row		integer		Row index
+		//
+		invalidatePostProcessingResults = function (row) {
+			delete postProcessedRows[row];
+			postProcessFromRow = Math.min(postProcessFromRow, row);
+			postProcessToRow = Math.max(postProcessToRow, row);
+			startPostProcessing();
+		}
+
+
+		// invalidateRow()
+		// Clears the caching for a specific row
+		//
+		// @param	row		integer		Row index
+		//
+		invalidateRow = function (row) {
+			invalidateRows([row]);
+		}
+
+
+		// invalidateRows()
+		// Clear the cache for a given set of rows
+		//
+		// @param	rows	array		List of row indices to invalidate
+		//
+		invalidateRows = function (rows) {
+			if (!rows || !rows.length) return;
+
+			vScrollDir = 0;
+
+			for (var i = 0, l = rows.length; i < l; i++) {
+				if (currentEditor && activeRow === rows[i]) {
+					makeActiveCellNormal();
+				}
+
+				if (rowsCache[rows[i]]) {
+					removeRowFromCache(rows[i]);
+				}
+			}
+		}
+
+
 		// isGrouped()
 		// Returns true if the grid is currently grouped by a value
 		//
@@ -4273,6 +4094,75 @@
 		// @return boolean
 		this.isSorted = function () {
 			return sortColumns.length ? true : false
+		}
+
+
+		// makeActiveCellEditable()
+		// Makes the currently active cell editable
+		//
+		// @param	editor		function		Editor factory to use
+		//
+		makeActiveCellEditable = function (editor) {
+			if (!activeCellNode) {
+				return;
+			}
+			if (!options.editable) {
+				throw "Grid : makeActiveCellEditable : should never get called when options.editable is false";
+			}
+
+			// cancel pending async call if there is one
+			clearTimeout(h_editorLoader);
+
+			if (!isCellPotentiallyEditable(activeRow, activeCell)) {
+				return;
+			}
+
+			var columnDef = self.options.columns[activeCell];
+			var item = getDataItem(activeRow);
+
+			if (self.trigger('onCellCssStylesChanged', {}, {
+				row: activeRow,
+				cell: activeCell,
+				item: item,
+				column: columnDef
+			}) === false) {
+				return;
+			}
+
+			$(activeCellNode).addClass("editable");
+
+			// don't clear the cell if a custom editor is passed through
+			if (!editor) {
+				activeCellNode.innerHTML = "";
+			}
+
+			var edtr = editor || getEditor(activeRow, activeCell)
+
+			currentEditor = new edtr({
+				grid: self,
+				gridPosition: absBox(self.$el[0]),
+				position: absBox(activeCellNode),
+				container: activeCellNode,
+				column: columnDef,
+				item: item || {},
+				commitChanges: function () {
+					// if the commit fails, it would do so due to a validation error
+					// if so, do not steal the focus from the editor
+					if (self.options.autoEdit) {
+						navigate('down');
+					}
+				}
+			});
+
+			if (item) {
+				currentEditor.loadValue(item);
+			}
+
+			serializedEditorValue = currentEditor.serializeValue();
+
+			if (currentEditor.position) {
+				handleActiveCellPositionChange();
+			}
 		}
 
 
@@ -4347,6 +4237,103 @@
 			r.remove();
 
 			absoluteColumnMinWidth = Math.max(headerColumnWidthDiff, cellWidthDiff);
+		}
+
+
+		// naturalSort()
+		// Natural Sort algorithm for Javascript - Version 0.7 - Released under MIT license
+		// Author: Jim Palmer (based on chunking idea from Dave Koelle
+		//
+		naturalSort = function (a, b) {
+			var re = /(^-?[0-9]+(\.?[0-9]*)[df]?e?[0-9]?$|^0x[0-9a-f]+$|[0-9]+)/gi,
+				sre = /(^[ ]*|[ ]*$)/g,
+				dre = /(^([\w ]+,?[\w ]+)?[\w ]+,?[\w ]+\d+:\d+(:\d+)?[\w ]?|^\d{1,4}[\/\-]\d{1,4}[\/\-]\d{1,4}|^\w+, \w+ \d+, \d{4})/,
+				hre = /^0x[0-9a-f]+$/i,
+				ore = /^0/,
+				i = function (s) {
+					return ('' + s).toLowerCase() || '' + s
+				},
+				// convert all to strings strip whitespace
+				x = i(a).replace(sre, '') || '',
+				y = i(b).replace(sre, '') || '',
+				// chunk/tokenize
+				xN = x.replace(re, '\0$1\0').replace(/\0$/, '').replace(/^\0/, '').split('\0'),
+				yN = y.replace(re, '\0$1\0').replace(/\0$/, '').replace(/^\0/, '').split('\0'),
+				// numeric, hex or date detection
+				xD = parseInt(x.match(hre), 10) || (xN.length != 1 && x.match(dre) && Date.parse(x)),
+				yD = parseInt(y.match(hre), 10) || xD && y.match(dre) && Date.parse(y) || null,
+				oFxNcL, oFyNcL;
+			// first try and sort Hex codes or Dates
+			if (yD)
+				if (xD < yD) return -1;
+				else if (xD > yD) return 1;
+			// natural sorting through split numeric strings and default strings
+			for (var cLoc = 0, numS = Math.max(xN.length, yN.length); cLoc < numS; cLoc++) {
+				// find floats not starting with '0', string or 0 if not defined (Clint Priest)
+				oFxNcL = !(xN[cLoc] || '').match(ore) && parseFloat(xN[cLoc]) || xN[cLoc] || 0;
+				oFyNcL = !(yN[cLoc] || '').match(ore) && parseFloat(yN[cLoc]) || yN[cLoc] || 0;
+				// handle numeric vs string comparison - number < string - (Kyle Adams)
+				if (isNaN(oFxNcL) !== isNaN(oFyNcL)) {
+					return (isNaN(oFxNcL)) ? 1 : -1;
+				}
+				// rely on string comparison if different types - i.e. '02' < 2 != '02' < '2'
+				else if (typeof oFxNcL !== typeof oFyNcL) {
+					oFxNcL += '';
+					oFyNcL += '';
+				}
+				if (oFxNcL < oFyNcL) return -1;
+				if (oFxNcL > oFyNcL) return 1;
+			}
+			return 0;
+		}
+
+
+		// navigate()
+		// Enables cell navigation via keyboard shortcuts. Returns true if
+		// navigation resulted in a change of active cell.
+		//
+		// @param	dir		string			Navigation direction
+		//
+		// @return boolean
+		navigate = function (dir) {
+			if (!options.enableCellNavigation) {
+				return false;
+			}
+
+			if (!activeCellNode && dir != "prev" && dir != "next") {
+				return false;
+			}
+
+			var tabbingDirections = {
+				"up": -1,
+				"down": 1,
+				"left": -1,
+				"right": 1,
+				"prev": -1,
+				"next": 1
+			};
+			tabbingDirection = tabbingDirections[dir];
+
+			var stepFunctions = {
+				"up": gotoUp,
+				"down": gotoDown,
+				"left": gotoLeft,
+				"right": gotoRight,
+				"prev": gotoPrev,
+				"next": gotoNext
+			};
+			var stepFn = stepFunctions[dir];
+			var pos = stepFn(activeRow, activeCell, activePosX);
+			if (pos) {
+				var isAddNewRow = (pos.row == getDataLength());
+				scrollCellIntoView(pos.row, pos.cell, !isAddNewRow);
+				setActiveCellInternal(getCellNode(pos.row, pos.cell));
+				activePosX = pos.posX;
+				return true;
+			} else {
+				setActiveCellInternal(getCellNode(activeRow, activeCell));
+				return false;
+			}
 		}
 
 
@@ -5312,10 +5299,7 @@
 				enabled: self.options.groupable && column && column.groupable && (!hasGrouping(column.id) || !self.isGrouped()),
 				name: column ? getLocale('column.group', {name: column.name}) : '',
 				fn: function () {
-					// TODO: Optimize this so setGrouping can auto-collapse groups when created
-					// otherwise this will fire 2 render calls
 					self.setGrouping([column.id])
-					self.dataView.collapseAllGroups()
 				}
 			}, {
 				enabled: self.options.groupable && column && column.groupable && !hasGrouping(column.id) && self.isGrouped(),
@@ -5707,7 +5691,7 @@
 		// validateOptions()
 		// Ensures that the given options are valid and complete
 		//
-		validateOptions = function() {
+		validateOptions = function () {
 			// Validate loaded JavaScript modules against requested options
 			if (self.options.resizable && !$.fn.draggable) {
 				throw new Error('In other to use "resizable", you must ensure the jquery-ui.draggable module is loaded.');

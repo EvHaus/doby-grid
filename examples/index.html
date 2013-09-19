@@ -62,7 +62,8 @@
 						id: i,
 						name: "Pope John "+i,
 						age: "100 years",
-						city: ['Venice','Vatican City','Rome'][_.random(0,2)]
+						city: ['Venice','Vatican City','Rome'][_.random(0,2)],
+						country: "ITA"
 					}
 				});
 			}
@@ -89,6 +90,11 @@
 					id: "city",
 					name: "City",
 					field: "city",
+					sortable: true
+				}, {
+					id: "country",
+					name: "Country",
+					field: "country",
 					sortable: true
 				}],
 				data: data
