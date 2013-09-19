@@ -114,6 +114,7 @@
 			destroy,
 			disableSelection,
 			dropdown,
+			enableAsyncPostRender = false,	// Does grid have any columns that require post-processing
 			ensureCellNodesInRowsCache,
 			executeSorter,
 			findFirstFocusableCell,
@@ -232,7 +233,6 @@
 			setActiveCell,
 			setActiveCellInternal,
 			setColumns,
-			setData,
 			setSelectedRows,
 			setSelectionModel,
 			setupColumnReorder,
@@ -268,7 +268,7 @@
 			alertOnEmpty:		false,
 			asyncEditorLoadDelay: 100,
 			asyncEditorLoading: false,
-			asyncPostRenderDelay: 50,
+			asyncPostRenderDelay: 25,
 			autoEdit:			true,
 			columns:			[],
 			data:				[],
@@ -278,10 +278,9 @@
 			editable:			false,
 			editorFactory:		null,
 			enableAddRow:		false,
-			enableAsyncPostRender: false,
-			enableCellNavigation: true,		// TODO: ??
+			enableCellNavigation: true,
 			forceFitColumns:	false,
-			forceSyncScrolling: false,		// TODO: ??
+			forceSyncScrolling: false,		// TODO: What is forceSyncScrolling
 			formatterFactory:	null,
 			fullWidthRows:		true,
 			groupable:			true,
@@ -477,9 +476,13 @@
 
 			result.push(">");
 
+			// If this is a cached, postprocessed row -- use the cache
+			if (m.cache && m.postprocess && postProcessedRows[row] && postProcessedRows[row][cell]) {
+				result.push(postProcessedRows[row][cell])
+			}
 			// if there is a corresponding row (if not, this is the Add New row or
 			// this data hasn't been loaded yet)
-			if (item) {
+			else if (item) {
 				var value = getDataItemValueForColumn(item, m);
 				try {
 					result.push(getFormatter(row, m)(row, cell, value, m, item));
@@ -690,15 +693,11 @@
 		//
 		asyncPostProcessRows = function () {
 			while (postProcessFromRow <= postProcessToRow) {
-				var row = (vScrollDir >= 0) ? postProcessFromRow++ : postProcessToRow--;
-				var cacheEntry = rowsCache[row];
-				if (!cacheEntry || row >= getDataLength()) {
-					continue;
-				}
+				var row = (vScrollDir >= 0) ? postProcessFromRow++ : postProcessToRow--,
+					cacheEntry = rowsCache[row];
 
-				if (!postProcessedRows[row]) {
-					postProcessedRows[row] = {};
-				}
+				if (!cacheEntry || row >= getDataLength()) continue;
+				if (!postProcessedRows[row]) postProcessedRows[row] = {};
 
 				ensureCellNodesInRowsCache(row);
 				for (var columnIdx in cacheEntry.cellNodesByColumnIdx) {
@@ -708,13 +707,25 @@
 
 					columnIdx = columnIdx | 0;
 
-					var m = columns[columnIdx];
-					if (m.asyncPostRender && !postProcessedRows[row][columnIdx]) {
+					var col = self.options.columns[columnIdx];
+					if (col.postprocess && !postProcessedRows[row][columnIdx]) {
 						var node = cacheEntry.cellNodesByColumnIdx[columnIdx];
 						if (node) {
-							m.asyncPostRender(node, row, getDataItem(row), m);
+							col.postprocess({
+								cell: $(node),
+								column: col,
+								data: getDataItem(row),
+								rowIndex: row
+							}, function () {
+								if (col.cache) {
+									postProcessedRows[row][columnIdx] = $(node).html()
+								}
+							});
 						}
-						if (postProcessedRows[row]) postProcessedRows[row][columnIdx] = true;
+
+						if (!col.cache && postProcessedRows[row]) {
+							postProcessedRows[row][columnIdx] = true;
+						}
 					}
 				}
 
@@ -2317,7 +2328,7 @@
 		// disableSelection()
 		// Disable all text selection in header (including input and textarea).
 		//
-		// For usability reasons, all text selection in SlickGrid is disabled
+		// For usability reasons, all text selection is disabled
 		// with the exception of input and textarea elements (selection must
 		// be enabled there so that editors work as expected); note that
 		// selection in grid cells (grid body) is already unavailable in
@@ -3371,222 +3382,6 @@
 		Group.prototype = new NonDataItem();
 
 
-
-
-
-		/*************** MOVE THIS INTO ALPHABETICAL ORDER **********/
-
-
-
-
-
-
-
-
-
-
-
-
-		resetActiveCell = function () {
-			setActiveCellInternal(null, false);
-		}
-
-		rowsToRanges = function (rows) {
-			var ranges = [];
-			var lastCell = self.options.columns.length - 1;
-			for (var i = 0; i < rows.length; i++) {
-				ranges.push(new Slick.Range(rows[i], 0, rows[i], lastCell));
-			}
-			return ranges;
-		}
-
-		scrollCellIntoView = function (row, cell, doPaging) {
-			scrollRowIntoView(row, doPaging);
-
-			var colspan = getColspan(row, cell);
-			var left = columnPosLeft[cell],
-				right = columnPosRight[cell + (colspan > 1 ? colspan - 1 : 0)],
-				scrollRight = scrollLeft + viewportW;
-
-			if (left < scrollLeft) {
-				$viewport.scrollLeft(left);
-				handleScroll();
-				render();
-			} else if (right > scrollRight) {
-				$viewport.scrollLeft(Math.min(left, right - $viewport[0].clientWidth));
-				handleScroll();
-				render();
-			}
-		}
-
-		setActiveCellInternal = function (newCell, opt_editMode) {
-			if (activeCellNode !== null) {
-				makeActiveCellNormal();
-				$(activeCellNode).removeClass("active");
-				if (rowsCache[activeRow]) {
-					$(rowsCache[activeRow].rowNode).removeClass("active");
-				}
-			}
-
-			var activeCellChanged = (activeCellNode !== newCell);
-			activeCellNode = newCell;
-
-			if (activeCellNode !== null) {
-				activeRow = getRowFromNode(activeCellNode.parentNode);
-				activeCell = activePosX = getCellFromNode(activeCellNode);
-
-				if (opt_editMode === null) {
-					opt_editMode = (activeRow == getDataLength()) || options.autoEdit;
-				}
-
-				$(activeCellNode).addClass("active");
-				$(rowsCache[activeRow].rowNode).addClass("active");
-
-				if (options.editable && opt_editMode && isCellPotentiallyEditable(activeRow, activeCell)) {
-					clearTimeout(h_editorLoader);
-
-					if (options.asyncEditorLoading) {
-						h_editorLoader = setTimeout(function () {
-							makeActiveCellEditable();
-						}, options.asyncEditorLoadDelay);
-					} else {
-						makeActiveCellEditable();
-					}
-				}
-			} else {
-				activeRow = activeCell = null;
-			}
-
-			if (activeCellChanged) {
-				self.trigger('onActiveCellChanged', {}, getActiveCell())
-			}
-		}
-
-		scrollPage = function (dir) {
-			var deltaRows = dir * numVisibleRows;
-			scrollTo((getRowFromPosition(scrollTop) + deltaRows) * options.rowHeight);
-			render();
-
-			if (options.enableCellNavigation && activeRow !== null) {
-				var row = activeRow + deltaRows;
-				if (row >= getDataLengthIncludingAddNew()) {
-					row = getDataLengthIncludingAddNew() - 1;
-				}
-				if (row < 0) {
-					row = 0;
-				}
-
-				var cell = 0,
-					prevCell = null;
-				var prevActivePosX = activePosX;
-				while (cell <= activePosX) {
-					if (canCellBeActive(row, cell)) {
-						prevCell = cell;
-					}
-					cell += getColspan(row, cell);
-				}
-
-				if (prevCell !== null) {
-					setActiveCellInternal(getCellNode(row, prevCell));
-					activePosX = prevActivePosX;
-				} else {
-					resetActiveCell();
-				}
-			}
-		}
-
-		scrollRowIntoView = function (row, doPaging) {
-			var rowAtTop = rowPositionCache[row].top,
-				rowAtBottom = rowPositionCache[row].bottom - viewportH + (viewportHasHScroll ? scrollbarDimensions.height : 0);
-
-
-			// need to page down?
-			var pgdwn = rowPositionCache[row].bottom > scrollTop + viewportH + offset,
-				pgup = rowPositionCache[row].top < scrollTop + offset
-
-			if (pgdwn) {
-				scrollTo(doPaging ? rowAtTop : rowAtBottom);
-				render();
-			}
-			// or page up?
-			else if (pgup) {
-				scrollTo(doPaging ? rowAtBottom : rowAtTop);
-				render();
-			}
-		}
-
-		scrollRowToTop = function (row) {
-			scrollTo(rowPositionCache[row].top);
-			render();
-		}
-
-		setActiveCell = function (row, cell) {
-			if (!initialized) {
-				return;
-			}
-			if (row > getDataLength() || row < 0 || cell >= self.options.columns.length || cell < 0) {
-				return;
-			}
-
-			if (!options.enableCellNavigation) {
-				return;
-			}
-
-			scrollCellIntoView(row, cell, false);
-			setActiveCellInternal(getCellNode(row, cell), false);
-		}
-
-		setData = function (newData, scrollToTop) {
-			data = newData;
-			invalidateAllRows();
-			updateRowCount();
-			if (scrollToTop) {
-				scrollTo(0);
-			}
-		}
-
-		setSelectedRows = function (rows) {
-			if (!selectionModel) {
-				throw "Selection model is not set";
-			}
-			selectionModel.setSelectedRanges(rowsToRanges(rows));
-		}
-
-		setSelectionModel = function (model) {
-			if (selectionModel) {
-				selectionModel.onSelectedRangesChanged.unsubscribe(handleSelectedRangesChanged);
-				if (selectionModel.destroy) {
-					selectionModel.destroy();
-				}
-			}
-
-			selectionModel = model;
-			if (selectionModel) {
-				selectionModel.init(self);
-				selectionModel.onSelectedRangesChanged.subscribe(handleSelectedRangesChanged);
-			}
-		}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-		/*************** MOVE THIS INTO ALPHABETICAL ORDER **********/
-
-
-
-
-
 		// handleActiveCellPositionChange()
 		// Triggers the cell position change events and takes appropriate action
 		//
@@ -3702,7 +3497,7 @@
 				return;
 			}
 
-			if (options.editable) {
+			if (self.options.editable) {
 				gotoCell(cell.row, cell.cell, true);
 			}
 		}
@@ -3801,7 +3596,7 @@
 						handled = navigate("next");
 					// Enter
 					} else if (e.which == 13) {
-						if (options.editable) {
+						if (self.options.editable) {
 							if (currentEditor) {
 								// adding new row
 								if (activeRow === getDataLength() || self.options.autoEdit) {
@@ -3867,7 +3662,7 @@
 					}
 					for (var k = ranges[i].fromCell; k <= ranges[i].toCell; k++) {
 						if (canCellBeSelected(j, k)) {
-							hash[j][self.options.columns[k].id] = options.selectedCellCssClass;
+							hash[j][self.options.columns[k].id] = self.options.selectedCellCssClass;
 						}
 					}
 				}
@@ -3882,7 +3677,9 @@
 		// handleScroll()
 		// Handles the offsets and event that need to fire when a user is scrolling
 		//
-		handleScroll = function () {
+		// @param	event		object		Javascript event object
+		//
+		handleScroll = function (event) {
 			scrollTop = $viewport[0].scrollTop;
 			scrollLeft = $viewport[0].scrollLeft;
 			var vScrollDist = Math.abs(scrollTop - prevScrollTop);
@@ -3921,7 +3718,7 @@
 
 				if (Math.abs(lastRenderedScrollTop - scrollTop) > 20 ||
 					Math.abs(lastRenderedScrollLeft - scrollLeft) > 20) {
-					if (options.forceSyncScrolling || (
+					if (self.options.forceSyncScrolling || (
 						Math.abs(lastRenderedScrollTop - scrollTop) < viewportH &&
 						Math.abs(lastRenderedScrollLeft - scrollLeft) < viewportW)) {
 						render();
@@ -3929,11 +3726,11 @@
 						h_render = setTimeout(render, 50);
 					}
 
-					self.trigger('onViewportChanged', {})
+					self.trigger('onViewportChanged', event, {})
 				}
 			}
 
-			self.trigger('onScroll', {}, {
+			self.trigger('onScroll', event, {
 				scrollLeft: scrollLeft,
 				scrollTop: scrollTop
 			})
@@ -4004,8 +3801,8 @@
 			rowPositionCache = {
 				0: {
 					top: 0,
-					height: options.rowHeight,
-					bottom: options.rowHeight
+					height: self.options.rowHeight,
+					bottom: self.options.rowHeight
 				}
 			};
 		}
@@ -4106,7 +3903,7 @@
 			if (!activeCellNode) {
 				return;
 			}
-			if (!options.editable) {
+			if (!self.options.editable) {
 				throw "Grid : makeActiveCellEditable : should never get called when options.editable is false";
 			}
 
@@ -4296,7 +4093,7 @@
 		//
 		// @return boolean
 		navigate = function (dir) {
-			if (!options.enableCellNavigation) {
+			if (!self.options.enableCellNavigation) {
 				return false;
 			}
 
@@ -4530,7 +4327,15 @@
 			}
 			$canvas[0].removeChild(cacheEntry.rowNode);
 			delete rowsCache[row];
-			delete postProcessedRows[row];
+
+			// Clear postprocessing cache (only for non-cached columns)
+			if (postProcessedRows[row]) {
+				for (var i in postProcessedRows[row]) {
+					col = self.options.columns[i]
+					if (!col.cache) delete postProcessedRows[row][i]
+				}
+			}
+
 			renderedRows--;
 			counter_rows_removed++;
 		}
@@ -4628,6 +4433,14 @@
 		}
 
 
+		// resetActiveCell()
+		// Reset the current active cell
+		//
+		resetActiveCell = function () {
+			setActiveCellInternal(null, false);
+		}
+
+
 		// resizeCanvas()
 		// Resizes the canvas based on the current viewport dimensions
 		//
@@ -4649,6 +4462,127 @@
 
 			// Since the width has changed, force the render() to reevaluate virtually rendered cells.
 			lastRenderedScrollLeft = -1;
+			render();
+		}
+
+
+		// rowsToRanges()
+		// Given a list of row indexes, returns a list of ranges
+		// TODO: This doesn't work... do we still need it?
+		//
+		// @return array
+		rowsToRanges = function (rows) {
+			var ranges = [],
+				lastCell = self.options.columns.length - 1;
+
+			for (var i = 0; i < rows.length; i++) {
+				ranges.push(new Slick.Range(rows[i], 0, rows[i], lastCell));
+			}
+
+			return ranges;
+		}
+
+
+		// scrollCellIntoView()
+		// Scroll the viewport until the given cell position is visible
+		//
+		// @param	row			integer		Row index
+		// @param	cell		integer		Cell index
+		// @param	doPaging	boolean		TODO: ??
+		//
+		scrollCellIntoView = function (row, cell, doPaging) {
+			scrollRowIntoView(row, doPaging);
+
+			var colspan = getColspan(row, cell);
+			var left = columnPosLeft[cell],
+				right = columnPosRight[cell + (colspan > 1 ? colspan - 1 : 0)],
+				scrollRight = scrollLeft + viewportW;
+
+			if (left < scrollLeft) {
+				$viewport.scrollLeft(left);
+				handleScroll();
+				render();
+			} else if (right > scrollRight) {
+				$viewport.scrollLeft(Math.min(left, right - $viewport[0].clientWidth));
+				handleScroll();
+				render();
+			}
+		}
+
+
+		// scrollPage()
+		// Scrolls the length of a page
+		//
+		// @param	dir		integer		Direction of scroll
+		//
+		scrollPage = function (dir) {
+			var deltaRows = dir * numVisibleRows;
+			scrollTo((getRowFromPosition(scrollTop) + deltaRows) * self.options.rowHeight);
+			render();
+
+			if (self.options.enableCellNavigation && activeRow !== null) {
+				var row = activeRow + deltaRows;
+				if (row >= getDataLengthIncludingAddNew()) {
+					row = getDataLengthIncludingAddNew() - 1;
+				}
+				if (row < 0) {
+					row = 0;
+				}
+
+				var cell = 0,
+					prevCell = null;
+				var prevActivePosX = activePosX;
+				while (cell <= activePosX) {
+					if (canCellBeActive(row, cell)) {
+						prevCell = cell;
+					}
+					cell += getColspan(row, cell);
+				}
+
+				if (prevCell !== null) {
+					setActiveCellInternal(getCellNode(row, prevCell));
+					activePosX = prevActivePosX;
+				} else {
+					resetActiveCell();
+				}
+			}
+		}
+
+
+		// scrollRowIntoView()
+		// Scroll viewport until the given row is in view
+		//
+		// @param	row			integer		Index of row
+		// @param	doPaging	boolean		TODO: ??
+		//
+		scrollRowIntoView = function (row, doPaging) {
+			var rowAtTop = rowPositionCache[row].top,
+				rowAtBottom = rowPositionCache[row].bottom - viewportH + (viewportHasHScroll ? scrollbarDimensions.height : 0);
+
+
+			// need to page down?
+			var pgdwn = rowPositionCache[row].bottom > scrollTop + viewportH + offset,
+				pgup = rowPositionCache[row].top < scrollTop + offset
+
+			if (pgdwn) {
+				scrollTo(doPaging ? rowAtTop : rowAtBottom);
+				render();
+			}
+			// or page up?
+			else if (pgup) {
+				scrollTo(doPaging ? rowAtBottom : rowAtTop);
+				render();
+			}
+		}
+
+
+		// scrollRowToTop()
+		// Scroll the viewport so the given row is at the top
+		//
+		// @param	row		integer		Row index
+		//
+		scrollRowToTop = function (row) {
+			scrollTo(rowPositionCache[row].top);
 			render();
 		}
 
@@ -4679,6 +4613,79 @@
 
 				self.trigger('onViewportChanged', {})
 			}
+		}
+
+
+		// setActiveCellInternal()
+		// ???
+		//
+		// @param	newCell				??		TODO: ??
+		// @param	opt_editMode		??		TODO: ??
+		//
+		setActiveCellInternal = function (newCell, opt_editMode) {
+			if (activeCellNode !== null) {
+				makeActiveCellNormal();
+				$(activeCellNode).removeClass("active");
+				if (rowsCache[activeRow]) {
+					$(rowsCache[activeRow].rowNode).removeClass("active");
+				}
+			}
+
+			var activeCellChanged = (activeCellNode !== newCell);
+			activeCellNode = newCell;
+
+			if (activeCellNode !== null) {
+				activeRow = getRowFromNode(activeCellNode.parentNode);
+				activeCell = activePosX = getCellFromNode(activeCellNode);
+
+				if (opt_editMode === null) {
+					opt_editMode = (activeRow == getDataLength()) || self.options.autoEdit;
+				}
+
+				$(activeCellNode).addClass("active");
+				$(rowsCache[activeRow].rowNode).addClass("active");
+
+				if (self.options.editable && opt_editMode && isCellPotentiallyEditable(activeRow, activeCell)) {
+					clearTimeout(h_editorLoader);
+
+					if (self.options.asyncEditorLoading) {
+						h_editorLoader = setTimeout(function () {
+							makeActiveCellEditable();
+						}, self.options.asyncEditorLoadDelay);
+					} else {
+						makeActiveCellEditable();
+					}
+				}
+			} else {
+				activeRow = activeCell = null;
+			}
+
+			if (activeCellChanged) {
+				self.trigger('onActiveCellChanged', {}, getActiveCell())
+			}
+		}
+
+
+		// setActiveCell()
+		// Given a row and cell index, will set that cell as the active in the grid
+		//
+		// @param	row		integer		Row index
+		// @param	cell	integer		Cell index
+		//
+		setActiveCell = function (row, cell) {
+			if (!initialized) {
+				return;
+			}
+			if (row > getDataLength() || row < 0 || cell >= self.options.columns.length || cell < 0) {
+				return;
+			}
+
+			if (!self.options.enableCellNavigation) {
+				return;
+			}
+
+			scrollCellIntoView(row, cell, false);
+			setActiveCellInternal(getCellNode(row, cell), false);
 		}
 
 
@@ -4734,12 +4741,12 @@
 		//
 		// @return object
 		this.setGrouping = function (column_ids) {
-			var options = []
+			var grps = []
 			_.each(column_ids, function (cid) {
-				options.push(createGroupingObject(cid))
+				grps.push(createGroupingObject(cid))
 			})
 
-			this.dataView.setGrouping(options);
+			this.dataView.setGrouping(grps);
 			return this
 		}
 
@@ -4762,6 +4769,40 @@
 
 			$viewport.css("overflow-y", self.options.autoHeight ? "hidden" : "auto");
 			render();
+		}
+
+
+		// setSelectedRows()
+		// Selects some rows
+		//
+		// @param	rows		array		List of row indexes
+		//
+		setSelectedRows = function (rows) {
+			if (!selectionModel) {
+				throw "Selection model is not set";
+			}
+			selectionModel.setSelectedRanges(rowsToRanges(rows));
+		}
+
+
+		// setSelectionModel()
+		// TODO: ??
+		//
+		// @param	model		??			??
+		//
+		setSelectionModel = function (model) {
+			if (selectionModel) {
+				selectionModel.onSelectedRangesChanged.unsubscribe(handleSelectedRangesChanged);
+				if (selectionModel.destroy) {
+					selectionModel.destroy();
+				}
+			}
+
+			selectionModel = model;
+			if (selectionModel) {
+				selectionModel.init(self);
+				selectionModel.onSelectedRangesChanged.subscribe(handleSelectedRangesChanged);
+			}
 		}
 
 
@@ -5131,12 +5172,12 @@
 					}
 				}
 
-				if (e.metaKey && options.multiColumnSort) {
+				if (e.metaKey && self.options.multiColumnSort) {
 					if (sortOpts) {
 						sortColumns.splice(i, 1);
 					}
 				} else {
-					if ((!e.shiftKey && !e.metaKey) || !options.multiColumnSort) {
+					if ((!e.shiftKey && !e.metaKey) || !self.options.multiColumnSort) {
 						sortColumns = [];
 					}
 
@@ -5195,9 +5236,7 @@
 		// Runs the async post render postprocessing on the grid cells
 		//
 		startPostProcessing = function () {
-			if (!self.options.enableAsyncPostRender) {
-				return;
-			}
+			if (!enableAsyncPostRender) return;
 			clearTimeout(h_postrender);
 			h_postrender = setTimeout(asyncPostProcessRows, self.options.asyncPostRenderDelay);
 		}
@@ -5673,10 +5712,7 @@
 				}
 
 				// If any columns require asyncPostRender, enable it on the grid
-				// TODO: Fix this so that you can remove "enableAsyncPostRender" from the main options
-				if (c.asyncPostRender && !enableAsyncPostRender) {
-					enableAsyncPostRender = true
-				}
+				if (c.postprocess) enableAsyncPostRender = true
 
 				// If min/max width is set -- use it to reset given width
 				if (c.minWidth && c.width < c.minWidth) c.width = c.minWidth;

@@ -12,9 +12,32 @@
 				padding: 0;
 			}
 
+			#examplemenu {
+				border-right: 1px solid rgba(0,0,0,0.5);
+				bottom: 0;
+				left: 0;
+				list-style: none;
+				margin: 0;
+				padding: 0;
+				position: absolute;
+				top: 0;
+				width: 180px
+			}
+
+				#examplemenu a {
+					border-bottom: 1px solid rgba(0,0,0,0.2);
+					cursor: pointer;
+					display: block;
+					padding: 10px;
+				}
+
+					#examplemenu a:hover {
+						background: rgba(0,0,0,0.05);
+					}
+
 			#gridwrapper {
 				bottom: 10px;
-				left: 10px;
+				left: 210px;
 				position: absolute;
 				right: 10px;
 				top: 10px;
@@ -54,71 +77,36 @@
 		// Initialize doby
 		require(['less', 'dobygrid', 'jquery-ui'], function(less, DobyGrid) {
 
-			// Generate Data
-			var data = []
-			for (var i = 0; i < 10000; i++) {
-				data.push({
-					data: {
-						id: i,
-						name: "Pope John "+i,
-						age: "100 years",
-						city: ['Venice','Vatican City','Rome'][_.random(0,2)],
-						country: "ITA"
-					}
-				});
+			// Load an example file
+			var loadExample = function(name) {
+				var start = new Date()
+
+				require(['examples/' + name], function(gridInit) {
+					var grid = gridInit(DobyGrid);
+					grid.appendTo($('#gridwrapper').empty())
+					var end = new Date();
+					console.info('Grid loaded and rendered in '+(end-start)+'ms')
+				})
 			}
 
-			var start = new Date()
-			var grid = new DobyGrid({
-				columns: [{
-					id: "id",
-					name: "ID",
-					field: "id",
-					sortable: true
-				}, {
-					id: "name",
-					name: "Name",
-					field: "name",
-					minWidth: 100,
-					sortable: true
-				}, {
-					id: "age",
-					name: "Age",
-					field: "age",
-					sortable: true
-				}, {
-					id: "city",
-					name: "City",
-					field: "city",
-					sortable: true
-				}, {
-					id: "country",
-					name: "Country",
-					field: "country",
-					sortable: true
-				}],
-				data: data
-			}).appendTo($('#gridwrapper'))
-			var end = new Date();
+			// Enable Menu
+			$("#examplemenu a").click(function() {
+				loadExample($(this).attr('href').substring(1))
+			})
 
-			console.log(grid)
-
-
-			var diff = end-start;
-			var diffoffset = 10;
-			var prevdiff = parseInt(localStorage.prevdiff, 10)
-
-			if (prevdiff && diff > (prevdiff + diffoffset) && diff > 115) {
-				console.error("GRID BECAME SLOWER! Was: "+localStorage.prevdiff+"ms. Now: "+diff+"ms")
+			// Load current example
+			if (document.location.hash) {
+				loadExample(document.location.hash.substring(1))
 			}
-
-			console.info('Grid rendered in '+diff+'ms')
-			localStorage.prevdiff = diff
-
 		})
 		</script>
 	</head>
 	<body>
+		<ul id="examplemenu">
+			<li><a href="#basic">Basic Grid</a></li>
+			<li><a href="#postprocess">Column Post-Processing</a></li>
+		</ul>
+
 		<div id="gridwrapper"></div>
 	</body>
 </html>
