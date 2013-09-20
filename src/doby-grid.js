@@ -58,6 +58,7 @@
 			asyncPostProcessRows,
 			autosizeColumns,
 			bindAncestorScrollEvents,
+			bindCellRangeSelect,
 			cacheRowPositions,
 			canCellBeActive,
 			canCellBeSelected,
@@ -125,6 +126,7 @@
 			getCanvasWidth,
 			getCellFromEvent,
 			getCellFromNode,
+			getCellFromPoint,
 			getColumnById,
 			getColumnCssRules,
 			getColumnIndex,
@@ -361,7 +363,7 @@
 			});
 
 			if (self.options.cellRangeSelect) {
-				// TODO: Merge slick.cellrangeselector into here
+				bindCellRangeSelect()
 			}
 
 			return self;
@@ -836,6 +838,55 @@
 					$elem.bind("scroll#" + uid, handleActiveCellPositionChange);
 				}
 			}
+		}
+
+
+		// bindCellRangeSelect()
+		// Enable events used to select cell ranges via click + drag
+		//
+		bindCellRangeSelect = function () {
+			// TODO: Merge the rest of slick.cellrangeselector into here
+			$canvas
+				.on('draginit', function (event, dd) {
+					// Prevent the grid from cancelling drag'n'drop by default
+					event.stopImmediatePropagation();
+				})
+				.on('dragstart', function (event, dd) {
+					var cell = getCellFromEvent(event);
+
+					// TODO: Not sure what the idea here was. Try to figure it out
+					/*if (_self.onBeforeCellRangeSelected.notify(cell) !== false) {
+						if (_grid.canCellBeSelected(cell.row, cell.cell)) {
+							_dragging = true;
+							e.stopImmediatePropagation();
+						}
+					}
+
+					if (!_dragging) {
+						return;
+					}
+					*/
+
+					var start = getCellFromPoint(
+						dd.startX - $(this).offset().left,
+						dd.startY - $(this).offset().top
+					);
+
+					// Store a custom "_range" in the event attributes
+					dd._range = {
+						end: {},
+						start: start
+					};
+
+					// TODO: CONTINUE HERE
+					//return _decorator.show(new Slick.Range(start.row, start.cell));
+				})
+				.on('drag', function (event, dd) {
+					console.log('drag')
+				})
+				.on('dragend', function (event, dd) {
+					console.log('dragend')
+				})
 		}
 
 
@@ -2705,6 +2756,32 @@
 				throw "getCellFromNode: cannot get cell - " + cellNode.className;
 			}
 			return parseInt(cls[0].substr(1, cls[0].length - 1), 10);
+		}
+
+
+		// getCellFromPoint()
+		// Find the cell that corresponds to the given x, y coordinates in the canvas
+		//
+		// @param	x	integer		x pixel position
+		// @param	y	integer		y pixel position
+		//
+		// @retrun object
+		getCellFromPoint = function (x, y) {
+			var row = getRowFromPosition(y),
+				cell = 0,
+				w = 0;
+
+			for (var i = 0, k = self.options.columns.length; i < l && w < x; i++) {
+				w += self.options.columns[i].width;
+				cell++;
+			}
+
+			if (cell < 0) cell = 0;
+
+			return {
+				cell: cell - 1,
+				row: row
+			}
 		}
 
 
