@@ -1,7 +1,7 @@
 Doby Grid
 =========
 
-Doby Grid is stand-alone module (and part of the Doby JS framework) for rendering a dynamic, data-driven grid. It's basically a <table> element on steroids and is loosely based on SlickGrid <https://github.com/mleibman/SlickGrid>.
+Doby Grid is stand-alone module (and part of the Doby JS framework) for rendering a dynamic, data-driven grid. It's basically a `<table>` element on steroids.
 
 **===================================================================================**
 ** DOBYGRID IS NOT READY FOR PUBLIC USE AND CHANGES FREQUENTLY. DOCS MAY BE MISSING  **
@@ -81,13 +81,13 @@ The Backbone is used for in Doby Grid for two reasons:
 
 You can easily use another MVC module in your application, but Doby Grid needs Backbone to do its internal processing. If you're not a fan of Backbone -- don't worry -- it shouldn't affect anything you may be doing in your app with other frameworks.
 
-#### So how exactly is this different from SlickGrid?
+#### This looks exactly like SlickGrid. What gives?
 
-SlickGrid gives you module pieces and a raw foundation for building grid, and expects you to fill in a lot of the blanks. This is simply too much work for what we wanted to do, so we created Doby Grid that packages the great work SlickGrid started into a nice single package requiring minimal out-of-the-box configuration.
+Doby Grid was indeed started as a fork of SlickGrid <https://github.com/mleibman/SlickGrid> but quickly evolved far beyond that. SlickGrid gives you module pieces and a raw foundation for building a grid, and expects you to fill in a lot of the blanks. This is simply too much work for what we wanted to do, so we created Doby Grid that packages the great work SlickGrid started into a nice single package requiring minimal out-of-the-box configuration.
 
 Additionally, there are several other key differences. Doby Grid will:
 
-- supports variable row heights
+- supports variable (and re-sizable!) row heights
 - has additional events required for tight integration
 - provides a way to interact with cell and row DOM elements without compromising on performance
 - provide easy access to common functionality such as cell range selection, grouping or editing without the need to write "plugins"
@@ -98,20 +98,20 @@ Additionally, there are several other key differences. Doby Grid will:
 
 Doby Grid tries to find a balance between performance and usability while offering developers ways to control which features they want to enable at a potential performance cost.
 
-#### So it's BackGrid then...
+#### So it's like BackGrid then...
 
-Nope. BackGrid has Backbone at its core for everything. Although it offers great flexibility because of the simplicity of having a Backbone API -- putting Backbone into the heart of the grid processing has made it much slower in processing your data sets. Doby Grid tries its best to keep up the speed of SlickGrid.
+Nope. BackGrid <https://github.com/wyuenho/backgrid> has Backbone at its core for everything. Although it offers great flexibility because of the simplicity of having a Backbone API -- putting Backbone into the heart of the grid processing has made it much slower in processing your data sets. Doby Grid tries its best to keep up the speed of SlickGrid.
 
 #### So it's like SlickBack then...
 
-Not really. SlickBack is a bridge between Backbone and SlickGrid. It tries to make the two work together nicely. Doby Grid is pretty detached from Backbone and SlickGrid and can be a standalone module that doesn't rely on either.
+Not really. SlickBack <https://github.com/teleological/slickback> is a bridge between Backbone and SlickGrid. It tries to make the two work together nicely. Doby Grid is pretty detached from Backbone and SlickGrid, and can be a standalone module that doesn't rely on either.
 
 #### I have a button inside a grid cell and I want to add a click event that picks up the id of the row data? How do I attach this event?
 
 You have to attach the event to the whole grid and then isolate the cell you want. Attaching events is expensive so all events are attached to the container and then filtered down to the cell you want to focus on.
 
 ```
-grid.on('on', function (event, args) {
+grid.on('click', function (event, args) {
 	if ($(event.target).hasClass("my-button")) {
 		var item = grid.getItem(args.row);
 	}

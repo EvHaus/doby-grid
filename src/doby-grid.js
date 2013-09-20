@@ -65,6 +65,7 @@
 			canvasWidth,
 			cellExists,
 			cellHeightDiff = 0,
+			cellRangeDecorator,
 			cellWidthDiff = 0,
 			cj,				// "jumpiness" coefficient
 			classalert = this.NAME + '-alert',
@@ -87,6 +88,7 @@
 			classheadercolumnsorted = this.NAME + '-header-column-sorted',
 			classheadersortable = this.NAME + '-header-sortable',
 			classplaceholder = this.NAME + '-sortable-placeholder',
+			classrangedecorator = this.NAME + '-range-decorator',
 			classrow = this.NAME + '-row',
 			classsortindicator = this.NAME + '-sort-indicator',
 			classsortindicatorasc = classsortindicator + '-asc',
@@ -127,6 +129,8 @@
 			getCellFromEvent,
 			getCellFromNode,
 			getCellFromPoint,
+			getCellNode,
+			getCellNodeBox,
 			getColumnById,
 			getColumnCssRules,
 			getColumnIndex,
@@ -145,7 +149,6 @@
 			getRowFromPosition,
 			getRowTop,
 			getScrollbarSize,
-			getSelectedRows,
 			getVBoxDelta,
 			getViewportHeight,
 			getVisibleRange,
@@ -212,7 +215,9 @@
 			prevScrollLeft = 0,
 			prevScrollTop = 0,
 			processData,
+			Range,
 			removeCssRules,
+			removeInvalidRanges,
 			removeRowFromCache,
 			render,
 			renderedRows = 0,
@@ -236,7 +241,6 @@
 			setActiveCellInternal,
 			setColumns,
 			setSelectedRows,
-			setSelectionModel,
 			setupColumnReorder,
 			setupColumnResize,
 			setupColumnSort,
@@ -247,7 +251,7 @@
 			tabbingDirection = 1,
 			th,				// virtual height
 			toggleHeaderContextMenu,
-			uid = "doby-grid-" + Math.round(1000000 * Math.random()),
+			uid = this.NAME + "-" + Math.round(1000000 * Math.random()),
 			unbindAncestorScrollEvents,
 			updateCanvasWidth,
 			updateCell,
@@ -267,57 +271,58 @@
 
 		// Default Grid Options
 		this.options = _.extend({
-			alertOnEmpty:		false,
-			asyncEditorLoadDelay: 100,
-			asyncEditorLoading: false,
-			asyncPostRenderDelay: 25,
-			autoEdit:			true,
-			cellRangeSelect:	true,
-			columns:			[],
-			data:				[],
-			dataExtractor:		null,
-			defaultColumnWidth: 80,
-			defaultFormatter:	null,
-			editable:			false,
-			editorFactory:		null,
-			enableAddRow:		false,
-			enableCellNavigation: true,
-			forceFitColumns:	false,
-			forceSyncScrolling: false,		// TODO: What is forceSyncScrolling
-			formatterFactory:	null,
-			fullWidthRows:		true,
-			groupable:			true,
-			headerMenu:			true,
-			leaveSpaceForNewRows: false,
+			asyncEditorLoadDelay:	100,
+			asyncEditorLoading:		false,
+			asyncPostRenderDelay:	25,
+			autoEdit:				true,
+			cellRangeSelect:		true,
+			class:					null,
+			columns:				[],
+			data:					[],
+			dataExtractor:			null,
+			columnWidth:			80,
+			editable:				false,
+			editorFactory:			null,		// TODO: Determine if still needed. Then document.
+			emptyNotice:			true,
+			enableAddRow:			false,		// TODO: Determine if still needed. Then document.
+			forceFitColumns:		false,
+			forceSyncScrolling:		false,		// TODO: Determine if still needed. Then document.
+			formatter:				null,
+			formatterFactory:		null,		// TODO: Determine if still needed. Then document.
+			fullWidthRows:			true,
+			groupable:				true,
+			headerMenu:				true,
+			keyboardNavigation:		true,
+			leaveSpaceForNewRows:	false,		// TODO: Determine if still needed. Then document.
 			locale: {
 				column: {
-					add_group:				'Add Grouping By "{{name}}"',
-					add_sort_asc:			'Add Sort By "{{name}}" (Ascending)',
-					add_sort_desc:			'Add Sort By "{{name}}" (Descending)',
-					force_fit:				'Force Fit Columns',
-					group:					'Group By "{{name}}"',
-					groups_clear:			'Clear All Grouping',
-					groups_collapse:		'Collapse All Groups',
-					groups_expand:			'Expand All Groups',
-					remove:					'Remove "{{name}}" Column',
-					remove_group:			'Remove Grouping By "{{name}}"',
-					remove_sort:			'Remove Sort By "{{name}}"',
-					sort_asc:				'Sort By "{{name}}" (Ascending)',
-					sort_desc:				'Sort By "{{name}}" (Descending)'
+					add_group:			'Add Grouping By "{{name}}"',
+					add_sort_asc:		'Add Sort By "{{name}}" (Ascending)',
+					add_sort_desc:		'Add Sort By "{{name}}" (Descending)',
+					force_fit:			'Force Fit Columns',
+					group:				'Group By "{{name}}"',
+					groups_clear:		'Clear All Grouping',
+					groups_collapse:	'Collapse All Groups',
+					groups_expand:		'Expand All Groups',
+					remove:				'Remove "{{name}}" Column',
+					remove_group:		'Remove Grouping By "{{name}}"',
+					remove_sort:		'Remove Sort By "{{name}}"',
+					sort_asc:			'Sort By "{{name}}" (Ascending)',
+					sort_desc:			'Sort By "{{name}}" (Descending)'
 				},
 				remote: {
-					no_results:				'No results found'
+					no_results:			'No results found'
 				}
 			},
-			multiColumnSort:	true,
-			multiSelect:		true,		// TODO: What is multiSelect ??
-			remote:				false,
-			resizable:			true,
-			resizeCells:		true,
-			reorderable:		true,
-			rowHeight:			28,
-			rowPreprocess:		null,
-			selectedCellCssClass: "selected"
+			multiColumnSort:		true,
+			multiSelect:			true,		// TODO: Determine if still needed. Then document.
+			remote:					false,
+			resizable:				true,
+			resizeCells:			true,
+			reorderable:			true,
+			rowHeight:				28,
+			rowPreprocess:			null,		// TODO: Determine if still needed. Then document.
+			selectedClass:			"selected"
 		}, options);
 
 		// Default Column Options
@@ -333,7 +338,7 @@
 			resizable:			true,		// Is the column resizable?
 			selectable:			true,		// Are cells in this column selectable?
 			sortable:			true,		// Is the column sortable?
-			width:				this.options.defaultColumnWidth
+			width:				this.options.columnWidth
 		};
 
 		// Enable events
@@ -414,6 +419,61 @@
 		}
 
 
+		// add()
+		// Inserts a new data row into the grid
+		//
+		// @param	data			object				Data object to insert
+		// @param	inserter		int or object		Id of data object before which to insert
+		// @param	indexOffset		integer				(Internal) Offset the index	by a number
+		//
+		// @return object
+		this.add = function (data, inserter, indexOffset) {
+			if (!data) return this
+
+			var index = null,
+				idx = null
+
+			if (inserter === undefined || inserter === null) {
+				idx = null
+				index = null
+			} else if (typeof(inserter) == 'object' &&
+				inserter.before !== undefined && inserter.before !== null &&
+				inserter.after !== undefined && inserter.after !== null
+			) {
+				throw new Error($.t("ui:grid.error.after_before"))
+			} else {
+
+				indexOffset = indexOffset || 0
+
+				// Determine what index to insert before
+				if (inserter.before !== undefined && inserter.before !== null) {
+					index = this.collection.getRowById(inserter.before)
+					idx = this.collection.getIdxById(inserter.before)
+				} else if (inserter.after !== undefined && inserter.after !== null) {
+					index = this.collection.getRowById(inserter.after) + 1
+					idx = this.collection.getIdxById(inserter.after) + 1
+				}
+
+				idx = idx || this.collection.getLength()
+				idx += indexOffset
+
+				index = index || this.collection.getLength()
+				index += indexOffset
+			}
+
+			// Make sure data has an id
+			if (data.id === undefined) data.id = data.data.id
+
+			// I'm not entirely sure why it works this way
+			// There may be complications.
+			// TODO: Unit test this somehow.
+			var insert_at = this.isGrouped() ? idx : index
+			this.collection.insertItem(insert_at, data)
+
+			return this
+		}
+
+
 		// addColumn()
 		// Inserts a new column into the grid
 		//
@@ -422,6 +482,7 @@
 		//
 		// @return object
 		this.addColumn = function (data, insertBefore) {
+			// TODO: Convert "insertBefore" to 'position'. So you can say - insert column at position 0. With 'null' being 'insert at the end
 			if (!data || typeof(data) !== 'object') return this
 
 			var columns = this.options.columns
@@ -432,7 +493,7 @@
 			}
 
 			// Set the grid columns
-			setColumns(columns);
+			self.setColumns(columns);
 			return this;
 		}
 
@@ -624,6 +685,14 @@
 					.delegate("." + classcell, "mouseenter", handleMouseEnter)
 					.delegate("." + classcell, "mouseleave", handleMouseLeave);
 
+				// Subscribe to cell range selection events
+				self.on('onCellRangeSelected', function (event, args) {
+					ranges = removeInvalidRanges(args.ranges)
+					self.trigger('onCellRangeChanged', event, {
+						ranges: ranges
+					})
+				})
+				self.on('onCellRangeChanged', handleSelectedRangesChanged)
 
 			} catch (e) {
 				console.error(e);
@@ -845,6 +914,9 @@
 		// Enable events used to select cell ranges via click + drag
 		//
 		bindCellRangeSelect = function () {
+			var decorator = new cellRangeDecorator(),
+				_dragging = null;
+
 			// TODO: Merge the rest of slick.cellrangeselector into here
 			$canvas
 				.on('draginit', function (event, dd) {
@@ -854,18 +926,13 @@
 				.on('dragstart', function (event, dd) {
 					var cell = getCellFromEvent(event);
 
-					// TODO: Not sure what the idea here was. Try to figure it out
-					/*if (_self.onBeforeCellRangeSelected.notify(cell) !== false) {
-						if (_grid.canCellBeSelected(cell.row, cell.cell)) {
-							_dragging = true;
-							e.stopImmediatePropagation();
-						}
+					// This prevents you from starting to drag on a cell that can't be selected
+					if (canCellBeSelected(cell.row, cell.cell)) {
+						_dragging = true;
+						event.stopImmediatePropagation();
 					}
 
-					if (!_dragging) {
-						return;
-					}
-					*/
+					if (!_dragging) return;
 
 					var start = getCellFromPoint(
 						dd.startX - $(this).offset().left,
@@ -878,14 +945,45 @@
 						start: start
 					};
 
-					// TODO: CONTINUE HERE
-					//return _decorator.show(new Slick.Range(start.row, start.cell));
+					return decorator.show(new Range(start.row, start.cell));
 				})
 				.on('drag', function (event, dd) {
-					console.log('drag')
+					if (!_dragging) return;
+
+					event.stopImmediatePropagation();
+
+					var end = getCellFromPoint(
+						event.pageX - $(this).offset().left,
+						event.pageY - $(this).offset().top);
+
+					if (!canCellBeSelected(end.row, end.cell)) return;
+
+					dd._range.end = end;
+					decorator.show(new Range(dd._range.start.row, dd._range.start.cell, end.row, end.cell));
 				})
 				.on('dragend', function (event, dd) {
-					console.log('dragend')
+					if (!_dragging) return;
+					_dragging = false;
+
+					event.stopImmediatePropagation();
+
+					decorator.hide();
+
+					var ranges = [new Range(
+						dd._range.start.row,
+						dd._range.start.cell,
+						dd._range.end.row,
+						dd._range.end.cell
+					)]
+
+					// Make sure we're not selecting any cells that aren't allowed to be selected
+					var cleanranges = removeInvalidRanges(ranges)
+
+					if (cleanranges && cleanranges.length) {
+						self.trigger('onCellRangeSelected', event, {
+							ranges: cleanranges
+						})
+					}
 				})
 		}
 
@@ -925,7 +1023,7 @@
 		//
 		// @return boolean
 		canCellBeActive = function (row, cell) {
-			if (!self.options.enableCellNavigation || row >= getDataLengthIncludingAddNew() ||
+			if (!self.options.keyboardNavigation || row >= getDataLengthIncludingAddNew() ||
 				row < 0 || cell >= self.options.columns.length || cell < 0) {
 				return false;
 			}
@@ -959,7 +1057,8 @@
 		//
 		// @return boolean
 		canCellBeSelected = function (row, cell) {
-			if (row >= getDataLength() || row < 0 || cell >= self.options.columns.length || cell < 0) {
+			var c = self.options.columns;
+			if (row >= getDataLength() || row < 0 || cell >= c.length || cell < 0) {
 				return false;
 			}
 
@@ -968,12 +1067,12 @@
 				return rowMetadata.selectable;
 			}
 
-			var columnMetadata = rowMetadata && rowMetadata.columns && (rowMetadata.columns[columns[cell].id] || rowMetadata.columns[cell]);
+			var columnMetadata = rowMetadata && rowMetadata.columns && (rowMetadata.columns[c[cell].id] || rowMetadata.columns[cell]);
 			if (columnMetadata && typeof columnMetadata.selectable === "boolean") {
 				return columnMetadata.selectable;
 			}
 
-			return self.options.columns[cell].selectable;
+			return c[cell].selectable;
 		}
 
 
@@ -986,6 +1085,42 @@
 		// @return bolean
 		cellExists = function (row, cell) {
 			return !(row < 0 || row >= getDataLength() || cell < 0 || cell >= self.options.columns.length);
+		}
+
+
+		// cellRangeDecorator()
+		// Displays an overlay on top of a given cell range.
+		//
+		cellRangeDecorator = function () {
+			this.$el = null
+
+			this.show = function (range) {
+				if (!this.$el) {
+					this.$el = $('<div class="' + classrangedecorator + '"></div>')
+						.appendTo($canvas);
+				}
+
+				var from = getCellNodeBox(range.fromRow, range.fromCell);
+				var to = getCellNodeBox(range.toRow, range.toCell);
+
+				if (from && to) {
+					this.$el.css({
+						top: from.top + 1,
+						left: from.left,
+						height: to.bottom - from.top - 2,
+						width: to.right - from.left - 4
+					});
+				}
+
+				return this.$el;
+			}
+
+			this.hide = function () {
+				if (this.$el) {
+					this.$el.remove();
+					this.$el = null;
+				}
+			}
 		}
 
 
@@ -2262,7 +2397,7 @@
 			}
 
 			this.syncGridSelection = function (grid, preserveHidden) {
-				var selectedRowIds = self.mapRowsToIds(grid.getSelectedRows()),
+				var selectedRowIds = self.mapRowsToIds(selectedRows),
 					inHandler;
 
 				function update() {
@@ -2277,11 +2412,11 @@
 					}
 				}
 
-				grid.onSelectedRowsChanged.subscribe(function (e, args) {
+				self.on('onSelectedRowsChanged', function (e, args) {
 					if (inHandler) {
 						return;
 					}
-					selectedRowIds = self.mapRowsToIds(grid.getSelectedRows());
+					selectedRowIds = self.mapRowsToIds(selectedRows);
 				});
 			}
 
@@ -2423,9 +2558,9 @@
 		// defaultFormatter()
 		// Default formatting functions for all cell rendering. Returns an HTML string.
 		//
-		// @param	row			integer		Index of the row being edited
-		// @param	cell		integer		Index of the cell being edited
-		// @param	value		string		Data value for the cell
+		// @param	row			integer		Index of the row is located
+		// @param	cell		integer		Index of the
+		// @param	value		string		The value of this cell from the data object for this row
 		// @param	columnDef	object		The column definition object for the given column
 		// @param	data		object		The full data object for the given cell
 		//
@@ -2618,7 +2753,8 @@
 				self.invalidate()
 
 				// Ask the RemoteModel to refetch the data -- this time using the new sort settings
-				self.touchViewport()
+				// TODO: Find a better solution than touchViewport
+				//self.touchViewport()
 				return
 			}
 
@@ -2771,7 +2907,7 @@
 				cell = 0,
 				w = 0;
 
-			for (var i = 0, k = self.options.columns.length; i < l && w < x; i++) {
+			for (var i = 0, l = self.options.columns.length; i < l && w < x; i++) {
 				w += self.options.columns[i].width;
 				cell++;
 			}
@@ -2798,6 +2934,38 @@
 				return rowsCache[row].cellNodesByColumnIdx[cell];
 			}
 			return null;
+		}
+
+
+		// getCellNodeBox()
+		// Given a row and cell index, returns the node size for that cell DOM
+		//
+		// @param	row		integer		Row index
+		// @param	cell	integer		Cell index
+		//
+		// @return DOM object
+		getCellNodeBox = function (row, cell) {
+			if (!cellExists(row, cell)) {
+				return null;
+			}
+
+			var y1 = getRowTop(row),
+				// TODO: This needs to use variable row height
+				y2 = y1 + self.options.rowHeight - 1,
+				x1 = 0;
+
+			for (var i = 0; i < cell; i++) {
+				x1 += self.options.columns[i].width;
+			}
+
+			var x2 = x1 + self.options.columns[cell].width;
+
+			return {
+				bottom: y2,
+				left: x1,
+				right: x2,
+				top: y1
+			}
 		}
 
 
@@ -3027,7 +3195,7 @@
 				(rowMetadata && rowMetadata.formatter) ||
 				column.formatter ||
 				(self.options.formatterFactory && self.options.formatterFactory.getFormatter(column)) ||
-				self.options.defaultFormatter ||
+				self.options.formatter ||
 				defaultFormatter;
 		}
 
@@ -3220,18 +3388,6 @@
 				};
 			c.remove();
 			return result
-		}
-
-
-		// getSelectedRows()
-		// Returns the selected row model
-		//
-		// @return array
-		getSelectedRows = function () {
-			if (!selectionModel) {
-				throw "Selection model is not set";
-			}
-			return selectedRows;
 		}
 
 
@@ -3814,25 +3970,47 @@
 		//
 		// @param	e	object		Javascript event object
 		//
-		handleSelectedRangesChanged = function (e, ranges) {
+		handleSelectedRangesChanged = function (e, args) {
+			ranges = args.ranges
+
+			// Deselect the previous range
+			var removeHash = {}
+			if (selectedRows) {
+				var clearAllColumns = {}
+				for (var ic = 0, lc = self.options.columns.length; ic < lc; ic++) {
+					clearAllColumns[self.options.columns[ic].id] = self.options.selectedClass
+				}
+
+				for (var iw = 0, lw = selectedRows.length; iw < lw; iw++) {
+					removeHash[selectedRows[iw]] = clearAllColumns
+				}
+			}
+
+			// Decelect cells
+			updateCellCssStylesOnRenderedRows(null, removeHash)
+
+			// Select the new range
 			selectedRows = [];
-			var hash = {};
+			var addHash = {};
 			for (var i = 0, l = ranges.length; i < l; i++) {
 				for (var j = ranges[i].fromRow; j <= ranges[i].toRow; j++) {
-					if (!hash[j]) { // prevent duplicates
+					if (!addHash[j]) { // prevent duplicates
 						selectedRows.push(j);
-						hash[j] = {};
+						addHash[j] = {};
 					}
 					for (var k = ranges[i].fromCell; k <= ranges[i].toCell; k++) {
 						if (canCellBeSelected(j, k)) {
-							hash[j][self.options.columns[k].id] = self.options.selectedCellCssClass;
+							addHash[j][self.options.columns[k].id] = self.options.selectedClass;
 						}
 					}
 				}
 			}
 
+			// Select cells
+			updateCellCssStylesOnRenderedRows(addHash)
+
 			self.trigger('onSelectedRowsChanged', e, {
-				rows: getSelectedRows()
+				rows: selectedRows
 			})
 		}
 
@@ -4256,7 +4434,7 @@
 		//
 		// @return boolean
 		navigate = function (dir) {
-			if (!self.options.enableCellNavigation) {
+			if (!self.options.keyboardNavigation) {
 				return false;
 			}
 
@@ -4398,7 +4576,7 @@
 					}
 
 					// Display alert if empty
-					if (self.options.alertOnEmpty && self.collection.getLength() === 0) {
+					if (self.options.emptyNotice && self.collection.getLength() === 0) {
 						// Need to clear cache to reset collection lengths
 						self.loader.clearCache()
 
@@ -4418,7 +4596,7 @@
 				return callback()
 			} else {
 				// Display alert if empty
-				if (self.options.alertOnEmpty && self.collection.getLength() === 0) {
+				if (self.options.emptyNotice && self.collection.getLength() === 0) {
 					insertEmptyAlert()
 				}
 			}
@@ -4427,25 +4605,100 @@
 		}
 
 
+		// Range()
+		// A structure containing a range of cells.
+		//
+		// @param fromRow	integer		Starting row
+		// @param fromCell	integer		Starting cell
+		// @param toRow		integer		(Optional) Ending row. Defaults to 'fromRow'
+		// @param toCell	integer		(Optional) Ending cell. Defaults to 'fromCell'
+		//
+		Range = function (fromRow, fromCell, toRow, toCell) {
+			toRow = toRow === undefined ? fromRow : toRow;
+			toCell = toCell === undefined ? fromCell : toCell;
+
+			this.fromRow = Math.min(fromRow, toRow);
+			this.fromCell = Math.min(fromCell, toCell);
+			this.toRow = Math.max(fromRow, toRow);
+			this.toCell = Math.max(fromCell, toCell);
+
+			// contains()
+			// Returns whether a range contains a given cell
+			//
+			// @param	row		integer		Row index
+			// @param	cell	integer		Cell index
+			//
+			// @return boolean
+			this.contains = function (row, cell) {
+				return row >= this.fromRow && row <= this.toRow &&
+					cell >= this.fromCell && cell <= this.toCell;
+			}
+
+
+			// isSingleCell()
+			// Returns whether a range represents a single cell
+			//
+			// @return boolean
+			this.isSingleCell = function () {
+				return this.fromRow == this.toRow && this.fromCell == this.toCell;
+			}
+
+
+			// isSingleRow()
+			// Returns whether a range represents a single row.
+			//
+			// @return boolean
+			this.isSingleRow = function () {
+				return this.fromRow == this.toRow;
+			}
+
+			// toString()
+			// Returns a readable representation of a range
+			//
+			// @return string
+			this.toString = function () {
+				if (this.isSingleCell()) {
+					return "(" + this.fromRow + ":" + this.fromCell + ")";
+				} else {
+					return "(" + this.fromRow + ":" + this.fromCell + " - " + this.toRow + ":" + this.toCell + ")";
+				}
+			}
+		}
+
+
+		// remove()
+		// Removes a row of data from the grid
+		//
+		// @param	id			integer		Lookup data object via id instead
+		//
+		// @return object
+		this.removeRow = function (id) {
+			// TODO: Convert this to use a similar to input to Backbone.Collection.remove()
+			this.collection.deleteItem(id);
+			return this
+		}
+
+
 		// removeColumn()
 		// Removes a column from the grid
 		//
-		// @param	column_id		integer		'id' key of the column definition
+		// @param	column		integer		'id' key of the column definition
 		//
 		// @return object
-		this.removeColumn = function (column_id) {
-			if (!column_id) return this
+		this.removeColumn = function (column) {
+			if (!column) return this
+			if (typeof column == 'object') column = column.id
 
 			var newcolumns = this.options.columns.filter(function (item) {
-				return item.id != column_id
+				return item.id != column
 			})
 
 			// If column had a grouping - remove that grouping
-			if (hasGrouping(column_id)) {
-				this.removeGrouping(column_id)
+			if (hasGrouping(column)) {
+				this.removeGrouping(column)
 			}
 
-			setColumns(newcolumns);
+			self.setColumns(newcolumns);
 			return this
 		}
 
@@ -4462,19 +4715,42 @@
 		// removeGrouping()
 		// Remove column grouping for a given 'id' of a column.
 		//
-		// @param	column_id		string		Id of the column to remove group
+		// @param	column		string		Id of the column to remove group for
 		//
 		// @return object
-		this.removeGrouping = function (column_id) {
-			var column_ids = hasGrouping(column_id)
+		this.removeGrouping = function (column) {
+			if (!column) return;
+			if (typeof column == 'object') column = column.id
+
+			var column_ids = hasGrouping(column)
 			if (column_ids) {
-				var idx = column_ids.indexOf(column_id);
+				var idx = column_ids.indexOf(column);
 				if (idx >= 0) {
 					column_ids.splice(idx, 1)
 				}
 				this.setGrouping(column_ids)
 			}
 			return this
+		}
+
+
+		// removeInvalidRanges()
+		// Given a list of cell ranges, removes the ranges that are not allowed due to cells
+		// not being selectable
+		//
+		// @param	ranges		array		List of Range objects
+		//
+		// @return array
+		removeInvalidRanges = function (ranges) {
+			var result = [];
+			for (var i = 0, l = ranges.length; i < l; i++) {
+				var r = ranges[i];
+				if (canCellBeSelected(r.fromRow, r.fromCell) && canCellBeSelected(r.toRow, r.toCell)) {
+					result.push(r);
+				}
+			}
+
+			return result;
 		}
 
 
@@ -4604,6 +4880,25 @@
 		}
 
 
+		// resize()
+		// Force the resize and re-draw of the grid (for when coming out of an invisible element)
+		//
+		// @return object
+		this.resize = function () {
+			// Resize the grid
+			resizeCanvas()
+			invalidate()
+
+			// Clear remote data and touch viewport to re-draw it
+			// TODO: Find a better solution to touchViewport
+			/*if (this.options.remote) {
+				this.touchViewport()
+			}*/
+
+			return this
+		}
+
+
 		// resizeCanvas()
 		// Resizes the canvas based on the current viewport dimensions
 		//
@@ -4638,7 +4933,6 @@
 			var ranges = [],
 				lastCell = self.options.columns.length - 1;
 
-			console.log('rowToRanges')
 			for (var i = 0; i < rows.length; i++) {
 				ranges.push(new Slick.Range(rows[i], 0, rows[i], lastCell));
 			}
@@ -4684,7 +4978,7 @@
 			scrollTo((getRowFromPosition(scrollTop) + deltaRows) * self.options.rowHeight);
 			render();
 
-			if (self.options.enableCellNavigation && activeRow !== null) {
+			if (self.options.keyboardNavigation && activeRow !== null) {
 				var row = activeRow + deltaRows;
 				if (row >= getDataLengthIncludingAddNew()) {
 					row = getDataLengthIncludingAddNew() - 1;
@@ -4844,7 +5138,7 @@
 				return;
 			}
 
-			if (!self.options.enableCellNavigation) {
+			if (!self.options.keyboardNavigation) {
 				return;
 			}
 
@@ -4856,15 +5150,15 @@
 		// setColumns()
 		// Given a new column definitions object -- updates the grid to use it
 		//
-		// @param	columnDefinitions		object		Column definitions object
+		// @param	columns		object		Column definitions object
 		//
-		setColumns = function (columnDefinitions) {
+		this.setColumns = function (columns) {
 
-			self.options.columns = columnDefinitions
+			this.options.columns = columns
 
 			columnsById = {};
 			var m;
-			for (var i = 0, l = self.options.columns.length; i < l; i++) {
+			for (var i = 0, l = this.options.columns.length; i < l; i++) {
 				// TODO: This is ugly. Can anything be done?
 				m = self.options.columns[i];
 				m = self.options.columns[i] = _.extend(JSON.parse(JSON.stringify(columnDefaults)), m);
@@ -4882,8 +5176,8 @@
 
 			updateColumnCaches();
 
-			self.trigger('onColumnsChanged', {}, {
-				columns: columnDefinitions
+			this.trigger('onColumnsChanged', {}, {
+				columns: columns
 			})
 
 			if (initialized) {
@@ -4918,16 +5212,16 @@
 		// setOptions()
 		// Given a set of options, updates the grid accordingly
 		//
-		// @param	args		object		New options object data
+		// @param	options		object		New options object data
 		//
-		this.setOptions = function (args) {
+		this.setOptions = function (options) {
 			makeActiveCellNormal();
 
-			if (self.options.enableAddRow !== args.enableAddRow) {
+			if (self.options.enableAddRow !== options.enableAddRow) {
 				invalidateRow(getDataLength());
 			}
 
-			self.options = $.extend(self.options, args);
+			self.options = $.extend(self.options, options);
 
 			validateOptions()
 
@@ -4942,47 +5236,23 @@
 		// @param	rows		array		List of row indexes
 		//
 		setSelectedRows = function (rows) {
-			if (!selectionModel) {
-				throw "Selection model is not set";
-			}
 			selectionModel.setSelectedRanges(rowsToRanges(rows));
-		}
-
-
-		// setSelectionModel()
-		// TODO: ??
-		//
-		// @param	model		??			??
-		//
-		setSelectionModel = function (model) {
-			if (selectionModel) {
-				selectionModel.onSelectedRangesChanged.unsubscribe(handleSelectedRangesChanged);
-				if (selectionModel.destroy) {
-					selectionModel.destroy();
-				}
-			}
-
-			selectionModel = model;
-			if (selectionModel) {
-				selectionModel.init(self);
-				selectionModel.onSelectedRangesChanged.subscribe(handleSelectedRangesChanged);
-			}
 		}
 
 
 		// setSorting()
 		// Sets the sorting for the grid data view
 		//
-		// @param	column_options		array		List of column options to use for sorting
+		// @param	options		array		List of column options to use for sorting
 		//
 		// @return object
-		this.setSorting = function (column_options) {
-			if (!$.isArray(column_options)) {
-				throw new Error('Doby Grid cannot set the sorting because the "column_options" parameter must be an array of objects.')
+		this.setSorting = function (options) {
+			if (!$.isArray(options)) {
+				throw new Error('Doby Grid cannot set the sorting because the "options" parameter must be an array of objects.')
 			}
 
 			// Updating the sorting dictionary
-			sortColumns = column_options;
+			sortColumns = options;
 
 			// Update the sorting data
 			styleSortColumns()
@@ -4993,7 +5263,7 @@
 				sortCols: []
 			}
 
-			_.each(column_options, function (col, i) {
+			_.each(options, function (col, i) {
 				args.sortCols.push({
 					sortCol: getColumnById(col.columnId),
 					sortAsc: col.sortAsc
@@ -5039,7 +5309,7 @@
 						reorderedColumns.push(self.options.columns[cindex]);
 					}
 
-					setColumns(reorderedColumns);
+					self.setColumns(reorderedColumns);
 
 					self.trigger('onColumnsReordered', e)
 
@@ -5541,7 +5811,7 @@
 
 					// Re-render columns
 					// Pending https://github.com/mleibman/SlickGrid/issues/686
-					setColumns(self.options.columns);
+					self.setColumns(self.options.columns);
 				}
 			}]
 
@@ -5621,8 +5891,25 @@
 			}
 		}
 
+
+		// updateCellCssStylesOnRenderedRows()
+		// Given an add and remove hash object, adds or removes CSS classes on the given nodes
+		//
+		// @param	addedHash		object		Which classes should be added to which cells
+		// @param	removedHash		object		Which classes should be removed from which cells
+		//
+		// Example hash object: {
+		//		4: {
+		//			columnId: {
+		//				"myclassname"
+		//			}
+		//		}
+		// }
+		// Where "4" is the id of the affected row
+		//
 		updateCellCssStylesOnRenderedRows = function (addedHash, removedHash) {
 			var node, columnId, addedRowHash, removedRowHash;
+
 			for (var row in rowsCache) {
 				removedRowHash = removedHash && removedHash[row];
 				addedRowHash = addedHash && addedHash[row];

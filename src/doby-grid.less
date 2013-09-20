@@ -246,6 +246,7 @@
 		padding: 0 8px;
 		position: absolute;
 		text-overflow: ellipsis;
+		.transition(~"background 0.3s ease-in-out");
 		white-space: nowrap;
 		z-index: 1;
 
@@ -259,9 +260,8 @@
 			margin: 0 0 0 -1px
 		}
 
-		&.highlighted {
-			background: rgba(0, 0, 255, 0.2);
-			.transition(~"all 0.3s ease-in-out");
+		&.selected {
+			background: rgba(0, 80, 255, 0.1);
 		}
 
 		&.flashing {
@@ -370,6 +370,12 @@
 	}
 }
 
+// Cell range decorator
+.doby-grid-range-decorator {
+	border: 2px dashed rgba(10,70,180,0.6);
+	position: absolute;
+	z-index: 999
+}
 
 // Remote Loading Spinner
 // ==================================================================================================

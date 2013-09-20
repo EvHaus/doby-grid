@@ -24,11 +24,22 @@
 				width: 180px
 			}
 
-				#examplemenu a {
+				#examplemenu li {
 					border-bottom: 1px solid rgba(0,0,0,0.2);
+				}
+
+				#examplemenu h1 {
+					font-size: 24px;
+					padding-left: 10px;
+				}
+
+				#examplemenu a {
+					color: #325498;
 					cursor: pointer;
+					font-size: 12px;
 					display: block;
 					padding: 10px;
+					text-decoration: none;
 				}
 
 					#examplemenu a:hover {
@@ -37,7 +48,7 @@
 
 			#gridwrapper {
 				bottom: 10px;
-				left: 210px;
+				left: 190px;
 				position: absolute;
 				right: 10px;
 				top: 10px;
@@ -107,6 +118,7 @@
 	</head>
 	<body>
 		<ul id="examplemenu">
+			<li><h1>Examples</h1></li>
 			<li><a href="#basic">Basic Grid</a></li>
 			<li><a href="#postprocess">Column Post-Processing</a></li>
 			<li><a href="#editable">Editable Grid</a></li>
