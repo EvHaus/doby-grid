@@ -275,7 +275,6 @@
 			asyncEditorLoading:		false,
 			asyncPostRenderDelay:	25,
 			autoEdit:				true,
-			cellRangeSelect:		true,
 			class:					null,
 			columns:				[],
 			data:					[],
@@ -322,6 +321,7 @@
 			reorderable:			true,
 			rowHeight:				28,
 			rowPreprocess:			null,		// TODO: Determine if still needed. Then document.
+			selectable:				true,
 			selectedClass:			"selected"
 		}, options);
 
@@ -367,7 +367,7 @@
 				})
 			});
 
-			if (self.options.cellRangeSelect) {
+			if (self.options.selectable) {
 				bindCellRangeSelect()
 			}
 
@@ -960,6 +960,10 @@
 
 					dd._range.end = end;
 					decorator.show(new Range(dd._range.start.row, dd._range.start.cell, end.row, end.cell));
+
+					// Set the active cell as you drag. This is default spreadsheet behavior.
+					// TODO: This may make a good toggle-able setting
+					setActiveCellInternal(getCellNode(end.row, end.cell), false);
 				})
 				.on('dragend', function (event, dd) {
 					if (!_dragging) return;
@@ -5074,10 +5078,33 @@
 		}
 
 
-		// setActiveCellInternal()
-		// ???
+		// setActiveCell()
+		// Given a row and cell index, will set that cell as the active in the grid
 		//
-		// @param	newCell				??		TODO: ??
+		// @param	row		integer		Row index
+		// @param	cell	integer		Cell index
+		//
+		setActiveCell = function (row, cell) {
+			if (!initialized) {
+				return;
+			}
+			if (row > getDataLength() || row < 0 || cell >= self.options.columns.length || cell < 0) {
+				return;
+			}
+
+			if (!self.options.keyboardNavigation) {
+				return;
+			}
+
+			scrollCellIntoView(row, cell, false);
+			setActiveCellInternal(getCellNode(row, cell), false);
+		}
+
+
+		// setActiveCellInternal()
+		// Internal method for setting the active cell that bypasses any option restrictions
+		//
+		// @param	newCell				DOM		Cell node to set as the active cell
 		// @param	opt_editMode		??		TODO: ??
 		//
 		setActiveCellInternal = function (newCell, opt_editMode) {
@@ -5121,29 +5148,6 @@
 			if (activeCellChanged) {
 				self.trigger('onActiveCellChanged', {}, getActiveCell())
 			}
-		}
-
-
-		// setActiveCell()
-		// Given a row and cell index, will set that cell as the active in the grid
-		//
-		// @param	row		integer		Row index
-		// @param	cell	integer		Cell index
-		//
-		setActiveCell = function (row, cell) {
-			if (!initialized) {
-				return;
-			}
-			if (row > getDataLength() || row < 0 || cell >= self.options.columns.length || cell < 0) {
-				return;
-			}
-
-			if (!self.options.keyboardNavigation) {
-				return;
-			}
-
-			scrollCellIntoView(row, cell, false);
-			setActiveCellInternal(getCellNode(row, cell), false);
 		}
 
 
