@@ -91,6 +91,7 @@
 			classplaceholder = this.NAME + '-sortable-placeholder',
 			classrangedecorator = this.NAME + '-range-decorator',
 			classrow = this.NAME + '-row',
+			classrowhandle = this.NAME + '-row-handle',
 			classsortindicator = this.NAME + '-sort-indicator',
 			classsortindicatorasc = classsortindicator + '-asc',
 			classsortindicatordesc = classsortindicator + '-desc',
@@ -127,6 +128,7 @@
 			getActiveCellPosition,
 			getBrowserData,
 			getCanvasWidth,
+			getCaretPosition,
 			getCellFromEvent,
 			getCellFromNode,
 			getCellFromPoint,
@@ -289,7 +291,7 @@
 			dataExtractor:			null,
 			columnWidth:			80,
 			editable:				false,
-			editorFactory:			null,		// TODO: Determine if still needed. Then document.
+			editor:					null,
 			emptyNotice:			true,
 			enableAddRow:			false,		// TODO: Determine if still needed. Then document.
 			forceSyncScrolling:		false,		// TODO: Determine if still needed. Then document.
@@ -325,7 +327,8 @@
 			multiColumnSort:		true,
 			multiSelect:			true,		// TODO: Determine if still needed. Then document.
 			remote:					false,
-			resizable:				true,
+			resizableColumns:		true,
+			resizableRows:			false,
 			resizeCells:			true,
 			reorderable:			true,
 			rowHeight:				28,
@@ -502,7 +505,7 @@
 			result.push("<div class='" + cellCss + "'");
 
 			if (rowPositionCache[row].height != self.options.rowHeight) {
-				result.push("style='height:" + (rowPositionCache[row].height - cellHeightDiff) + "px'");
+				result.push("style='height:" + (rowPositionCache[row].height - cellHeightDiff + 1) + "px'");
 			}
 
 			result.push(">");
@@ -539,12 +542,12 @@
 		// @param	dataLength		integer		Total number of data object o render
 		//
 		appendRowHtml = function (stringArray, row, range, dataLength) {
-			var d = getDataItem(row);
-			var dataLoading = row < dataLength && !d;
-			var rowCss = classrow +
-				(dataLoading ? " loading" : "") +
-				(row === activeRow ? " active" : "") +
-				(row % 2 == 1 ? " odd" : ""),
+			var d = getDataItem(row),
+				dataLoading = row < dataLength && !d,
+				rowCss = classrow +
+					(dataLoading ? " loading" : "") +
+					(row === activeRow ? " active" : "") +
+					(row % 2 == 1 ? " odd" : ""),
 				data = self.collection;
 
 			var metadata = data.getItemMetadata && data.getItemMetadata(row);
@@ -555,8 +558,11 @@
 
 			stringArray.push("<div class='" + rowCss + "' ");
 			stringArray.push("style='top:" + rowPositionCache[row].top + "px;");
-			stringArray.push(
-			(rowPositionCache[row].height != self.options.rowHeight) ? "height:" + rowPositionCache[row].height + "px;" : "");
+
+			if (rowPositionCache[row].height != self.options.rowHeight) {
+				stringArray.push("height:" + (rowPositionCache[row].height - cellHeightDiff) + "px");
+			}
+
 			stringArray.push("'>");
 
 			var colspan, m;
@@ -584,6 +590,11 @@
 				if (colspan > 1) {
 					i += (colspan - 1);
 				}
+			}
+
+			// Add row resizing handle
+			if (self.options.resizableRows) {
+				stringArray.push('<div class="' + classrowhandle + '"></div>')
 			}
 
 			stringArray.push("</div>");
@@ -716,11 +727,11 @@
 
 			for (var i = 0, l = self.options.columns.length; i < l; i++) {
 				c = self.options.columns[i];
-				w = c.width;
+				w = c.width - 2;
 
 				rule = getColumnCssRules(i);
-				rule.left.style.left = x + "px";
-				rule.right.style.right = (canvasWidth - x - w) + "px";
+				rule.left.style.left = (x - 1) + "px";
+				rule.right.style.right = (canvasWidth - (x + 1) - w) + "px";
 
 				x += c.width;
 			}
@@ -880,7 +891,6 @@
 			var decorator = new cellRangeDecorator(),
 				_dragging = null;
 
-			// TODO: Merge the rest of slick.cellrangeselector into here
 			$canvas
 				.on('draginit', function (event, dd) {
 					// Prevent the grid from cancelling drag'n'drop by default
@@ -1073,9 +1083,9 @@
 
 				if (from && to) {
 					this.$el.css({
-						top: from.top + 1,
-						left: from.left,
-						height: to.bottom - from.top - 2,
+						top: from.top - 1,
+						left: from.left - 1,
+						height: to.bottom - from.top - 4,
 						width: to.right - from.left - 4
 					});
 				}
@@ -1257,82 +1267,81 @@
 
 
 		// commitCurrentEdit()
-		// IEditor implementation for the editor lock in SlickGrid
-		// TODO: Still needed?
+		// Processes edit operations using the current editor
 		//
 		commitCurrentEdit = function () {
-			var item = getDataItem(activeRow);
-			var column = self.options.columns[activeCell];
+			var item = getDataItem(activeRow),
+				column = self.options.columns[activeCell];
 
-			if (currentEditor) {
-				if (currentEditor.isValueChanged()) {
-					var validationResults = currentEditor.validate();
+			if (!currentEditor) return true
 
-					if (validationResults.valid) {
-						if (activeRow < getDataLength()) {
-							var editCommand = {
-								row: activeRow,
-								cell: activeCell,
-								editor: currentEditor,
-								serializedValue: currentEditor.serializeValue(),
-								prevSerializedValue: serializedEditorValue,
-								execute: function () {
-									this.editor.applyValue(item, this.serializedValue);
-									updateRow(this.row);
-								},
-								undo: function () {
-									this.editor.applyValue(item, this.prevSerializedValue);
-									updateRow(this.row);
-								}
-							};
+			if (currentEditor.isValueChanged()) {
+				var validationResults = currentEditor.validate();
 
-							if (self.options.editCommandHandler) {
-								makeActiveCellNormal();
-								self.options.editCommandHandler(item, column, editCommand);
-							} else {
-								editCommand.execute();
-								makeActiveCellNormal();
+				if (validationResults.valid) {
+					if (activeRow < getDataLength()) {
+						var editCommand = {
+							cell: activeCell,
+							editor: currentEditor,
+							execute: function () {
+								this.editor.applyValue(item, this.serializedValue);
+								updateRow(this.row);
+							},
+							prevSerializedValue: serializedEditorValue,
+							row: activeRow,
+							serializedValue: currentEditor.serializeValue(),
+							undo: function () {
+								this.editor.applyValue(item, this.prevSerializedValue);
+								updateRow(this.row);
 							}
+						};
 
-							self.trigger('onCellChange', {}, {
-								row: activeRow,
-								cell: activeCell,
-								item: item
-							});
-						} else {
-							var newItem = {};
-							currentEditor.applyValue(newItem, currentEditor.serializeValue());
+						if (self.options.editCommandHandler) {
 							makeActiveCellNormal();
-
-							self.trigger('onAddNewRow', {}, {
-								item: newItem,
-								column: column
-							});
+							self.options.editCommandHandler(item, column, editCommand);
+						} else {
+							editCommand.execute();
+							makeActiveCellNormal();
 						}
 
-						return true;
-					} else {
-						// Re-add the CSS class to trigger transitions, if any.
-						$(activeCellNode).removeClass("invalid");
-						$(activeCellNode).width(); // force layout
-						$(activeCellNode).addClass("invalid");
-
-						self.trigger('onValidationError', {}, {
-							editor: currentEditor,
-							cellNode: activeCellNode,
-							validationResults: validationResults,
+						self.trigger('onCellChange', {}, {
 							row: activeRow,
 							cell: activeCell,
+							item: item
+						});
+					} else {
+						var newItem = {};
+						currentEditor.applyValue(newItem, currentEditor.serializeValue());
+						makeActiveCellNormal();
+
+						self.trigger('onAddNewRow', {}, {
+							item: newItem,
 							column: column
 						});
-
-						currentEditor.focus();
-						return false;
 					}
-				}
 
-				makeActiveCellNormal();
+					return true;
+				} else {
+					// Re-add the CSS class to trigger transitions, if any.
+					$(activeCellNode).removeClass("invalid");
+					$(activeCellNode).width(); // force layout
+					$(activeCellNode).addClass("invalid");
+
+					self.trigger('onValidationError', {}, {
+						editor: currentEditor,
+						cellNode: activeCellNode,
+						validationResults: validationResults,
+						row: activeRow,
+						cell: activeCell,
+						column: column
+					});
+
+					currentEditor.focus();
+					return false;
+				}
 			}
+
+			makeActiveCellNormal();
 			return true;
 		}
 
@@ -1396,8 +1405,7 @@
 			$style = $('<style type="text/css" rel="stylesheet"></style>').appendTo($("head"));
 			var rowHeight = (self.options.rowHeight - cellHeightDiff);
 			var rules = [
-				"#" + uid + " ." + classcell + ".active{height:" + (rowHeight - 1) + "px;line-height:" + (rowHeight - 1) + "px}",
-				"#" + uid + " ." + classrow + "{height:" + rowHeight + "px;line-height:" + rowHeight + "px}"
+				"#" + uid + " ." + classrow + "{height:" + rowHeight + "px;line-height:" + (rowHeight - 1) + "px}"
 			];
 
 			for (var i = 0, l = self.options.columns.length; i < l; i++) {
@@ -1849,11 +1857,16 @@
 			}
 
 
+			// ensureCellNodesInRowsCache()
+			// Make sure cell nodes are cached for a given row
+			//
+			// @param	row		integer		Row index
+			//
 			ensureCellNodesInRowsCache = function (row) {
 				var cacheEntry = rowsCache[row];
 				if (cacheEntry) {
 					if (cacheEntry.cellRenderQueue.length) {
-						var lastChild = cacheEntry.rowNode.lastChild;
+						var lastChild = $(cacheEntry.rowNode).children('.' + classcell + '').last()[0]
 						while (cacheEntry.cellRenderQueue.length) {
 							var columnIdx = cacheEntry.cellRenderQueue.pop();
 							cacheEntry.cellNodesByColumnIdx[columnIdx] = lastChild;
@@ -2174,18 +2187,6 @@
 			}
 
 
-			this.insertItem = function (insertBefore, item) {
-				this.items.splice(insertBefore, 0, item);
-				updateIndexById(insertBefore);
-				if (self.options.remote) length++
-				this.refresh();
-			}
-
-			this.insertItemAtIdx = function (item, idx) {
-				this.items[idx] = item
-				this.refresh();
-			}
-
 			this.mapIdsToRows = function (idArray) {
 				var rows = [];
 				ensureRowsByIdCache();
@@ -2399,7 +2400,7 @@
 				if (ascending === false) {
 					this.items.reverse();
 				}
-				items.sort(comparer);
+				this.items.sort(comparer);
 				if (ascending === false) {
 					this.items.reverse();
 				}
@@ -2509,63 +2510,124 @@
 		// defaultEditor()
 		// Default editor object that handles cell reformatting and processing of edits
 		//
-		// @param	args		object		Editor arguments
+		// @param	options		object		Editor arguments
 		//
-		defaultEditor = function (args) {
-			var $input;
-			var defaultValue;
-			var scope = this;
+		defaultEditor = function (options) {
 
-			this.init = function () {
-				$input = $('<input type="text" class="editor-text"/>')
-					.appendTo(args.container)
-					.bind("keydown.nav", function (e) {
-						if (e.keyCode === $.ui.keyCode.LEFT || e.keyCode === $.ui.keyCode.RIGHT) {
-							e.stopImmediatePropagation();
+			var self = this;
+
+
+			// initialize()
+			// The editor is actived when an active cell in the grid is focused.
+			// This should generate any DOM elements you want to use for your editor.
+			//
+			this.initialize = function () {
+				// Will hold the current value of the item being edited
+				this.loadValue(options.item);
+
+				this.$input = $('<input type="text" class="editor" value="' + this.currentValue + '"/>')
+					.appendTo(options.cell)
+					.on("keydown", function (event) {
+						// Check if position of cursor is on the ends, if it's not then
+						// left or right arrow keys will prevent editor from saving
+						// results and will instead, move the text cursor
+						var pos = getCaretPosition(this);
+
+						if (pos === null ||
+							(pos > 0 && event.keyCode === 37) ||
+							(pos < self.currentValue.length && event.keyCode === 39)
+						) {
+							event.stopImmediatePropagation();
 						}
 					})
 					.focus()
 					.select();
 			};
 
+
+			// applyValue()
+			// This is the function that will update the data model in the grid.
+			//
+			// @param	item		object		The data model for the item being edited
+			// @param	value		string		The user-input value being entered
+			//
+			this.applyValue = function (item, value) {
+				item.data[options.column.field] = value;
+			}
+
+
+			// destroy()
+			// Destroys any elements your editor has created.
+			//
 			this.destroy = function () {
-				$input.remove();
-			};
+				this.$input.remove();
+			}
 
+
+			// focus()
+			// When the cell with an initialized editor is focused
+			//
 			this.focus = function () {
-				$input.focus();
-			};
+				this.$input.focus();
+			}
 
+
+			// getValue()
+			// Gets the current value of whatever the user has inputted
+			//
+			// @return string
 			this.getValue = function () {
-				return $input.val();
-			};
+				return this.$input.val();
+			}
 
-			this.setValue = function (val) {
-				$input.val(val);
-			};
 
-			this.loadValue = function (item) {
-				defaultValue = item[args.column.field] || "";
-				$input.val(defaultValue);
-				$input[0].defaultValue = defaultValue;
-				$input.select();
-			};
-
-			this.serializeValue = function () {
-				return $input.val();
-			};
-
-			this.applyValue = function (item, state) {
-				item[args.column.field] = state;
-			};
-
+			// isValueChanged()
+			// Determines whether or not the value has changed
+			//
+			// @return boolean
 			this.isValueChanged = function () {
-				return (!($input.val() === "" && defaultValue === null)) && ($input.val() != defaultValue);
-			};
+				return (!(this.$input.val() === "" && this.currentValue === null)) && (this.$input.val() != this.currentValue);
+			}
 
+
+			// loadValue()
+			// Loads the current value for the item
+			//
+			// @param	item	object		Data model object that is being edited
+			//
+			this.loadValue = function (item) {
+				return this.currentValue = item.data[options.column.field] || ""
+			}
+
+
+			// serializeValue()
+			// Process the input value before submitting it
+			//
+			this.serializeValue = function () {
+				return this.$input.val();
+			}
+
+
+			// setValue()
+			// Sets the value inside your editor, in case some internal grid calls needs to do
+			// it dynamically.
+			//
+			// @param	val		string		Value to set
+			//
+			this.setValue = function (val) {
+				this.$input.val(val);
+			}
+
+
+			// validate()
+			// Validation step for the value before allowing a save. Should return back
+			// and object with two keys: `valid` (boolean) and `msg` (string) for the error
+			// message (if any).
+			//
+			// @return object
 			this.validate = function () {
-				if (args.column.validator) {
-					var validationResults = args.column.validator($input.val());
+				if (options.column.validator) {
+					var validationResults = options.column.validator($input.val());
 					if (!validationResults.valid) {
 						return validationResults;
 					}
@@ -2577,7 +2639,7 @@
 				};
 			};
 
-			return this.init();
+			return this.initialize();
 		}
 
 
@@ -2913,6 +2975,34 @@
 		}
 
 
+		// getCaretPosition()
+		// Given an input field object, will tell you where the cursor is positioned
+		//
+		// @param	input		DOM		Input dom element
+		//
+		// @return integer
+		getCaretPosition = function (input) {
+			var pos = 0;
+
+			// IE Specific
+			if (document.selection) {
+				input.focus();
+				var oSel = document.selection.createRange();
+				oSel.moveStart('character', -input.value.length);
+				pos = oSel.text.length;
+			}
+			// If text is selected -- return null
+			else if (input.selectionStart !== input.selectionEnd) {
+				return null
+			// Find cursor position
+			} else if (input.selectionStart || input.selectionStart == '0') {
+				pos = input.selectionStart;
+			}
+
+			return pos;
+		}
+
+
 		// getCellFromNode()
 		// Given a cell node, returns the cell index in that row
 		//
@@ -2984,8 +3074,7 @@
 			}
 
 			var y1 = getRowTop(row),
-				// TODO: This needs to use variable row height
-				y2 = y1 + self.options.rowHeight - 1,
+				y2 = y1 + rowPositionCache[row].height - 1,
 				x1 = 0;
 
 			for (var i = 0; i < cell; i++) {
@@ -3199,6 +3288,7 @@
 			var rowMetadata = self.collection.getItemMetadata && self.collection.getItemMetadata(row);
 			var columnMetadata = rowMetadata && rowMetadata.columns;
 
+			// Get the editor from the column definition
 			if (columnMetadata && columnMetadata[column.id] && columnMetadata[column.id].editor !== undefined) {
 				return columnMetadata[column.id].editor;
 			}
@@ -3206,7 +3296,8 @@
 				return columnMetadata[cell].editor;
 			}
 
-			return column.editor || (self.options.editorFactory && self.options.editorFactory.getEditor(column));
+			// If no column editor, use editor in the options, otherwise use defaultEditor
+			return column.editor || (self.options.editor && self.options.editor.getEditor(column)) || defaultEditor;
 		}
 
 
@@ -3280,7 +3371,7 @@
 		}
 
 
-		// getMaxCSSHeight()
+		// getMaxCSS ()
 		// Some browsers have a limit on the CSS height an element can make use of.
 		// Calculate the maximum height we have to play with.
 		//
@@ -3402,7 +3493,11 @@
 		//
 		// @return integer
 		getRowTop = function (row) {
-			return self.options.rowHeight * row - offset;
+			var top = 0;
+			for (var i = 0; i < row; i++) {
+				top += rowPositionCache[i].height
+			}
+			return top - offset;
 		}
 
 
@@ -3414,7 +3509,6 @@
 		//
 		// @return object
 		getScrollbarSize = function () {
-			console.log(document.body)
 			var s = 'position:absolute;top:-10000px;left:-10000px;width:100px;height:100px;overflow:scroll',
 				c = $("<div style='" + s + "'></div>").appendTo($(document.body)),
 				result = {
@@ -3803,7 +3897,7 @@
 				return;
 			}
 
-			// Set clicked cella s active
+			// Set clicked cells to active
 			if ((activeCell != cell.cell || activeRow != cell.row) && canCellBeActive(cell.row, cell.cell)) {
 				scrollRowIntoView(cell.row, false);
 				setActiveCellInternal(getCellNode(cell.row, cell.cell));
@@ -3935,33 +4029,46 @@
 						handled = true;
 					// Left Arrow
 					} else if (e.which == 37) {
+						if (self.options.editable && currentEditor) {
+							commitCurrentEdit();
+						}
 						handled = navigate("left");
 					// Right Arrow
 					} else if (e.which == 39) {
+						if (self.options.editable && currentEditor) {
+							commitCurrentEdit();
+						}
 						handled = navigate("right");
 					// Up Arrow
 					} else if (e.which == 38) {
+						if (self.options.editable && currentEditor) {
+							commitCurrentEdit();
+						}
 						handled = navigate("up");
 					// Down Arrow
 					} else if (e.which == 40) {
+						if (self.options.editable && currentEditor) {
+							commitCurrentEdit();
+						}
 						handled = navigate("down");
 					// Tab
 					} else if (e.which == 9) {
+						if (self.options.editable && currentEditor) {
+							commitCurrentEdit();
+						}
 						handled = navigate("next");
 					// Enter
 					} else if (e.which == 13) {
-						if (self.options.editable) {
-							if (currentEditor) {
-								// adding new row
-								if (activeRow === getDataLength() || self.options.autoEdit) {
-									navigate("down");
-								}
-							}
+						if (self.options.editable && currentEditor) {
+							commitCurrentEdit();
 						}
-						handled = true;
+						handled = navigate("down");
 					}
 				// Shift Tab
 				} else if (e.which == 9 && e.shiftKey && !e.ctrlKey && !e.altKey) {
+					if (self.options.editable && currentEditor) {
+						commitCurrentEdit();
+					}
 					handled = navigate("prev")
 				}
 			}
@@ -4202,8 +4309,6 @@
 				}
 			})
 
-			console.log(NonDataItem)
-
 			// TODO: Convert this to a NonDataItem object
 			self.add(obj)
 		}
@@ -4301,14 +4406,9 @@
 		// @param	editor		function		Editor factory to use
 		//
 		makeActiveCellEditable = function (editor) {
-			if (!activeCellNode) {
-				return;
-			}
-			if (!self.options.editable) {
-				throw "Grid : makeActiveCellEditable : should never get called when options.editable is false";
-			}
+			if (!activeCellNode || !self.options.editable) return;
 
-			// cancel pending async call if there is one
+			// Cancel pending async call if there is one
 			clearTimeout(h_editorLoader);
 
 			if (!isCellPotentiallyEditable(activeRow, activeCell)) {
@@ -4329,18 +4429,16 @@
 
 			$(activeCellNode).addClass("editable");
 
-			// don't clear the cell if a custom editor is passed through
-			if (!editor) {
-				activeCellNode.innerHTML = "";
-			}
+			// If no editor is given, clear the cell
+			if (!editor) activeCellNode.innerHTML = "";
 
-			var edtr = editor || getEditor(activeRow, activeCell)
+			var cellEditor = editor || getEditor(activeRow, activeCell)
 
-			currentEditor = new edtr({
+			currentEditor = new cellEditor({
 				grid: self,
 				gridPosition: absBox(self.$el[0]),
 				position: absBox(activeCellNode),
-				container: activeCellNode,
+				cell: activeCellNode,
 				column: columnDef,
 				item: item || {},
 				commitChanges: function () {
@@ -4351,10 +4449,6 @@
 					}
 				}
 			});
-
-			if (item) {
-				currentEditor.loadValue(item);
-			}
 
 			serializedEditorValue = currentEditor.serializeValue();
 
@@ -5160,10 +5254,10 @@
 		// setActiveCellInternal()
 		// Internal method for setting the active cell that bypasses any option restrictions
 		//
-		// @param	newCell				DOM		Cell node to set as the active cell
-		// @param	opt_editMode		??		TODO: ??
+		// @param	newCell			DOM			Cell node to set as the active cell
+		// @param	setEdit			boolean		If true, will force cell to editable immediately
 		//
-		setActiveCellInternal = function (newCell, opt_editMode) {
+		setActiveCellInternal = function (newCell, setEdit) {
 			if (activeCellNode !== null) {
 				makeActiveCellNormal();
 				$(activeCellNode).removeClass("active");
@@ -5179,14 +5273,15 @@
 				activeRow = getRowFromNode(activeCellNode.parentNode);
 				activeCell = activePosX = getCellFromNode(activeCellNode);
 
-				if (opt_editMode === null) {
-					opt_editMode = (activeRow == getDataLength()) || self.options.autoEdit;
+				// If 'setEdit' is not defined, determine if cell is in autoEdit
+				if (setEdit === null || setEdit === undefined) {
+					setEdit = (activeRow == getDataLength()) || self.options.autoEdit;
 				}
 
 				$(activeCellNode).addClass("active");
 				$(rowsCache[activeRow].rowNode).addClass("active");
 
-				if (self.options.editable && opt_editMode && isCellPotentiallyEditable(activeRow, activeCell)) {
+				if (self.options.editable && setEdit && isCellPotentiallyEditable(activeRow, activeCell)) {
 					clearTimeout(h_editorLoader);
 
 					if (self.options.asyncEditorLoading) {
@@ -5556,7 +5651,7 @@
 				$col = $(e);
 
 				// If resizable columns are disabled -- return
-				if (!self.options.resizable) return
+				if (!self.options.resizableColumns) return
 
 				// Find the column data object
 				column = self.options.columns[i];
@@ -6198,9 +6293,6 @@
 				// An "id" is required. If it's missing, auto-generate one
 				if (!c.id) c.id = c.field + '_' + i || c.name + '_' + i
 
-				// TODO: If editable, ensure columns have a default "Slick.Editors.Text" editor set
-				if (self.options.editable && c.editor === undefined) c.editor = defaultEditor
-
 				// TODO: This is temporarily here until grouping via remote data can be enabled
 				if (self.options.remote) c.groupable = false
 
@@ -6229,7 +6321,7 @@
 		//
 		validateOptions = function () {
 			// Validate loaded JavaScript modules against requested options
-			if (self.options.resizable && !$.fn.drag) {
+			if (self.options.resizableColumns && !$.fn.drag) {
 				throw new Error('In other to use "resizable", you must ensure the jquery-ui.draggable module is loaded.');
 			}
 			if (self.options.reorderable && !$.fn.sortable) {

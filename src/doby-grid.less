@@ -228,7 +228,6 @@
 
 .doby-grid-row {
 	border-bottom: 1px solid rgba(0,0,0,0.2);
-	border-top: 1px solid rgba(255,255,255,0.5);
 	position: absolute;
 	width: 100%;
 
@@ -238,15 +237,18 @@
 }
 
 	.doby-grid-cell {
+		border: 1px solid transparent;
 		border-right: 1px dotted rgba(0,0,0,0.2);
+		bottom: -1px;
+		box-shadow: 1px 1px 0 rgba(255,255,255,0.3) inset;
 		cursor: default;
-		height: 100%;
-		margin: 0;
+		margin: -1px 0 0 -1px;
 		overflow: hidden;
 		padding: 0 8px;
 		position: absolute;
 		text-overflow: ellipsis;
-		.transition(~"background 0.3s ease-in-out");
+		top: -1px;
+		.transition(~"background 0.3s ease-in-out, box-shadow 0.3s ease-in-out");
 		white-space: nowrap;
 		z-index: 1;
 
@@ -261,12 +263,17 @@
 		&.active {
 			background: rgba(20,90,255,0.1);
 			border: 1px solid rgba(10,70,180,0.3);
-			margin: 0 0 0 -1px
+			box-shadow: 1px 1px 1px rgba(10,70,180,0.2) inset;
 		}
 
 		&.flashing {
 			border: 1px solid red !important;
 		}
+	}
+
+	// Row resize handle
+	.doby-grid-row-handle {
+
 	}
 
 
@@ -356,7 +363,7 @@
 	}
 
 	// Input field
-	input.editor-text {
+	input.editor {
 		background: none;
 		border: 0;
 		box-shadow: none !important;

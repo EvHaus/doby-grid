@@ -29,6 +29,8 @@ Doby Grid is stand-alone module (and part of the Doby JS framework) for renderin
 - (TODO) Ability to export/import CSV/JSON data
 - (TODO) Support for column footers with data aggregators
 - (TODO) Support for on-the-fly filtering of column data (and searching)
+- (TODO) Support for undo
+- (TODO) Esc should revert edit changes
 
 ### Dependencies
 

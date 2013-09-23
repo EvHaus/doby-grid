@@ -11,14 +11,14 @@ define([], function() {
 					age: "100 years",
 					city: ['Venice','Vatican City','Rome'][_.random(0,2)],
 					country: "ITA"
-				}
+				},
+				height: _.random(20, 70)
 			});
 		}
 
 		// Generate Grid
 		var grid = new DobyGrid({
 			autoColumnWidth: true,
-			autoEdit: true,
 			columns: [{
 				id: "id",
 				name: "ID",
@@ -47,7 +47,7 @@ define([], function() {
 				sortable: true
 			}],
 			data: data,
-			editable: true
+			resizableRows: true
 		})
 
 		return grid

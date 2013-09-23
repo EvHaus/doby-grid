@@ -1,7 +1,7 @@
-Bug Report
+Bug Reports & Feature Requests
 ==========
 
-Please submit bug reports via Github issues.
+Please submit bug reports, feature requests via [GitHub Issues](https://github.com/globexdesigns/doby-grid/issues).
 
 Submitting Code
 ==========
