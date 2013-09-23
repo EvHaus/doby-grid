@@ -25,6 +25,7 @@
 }(this, function (root, $, _, Backbone) {
 
 	var DobyGrid = function (options) {
+		options = options || {}
 
 		// Name of this Doby component
 		this.NAME = 'doby-grid',
@@ -184,6 +185,7 @@
 			initialize,
 			initialized = false,
 			initializeRowPositions,
+			insertEmptyAlert,
 			invalidate,
 			invalidateAllRows,
 			invalidatePostProcessingResults,
@@ -200,9 +202,14 @@
 			n,				// number of pages
 			naturalSort,
 			navigate,
-			NonDataItem = function () {
+			NonDataItem = function (data) {
+				// NonDataItem()
 				// A base class that all special / non-data rows (like Group) derive from.
+				//
+				// @param	data		object		Data object for this item
+				//
 				this.__nonDataRow = true;
+				if (data) _.extend(this, data);
 			},
 			numberOfRows = 0,
 			numVisibleRows,
@@ -274,6 +281,7 @@
 			asyncEditorLoadDelay:	100,
 			asyncEditorLoading:		false,
 			asyncPostRenderDelay:	25,
+			autoColumnWidth:		false,
 			autoEdit:				true,
 			class:					null,
 			columns:				[],
@@ -284,7 +292,6 @@
 			editorFactory:			null,		// TODO: Determine if still needed. Then document.
 			emptyNotice:			true,
 			enableAddRow:			false,		// TODO: Determine if still needed. Then document.
-			forceFitColumns:		false,
 			forceSyncScrolling:		false,		// TODO: Determine if still needed. Then document.
 			formatter:				null,
 			formatterFactory:		null,		// TODO: Determine if still needed. Then document.
@@ -298,7 +305,7 @@
 					add_group:			'Add Grouping By "{{name}}"',
 					add_sort_asc:		'Add Sort By "{{name}}" (Ascending)',
 					add_sort_desc:		'Add Sort By "{{name}}" (Descending)',
-					force_fit:			'Force Fit Columns',
+					auto_width:			'Automatically Resize Columns',
 					group:				'Group By "{{name}}"',
 					groups_clear:		'Clear All Grouping',
 					groups_collapse:	'Collapse All Groups',
@@ -309,8 +316,10 @@
 					sort_asc:			'Sort By "{{name}}" (Ascending)',
 					sort_desc:			'Sort By "{{name}}" (Descending)'
 				},
-				remote: {
-					no_results:			'No results found'
+				empty: {
+					default:			'No data available',
+					remote:				'No results found',
+					filter:				'No items matching that filter'
 				}
 			},
 			multiColumnSort:		true,
@@ -420,56 +429,10 @@
 
 
 		// add()
-		// Inserts a new data row into the grid
+		// Entry point for collection.add(). See collection.add for more info.
 		//
-		// @param	data			object				Data object to insert
-		// @param	inserter		int or object		Id of data object before which to insert
-		// @param	indexOffset		integer				(Internal) Offset the index	by a number
-		//
-		// @return object
-		this.add = function (data, inserter, indexOffset) {
-			if (!data) return this
-
-			var index = null,
-				idx = null
-
-			if (inserter === undefined || inserter === null) {
-				idx = null
-				index = null
-			} else if (typeof(inserter) == 'object' &&
-				inserter.before !== undefined && inserter.before !== null &&
-				inserter.after !== undefined && inserter.after !== null
-			) {
-				throw new Error($.t("ui:grid.error.after_before"))
-			} else {
-
-				indexOffset = indexOffset || 0
-
-				// Determine what index to insert before
-				if (inserter.before !== undefined && inserter.before !== null) {
-					index = this.collection.getRowById(inserter.before)
-					idx = this.collection.getIdxById(inserter.before)
-				} else if (inserter.after !== undefined && inserter.after !== null) {
-					index = this.collection.getRowById(inserter.after) + 1
-					idx = this.collection.getIdxById(inserter.after) + 1
-				}
-
-				idx = idx || this.collection.getLength()
-				idx += indexOffset
-
-				index = index || this.collection.getLength()
-				index += indexOffset
-			}
-
-			// Make sure data has an id
-			if (data.id === undefined) data.id = data.data.id
-
-			// I'm not entirely sure why it works this way
-			// There may be complications.
-			// TODO: Unit test this somehow.
-			var insert_at = this.isGrouped() ? idx : index
-			this.collection.insertItem(insert_at, data)
-
+		this.add = function (models, options) {
+			this.collection.add(models, options)
 			return this
 		}
 
@@ -925,6 +888,7 @@
 				})
 				.on('dragstart', function (event, dd) {
 					var cell = getCellFromEvent(event);
+					if (!cell) return
 
 					// This prevents you from starting to drag on a cell that can't be selected
 					if (canCellBeSelected(cell.row, cell.cell)) {
@@ -1566,7 +1530,6 @@
 				groups = [],
 				idProperty = "id",	// property holding a unique row id
 				indexById = {},
-				items = [],			// data by index
 				length = null,		// Custom length of collection, for Remote Models
 				pagenum = 0,
 				pagesize = 0,
@@ -1591,12 +1554,16 @@
 
 			options = $.extend(true, {}, defaults, options);
 
+			// Items by index
+			this.items = [];
+
 
 			// initialize()
 			// Initializes the Data View
 			//
 			// @return object
 			this.initialize = function () {
+
 				if (data) {
 					// TODO: Don't convert to Backbone Collection -- use initial collection
 					if (data instanceof Backbone.Collection) {
@@ -1611,14 +1578,46 @@
 
 
 			// add()
-			// Add an item for the collection
+			// Add models to the collection.
 			//
-			// @param	item	object		Object to add to the collection
+			// @param	models		array, object		Object(s) to add to the collection
+			// @param	options		object				Additional options
 			//
 			// @return object
-			this.add = function (item) {
-				items.push(item);
-				updateIndexById(items.length - 1);
+			this.add = function (models, options) {
+				if (!_.isArray(models)) models = models ? [models] : [];
+				options = options || {};
+				var at = options.at, model, existing, toAdd = [];
+
+				// Merge existing models and collect the new ones
+				for (var i = 0, l = models.length; i < l; i++) {
+					model = models[i];
+					existing = this.get(model)
+					if (existing) {
+						if (options.merge) {
+							this.updateItem(existing.data.id, model)
+						}
+					} else {
+						toAdd.push(model);
+					}
+				}
+
+				// If data used to be empty, with an alert - remove alert
+				if (this.items.length == 1 && this.items[0].__alert) {
+					this.deleteItem(this.items[0].data.id)
+				}
+
+				// Add the new models
+				if (toAdd.length) {
+					if (at !== null && at !== undefined) {
+						Array.prototype.splice.apply(this.items, [at, 0].concat(toAdd))
+						updateIndexById((at > 0 ? at - 1 : 0));
+					} else {
+						Array.prototype.push.apply(this.items, toAdd)
+						updateIndexById(this.items.length - 1);
+					}
+				}
+
 				this.refresh();
 				return this;
 			}
@@ -1781,9 +1780,9 @@
 					throw "Unable to delete collection item. Invalid id (" + id + ") supplied.";
 				}
 				delete indexById[id];
-				items.splice(idx, 1);
+				this.items.splice(idx, 1);
 				updateIndexById(idx);
-				if (self.options.remote) length--;
+				if (options.remote) length--;
 				this.refresh();
 			}
 
@@ -1867,8 +1866,8 @@
 
 			ensureIdUniqueness = function () {
 				var id;
-				for (var i = 0, l = items.length; i < l; i++) {
-					id = items[i].data[idProperty];
+				for (var i = 0, l = self.items.length; i < l; i++) {
+					id = self.items[i].data[idProperty];
 					if (id === undefined || indexById[id] !== i) {
 						throw "Each data element must implement a unique 'id' property";
 					}
@@ -2046,12 +2045,26 @@
 				return rows[i];
 			}
 
-			this.getItemById = function (id) {
-				return items[indexById[id]];
+
+			// get()
+			// Get a model from collection, specified by an id, or by passing in a model.
+			//
+			// @param		obj		object, integer		Model reference or model id
+			//
+			// @return object
+			this.get = function (obj) {
+				if (obj === null) return void 0;
+				var id = obj
+				if (typeof obj == 'object') {
+					if (!obj.data || !obj.data.id) throw "Unable to get() item because the given 'obj' param is missing a data.id attribute."
+					id = obj.data.id
+				}
+				return this.items[indexById[id]];
 			}
 
+
 			this.getItemByIdx = function (i) {
-				return items[i];
+				return this.items[i];
 			}
 
 			this.getItemMetadata = function (i) {
@@ -2071,10 +2084,6 @@
 				}
 
 				return null;
-			}
-
-			this.getItems = function () {
-				return items;
 			}
 
 			this.getLength = function () {
@@ -2149,7 +2158,7 @@
 									// always considering them 'dirty' seems easier for the time being
 									(item.__groupTotals || r.__groupTotals)
 								) ||
-								// Compare between different data objects
+								// Compare between different data object ids
 								(
 									item && item.data && r.data && item.data[idProperty] != r.data[idProperty] ||
 									(updated && updated[item.data[idProperty]])
@@ -2166,14 +2175,14 @@
 
 
 			this.insertItem = function (insertBefore, item) {
-				items.splice(insertBefore, 0, item);
+				this.items.splice(insertBefore, 0, item);
 				updateIndexById(insertBefore);
 				if (self.options.remote) length++
 				this.refresh();
 			}
 
 			this.insertItemAtIdx = function (item, idx) {
-				items[idx] = item
+				this.items[idx] = item
 				this.refresh();
 			}
 
@@ -2229,19 +2238,17 @@
 			}
 
 			this.refresh = function () {
-				if (suspend) {
-					return;
-				}
+				if (suspend) return;
 
 				var countBefore = rows.length,
 					totalRowsBefore = totalRows,
-					diff = recalc(items, filter); // pass as direct refs to avoid closure perf hit
+					diff = recalc(this.items, filter); // pass as direct refs to avoid closure perf hit
 
 				// if the current page is no longer valid, go to last page and recalc
 				// we suffer a performance penalty here, but the main loop (recalc) remains highly optimized
 				if (pagesize && totalRows < pagenum * pagesize) {
 					pagenum = Math.max(0, Math.ceil(totalRows / pagesize) - 1);
-					diff = recalc(items, filter);
+					diff = recalc(this.items, filter);
 				}
 
 				updated = null;
@@ -2260,6 +2267,7 @@
 						current: rows.length
 					})
 				}
+
 				if (diff.length > 0) {
 					invalidateRows(diff);
 					render();
@@ -2338,7 +2346,7 @@
 				if (objectIdProperty !== undefined) {
 					idProperty = objectIdProperty;
 				}
-				items = filteredItems = data;
+				this.items = filteredItems = data;
 				indexById = {};
 				updateIndexById();
 				ensureIdUniqueness();
@@ -2359,7 +2367,7 @@
 
 				// Ensert nulls for all pending items
 				for (var i = 0; i < count; i++) {
-					if (items[i] === undefined) items[i] = null
+					if (this.items[i] === undefined) this.items[i] = null
 				}
 				this.refresh();
 
@@ -2389,11 +2397,11 @@
 				sortAsc = ascending;
 				sortComparer = comparer;
 				if (ascending === false) {
-					items.reverse();
+					this.items.reverse();
 				}
 				items.sort(comparer);
 				if (ascending === false) {
-					items.reverse();
+					this.items.reverse();
 				}
 				indexById = {};
 				updateIndexById();
@@ -2455,12 +2463,18 @@
 				return retval;
 			}
 
+
+			// updateIndexById()
+			// Given a starting index, will update the index of models by id from that index onwards
+			//
+			// @param	startingIndex		integer		Where to start
+			//
 			updateIndexById = function (startingIndex) {
 				startingIndex = startingIndex || 0;
 				var id;
-				for (var i = startingIndex, l = items.length; i < l; i++) {
-					if (items[i] === null) continue;
-					id = items[i].data[idProperty];
+				for (var i = startingIndex, l = self.items.length; i < l; i++) {
+					if (self.items[i] === null) continue;
+					id = self.items[i].data[idProperty];
 					if (id === undefined) {
 						throw "Each data element must implement a unique 'id' property";
 					}
@@ -2468,11 +2482,19 @@
 				}
 			}
 
-			this.updateItem = function (id, item) {
-				if (indexById[id] === undefined || id !== item.data[idProperty]) {
+
+			// updateItem()
+			// Update and redraw an existing items
+			//
+			// @param	id		string		The id of the item to update
+			// @param	data	object		The data to use for the item
+			//
+			// @return object
+			this.updateItem = function (id, data) {
+				if (indexById[id] === undefined || id !== data.data[idProperty]) {
 					throw "Invalid or non-matching id";
 				}
-				items[indexById[id]] = item;
+				this.items[indexById[id]] = data;
 				if (!updated) {
 					updated = {};
 				}
@@ -2830,6 +2852,14 @@
 				cell += getColspan(row, cell);
 			}
 			return lastFocusableCell;
+		}
+
+
+		// get()
+		// Entry point for collection.get(). See collection.get for more info.
+		//
+		this.get = function (id) {
+			return this.collection.get(id)
 		}
 
 
@@ -3384,6 +3414,7 @@
 		//
 		// @return object
 		getScrollbarSize = function () {
+			console.log(document.body)
 			var s = 'position:absolute;top:-10000px;left:-10000px;width:100px;height:100px;overflow:scroll',
 				c = $("<div style='" + s + "'></div>").appendTo($(document.body)),
 				result = {
@@ -4153,6 +4184,31 @@
 		}
 
 
+		// insertEmptyAlert()
+		// When the grid is empty and the empty alert is enabled -- add a NonDataItem to the grid
+		//
+		// @param	type		string			"default", "remote" or "filter"
+		//
+		insertEmptyAlert = function (type) {
+			if (!type) type = "default"
+
+			var obj = new NonDataItem({
+				__alert: true,
+				data: {
+					id: '-empty-alert-message-',
+					data: {
+						msg: getLocale("empty." + type)
+					}
+				}
+			})
+
+			console.log(NonDataItem)
+
+			// TODO: Convert this to a NonDataItem object
+			self.add(obj)
+		}
+
+
 		// invalidate()
 		// Clears the caching for all rows counts and positions
 		//
@@ -4585,7 +4641,7 @@
 						self.loader.clearCache()
 
 						// Insert row
-						insertEmptyAlert()
+						insertEmptyAlert('remote')
 
 						// Manually tell collection it's 1 units long
 						self.collection.setLength(1)
@@ -4915,7 +4971,7 @@
 			viewportW = parseFloat($.css(self.$el[0], "width", true));
 			$viewport.height(viewportH);
 
-			if (self.options.forceFitColumns) {
+			if (self.options.autoColumnWidth) {
 				autosizeColumns();
 			}
 
@@ -5368,7 +5424,7 @@
 						}
 					}
 
-					if (self.options.forceFitColumns) {
+					if (self.options.autoColumnWidth) {
 						x = -d;
 						for (j = i + 1; j < columnElements.length; j++) {
 							c = self.options.columns[j];
@@ -5397,7 +5453,7 @@
 						}
 					}
 
-					if (self.options.forceFitColumns) {
+					if (self.options.autoColumnWidth) {
 						x = -d;
 						for (j = i + 1; j < columnElements.length; j++) {
 							c = self.options.columns[j];
@@ -5420,7 +5476,7 @@
 				var shrinkLeewayOnRight = null,
 					stretchLeewayOnRight = null;
 
-				if (self.options.forceFitColumns) {
+				if (self.options.autoColumnWidth) {
 					shrinkLeewayOnRight = 0;
 					stretchLeewayOnRight = 0;
 					// colums on right affect maxPageX/minPageX
@@ -5494,7 +5550,7 @@
 			}
 
 			columnElements.each(function (i, e) {
-				if (i < firstResizable || (self.options.forceFitColumns && i >= lastResizable)) {
+				if (i < firstResizable || (self.options.autoColumnWidth && i >= lastResizable)) {
 					return;
 				}
 				$col = $(e);
@@ -5804,12 +5860,12 @@
 				enabled: column && (column.sortable || column.removable || column.groupable),
 				divider: true
 			}, {
-				name: getLocale('column.force_fit'),
-				value: self.options.forceFitColumns,
+				name: getLocale('column.auto_width'),
+				value: self.options.autoColumnWidth,
 				fn: function () {
-					force = !self.options.forceFitColumns
+					force = !self.options.autoColumnWidth
 					self.setOptions({
-						forceFitColumns: force
+						autoColumnWidth: force
 					});
 					if (force) autosizeColumns();
 
@@ -6105,7 +6161,7 @@
 				scrollTo(th - viewportH);
 			}
 
-			if (self.options.forceFitColumns && oldViewportHasVScroll != viewportHasVScroll) {
+			if (self.options.autoColumnWidth && oldViewportHasVScroll != viewportHasVScroll) {
 				autosizeColumns();
 			}
 			updateCanvasWidth(false);

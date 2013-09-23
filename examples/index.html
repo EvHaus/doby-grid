@@ -99,6 +99,10 @@
 				require(['examples/' + name], function(gridInit) {
 					var grid = gridInit(DobyGrid);
 					grid.appendTo($('#gridwrapper').empty())
+
+					// Expose grid to the world so we can debug via console
+					window.grid = grid
+
 					var end = new Date();
 					console.info('Grid loaded and rendered in '+(end-start)+'ms')
 				})
@@ -120,6 +124,7 @@
 		<ul id="examplemenu">
 			<li><h1>Examples</h1></li>
 			<li><a href="#basic">Basic Grid</a></li>
+			<li><a href="#empty">Empty Grid</a></li>
 			<li><a href="#postprocess">Column Post-Processing</a></li>
 			<li><a href="#editable">Editable Grid</a></li>
 		</ul>

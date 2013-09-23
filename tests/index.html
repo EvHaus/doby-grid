@@ -16,31 +16,30 @@
 		<script src="../libs/jquery.event.drag.js"></script>
 
 		<script src="../src/doby-grid.js"></script>
-
-		<script src="common.js"></script>
-		<script src="rendering.js"></script>
-
-		<script>
-			(function() {
-				var jasmineEnv = jasmine.getEnv();
-				jasmineEnv.updateInterval = 1000;
-
-				// jasmine-jquery configuration
-				jasmine.getFixtures().fixturesPath = '/test';
-
-				var htmlReporter = new jasmine.HtmlReporter();
-
-				jasmineEnv.addReporter(htmlReporter);
-
-				jasmineEnv.specFilter = function(spec) {
-					return htmlReporter.specFilter(spec);
-				};
-
-				$(document).ready(function() {
-					jasmineEnv.execute();
-				});
-			}());
-		</script>
 	</head>
 	<body></body>
+	<script src="common.js"></script>
+	<script src="methods.js"></script>
+	<script src="rendering.js"></script>
+	<script>
+		(function() {
+			var jasmineEnv = jasmine.getEnv();
+			jasmineEnv.updateInterval = 1000;
+
+			// jasmine-jquery configuration
+			jasmine.getFixtures().fixturesPath = '/test';
+
+			var htmlReporter = new jasmine.HtmlReporter();
+
+			jasmineEnv.addReporter(htmlReporter);
+
+			jasmineEnv.specFilter = function(spec) {
+				return htmlReporter.specFilter(spec);
+			};
+
+			$(document).ready(function() {
+				jasmineEnv.execute();
+			});
+		}());
+	</script>
 </html>

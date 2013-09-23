@@ -78,6 +78,16 @@ describe("Rendering", function () {
 		})
 
 
+		// ==========================================================================================
+
+
+		it("should automatically render a new row when you use add()", function () {
+			var newrow = {data: {id: 2, name: "adding a new row"}}
+			grid.add(newrow)
+			var lastcell = grid.$el.find('.doby-grid-row:last-child .doby-grid-cell:last-child').text()
+			expect(lastcell).toEqual(newrow.data.name)
+		})
+
 	})
 
 
