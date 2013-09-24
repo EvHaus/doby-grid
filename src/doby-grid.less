@@ -273,8 +273,33 @@
 
 	// Row resize handle
 	.doby-grid-row-handle {
+		border-bottom: 1px solid rgba(255,255,255,0);
+		border-top: 1px solid rgba(0,0,0,0);
+		bottom: -5px;
+		cursor: ns-resize;
+		height: 6px;
+		left: 0;
+		position: absolute;
+		right: 0;
+		.transition(~"all 0.3s ease-in-out");
+		z-index: 10;
 
+		&:hover {
+			background: #AAA;
+			border-bottom: 1px solid rgba(255,255,255,0.8);
+			border-top: 1px solid rgba(0,0,0,0.5);
+			box-shadow: #333 0 0 2px inset;
+		}
 	}
+
+// Row drag container
+.doby-grid-row-drag-container {
+	bottom: 0;
+	left: 0;
+	top: 0;
+	position: absolute;
+	right: 0;
+}
 
 
 // Groups

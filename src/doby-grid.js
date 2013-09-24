@@ -60,6 +60,7 @@
 			autosizeColumns,
 			bindAncestorScrollEvents,
 			bindCellRangeSelect,
+			bindRowResize,
 			cacheRowPositions,
 			canCellBeActive,
 			canCellBeSelected,
@@ -91,6 +92,7 @@
 			classplaceholder = this.NAME + '-sortable-placeholder',
 			classrangedecorator = this.NAME + '-range-decorator',
 			classrow = this.NAME + '-row',
+			classrowdragcontainer = this.NAME + '-row-drag-container',
 			classrowhandle = this.NAME + '-row-handle',
 			classsortindicator = this.NAME + '-sort-indicator',
 			classsortindicatorasc = classsortindicator + '-asc',
@@ -249,6 +251,7 @@
 			setActiveCell,
 			setActiveCellInternal,
 			setColumns,
+			setRowHeight,
 			setSelectedRows,
 			setupColumnReorder,
 			setupColumnResize,
@@ -633,7 +636,6 @@
 				createCssRules();
 
 				// Recalculate variable row heights
-				initializeRowPositions();
 				cacheRowPositions();
 
 				resizeCanvas();
@@ -659,14 +661,19 @@
 					.delegate("." + classcell, "mouseenter", handleMouseEnter)
 					.delegate("." + classcell, "mouseleave", handleMouseLeave);
 
+
+				if (this.options.resizableRows) {
+					bindRowResize()
+				}
+
 				// Subscribe to cell range selection events
-				self.on('onCellRangeSelected', function (event, args) {
+				this.on('onCellRangeSelected', function (event, args) {
 					ranges = removeInvalidRanges(args.ranges)
 					self.trigger('onCellRangeChanged', event, {
 						ranges: ranges
 					})
 				})
-				self.on('onCellRangeChanged', handleSelectedRangesChanged)
+				this.on('onCellRangeChanged', handleSelectedRangesChanged)
 
 			} catch (e) {
 				console.error(e);
@@ -966,6 +973,64 @@
 		}
 
 
+		// bindRowResize()
+		// Binds the necessary events to handle row resizing
+		//
+		bindRowResize = function () {
+			$canvas
+				// TODO: Is this needed?
+				/*.on('draginit', function (event, dd) {
+					// Prevent the grid from cancelling drag'n'drop by default
+					event.stopImmediatePropagation();
+				})*/
+				.on('dragstart', function (event, dd) {
+					if (!$(event.target).hasClass(classrowhandle)) return
+					event.stopImmediatePropagation()
+					dd._row = getRowFromNode($(event.target).parent()[0])
+					dd._rowNode = rowsCache[dd._row].rowNode
+
+					// Grab all the row nodes below the current row
+					dd._rowsBelow = []
+					$(dd._rowNode).siblings().each(function () {
+						// If the row is below the dragged one - collected it
+						r = getRowFromNode(this)
+						if (r > dd._row) dd._rowsBelow.push(this)
+					})
+
+					// Put the rows below into a temporary container
+					$(dd._rowsBelow).wrapAll('<div class="' + classrowdragcontainer + '"></div>')
+					dd._container = $(dd._rowsBelow).parent()
+				})
+				.on('drag', function (event, dd) {
+					// Resize current row
+					var node = dd._rowNode,
+						height = rowPositionCache[dd._row].height;
+					dd._height = height + dd.deltaY
+
+					// Do not allow invisible heights
+					if (dd._height < 5) dd._height = 5
+
+					$(node).height(dd._height)
+
+					// If cells have height set - resize them too
+					$(node).children('.' + classcell).each(function () {
+						if ($(this).css('height')) {
+							$(this).height(dd._height)
+						}
+					})
+
+					// Drag and container of rows below
+					dd._container.css({marginTop: (dd._height - height) + 'px'})
+				})
+				.on('dragend', function (event, dd) {
+					// Unwrap rows below
+					$(dd._rowsBelow).unwrap()
+
+					setRowHeight(dd._row, dd._height)
+				})
+		}
+
+
 		// cacheRowPositions()
 		// Walks through the data and caches positions for all the rows into the 'rowPositionCache'
 		//
@@ -1083,10 +1148,10 @@
 
 				if (from && to) {
 					this.$el.css({
-						top: from.top - 1,
-						left: from.left - 1,
-						height: to.bottom - from.top - 4,
-						width: to.right - from.left - 4
+						top: from.top - 2,
+						left: from.left - 2,
+						height: to.bottom - from.top - 2,
+						width: to.right - from.left - 3
 					});
 				}
 
@@ -5382,6 +5447,25 @@
 
 			$viewport.css("overflow-y", self.options.autoHeight ? "hidden" : "auto");
 			render();
+		}
+
+
+		// setRowHeight()
+		// Sets the height of a given row
+		//
+		// @param	row		integer		Row index
+		// @param	height	integer		Height to set
+		//
+		setRowHeight = function (row, height) {
+			// TODO: This is hacky. There should be a collection.set() method to expend existing data
+			var item = self.collection.items[row];
+			item.height = height;
+			self.collection.updateItem(item.data.id, item)
+
+			// Invalidate rows below the edited one
+			cacheRowPositions()
+			invalidateRows(_.range(row, self.collection.getLength() + 1))
+			render()
 		}
 
 
