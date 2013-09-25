@@ -20,12 +20,12 @@ Doby Grid is stand-alone module (and part of the Doby JS framework) for renderin
 - Ability to group rows by a column value (including nested groups)
 - Ability to double-click on column separator to maximize the column based its contents
 - Ability to resize rows and insert rows of any height
+- Ability to click+drag to select cells
 - Easily integrates with i18n libraries
 - (TODO) Full keyboard navigation
 - (TODO) Support for editing and creating new rows, cells and columns on the fly just like a spreadsheet
 - (TODO) Support for Backbone.Collection objects as data sets (including remote data fetching)
 - (TODO) Ability to select rows, including common keyboard conventions such as shift+click to multi-select
-- (TODO) Ability to click+drag to select cells
 - (TODO) Ability to export/import CSV/JSON data
 - (TODO) Support for column footers with data aggregators
 - (TODO) Support for on-the-fly filtering of column data (and searching)

@@ -9,7 +9,7 @@ define([], function() {
 					id: i,
 					name: "Pope John "+i,
 					age: "100 years",
-					city: ['Venice','Vatican City','Rome'][_.random(0,2)],
+					city: ['Venice','Vatican City','Rome','Milan','Constantinople'][_.random(0,4)],
 					country: "ITA"
 				}
 			});
