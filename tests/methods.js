@@ -51,6 +51,17 @@ describe("Methods and Data Manipulation", function () {
 	// ==========================================================================================
 
 
+	it("should not be able to add() data without a unique id", function () {
+		var item = {data: {id: 101, name: 'updated'}}
+		expect(function () {
+			methodGrid.add(item)
+		}).toThrow('You are not allowed to add() items without a unique \'id\' value. A row with id \'' + item.data.id + '\' already exists.')
+	})
+
+
+	// ==========================================================================================
+
+
 	it("should be able to get() model by id", function () {
 		var gotten = methodGrid.get(101)
 		expect(gotten.data.id).toEqual(101)
@@ -63,6 +74,15 @@ describe("Methods and Data Manipulation", function () {
 	it("should be able to get() model by reference", function () {
 		var gotten = methodGrid.get({data: {id: 101, name: 'updated'}})
 		expect(gotten.data.id).toEqual(101)
+	})
+
+
+	// ==========================================================================================
+
+
+	it("should be able to destroy() the grid", function () {
+		methodGrid.destroy()
+		expect(methodGrid.$el).toEqual(null)
 	})
 
 

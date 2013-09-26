@@ -66,7 +66,8 @@
 			bindCellRangeSelect,
 			bindRowResize,
 			cache = {
-				nodes: {}
+				nodes: {},
+				rows: {}
 			},
 			cacheRowPositions,
 			canCellBeActive,
@@ -126,7 +127,6 @@
 			currentEditor = null,
 			defaultEditor,
 			defaultFormatter,
-			destroy,
 			disableSelection,
 			Dropdown,
 			enableAsyncPostRender = false,	// Does grid have any columns that require post-processing
@@ -156,12 +156,13 @@
 			getEditor,
 			getFormatter,
 			getHeadersWidth,
+			getItemId,
 			getLocale,
 			getMaxCSSHeight,
 			getRenderedRange,
 			getRowFromNode,
 			getRowFromPosition,
-			getRowTop,
+			getRowPosition,
 			getScrollbarSize,
 			getVBoxDelta,
 			getViewportHeight,
@@ -185,14 +186,14 @@
 			handleHeaderContextMenu,
 			handleHeaderClick,
 			handleKeyDown,
-			handleMouseEnter,
-			handleMouseLeave,
 			handleScroll,
 			handleSelectedRangesChanged,
+			handleWindowResize,
 			hasGrouping,
 			hasSorting,
 			headerColumnWidthDiff = 0,
 			headerColumnHeightDiff = 0, // border+padding
+			idProperty = "id",	// property holding a unique row id
 			initialize,
 			initialized = false,
 			insertEmptyAlert,
@@ -221,7 +222,6 @@
 				this.__nonDataRow = true;
 				if (data) _.extend(this, data);
 			},
-			numberOfRows = 0,
 			numVisibleRows,
 			offset = 0,		// current page offset
 			page = 0,		// current page
@@ -231,7 +231,6 @@
 			postProcessToRow = null,
 			prevScrollLeft = 0,
 			prevScrollTop = 0,
-			processData,
 			Range,
 			ranges,
 			removeCssRules,
@@ -287,6 +286,7 @@
 
 		// Default Grid Options
 		this.options = _.extend({
+			addRow:					false,
 			asyncEditorLoadDelay:	100,
 			asyncEditorLoading:		false,
 			asyncPostRenderDelay:	25,
@@ -300,7 +300,6 @@
 			editable:				false,
 			editor:					null,
 			emptyNotice:			true,
-			enableAddRow:			false,		// TODO: Determine if still needed. Then document.
 			forceSyncScrolling:		false,		// TODO: Determine if still needed. Then document.
 			formatter:				null,
 			formatterFactory:		null,		// TODO: Determine if still needed. Then document.
@@ -375,15 +374,13 @@
 			// Calculate some information about the browser window
 			getBrowserData();
 
-			processData(function () {
-				// Create the grid
-				createGrid();
+			// Create a new data collection
+			self.collection = new Collection(self.options.data, {
+				remote: self.options.remote
+			})
 
-				// Enable sorting
-				self.on('onSort', function (e, args) {
-					executeSorter(args)
-				})
-			});
+			// Create the grid
+			createGrid();
 
 			if (self.options.selectable) {
 				bindCellRangeSelect()
@@ -550,7 +547,8 @@
 					(dataLoading ? " loading" : "") +
 					(row === activeRow ? " active" : "") +
 					(row % 2 == 1 ? " odd" : ""),
-				data = self.collection;
+				data = self.collection,
+				pos = getRowPosition(row);
 
 			var metadata = data.getItemMetadata && data.getItemMetadata(row);
 
@@ -559,10 +557,10 @@
 			}
 
 			stringArray.push("<div class='" + rowCss + "' ");
-			stringArray.push("style='top:" + cache.rows[row].top + "px;");
+			stringArray.push("style='top:" + (pos.top + offset) + "px;");
 
-			if (cache.rows[row].height != self.options.rowHeight) {
-				var rowheight = cache.rows[row].height - cellHeightDiff;
+			if (pos.height != self.options.rowHeight) {
+				var rowheight = pos.height - cellHeightDiff;
 				stringArray.push('height:' + rowheight + 'px;line-height:' + rowheight + 'px');
 			}
 
@@ -640,22 +638,20 @@
 				bindAncestorScrollEvents();
 
 				this.$el
-					.bind("resize." + this.NAME, resizeCanvas);
+					.on("resize." + this.NAME, resizeCanvas);
 				$viewport
 					// TODO: This is in the SlickGrid 2.2 upgrade, but it breaks ui.grid()
 					// custom click handlers. Investigate a merge path.
-					//.bind("click", handleClick)
-					.bind("scroll", handleScroll);
+					//.on("click", handleClick)
+					.on("scroll", handleScroll);
 				$headerScroller
-					.bind("contextmenu", handleHeaderContextMenu)
-					.bind("click", handleHeaderClick)
+					.on("contextmenu", handleHeaderContextMenu)
+					.on("click", handleHeaderClick)
 				$canvas
-					.bind("keydown", handleKeyDown)
-					.bind("click", handleClick)
-					.bind("dblclick", handleDblClick)
-					.bind("contextmenu", handleContextMenu)
-					.delegate("." + classcell, "mouseenter", handleMouseEnter)
-					.delegate("." + classcell, "mouseleave", handleMouseLeave);
+					.on("keydown", handleKeyDown)
+					.on("click", handleClick)
+					.on("dblclick", handleDblClick)
+					.on("contextmenu", handleContextMenu)
 
 
 				if (this.options.resizableRows) {
@@ -690,11 +686,7 @@
 			}
 
 			// Resize grid when window is changed
-			$(window).resize(function () {
-				// Only if the object is visible
-				if (!self.$el.is(':visible')) return;
-				resizeCanvas();
-			});
+			$(window).on('resize', handleWindowResize);
 
 			return this;
 		};
@@ -1003,7 +995,8 @@
 				.on('drag', function (event, dd) {
 					// Resize current row
 					var node = dd._rowNode,
-						height = cache.rows[dd._row].height;
+						pos = getRowPosition(dd._row),
+						height = pos.height;
 					dd._height = height + dd.deltaY
 
 					// Do not allow invisible heights
@@ -1041,19 +1034,23 @@
 		//
 		cacheRowPositions = function (from) {
 			from = from || 0;
-			console.log('caching from', from)
 
 			// Start cache object
-			cache.rows = {
-				0: {
-					top: 0,
-					height: self.options.rowHeight,
-					bottom: self.options.rowHeight
-				}
-			};
+			if (from === 0) {
+				cache.rows = {
+					0: {
+						top: 0,
+						height: self.options.rowHeight,
+						bottom: self.options.rowHeight
+					}
+				};
+			}
+
+			var itemsWithAddNew = self.collection.items.length;
+			if (self.options.addRow) itemsWithAddNew++;
 
 			var item;
-			for (var i = from, l = self.collection.items.length; i < l; i++) {
+			for (var i = from, l = itemsWithAddNew; i < l; i++) {
 				item = self.collection.items[i]
 
 				cache.rows[i] = {
@@ -1586,7 +1583,6 @@
 				groupingDelimiter = ':|:',
 				groupingInfos = [],
 				groups = [],
-				idProperty = "id",	// property holding a unique row id
 				indexById = {},
 				length = null,		// Custom length of collection, for Remote Models
 				pagenum = 0,
@@ -1673,6 +1669,9 @@
 					if (existing) {
 						if (options.merge) {
 							this.updateItem(existing.data.id, model)
+						} else {
+							throw ["You are not allowed to add() items without a unique 'id' value. ",
+							"A row with id '" + existing.data.id + "' already exists."].join('')
 						}
 					} else {
 						toAdd.push(model);
@@ -1681,7 +1680,7 @@
 
 				// If data used to be empty, with an alert - remove alert
 				if (this.items.length == 1 && this.items[0].__alert) {
-					this.deleteItem(this.items[0].data.id)
+					this.deleteItem(getItemId(this.items[0]))
 				}
 
 				// Add the new models
@@ -1691,9 +1690,10 @@
 						updateIndexById((at > 0 ? at - 1 : 0));
 						cacheRowPositions(at)
 					} else {
+						var prevLength = this.items.length;
 						Array.prototype.push.apply(this.items, toAdd)
 						updateIndexById(this.items.length - 1);
-						cacheRowPositions()
+						cacheRowPositions(prevLength)
 					}
 				}
 
@@ -2134,6 +2134,10 @@
 
 			// get()
 			// Get a model from collection, specified by an id, or by passing in a model.
+			// The model gets generated on demand as generating all models at the start would
+			// make the grid take a very long time to initialize. This way, users will always
+			// see model objects, but internally the grid can make use of direct item references
+			// when performance is important.
 			//
 			// @param		obj		object, integer		Model reference or model id
 			//
@@ -2142,9 +2146,10 @@
 				if (obj === null) return void 0;
 				var id = obj
 				if (typeof obj == 'object') {
-					if (!obj.data || !obj.data.id) throw "Unable to get() item because the given 'obj' param is missing a data.id attribute."
-					id = obj.data.id
+					id = getItemId(obj)
+					if (!id) throw "Unable to get() item because the given 'obj' param is missing a unique 'id' attribute."
 				}
+
 				return this.items[indexById[id]];
 			}
 
@@ -2294,7 +2299,7 @@
 								(
 									groupingInfos.length && eitherIsNonData &&
 									(item && item.__group !== r.__group) ||
-									(item && item.__group) && (item.id != r.id) ||
+									(item && item.__group) && (getItemId(item) != getItemId(r)) ||
 									(item && item.__group) && (item.collapsed != r.collapsed)
 								) ||
 								// Compare between different non-data types
@@ -2604,12 +2609,15 @@
 			// @param	startingIndex		integer		Where to start
 			//
 			updateIndexById = function (startingIndex) {
+				// TODO: Combine this with cacheRowPositions so we don't need to loop over the
+				// full data set twice. Also determine whether or not we even have variable heights
+				// here and decide whether or not to create a cache
 				startingIndex = startingIndex || 0;
 				var id;
 				for (var i = startingIndex, l = self.items.length; i < l; i++) {
 					if (self.items[i] === null) continue;
-					id = self.items[i].data[idProperty];
-					if (id === undefined) {
+					id = self.items[i].data ? self.items[i].data[idProperty] : null;
+					if (id === null || id === undefined) {
 						throw "Each data element must implement a unique 'id' property";
 					}
 					indexById[id] = i;
@@ -2626,7 +2634,7 @@
 			// @return object
 			this.updateItem = function (id, data) {
 				if (indexById[id] === undefined || id !== data.data[idProperty]) {
-					throw "Invalid or non-matching id";
+					throw "Unable to update item (id: " + id + "). Invalid or non-matching id";
 				}
 				this.items[indexById[id]] = data;
 				if (!updated) {
@@ -2672,7 +2680,10 @@
 				// Will hold the current value of the item being edited
 				this.loadValue(options.item);
 
-				this.$input = $('<input type="text" class="editor" value="' + this.currentValue + '"/>')
+				var value = this.currentValue
+				if (value === null || value === undefined) value = ""
+
+				this.$input = $('<input type="text" class="editor" value="' + value + '"/>')
 					.appendTo(options.cell)
 					.on("keydown", function (event) {
 						// Esc
@@ -2687,7 +2698,7 @@
 
 						if ((pos === null && event.which != 38 && event.which != 40) ||
 							(pos > 0 && event.which === 37) ||
-							(pos < self.currentValue.length && event.which === 39)
+							(pos < $(this).val().length && event.which === 39)
 						) {
 							event.stopImmediatePropagation();
 						}
@@ -2756,7 +2767,8 @@
 			// @param	item	object		Data model object that is being edited
 			//
 			this.loadValue = function (item) {
-				return this.currentValue = item.data[options.column.field] || ""
+				if (!item || !item.data) return null
+				return this.currentValue = item.data[options.column.field] || null
 			}
 
 
@@ -2828,18 +2840,30 @@
 
 
 		// destroy()
-		// ??
+		// Destroy the grid and clean up any events that have been assigned
 		//
-		destroy = function () {
-			self.trigger('onBeforeDestroy', {});
-
-			if (self.options.reorderable) {
+		this.destroy = function () {
+			// If reorderable, destroy sortable jQuery plugin
+			if (this.options.reorderable) {
 				$headers.filter(":ui-sortable").sortable("destroy");
 			}
 
-			unbindAncestorScrollEvents();
-			self.$el.unbind("." + self.NAME);
+			// Unassign scroll events
+			// TODO: Remove this if bindAncestorScrollEvents is done
+			//unbindAncestorScrollEvents();
+
+			// Remove grid
+			this.$el.remove()
+			this.$el = null
+
+			// Remove window resize function
+			$(window).off('resize', handleWindowResize)
+
+			// Remove CSS Rules
 			removeCssRules();
+
+			// Destroy cache so it can be garbage collected
+			cache = null;
 		}
 
 
@@ -2859,7 +2883,7 @@
 				$target
 					.attr("unselectable", "on")
 					.css("MozUserSelect", "none")
-					.bind("selectstart.ui", function () {
+					.on("selectstart.ui", function () {
 					return false;
 				}); // from jquery:ui.core.js 1.7.2
 			}
@@ -3233,8 +3257,9 @@
 				return null;
 			}
 
-			var y1 = getRowTop(row),
-				y2 = y1 + cache.rows[row].height - 1,
+			var pos = getRowPosition(row),
+				y1 = pos.top,
+				y2 = y1 + pos.height - 1,
 				x1 = 0;
 
 			for (var i = 0; i < cell; i++) {
@@ -3445,7 +3470,7 @@
 		//
 		// @return integer
 		getDataLengthIncludingAddNew = function () {
-			return getDataLength() + (self.options.enableAddRow ? 1 : 0);
+			return getDataLength() + (self.options.addRow ? 1 : 0);
 		}
 
 
@@ -3514,6 +3539,16 @@
 			headersWidth += window.scrollbarDimensions.width;
 
 			return Math.max(headersWidth, viewportW) + 1000;
+		}
+
+
+		// getItemId()
+		// Given a data model, returns that item's unique id
+		//
+		getItemId = function (model) {
+			if (idProperty in model) return model[idProperty]
+			else if (model.data && idProperty in model.data) return model.data[idProperty]
+			return null
 		}
 
 
@@ -3631,20 +3666,23 @@
 		getRowFromPosition = function (maxPosition) {
 			var result = null,
 				row = 0,
-				rowsInPosCache = getDataLength();
+				rowLength = getDataLength(),
+				pos, lastpos;
 
-			if (rowsInPosCache) {
+			if (rowLength) {
 				// Loop through the row position cache and break when the row is found
-				for (var i = 0; i < rowsInPosCache; i++) {
-					if (cache.rows[i].top <= maxPosition && cache.rows[i].bottom >= maxPosition) {
+				for (var i = 0; i < rowLength; i++) {
+					pos = getRowPosition(i)
+					if (pos.top <= maxPosition && pos.bottom >= maxPosition) {
 						row = i;
 						continue;
 					}
 				}
 
 				// Return the last row in the grid
-				if (maxPosition > cache.rows[rowsInPosCache - 1].bottom) {
-					row = rowsInPosCache - 1;
+				lastpos = getRowPosition(rowLength - 1)
+				if (maxPosition > lastpos.bottom) {
+					row = rowLength - 1;
 				}
 			} else {
 				// TODO: This was a hack to get remote+variableRowHeight working. I'm not sure
@@ -3658,18 +3696,16 @@
 		}
 
 
-		// getRowTop()
-		// Given a row index, returns its top offest
+		// getRowPosition()
+		// Given a row index, returns an object of that row's positions and height
 		//
-		// @param	row		integer		Index of row
-		//
-		// @return integer
-		getRowTop = function (row) {
-			var top = 0;
-			for (var i = 0; i < row; i++) {
-				top += cache.rows[i].height
+		getRowPosition = function (row) {
+			// Check if item is in position cache
+			if (row in cache.rows) {
+				return cache.rows[row]
 			}
-			return top - offset;
+
+			throw "CAN'T GET POSITION OF: " + row
 		}
 
 
@@ -4047,9 +4083,9 @@
 
 				if (isToggler) {
 					if (item.collapsed) {
-						self.collection.expandGroup(item.id);
+						self.collection.expandGroup(getItemId(item));
 					} else {
-						self.collection.collapseGroup(item.id);
+						self.collection.collapseGroup(getItemId(item));
 					}
 
 					e.stopImmediatePropagation();
@@ -4059,7 +4095,7 @@
 				}
 			}
 
-			self.trigger('onClick', e, {
+			self.trigger('click', e, {
 				row: cell.row,
 				cell: cell.cell,
 				item: item
@@ -4245,26 +4281,6 @@
 		}
 
 
-		// handleMouseEnter()
-		// Handles the mouse enter events on cells
-		//
-		// @param	e	object		Javascript event object
-		//
-		handleMouseEnter = function (e) {
-			self.trigger('onMouseEnter', e)
-		}
-
-
-		// handleMouseLeave()
-		// Handles the mouse leave events on cells
-		//
-		// @param	e	object		Javascript event object
-		//
-		handleMouseLeave = function (e) {
-			self.trigger('onMouseLeave', e)
-		}
-
-
 		// handleSelectedRangesChanges()
 		// Handles the event for when selection range is changed
 		//
@@ -4378,6 +4394,16 @@
 		}
 
 
+		// handleWindowResize()
+		// Event that fires when the window is resize
+		//
+		handleWindowResize = function () {
+			// Only if the object is visible
+			if (!self.$el.is(':visible')) return;
+			resizeCanvas();
+		}
+
+
 		// hasGrouping()
 		// Returns list of column_ids that the grid has a grouping for.
 		// Otherwise returns false.
@@ -4416,10 +4442,11 @@
 		//
 		// @return boolean
 		isCellPotentiallyEditable = function (row, cell) {
-			// is the data for this row loaded?
-			if (row < getDataLength() && !getDataItem(row)) {
-				return false;
-			}
+			// Is this column editable?
+			if (!self.options.columns[cell].editable) return false;
+
+			// Is the data for this row loaded?
+			if (row < getDataLength() && !getDataItem(row)) return false;
 
 			// are we in the Add New row?  can we create new from this cell?
 			if (self.options.columns[cell].cannotTriggerInsert && row >= getDataLength()) {
@@ -4427,9 +4454,7 @@
 			}
 
 			// does this cell have an editor?
-			if (!getEditor(row, cell)) {
-				return false;
-			}
+			if (!getEditor(row, cell)) return false;
 
 			return true;
 		}
@@ -4773,63 +4798,6 @@
 		}
 
 
-		// processData()
-		// Parses the options.data parameter to ensure the data set is formatter correctly.
-		// Creates a new special Backbone.Collection that will be used for processing Doby Grid
-		// operations.
-		//
-		// @param	callback	function	Callback function
-		//
-		processData = function (callback) {
-
-			// Create a new Data View
-			self.collection = new Collection(self.options.data, {
-				remote: self.options.remote
-			})
-
-			// Remote Data Handling
-			// TODO: Enable remote data
-			if (self.options.remote) {
-				/*
-				self.loader = new RemoteModel(self.options.data)
-
-				self.loader.onDataLoading.subscribe(function () {showLoader()});
-				self.loader.onDataLoaded.subscribe(function (e, args) {
-					for (var i = args.from; i <= args.to; i++) {
-						invalidateRow(i);
-					}
-
-					// Display alert if empty
-					if (self.options.emptyNotice && self.collection.getLength() === 0) {
-						// Need to clear cache to reset collection lengths
-						self.loader.clearCache()
-
-						// Insert row
-						insertEmptyAlert('remote')
-
-						// Manually tell collection it's 1 units long
-						self.collection.setLength(1)
-					}
-
-					updateRowCount();
-					render();
-
-					hideLoader()
-				});
-
-				return callback()
-				*/
-			} else {
-				// Display alert if empty
-				if (self.options.emptyNotice && self.collection.getLength() === 0) {
-					insertEmptyAlert()
-				}
-			}
-
-			return callback()
-		}
-
-
 		// Range()
 		// A structure containing a range of cells.
 		//
@@ -4914,8 +4882,8 @@
 			if (!column) return this
 			if (typeof column == 'object') column = column.id
 
-			var newcolumns = this.options.columns.filter(function (item) {
-				return item.id != column
+			var newcolumns = this.options.columns.filter(function (c) {
+				return c.id != column
 			})
 
 			// If column had a grouping - remove that grouping
@@ -4932,7 +4900,7 @@
 		// Removes the CSS rules specific to this grid instance
 		//
 		removeCssRules = function () {
-			$style.remove();
+			if ($style) $style.remove();
 			stylesheet = null;
 		}
 
@@ -5240,13 +5208,14 @@
 		// @param	doPaging	boolean		TODO: ??
 		//
 		scrollRowIntoView = function (row, doPaging) {
-			var rowAtTop = cache.rows[row].top,
-				rowAtBottom = cache.rows[row].bottom - viewportH + (viewportHasHScroll ? window.scrollbarDimensions.height : 0);
+			var pos = getRowPosition(row),
+				rowAtTop = pos.top,
+				rowAtBottom = pos.bottom - viewportH + (viewportHasHScroll ? window.scrollbarDimensions.height : 0);
 
 
 			// need to page down?
-			var pgdwn = cache.rows[row].bottom > scrollTop + viewportH + offset,
-				pgup = cache.rows[row].top < scrollTop + offset
+			var pgdwn = pos.bottom > scrollTop + viewportH + offset,
+				pgup = pos.top < scrollTop + offset
 
 			if (pgdwn) {
 				scrollTo(doPaging ? rowAtTop : rowAtBottom);
@@ -5266,7 +5235,8 @@
 		// @param	row		integer		Row index
 		//
 		scrollRowToTop = function (row) {
-			scrollTo(cache.rows[row].top);
+			var pos = getRowPosition(row)
+			scrollTo(pos.top);
 			render();
 		}
 
@@ -5444,7 +5414,8 @@
 		this.setOptions = function (options) {
 			makeActiveCellNormal();
 
-			if (self.options.enableAddRow !== options.enableAddRow) {
+			// If enabling "addRow", invalidate the last row since it needs to be re-rendered
+			if (self.options.addRow !== options.addRow) {
 				invalidateRow(getDataLength());
 			}
 
@@ -5452,7 +5423,6 @@
 
 			validateOptions()
 
-			$viewport.css("overflow-y", self.options.autoHeight ? "hidden" : "auto");
 			render();
 		}
 
@@ -5467,7 +5437,7 @@
 			// TODO: This is hacky. There should be a collection.set() method to expend existing data
 			var item = self.collection.items[row];
 			item.height = height;
-			self.collection.updateItem(item.data.id, item)
+			self.collection.updateItem(getItemId(item), item)
 
 			// Invalidate rows below the edited one
 			cacheRowPositions()
@@ -5861,14 +5831,15 @@
 
 				styleSortColumns(sortColumns);
 
+				var args;
 				if (!self.options.multiColumnSort) {
-					self.trigger('onSort', e, {
+					args = {
 						multiColumnSort: false,
 						sortCol: column,
 						sortAsc: sortOpts.sortAsc
-					})
+					}
 				} else {
-					self.trigger('onSort', e, {
+					args = {
 						multiColumnSort: true,
 						sortCols: $.map(sortColumns, function (col) {
 							return {
@@ -5876,8 +5847,14 @@
 								sortAsc: col.sortAsc
 							};
 						})
-					})
+					}
 				}
+
+				// Execute sort
+				executeSorter(args)
+
+				// Fire onSort event
+				self.trigger('onSort', e, args)
 			});
 		}
 
@@ -6247,7 +6224,7 @@
 			if (numberOfRows === 0) {
 				viewportHasVScroll = false
 			} else {
-				var rpc = cache.rows[numberOfRows - 1]
+				var rpc = getRowPosition(numberOfRows - 1)
 				viewportHasVScroll = rpc && (rpc.bottom > viewportH);
 			}
 
@@ -6268,13 +6245,18 @@
 			if (numberOfRows === 0) {
 				th = viewportH - window.scrollbarDimensions.height
 			} else {
-				if (_.keys(cache.rows).length != self.collection.items.length) {
-					console.log('CACHE DIFFERENT THAN ITEMS', _.keys(cache.rows).length, 'vs', self.collection.items.length)
+				// TODO: Remove this extra logic. getRowPosition should figure it out
+				var pos = numberOfRows - 1
+				if (self.options.addRow) {
+					pos--;
 				}
-				var rps = cache.rows[numberOfRows - 1];
+
+				var rps = getRowPosition(pos);
 				var	rowMax = rps.bottom;
 
-				if (self.options.enableAddRow) rowMax += self.options.rowHeight
+				if (self.options.addRow) {
+					rowMax += self.options.rowHeight
+				}
 
 				th = Math.max(rowMax, viewportH - window.scrollbarDimensions.height);
 			}
@@ -6318,7 +6300,7 @@
 
 		updateRowPositions = function () {
 			for (var row in cache.nodes) {
-				cache.nodes[row].rowNode.style.top = getRowTop(row) + "px";
+				cache.nodes[row].rowNode.style.top = (getRowPosition(row).top + offset) + "px";
 			}
 		}
 
@@ -6392,6 +6374,9 @@
 			if (!_.isArray(self.options.data)) {
 				throw new TypeError('The "data" option must be an array.');
 			}
+
+			// Disable "addRow" if "editable" isn't turned on
+			if (self.options.addRow && !self.options.editable) self.options.addRow = false;
 
 			// Validate and pre-process
 			validateColumns();

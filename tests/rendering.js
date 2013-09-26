@@ -118,6 +118,23 @@ describe("Rendering", function () {
 			expect(rows).toHaveClass('doby-grid-group')
 		})
 
+
+		// ==========================================================================================
+
+
+		// TODO: Fix Me
+		xit("should render a special row at the end of the grid when using enableAddRow", function () {
+			// Set option
+			grid.setOptions({addRow: true})
+
+			var lastcell = grid.$el.find('.doby-grid-row:last-child')
+			console.log(lastcell)
+			//expect(lastcell).toEqual(newrow.data.name)
+
+			// Disable to prevent conflict with other tests
+			grid.setOptions({addRow: false})
+		})
+
 	})
 
 
