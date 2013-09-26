@@ -1037,7 +1037,12 @@
 		// cacheRowPositions()
 		// Walks through the data and caches positions for all the rows into the 'cache.rows' object
 		//
-		cacheRowPositions = function () {
+		// @param	from		integer		(Optional) Start to cache from which row?
+		//
+		cacheRowPositions = function (from) {
+			from = from || 0;
+			console.log('caching from', from)
+
 			// Start cache object
 			cache.rows = {
 				0: {
@@ -1048,7 +1053,7 @@
 			};
 
 			var item;
-			for (var i = 0, l = getDataLength(); i < l; i++) {
+			for (var i = from, l = self.collection.items.length; i < l; i++) {
 				item = self.collection.items[i]
 
 				cache.rows[i] = {
@@ -1684,13 +1689,16 @@
 					if (at !== null && at !== undefined) {
 						Array.prototype.splice.apply(this.items, [at, 0].concat(toAdd))
 						updateIndexById((at > 0 ? at - 1 : 0));
+						cacheRowPositions(at)
 					} else {
 						Array.prototype.push.apply(this.items, toAdd)
 						updateIndexById(this.items.length - 1);
+						cacheRowPositions()
 					}
 				}
 
 				this.refresh();
+
 				return this;
 			}
 
@@ -2221,11 +2229,15 @@
 				return obj
 			}
 
+
+			// getLength()
+			// Get the number of all items in this collection (including non-data and virtual items)
+			//
+			// @return integer
 			this.getLength = function () {
-				// TODO: I want to set this to this.items.length, but that's actually wrong
-				// and causes non-grouped rows to get rendered. Find out why.
 				return options.remote ? length : rows.length;
 			}
+
 
 			this.getPagingInfo = function () {
 				var totalPages = pagesize ? Math.max(1, Math.ceil(totalRows / pagesize)) : 1;
@@ -2383,9 +2395,6 @@
 				}
 
 				if (countBefore != rows.length) {
-					// Update row position cache since the row count has changed
-					cacheRowPositions()
-
 					updateRowCount();
 
 					this.trigger('onRowCountChanged', {}, {
@@ -6259,6 +6268,9 @@
 			if (numberOfRows === 0) {
 				th = viewportH - window.scrollbarDimensions.height
 			} else {
+				if (_.keys(cache.rows).length != self.collection.items.length) {
+					console.log('CACHE DIFFERENT THAN ITEMS', _.keys(cache.rows).length, 'vs', self.collection.items.length)
+				}
 				var rps = cache.rows[numberOfRows - 1];
 				var	rowMax = rps.bottom;
 
