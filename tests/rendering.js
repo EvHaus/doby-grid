@@ -88,6 +88,36 @@ describe("Rendering", function () {
 			expect(lastcell).toEqual(newrow.data.name)
 		})
 
+
+		// ==========================================================================================
+
+
+		it("should render collapsed group headers when adding grouping", function () {
+			gcolumn = options.columns[1]
+
+			// Add some additional rows for testing
+			grid.add([
+				{data: {id: 3, name: "adding a new row"}},
+				{data: {id: 4, name: "adding a new row"}},
+				{data: {id: 5, name: "adding a new row"}},
+				{data: {id: 6, name: "adding a new row"}}
+			])
+
+			// Group by column
+			grid.addGrouping(gcolumn.id)
+
+			// Figure out how many groups to expect
+			groups = _.groupBy(grid.collection.items, function (i) { return i.data[gcolumn.field]})
+			groups = _.keys(groups)
+
+			// Grab the grid rows
+			rows = grid.$el.find('.doby-grid-row')
+
+			// Expect to find as many group headers as there are different values
+			expect(rows.length).toEqual(groups.length)
+			expect(rows).toHaveClass('doby-grid-group')
+		})
+
 	})
 
 

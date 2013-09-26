@@ -65,7 +65,9 @@
 			bindAncestorScrollEvents,
 			bindCellRangeSelect,
 			bindRowResize,
-			cache = {},
+			cache = {
+				nodes: {}
+			},
 			cacheRowPositions,
 			canCellBeActive,
 			canCellBeSelected,
@@ -240,7 +242,6 @@
 			renderRows,
 			resetActiveCell,
 			resizeCanvas,
-			rowsCache = {},
 			rowsToRanges,
 			scrollCellIntoView,
 			scrollLeft = 0,
@@ -278,7 +279,6 @@
 			updateRowPositions,
 			validateColumns,
 			validateOptions,
-			variableRowHeight = false,		// Does the grid need to support variable row heights
 			viewportH,
 			viewportHasHScroll,
 			viewportHasVScroll,
@@ -530,8 +530,8 @@
 
 			result.push("</div>");
 
-			rowsCache[row].cellRenderQueue.push(cell);
-			rowsCache[row].cellColSpans[cell] = colspan;
+			cache.nodes[row].cellRenderQueue.push(cell);
+			cache.nodes[row].cellColSpans[cell] = colspan;
 		}
 
 
@@ -747,7 +747,7 @@
 		asyncPostProcessRows = function () {
 			while (postProcessFromRow <= postProcessToRow) {
 				var row = (vScrollDir >= 0) ? postProcessFromRow++ : postProcessToRow--,
-					cacheEntry = rowsCache[row];
+					cacheEntry = cache.nodes[row];
 
 				if (!cacheEntry || row >= getDataLength()) continue;
 				if (!postProcessedRows[row]) postProcessedRows[row] = {};
@@ -986,7 +986,7 @@
 					if (!$(event.target).hasClass(classrowhandle)) return
 					event.stopImmediatePropagation()
 					dd._row = getRowFromNode($(event.target).parent()[0])
-					dd._rowNode = rowsCache[dd._row].rowNode
+					dd._rowNode = cache.nodes[dd._row].rowNode
 
 					// Grab all the row nodes below the current row
 					dd._rowsBelow = []
@@ -1184,7 +1184,7 @@
 				colspan;
 
 			for (var row = range.top, btm = range.bottom; row <= btm; row++) {
-				cacheEntry = rowsCache[row];
+				cacheEntry = cache.nodes[row];
 				if (!cacheEntry) {
 					continue;
 				}
@@ -1248,7 +1248,7 @@
 			var processedRow;
 			var node;
 			while ((processedRow = processedRows.pop()) !== null) {
-				cacheEntry = rowsCache[processedRow];
+				cacheEntry = cache.nodes[processedRow];
 				var columnIdx;
 				while ((columnIdx = cacheEntry.cellRenderQueue.pop()) !== null) {
 					node = x.lastChild;
@@ -1267,7 +1267,7 @@
 		//
 		cleanUpCells = function (range, row) {
 			var totalCellsRemoved = 0;
-			var cacheEntry = rowsCache[row];
+			var cacheEntry = cache.nodes[row];
 
 			// Remove cells outside the range.
 			var cellsToRemove = [];
@@ -1308,7 +1308,7 @@
 		// @param	rangeToKeep		object		A range of top/bottom values to keep
 		//
 		cleanupRows = function (rangeToKeep) {
-			for (var i in rowsCache) {
+			for (var i in cache.nodes) {
 				if (((i = parseInt(i, 10)) !== activeRow) && (i < rangeToKeep.top || i > rangeToKeep.bottom)) {
 					removeRowFromCache(i);
 				}
@@ -1942,7 +1942,7 @@
 			// @param	row		integer		Row index
 			//
 			ensureCellNodesInRowsCache = function (row) {
-				var cacheEntry = rowsCache[row];
+				var cacheEntry = cache.nodes[row];
 				if (cacheEntry) {
 					if (cacheEntry.cellRenderQueue.length) {
 						var lastChild = $(cacheEntry.rowNode).children('.' + classcell + '').last()[0]
@@ -2258,13 +2258,11 @@
 					to = newRows.length;
 
 				if (refreshHints && refreshHints.ignoreDiffsBefore) {
-					from = Math.max(0,
-						Math.min(newRows.length, refreshHints.ignoreDiffsBefore));
+					from = Math.max(0, Math.min(newRows.length, refreshHints.ignoreDiffsBefore));
 				}
 
 				if (refreshHints && refreshHints.ignoreDiffsAfter) {
-					to = Math.min(newRows.length,
-						Math.max(0, refreshHints.ignoreDiffsAfter));
+					to = Math.min(newRows.length, Math.max(0, refreshHints.ignoreDiffsAfter));
 				}
 
 				for (var i = from, rl = rows.length; i < to; i++) {
@@ -3204,9 +3202,9 @@
 		//
 		// @return DOM object
 		getCellNode = function (row, cell) {
-			if (rowsCache[row]) {
+			if (cache.nodes[row]) {
 				ensureCellNodesInRowsCache(row);
-				return rowsCache[row].cellNodesByColumnIdx[cell];
+				return cache.nodes[row].cellNodesByColumnIdx[cell];
 			}
 			return null;
 		}
@@ -3603,8 +3601,8 @@
 		//
 		// @return integer
 		getRowFromNode = function (rowNode) {
-			for (var row in rowsCache) {
-				if (rowsCache[row].rowNode === rowNode) {
+			for (var row in cache.nodes) {
+				if (cache.nodes[row].rowNode === rowNode) {
 					return row | 0;
 				}
 			}
@@ -4466,7 +4464,7 @@
 			if (currentEditor) {
 				makeActiveCellNormal();
 			}
-			for (var row in rowsCache) {
+			for (var row in cache.nodes) {
 				removeRowFromCache(row);
 			}
 		}
@@ -4510,7 +4508,7 @@
 					makeActiveCellNormal();
 				}
 
-				if (rowsCache[rows[i]]) {
+				if (cache.nodes[rows[i]]) {
 					removeRowFromCache(rows[i]);
 				}
 			}
@@ -4976,12 +4974,12 @@
 		// @param	row		integer		Row index to remvoe
 		//
 		removeRowFromCache = function (row) {
-			var cacheEntry = rowsCache[row], col;
+			var cacheEntry = cache.nodes[row], col;
 			if (!cacheEntry) {
 				return;
 			}
 			$canvas[0].removeChild(cacheEntry.rowNode);
-			delete rowsCache[row];
+			delete cache.nodes[row];
 
 			// Clear postprocessing cache (only for non-cached columns)
 			if (postProcessedRows[row]) {
@@ -5005,15 +5003,15 @@
 			var visible = getVisibleRange(),
 				rendered = getRenderedRange();
 
-			// remove rows no longer in the viewport
+			// Remove rows no longer in the viewport
 			cleanupRows(rendered);
 
-			// add new rows & missing cells in existing rows
+			// Add new rows & missing cells in existing rows
 			if (lastRenderedScrollLeft != scrollLeft) {
 				cleanUpAndRenderCells(rendered);
 			}
 
-			// render missing rows
+			// Render missing rows
 			renderRows(rendered);
 
 			postProcessFromRow = visible.top;
@@ -5040,7 +5038,7 @@
 				i, ii;
 
 			for (i = range.top, ii = range.bottom; i <= ii; i++) {
-				if (rowsCache[i]) {
+				if (cache.nodes[i]) {
 					continue;
 				}
 				renderedRows++;
@@ -5048,7 +5046,7 @@
 
 				// Create an entry right away so that appendRowHtml() can
 				// start populatating it.
-				rowsCache[i] = {
+				cache.nodes[i] = {
 					"rowNode": null,
 
 					// ColSpans of rendered cells (by column idx).
@@ -5078,8 +5076,9 @@
 			var x = document.createElement("div");
 			x.innerHTML = stringArray.join("");
 
+			// Cache the row nodes
 			for (i = 0, ii = rows.length; i < ii; i++) {
-				rowsCache[rows[i]].rowNode = parentNode.appendChild(x.firstChild);
+				cache.nodes[rows[i]].rowNode = parentNode.appendChild(x.firstChild);
 			}
 
 			if (needToReselectCell) {
@@ -5323,8 +5322,8 @@
 			if (activeCellNode !== null) {
 				makeActiveCellNormal();
 				$(activeCellNode).removeClass("active");
-				if (rowsCache[activeRow]) {
-					$(rowsCache[activeRow].rowNode).removeClass("active");
+				if (cache.nodes[activeRow]) {
+					$(cache.nodes[activeRow].rowNode).removeClass("active");
 				}
 			}
 
@@ -5341,7 +5340,7 @@
 				}
 
 				$(activeCellNode).addClass("active");
-				$(rowsCache[activeRow].rowNode).addClass("active");
+				$(cache.nodes[activeRow].rowNode).addClass("active");
 
 				if (self.options.editable && setEdit && isCellPotentiallyEditable(activeRow, activeCell)) {
 					clearTimeout(h_editorLoader);
@@ -6144,7 +6143,7 @@
 		updateCellCssStylesOnRenderedRows = function (addedHash, removedHash) {
 			var node, columnId, addedRowHash, removedRowHash;
 
-			for (var row in rowsCache) {
+			for (var row in cache.nodes) {
 				removedRowHash = removedHash && removedHash[row];
 				addedRowHash = addedHash && addedHash[row];
 
@@ -6190,7 +6189,7 @@
 
 
 		updateRow = function (row) {
-			var cacheEntry = rowsCache[row];
+			var cacheEntry = cache.nodes[row];
 			if (!cacheEntry) {
 				return;
 			}
@@ -6244,7 +6243,7 @@
 			// remove the rows that are now outside of the data range
 			// this helps avoid redundant calls to .removeRow() when the size of the data decreased by thousands of rows
 			var l = getDataLengthIncludingAddNew() - 1;
-			for (var i in rowsCache) {
+			for (var i in cache.nodes) {
 				if (i >= l) {
 					removeRowFromCache(i);
 				}
@@ -6304,8 +6303,8 @@
 
 
 		updateRowPositions = function () {
-			for (var row in rowsCache) {
-				rowsCache[row].rowNode.style.top = getRowTop(row) + "px";
+			for (var row in cache.nodes) {
+				cache.nodes[row].rowNode.style.top = getRowTop(row) + "px";
 			}
 		}
 
