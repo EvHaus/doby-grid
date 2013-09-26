@@ -76,6 +76,7 @@
 			cellWidthDiff = 0,
 			cj,				// "jumpiness" coefficient
 			classalert = this.NAME + '-alert',
+			classcanvas = this.NAME + '-canvas',
 			classcell = this.NAME + '-cell',
 			classcollapsed = 'collapsed',
 			classcolumnname = this.NAME + '-column-name',
@@ -103,7 +104,6 @@
 			classsortindicatorasc = classsortindicator + '-asc',
 			classsortindicatordesc = classsortindicator + '-desc',
 			classviewport = this.NAME + '-viewport',
-			classcanvas = this.NAME + '-canvas',
 			cleanUpAndRenderCells,
 			cleanUpCells,
 			cleanupRows,
@@ -187,6 +187,7 @@
 			handleMouseLeave,
 			handleScroll,
 			handleSelectedRangesChanged,
+			handleWindowResize,
 			hasGrouping,
 			hasSorting,
 			headerColumnWidthDiff = 0,
@@ -268,7 +269,6 @@
 			th,				// virtual height
 			toggleHeaderContextMenu,
 			uid = this.NAME + "-" + Math.round(1000000 * Math.random()),
-			unbindAncestorScrollEvents,
 			updateCanvasWidth,
 			updateCell,
 			updateCellCssStylesOnRenderedRows,
@@ -559,9 +559,9 @@
 			}
 
 			stringArray.push("<div class='" + rowCss + "' ");
-			stringArray.push("style='top:" + cache.rows[row].top + "px;");
+			stringArray.push("style='top:" + getRowTop(row) + "px;");
 
-			if (cache.rows[row].height != self.options.rowHeight) {
+			if (variableRowHeight && cache.rows[row].height != self.options.rowHeight) {
 				var rowheight = cache.rows[row].height - cellHeightDiff;
 				stringArray.push('height:' + rowheight + 'px;line-height:' + rowheight + 'px');
 			}
@@ -690,11 +690,7 @@
 			}
 
 			// Resize grid when window is changed
-			$(window).resize(function () {
-				// Only if the object is visible
-				if (!self.$el.is(':visible')) return;
-				resizeCanvas();
-			});
+			$(window).on('resize', handleWindowResize);
 
 			return this;
 		};
@@ -1038,6 +1034,9 @@
 		// Walks through the data and caches positions for all the rows into the 'cache.rows' object
 		//
 		cacheRowPositions = function () {
+			// Are row heights different? If not - we don't need to run this
+			if (!variableRowHeight) return;
+
 			// Start cache object
 			cache.rows = {
 				0: {
@@ -1569,7 +1568,7 @@
 
 			// Private Variables
 
-			var self = this,
+			var collection = this,
 				defaults = {
 				inlineFilters: false,
 				remote: false
@@ -1659,12 +1658,14 @@
 			this.add = function (models, options) {
 				if (!_.isArray(models)) models = models ? [models] : [];
 				options = options || {};
-				var at = options.at, model, existing, toAdd = [];
+				var at = options.at, model, existing, toAdd = [],
+					varHeight = false;
 
 				// Merge existing models and collect the new ones
 				for (var i = 0, l = models.length; i < l; i++) {
 					model = models[i];
 					existing = this.get(model)
+					if (!varHeight && model.height && model.height != self.options.rowHeight) varHeight = true
 					if (existing) {
 						if (options.merge) {
 							this.updateItem(existing.data.id, model)
@@ -1689,6 +1690,9 @@
 						updateIndexById(this.items.length - 1);
 					}
 				}
+
+				// Do we need to support variable row heights now?
+				if (varHeight) variableRowHeight = true;
 
 				// Update row position cache
 				cacheRowPositions()
@@ -1913,7 +1917,7 @@
 			//
 			expandCollapseGroup = function (level, group_id, collapse) {
 				toggledGroupsByLevel[level][group_id] = groupingInfos[level].collapsed ^ collapse;
-				self.refresh();
+				collection.refresh();
 			}
 
 
@@ -2368,10 +2372,11 @@
 
 				var countBefore = rows.length,
 					totalRowsBefore = totalRows,
-					diff = recalc(this.items, filter); // pass as direct refs to avoid closure perf hit
+					diff = recalc(this.items, filter); // Pass as direct ref to avoid closure perf hit
 
 				// if the current page is no longer valid, go to last page and recalc
-				// we suffer a performance penalty here, but the main loop (recalc) remains highly optimized
+				// we suffer a performance penalty here, but the main loop (recalc)
+				// remains highly optimized
 				if (pagesize && totalRows < pagenum * pagesize) {
 					pagenum = Math.max(0, Math.ceil(totalRows / pagesize) - 1);
 					diff = recalc(this.items, filter);
@@ -2534,26 +2539,26 @@
 			}
 
 			this.syncGridSelection = function (grid, preserveHidden) {
-				var selectedRowIds = self.mapRowsToIds(selectedRows),
+				var selectedRowIds = collection.mapRowsToIds(selectedRows),
 					inHandler;
 
 				function update() {
 					if (selectedRowIds.length > 0) {
 						inHandler = true;
-						var selectedRows = self.mapIdsToRows(selectedRowIds);
+						var selectedRows = collection.mapIdsToRows(selectedRowIds);
 						if (!preserveHidden) {
-							selectedRowIds = self.mapRowsToIds(selectedRows);
+							selectedRowIds = collection.mapRowsToIds(selectedRows);
 						}
 						grid.setSelectedRows(selectedRows);
 						inHandler = false;
 					}
 				}
 
-				self.on('onSelectedRowsChanged', function (e, args) {
+				collection.on('onSelectedRowsChanged', function (e, args) {
 					if (inHandler) {
 						return;
 					}
-					selectedRowIds = self.mapRowsToIds(selectedRows);
+					selectedRowIds = collection.mapRowsToIds(selectedRows);
 				});
 			}
 
@@ -2596,14 +2601,18 @@
 			//
 			updateIndexById = function (startingIndex) {
 				startingIndex = startingIndex || 0;
-				var id;
-				for (var i = startingIndex, l = self.items.length; i < l; i++) {
-					if (self.items[i] === null) continue;
-					id = self.items[i].data[idProperty];
+				var id, item;
+				for (var i = startingIndex, l = collection.items.length; i < l; i++) {
+					if (collection.items[i] === null) continue;
+					item = collection.items[i];
+					id = item.data[idProperty];
 					if (id === undefined) {
 						throw "Each data element must implement a unique 'id' property";
 					}
 					indexById[id] = i;
+
+					// Check to see if we need variable height support enabled
+					if (!variableRowHeight && item.height && item.height != self.options.rowHeight) variableRowHeight = true;
 				}
 			}
 
@@ -2633,8 +2642,8 @@
 			//
 			validate = function (items) {
 				var id;
-				for (var i = 0, l = self.items.length; i < l; i++) {
-					id = self.items[i].data[idProperty];
+				for (var i = 0, l = collection.items.length; i < l; i++) {
+					id = collection.items[i].data[idProperty];
 					if (id === undefined || indexById[id] !== i) {
 						throw "Each data item must have a unique 'id' key.";
 					}
@@ -2777,6 +2786,7 @@
 			//
 			// @return object
 			this.validate = function () {
+				// TODO: What is this? Looks useful.
 				if (options.column.validator) {
 					var validationResults = options.column.validator(this.input.val());
 					if (!validationResults.valid) {
@@ -2819,18 +2829,30 @@
 
 
 		// destroy()
-		// ??
+		// Destroys this grid instance and clean up and event bindings
 		//
-		destroy = function () {
-			self.trigger('onBeforeDestroy', {});
-
-			if (self.options.reorderable) {
+		this.destroy = function () {
+			// Destroy sortable columns
+			if (this.options.reorderable) {
 				$headers.filter(":ui-sortable").sortable("destroy");
 			}
 
-			unbindAncestorScrollEvents();
-			self.$el.unbind("." + self.NAME);
+			// Unbind Ancestor Scroll Events
+			// TODO: Re-enable this if bindAncestorScrollEvents is needed
+			/*
+			if (!$boundAncestors) return;
+			$boundAncestors.off("scroll#" + uid);
+			$boundAncestors = null;
+			*/
+
+			// Destroy grid
+			this.$el.remove()
+
+			// Remove CSS rules
 			removeCssRules();
+
+			// Unbind window resize
+			$(window).off('resize', handleWindowResize)
 		}
 
 
@@ -3178,8 +3200,14 @@
 		//
 		// @retrun object
 		getCellFromPoint = function (x, y) {
-			var row = getRowFromPosition(y),
-				cell = 0,
+			var row;
+			if (!variableRowHeight) {
+				row = getRowFromPosition(y);
+			} else {
+				row = Math.floor(getRowFromPosition(y + offset));
+			}
+
+			var cell = 0,
 				w = 0;
 
 			for (var i = 0, l = self.options.columns.length; i < l && w < x; i++) {
@@ -3224,9 +3252,13 @@
 				return null;
 			}
 
-			var y1 = getRowTop(row),
-				y2 = y1 + cache.rows[row].height - 1,
-				x1 = 0;
+			var y1 = getRowTop(row), y2, x1 = 0;
+
+			if (!variableRowHeight) {
+				y2 = y1 + self.options.rowHeight - 1;
+			} else {
+				y2 = y1 + cache.rows[row].height - 1;
+			}
 
 			for (var i = 0; i < cell; i++) {
 				x1 += self.options.columns[i].width;
@@ -3569,8 +3601,15 @@
 		// @param	viewportTop		integer
 		getRenderedRange = function (viewportTop, viewportLeft) {
 			var range = getVisibleRange(viewportTop, viewportLeft),
-				buffer = Math.round(getRowFromPosition(viewportH)),
+				buffer,
 				minBuffer = 3;
+
+			// When in fixed height mode - don't go into row cache
+			if (!variableRowHeight) {
+				buffer = Math.round(viewportH / self.options.rowHeight);
+			} else {
+				buffer = Math.round(getRowFromPosition(viewportH));
+			}
 
 			if (vScrollDir == -1) {
 				range.top -= buffer;
@@ -3608,13 +3647,12 @@
 					return row | 0;
 				}
 			}
-
 			return null;
 		}
 
 
 		// getRowFromPosition()
-		// ??
+		// TODO: ??
 		//
 		// @param	maxPosition		integer		??
 		//
@@ -3624,7 +3662,11 @@
 				row = 0,
 				rowsInPosCache = getDataLength();
 
-			if (rowsInPosCache) {
+			// When we don't have variable row heights - we can use this for efficiency
+			if (!variableRowHeight) {
+				row = Math.floor((maxPosition + offset) / self.options.rowHeight);
+			// Otherwise jump into the row position cache
+			} else if (rowsInPosCache) {
 				// Loop through the row position cache and break when the row is found
 				for (var i = 0; i < rowsInPosCache; i++) {
 					if (cache.rows[i].top <= maxPosition && cache.rows[i].bottom >= maxPosition) {
@@ -3656,11 +3698,17 @@
 		//
 		// @return integer
 		getRowTop = function (row) {
-			var top = 0;
-			for (var i = 0; i < row; i++) {
-				top += cache.rows[i].height
+			// Fast mode for fixed row heights
+			if (!variableRowHeight) {
+				return self.options.rowHeight * row - offset;
+			// Otherwise jump into the row position cache
+			} else {
+				var top = 0;
+				for (var i = 0; i < row; i++) {
+					top += cache.rows[i].height
+				}
+				return top - offset;
 			}
-			return top - offset;
 		}
 
 
@@ -4366,6 +4414,16 @@
 				scrollLeft: scrollLeft,
 				scrollTop: scrollTop
 			})
+		}
+
+
+		// handleWindowResize()
+		// Event handler for the resize of the window
+		//
+		handleWindowResize = function () {
+			// Only if the object is visible
+			if (!self.$el.is(':visible')) return;
+			resizeCanvas();
 		}
 
 
@@ -5123,7 +5181,13 @@
 
 			viewportH = getViewportHeight();
 
-			numVisibleRows = Math.ceil(getRowFromPosition(viewportH));
+			// When in fixed row height mode - we can get this value much faster
+			if (!variableRowHeight) {
+				numVisibleRows = Math.ceil(viewportH / self.options.rowHeight);
+			} else {
+				numVisibleRows = Math.ceil(getRowFromPosition(viewportH));
+			}
+
 			viewportW = parseFloat($.css(self.$el[0], "width", true));
 			$viewport.height(viewportH);
 
@@ -5230,13 +5294,32 @@
 		// @param	doPaging	boolean		TODO: ??
 		//
 		scrollRowIntoView = function (row, doPaging) {
-			var rowAtTop = cache.rows[row].top,
-				rowAtBottom = cache.rows[row].bottom - viewportH + (viewportHasHScroll ? window.scrollbarDimensions.height : 0);
 
+			var rowAtTop, rowAtBottom;
+
+			// When in fixed height mode - use faster calculation
+			if (!variableRowHeight) {
+				rowAtTop = row * self.options.rowHeight;
+				rowAtBottom = (row + 1) * self.options.rowHeight;
+			} else {
+				rowAtTop = cache.rows[row].top;
+				rowAtBottom = cache.rows[row].bottom - viewportH;
+			}
+
+			rowAtBottom = rowAtBottom - viewportH + (viewportHasHScroll ? window.scrollbarDimensions.height : 0)
 
 			// need to page down?
-			var pgdwn = cache.rows[row].bottom > scrollTop + viewportH + offset,
+
+			var pgdwn, pgup;
+
+			// When in fixed height mode - use faster calculation
+			if (!variableRowHeight) {
+				pgdwn = (row + 1) * self.options.rowHeight > scrollTop + viewportH + offset
+				pgup = row * self.options.rowHeight < scrollTop + offset
+			} else {
+				pgdwn = cache.rows[row].bottom > scrollTop + viewportH + offset
 				pgup = cache.rows[row].top < scrollTop + offset
+			}
 
 			if (pgdwn) {
 				scrollTo(doPaging ? rowAtTop : rowAtBottom);
@@ -5256,7 +5339,14 @@
 		// @param	row		integer		Row index
 		//
 		scrollRowToTop = function (row) {
-			scrollTo(cache.rows[row].top);
+			var pos;
+			if (!variableRowHeight) {
+				pos = row * self.options.rowHeight
+			} else {
+				pos = cache.rows[row].top
+			}
+
+			scrollTo(pos);
 			render();
 		}
 
@@ -5274,6 +5364,7 @@
 
 			page = Math.min(n - 1, Math.floor(y / ph));
 			offset = Math.round(page * cj);
+
 			var newScrollTop = y - offset;
 
 			if (offset != oldOffset) {
@@ -6079,15 +6170,6 @@
 		}
 
 
-		unbindAncestorScrollEvents = function () {
-			if (!$boundAncestors) {
-				return;
-			}
-			$boundAncestors.unbind("scroll#" + uid);
-			$boundAncestors = null;
-		}
-
-
 		// updateCanvasWidth()
 		// Resizes the canvas width
 		//
@@ -6234,11 +6316,17 @@
 
 			var oldViewportHasVScroll = viewportHasVScroll;
 
-			if (numberOfRows === 0) {
-				viewportHasVScroll = false
+			// If we don't have variable row heights - we can quickly calculate this
+			if (!variableRowHeight) {
+				viewportHasVScroll = !options.autoHeight && (numberOfRows * self.options.rowHeight > viewportH);
+			// Otherwise jump into the row position cache
 			} else {
-				var rpc = cache.rows[numberOfRows - 1]
-				viewportHasVScroll = rpc && (rpc.bottom > viewportH);
+				if (numberOfRows === 0) {
+					viewportHasVScroll = false
+				} else {
+					var rpc = cache.rows[numberOfRows - 1]
+					viewportHasVScroll = rpc && (rpc.bottom > viewportH);
+				}
 			}
 
 			// remove the rows that are now outside of the data range
@@ -6255,15 +6343,21 @@
 			}
 
 			var oldH = h;
-			if (numberOfRows === 0) {
-				th = viewportH - window.scrollbarDimensions.height
+
+			// Use fast method when no variable row heights are used
+			if (!variableRowHeight) {
+				th = Math.max(self.options.rowHeight * numberOfRows, viewportH - window.scrollbarDimensions.height);
 			} else {
-				var rps = cache.rows[numberOfRows - 1];
-				var	rowMax = rps.bottom;
+				if (numberOfRows === 0) {
+					th = viewportH - window.scrollbarDimensions.height
+				} else {
+					var rps = cache.rows[numberOfRows - 1];
+					var	rowMax = rps.bottom;
 
-				if (self.options.enableAddRow) rowMax += self.options.rowHeight
+					if (self.options.enableAddRow) rowMax += self.options.rowHeight
 
-				th = Math.max(rowMax, viewportH - window.scrollbarDimensions.height);
+					th = Math.max(rowMax, viewportH - window.scrollbarDimensions.height);
+				}
 			}
 
 			if (th < window.maxSupportedCssHeight) {
