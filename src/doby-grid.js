@@ -145,6 +145,7 @@
 			getCellNodeBox,
 			getColumnById,
 			getColumnCssRules,
+			getColumnFromEvent,
 			getColumnIndex,
 			getColspan,
 			getDataItem,
@@ -182,8 +183,6 @@
 			handleDblClick,
 			handleHeaderContextMenu,
 			handleHeaderClick,
-			handleHeaderMouseEnter,
-			handleHeaderMouseLeave,
 			handleKeyDown,
 			handleMouseEnter,
 			handleMouseLeave,
@@ -275,7 +274,6 @@
 			updateCell,
 			updateCellCssStylesOnRenderedRows,
 			updateColumnCaches,
-			updateColumnHeader,
 			updateRow,
 			updateRowCount,
 			updateRowPositions,
@@ -638,6 +636,7 @@
 				setupColumnSort();
 				createCssRules();
 
+				cacheRowPositions();
 				resizeCanvas();
 				bindAncestorScrollEvents();
 
@@ -651,8 +650,6 @@
 				$headerScroller
 					.bind("contextmenu", handleHeaderContextMenu)
 					.bind("click", handleHeaderClick)
-					.delegate("." + classheadercolumn, "mouseenter", handleHeaderMouseEnter)
-					.delegate("." + classheadercolumn, "mouseleave", handleHeaderMouseLeave);
 				$canvas
 					.bind("keydown", handleKeyDown)
 					.bind("click", handleClick)
@@ -872,9 +869,11 @@
 
 
 		// bindAncestorScrollEvents()
-		// ??
+		// TODO: This binds a scroll event to event parent element inside which the grid sits.
+		// I'm not sure why this is necessary. Disabled temporarily since it's a bit performance hit.
 		//
 		bindAncestorScrollEvents = function () {
+			/*
 			var elem = $canvas[0];
 			while ((elem = elem.parentNode) != document.body && elem !== null) {
 				// bind to scroll containers only
@@ -885,9 +884,10 @@
 					} else {
 						$boundAncestors = $boundAncestors.add($elem);
 					}
-					$elem.bind("scroll#" + uid, handleActiveCellPositionChange);
+					$elem.on("scroll#" + uid, handleActiveCellPositionChange);
 				}
 			}
+			*/
 		}
 
 
@@ -1427,51 +1427,44 @@
 		// Creates the column header elements.
 		//
 		createColumnHeaders = function () {
-			$headers.find("." + classheadercolumn)
-				.each(function () {
-				var columnDef = $(this).data("column");
-				if (columnDef) {
-					self.trigger('onBeforeHeaderCellDestroy', {}, {
-						"node": this,
-						"column": columnDef
-					})
-				}
-			});
-			$headers.empty();
-			$headers.width(getHeadersWidth());
-
-			var m;
-			for (var i = 0, l = self.options.columns.length; i < l; i++) {
-				m = self.options.columns[i];
-
-				var header = $('<div class="' + classheadercolumn + '"></div>')
-					.html('<span class="' + classcolumnname + '">' + m.name + "</span>")
-					.width(m.width - headerColumnWidthDiff)
-					.attr("id", uid + m.id)
-					.attr("tooltip", m.toolTip || "")
-					.data("column", m)
-					.addClass(m.headerCssClass || "")
-					.appendTo($headers);
-
-				if (m.sortable) {
-					header.addClass(classheadersortable);
-					header.append('<span class="' + classsortindicator + '"></span>');
-				}
-
-				self.trigger('onHeaderCellRendered', {}, {
-					"node": header[0],
-					"column": m
-				})
+			if (!$headers.is(':empty')) {
+				$headers.empty();
+				$headers.width(getHeadersWidth());
 			}
+
+			// Render columns
+			var column, html = [], classes, w;
+			for (var i = 0, l = self.options.columns.length; i < l; i++) {
+				column = self.options.columns[i];
+
+				// Determine classes
+				classes = [classheadercolumn, (column.headerCssClass || "")]
+				if (column.sortable) classes.push(classheadersortable);
+
+				w = column.width - headerColumnWidthDiff;
+				html.push('<div class="' + classes.join(' ') + '" style="width:' + w + 'px" ')
+				html.push('id="' + (uid + column.id) + '"')
+
+				if (column.tooltip) {
+					html.push(' tooltip="' + column.tooltip + '"')
+				}
+
+				html.push('>')
+				html.push('<span class="' + classcolumnname + '">' + column.name + '</span>')
+
+				if (column.sortable) {
+					html.push('<span class="' + classsortindicator + '"></span>');
+				}
+
+				html.push('</div>')
+			}
+			$headers.append(html.join(''));
 
 			// Style the column headers accordingly
 			styleSortColumns();
 
-			setupColumnResize();
-
-			if (self.options.reorderable) {
-				setupColumnReorder();
-			}
+			if (self.options.resizableColumns) setupColumnResize();
+			if (self.options.reorderable) setupColumnReorder();
 		}
 
 
@@ -1705,6 +1698,9 @@
 						updateIndexById(this.items.length - 1);
 					}
 				}
+
+				// Update row position cache
+				cacheRowPositions()
 
 				this.refresh();
 				return this;
@@ -2238,7 +2234,7 @@
 			}
 
 			this.getLength = function () {
-				return options.remote ? length : rows.length;
+				return options.remote ? length : this.items.length;
 			}
 
 			this.getPagingInfo = function () {
@@ -3354,6 +3350,19 @@
 		}
 
 
+		// getColumnFromEvent()
+		// Given an event object, attempts to figure out which column was acted upon
+		//
+		// @param	event	object		Javascript event object
+		//
+		// @return object
+		getColumnFromEvent = function (event) {
+			var $column = $(event.target).closest("." + classheadercolumn),
+				column_id = $column.attr('id').replace(uid, '')
+			return getColumnById(column_id)
+		}
+
+
 		// getColumnIndex()
 		// Given a column's ID, returns the index of that column
 		//
@@ -4104,13 +4113,12 @@
 		// handleHeaderClick()
 		// Handles the header click events
 		//
-		// @param	e		object		Event object
+		// @param	event		object		Event object
 		//
-		handleHeaderClick = function (e) {
-			var $header = $(e.target).closest("." + classheadercolumn, "." + classheadercolumns);
-			var column = $header && $header.data("column");
+		handleHeaderClick = function (event) {
+			var column = getColumnFromEvent(event)
 			if (column) {
-				self.trigger('onHeaderClick', e, {
+				self.trigger('onHeaderClick', event, {
 					column: column
 				})
 			}
@@ -4120,38 +4128,15 @@
 		// handleHeaderContextMenu()
 		// Triggers the header context menu events
 		//
-		// @param	e		object		Event object
+		// @param	event		object		Event object
 		//
-		handleHeaderContextMenu = function (e) {
-			var $header = $(e.target).closest("." + classheadercolumn, "." + classheadercolumns);
-			var column = $header && $header.data("column");
-			self.trigger('onHeaderContextMenu', e, {
-				column: column
-			})
-		}
-
-
-		// handleHeaderMouseEnter()
-		// Triggers the header mouse enter event
-		//
-		// @param	e		object		Event object
-		//
-		handleHeaderMouseEnter = function (e) {
-			self.trigger('onHeaderMouseEnter', e, {
-				"column": $(this).data("column")
-			})
-		}
-
-
-		// handleHeaderMouseLeave()
-		// Triggers the header mouse leave event
-		//
-		// @param	e		object		Event object
-		//
-		handleHeaderMouseLeave = function (e) {
-			self.trigger('onHeaderMouseLeave', e, {
-				"column": $(this).data("column")
-			})
+		handleHeaderContextMenu = function (event) {
+			var column = getColumnFromEvent(event)
+			if (column) {
+				self.trigger('onHeaderContextMenu', event, {
+					column: column
+				})
+			}
 		}
 
 
@@ -5122,13 +5107,6 @@
 		resizeCanvas = function () {
 			if (!initialized) return;
 
-			// Recalculate variable row heights
-			// Recalculate variable row heights
-			// TODO: Fix me
-			//if (variableRowHeight) {
-			cacheRowPositions();
-			//}
-
 			viewportH = getViewportHeight();
 
 			numVisibleRows = Math.ceil(getRowFromPosition(viewportH));
@@ -5522,18 +5500,19 @@
 
 
 		// setupColumnReorder()
-		// Allows columns to be re-orderable
+		// Allows columns to be re-orderable.
+		// TODO: Optimize me. I'm slow.
 		//
 		setupColumnReorder = function () {
 			$headers.filter(":ui-sortable").sortable("destroy");
 			$headers.sortable({
-				containment: "parent",
-				distance: 3,
 				axis: "x",
+				containment: "parent",
 				cursor: "default",
-				tolerance: "intersection",
+				distance: 3,
 				helper: "clone",
 				placeholder: classplaceholder + " " + classheadercolumn,
+				tolerance: "intersection",
 				start: function (e, ui) {
 					ui.placeholder.width(ui.helper.outerWidth() - headerColumnWidthDiff);
 					$(ui.helper).addClass(classheadercolumnactive);
@@ -5564,7 +5543,9 @@
 
 
 		// setupColumnResize()
-		// Enables the resizing of columns
+		// Enables the resizing of columns.
+		// TODO: Optimize me. I'm slow.
+		// TODO: Perhaps assign the handle events on the whole header instead of on each element
 		//
 		setupColumnResize = function () {
 			var $col, j, c, pageX, columnElements, minPageX, maxPageX, firstResizable, lastResizable;
@@ -5818,16 +5799,11 @@
 		//
 		setupColumnSort = function () {
 			$headers.click(function (e) {
-				if ($(e.target).hasClass(classhandle) || $(e.target).closest("." + classhandle).length) {
-					return;
-				}
+				// If clicking on drag handle - stop
+				var handle = $(e.target).closest("." + classhandle);
+				if (handle.length) return;
 
-				var $col = $(e.target).closest("." + classheadercolumn);
-				if (!$col.length) {
-					return;
-				}
-
-				var column = $col.data("column");
+				var column = getColumnFromEvent(e);
 				if (!column.sortable) return
 
 				var sortOpts = null;
@@ -6195,42 +6171,6 @@
 				columnPosLeft[i] = x;
 				columnPosRight[i] = x + self.options.columns[i].width;
 				x += self.options.columns[i].width;
-			}
-		}
-
-
-		updateColumnHeader = function (columnId, title, toolTip) {
-			if (!initialized) {
-				return;
-			}
-			var idx = getColumnIndex(columnId);
-			if (idx === null) {
-				return;
-			}
-
-			var columnDef = self.options.columns[idx];
-			var $header = $headers.children().eq(idx);
-			if ($header) {
-				if (title !== undefined) {
-					self.options.columns[idx].name = title;
-				}
-				if (toolTip !== undefined) {
-					self.options.columns[idx].toolTip = toolTip;
-				}
-
-				self.trigger('onBeforeHeaderCellDestroy', {}, {
-					"node": $header[0],
-					"column": columnDef
-				})
-
-				$header
-					.attr("tooltip", toolTip || "")
-					.children().eq(0).html(title);
-
-				self.trigger('onHeaderCellRendered', {}, {
-					"node": $header[0],
-					"column": columnDef
-				})
 			}
 		}
 
