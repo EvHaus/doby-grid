@@ -1690,9 +1690,6 @@
 					}
 				}
 
-				// Update row position cache
-				cacheRowPositions()
-
 				this.refresh();
 				return this;
 			}
@@ -2225,7 +2222,9 @@
 			}
 
 			this.getLength = function () {
-				return options.remote ? length : this.items.length;
+				// TODO: I want to set this to this.items.length, but that's actually wrong
+				// and causes non-grouped rows to get rendered. Find out why.
+				return options.remote ? length : rows.length;
 			}
 
 			this.getPagingInfo = function () {
@@ -2384,6 +2383,9 @@
 				}
 
 				if (countBefore != rows.length) {
+					// Update row position cache since the row count has changed
+					cacheRowPositions()
+
 					updateRowCount();
 
 					this.trigger('onRowCountChanged', {}, {
