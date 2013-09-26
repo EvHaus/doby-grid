@@ -67,7 +67,6 @@
 			bindRowResize,
 			cache = {},
 			cacheRowPositions,
-			cancelCurrentEdit,
 			canCellBeActive,
 			canCellBeSelected,
 			canvasWidth,
@@ -1059,14 +1058,6 @@
 
 				cache.rows[i].bottom = cache.rows[i].top + cache.rows[i].height;
 			}
-		}
-
-
-		// cancelCurrentEdit()
-		// TODO: Still needed?
-		cancelCurrentEdit = function () {
-			makeActiveCellNormal();
-			return true;
 		}
 
 
@@ -2675,14 +2666,19 @@
 				this.$input = $('<input type="text" class="editor" value="' + this.currentValue + '"/>')
 					.appendTo(options.cell)
 					.on("keydown", function (event) {
+						// Esc
+						if (event.which == 27) {
+							return self.cancel()
+						}
+
 						// Check if position of cursor is on the ends, if it's not then
 						// left or right arrow keys will prevent editor from saving
 						// results and will instead, move the text cursor
 						var pos = getCaretPosition(this);
 
-						if ((pos === null && event.keyCode != 38 && event.keyCode != 40) ||
-							(pos > 0 && event.keyCode === 37) ||
-							(pos < self.currentValue.length && event.keyCode === 39)
+						if ((pos === null && event.which != 38 && event.which != 40) ||
+							(pos > 0 && event.which === 37) ||
+							(pos < self.currentValue.length && event.which === 39)
 						) {
 							event.stopImmediatePropagation();
 						}
@@ -2700,6 +2696,14 @@
 			//
 			this.applyValue = function (item, value) {
 				item.data[options.column.field] = value;
+			}
+
+
+			// cancel()
+			// Cancel the edit and return the cell to its default state
+			//
+			this.cancel = function () {
+				makeActiveCellNormal();
 			}
 
 
@@ -4150,12 +4154,19 @@
 				row: activeRow,
 				cell: activeCell
 			})
+
 			var handled = e.isImmediatePropagationStopped();
 
 			if (!handled) {
 				if (!e.shiftKey && !e.altKey && !e.ctrlKey) {
+					// Esc
+					if (e.which == 27) {
+						if (self.options.editable && currentEditor) {
+							currentEditor.cancel();
+							handled = true;
+						}
 					// Page Down
-					if (e.which == 34) {
+					} else if (e.which == 34) {
 						scrollPage(-1);
 						handled = true;
 					// Page Up
@@ -4209,14 +4220,17 @@
 			}
 
 			if (handled) {
-				// the event has been handled so don't let parent element (bubbling/propagation) or browser (default) handle it
+				// the event has been handled so don't let parent element
+				// (bubbling/propagation) or browser (default) handle it
 				e.stopPropagation();
 				e.preventDefault();
 				try {
-					e.originalEvent.keyCode = 0; // prevent default behaviour for special keys in IE browsers (F3, F5, etc.)
+					// prevent default behaviour for special keys in IE browsers (F3, F5, etc.)
+					e.originalEvent.which = 0;
 				}
-				// ignore exceptions - setting the original event's keycode throws access denied exception for "Ctrl"
-				// (hitting control key only, nothing else), "Shift" (maybe others)
+				// ignore exceptions - setting the original event's keycode
+				// throws access denied exception for "Ctrl" (hitting control key only,
+				// nothing else), "Shift" (maybe others)
 				catch (error) {}
 			}
 		}
@@ -4584,12 +4598,12 @@
 		// TODO: Needs review
 		//
 		makeActiveCellNormal = function () {
-			if (!currentEditor) {
-				return;
-			}
+			if (!currentEditor) return;
+
 			self.trigger('onBeforeCellEditorDestroy', {}, {
 				editor: currentEditor
 			})
+
 			currentEditor.destroy();
 			currentEditor = null;
 
