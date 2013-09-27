@@ -66,8 +66,10 @@
 			bindCellRangeSelect,
 			bindRowResize,
 			cache = {
+				indexById: {},
 				nodes: {},
-				rows: {}
+				rowPositions: {},
+				rows: [],
 			},
 			cacheRowPositions,
 			canCellBeActive,
@@ -559,7 +561,7 @@
 			stringArray.push("<div class='" + rowCss + "' ");
 			stringArray.push("style='top:" + (pos.top + offset) + "px;");
 
-			if (pos.height != self.options.rowHeight) {
+			if (pos.height) {
 				var rowheight = pos.height - cellHeightDiff;
 				stringArray.push('height:' + rowheight + 'px;line-height:' + rowheight + 'px');
 			}
@@ -687,6 +689,8 @@
 
 			// Resize grid when window is changed
 			$(window).on('resize', handleWindowResize);
+
+			console.log(cache)
 
 			return this;
 		};
@@ -996,7 +1000,7 @@
 					// Resize current row
 					var node = dd._rowNode,
 						pos = getRowPosition(dd._row),
-						height = pos.height;
+						height = (pos.height || self.options.rowHeight);
 					dd._height = height + dd.deltaY
 
 					// Do not allow invisible heights
@@ -1028,7 +1032,8 @@
 
 
 		// cacheRowPositions()
-		// Walks through the data and caches positions for all the rows into the 'cache.rows' object
+		// Walks through the data and caches positions for all the rows into
+		// the 'cache.rowPositions' object
 		//
 		// @param	from		integer		(Optional) Start to cache from which row?
 		//
@@ -1037,7 +1042,7 @@
 
 			// Start cache object
 			if (from === 0) {
-				cache.rows = {
+				cache.rowPositions = {
 					0: {
 						top: 0,
 						height: self.options.rowHeight,
@@ -1049,16 +1054,19 @@
 			var itemsWithAddNew = self.collection.items.length;
 			if (self.options.addRow) itemsWithAddNew++;
 
-			var item;
+			var item, data;
 			for (var i = from, l = itemsWithAddNew; i < l; i++) {
 				item = self.collection.items[i]
-
-				cache.rows[i] = {
-					top: (cache.rows[i - 1]) ? (cache.rows[i - 1].bottom - offset) : 0,
-					height: item && item.height ? item.height : self.options.rowHeight
+				data = {
+					top: (cache.rowPositions[i - 1]) ? (cache.rowPositions[i - 1].bottom - offset) : 0
 				}
 
-				cache.rows[i].bottom = cache.rows[i].top + cache.rows[i].height;
+				if (item.height && item.height != self.options.rowHeight) {
+					data.height = item.height
+				}
+
+				data.bottom = data.top + (data.height || self.options.rowHeight);
+				cache.rowPositions[i] = data
 			}
 		}
 
@@ -1583,13 +1591,11 @@
 				groupingDelimiter = ':|:',
 				groupingInfos = [],
 				groups = [],
-				indexById = {},
 				length = null,		// Custom length of collection, for Remote Models
 				pagenum = 0,
 				pagesize = 0,
 				prevRefreshHints = {},
 				refreshHints = {},
-				rows = [],			// data by row
 				rowsById = null,	// rows by id; lazy-calculated
 				sortAsc = true,
 				sortComparer,
@@ -1867,11 +1873,11 @@
 			}
 
 			this.deleteItem = function (id) {
-				var idx = indexById[id];
+				var idx = cache.indexById[id];
 				if (idx === undefined) {
 					throw "Unable to delete collection item. Invalid id (" + id + ") supplied.";
 				}
-				delete indexById[id];
+				delete cache.indexById[id];
 				this.items.splice(idx, 1);
 				updateIndexById(idx);
 				if (options.remote) length--;
@@ -1964,8 +1970,8 @@
 			ensureRowsByIdCache = function () {
 				if (!rowsById) {
 					rowsById = {};
-					for (var i = 0, l = rows.length; i < l; i++) {
-						if (rows[i]) rowsById[rows[i].data[idProperty]] = i;
+					for (var i = 0, l = cache.rows.length; i < l; i++) {
+						if (cache.rows[i]) rowsById[cache.rows[i].data[idProperty]] = i;
 					}
 				}
 			}
@@ -2128,7 +2134,7 @@
 			}
 
 			this.getItem = function (i) {
-				return rows[i];
+				return cache.rows[i];
 			}
 
 
@@ -2150,7 +2156,7 @@
 					if (!id) throw "Unable to get() item because the given 'obj' param is missing a unique 'id' attribute."
 				}
 
-				return this.items[indexById[id]];
+				return this.items[cache.indexById[id]];
 			}
 
 
@@ -2240,7 +2246,7 @@
 			//
 			// @return integer
 			this.getLength = function () {
-				return options.remote ? length : rows.length;
+				return options.remote ? length : cache.rows.length;
 			}
 
 
@@ -2326,28 +2332,6 @@
 			}
 
 
-			this.mapIdsToRows = function (idArray) {
-				var rows = [];
-				ensureRowsByIdCache();
-				for (var i = 0, l = idArray.length; i < l; i++) {
-					var row = rowsById[idArray[i]];
-					if (row !== null && row !== undefined) {
-						rows[rows.length] = row;
-					}
-				}
-				return rows;
-			}
-
-			this.mapRowsToIds = function (rowArray) {
-				var ids = [];
-				for (var i = 0, l = rowArray.length; i < l; i++) {
-					if (rowArray[i] < rows.length) {
-						ids[ids.length] = rows[rowArray[i]].data[idProperty];
-					}
-				}
-				return ids;
-			}
-
 			recalc = function (_items) {
 				rowsById = null;
 
@@ -2370,9 +2354,9 @@
 					}
 				}
 
-				var diff = getRowDiffs(rows, newRows);
+				var diff = getRowDiffs(cache.rows, newRows);
 
-				rows = newRows;
+				cache.rows = newRows;
 
 				return diff;
 			}
@@ -2380,7 +2364,7 @@
 			this.refresh = function () {
 				if (suspend) return;
 
-				var countBefore = rows.length,
+				var countBefore = cache.rows.length,
 					totalRowsBefore = totalRows,
 					diff = recalc(this.items, filter); // pass as direct refs to avoid closure perf hit
 
@@ -2399,12 +2383,12 @@
 					this.trigger('onPagingInfoChanged', {}, this.getPagingInfo())
 				}
 
-				if (countBefore != rows.length) {
+				if (countBefore != cache.rows.length) {
 					updateRowCount();
 
 					this.trigger('onRowCountChanged', {}, {
 						previous: countBefore,
-						current: rows.length
+						current: cache.rows.length
 					})
 				}
 
@@ -2485,7 +2469,7 @@
 				suspend = true;
 
 				this.items = filteredItems = data;
-				indexById = {};
+				cache.indexById = {};
 
 				updateIndexById();
 				validate();
@@ -2542,33 +2526,9 @@
 				if (ascending === false) {
 					this.items.reverse();
 				}
-				indexById = {};
+				cache.indexById = {};
 				updateIndexById();
 				this.refresh();
-			}
-
-			this.syncGridSelection = function (grid, preserveHidden) {
-				var selectedRowIds = self.mapRowsToIds(selectedRows),
-					inHandler;
-
-				function update() {
-					if (selectedRowIds.length > 0) {
-						inHandler = true;
-						var selectedRows = self.mapIdsToRows(selectedRowIds);
-						if (!preserveHidden) {
-							selectedRowIds = self.mapRowsToIds(selectedRows);
-						}
-						grid.setSelectedRows(selectedRows);
-						inHandler = false;
-					}
-				}
-
-				self.on('onSelectedRowsChanged', function (e, args) {
-					if (inHandler) {
-						return;
-					}
-					selectedRowIds = self.mapRowsToIds(selectedRows);
-				});
 			}
 
 			uncompiledFilter = function (items, args) {
@@ -2620,7 +2580,7 @@
 					if (id === null || id === undefined) {
 						throw "Each data element must implement a unique 'id' property";
 					}
-					indexById[id] = i;
+					cache.indexById[id] = i;
 				}
 			}
 
@@ -2633,10 +2593,10 @@
 			//
 			// @return object
 			this.updateItem = function (id, data) {
-				if (indexById[id] === undefined || id !== data.data[idProperty]) {
+				if (cache.indexById[id] === undefined || id !== data.data[idProperty]) {
 					throw "Unable to update item (id: " + id + "). Invalid or non-matching id";
 				}
-				this.items[indexById[id]] = data;
+				this.items[cache.indexById[id]] = data;
 				if (!updated) {
 					updated = {};
 				}
@@ -2652,7 +2612,7 @@
 				var id;
 				for (var i = 0, l = self.items.length; i < l; i++) {
 					id = self.items[i].data[idProperty];
-					if (id === undefined || indexById[id] !== i) {
+					if (id === undefined || cache.indexById[id] !== i) {
 						throw "Each data item must have a unique 'id' key.";
 					}
 				}
@@ -3259,7 +3219,7 @@
 
 			var pos = getRowPosition(row),
 				y1 = pos.top,
-				y2 = y1 + pos.height - 1,
+				y2 = y1 + (pos.height || self.options.rowHeight) - 1,
 				x1 = 0;
 
 			for (var i = 0; i < cell; i++) {
@@ -3701,8 +3661,8 @@
 		//
 		getRowPosition = function (row) {
 			// Check if item is in position cache
-			if (row in cache.rows) {
-				return cache.rows[row]
+			if (row in cache.rowPositions) {
+				return cache.rowPositions[row]
 			}
 
 			throw "CAN'T GET POSITION OF: " + row
