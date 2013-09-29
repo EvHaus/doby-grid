@@ -333,7 +333,7 @@
 			remote:					false,
 			resizableColumns:		true,
 			resizableRows:			false,
-			resizeCells:			true,
+			resizeCells:			false,
 			reorderable:			true,
 			rowHeight:				28,
 			selectable:				true,
