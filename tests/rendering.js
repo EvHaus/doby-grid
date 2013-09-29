@@ -8,9 +8,6 @@
 
 describe("Rendering", function () {
 
-	// Will hold references to the fixture container and the grid instance
-	var fixture, grid;
-
 	// Default options for the grid
 	var options = {
 		columns: [{
@@ -30,16 +27,16 @@ describe("Rendering", function () {
 		}]
 	}
 
+	// Create a new grid inside a fixture
+	var grid = new DobyGrid(options)
+	var fixture = setFixtures('<div id="text-container"></div>')
+	grid.appendTo(fixture)
+
 
 	// ==========================================================================================
 
 
 	it("should append the grid to a container via appendTo()", function () {
-		// Create a new grid inside a fixture
-		fixture = setFixtures('<div id="text-container"></div>')
-		grid = new DobyGrid(options).appendTo(fixture)
-
-		expect(fixture).toExist()
 		expect(fixture).toContain('div.doby-grid')
 	})
 
@@ -116,6 +113,24 @@ describe("Rendering", function () {
 			// Expect to find as many group headers as there are different values
 			expect(rows.length).toEqual(groups.length)
 			expect(rows).toHaveClass('doby-grid-group')
+
+			// Clear grouping
+			grid.setGrouping()
+		})
+
+
+		// ==========================================================================================
+
+
+		it("should render an empty notice when there is no data", function () {
+			// Ensure empty notice is on
+			grid.setOptions({emptyNotice: true})
+
+			// Empty the grid
+			grid.reset()
+
+			// Check to see if alert was rendered
+			expect(grid.$el).toContain('.doby-grid-alert')
 		})
 
 

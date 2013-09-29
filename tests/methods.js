@@ -32,7 +32,6 @@ describe("Methods and Data Manipulation", function () {
 		methodGrid.add(item, {at: 0})
 		var newItems = methodGrid.collection.items;
 		var newDataItems = _.filter(newItems, function (i) {return !i.__nonDataRow})
-		expect(originalDataItems.length).toBeGreaterThan(0)
 		expect(newDataItems[0]).toEqual(item)
 	})
 
@@ -51,9 +50,10 @@ describe("Methods and Data Manipulation", function () {
 	// ==========================================================================================
 
 
-	it("should not be able to add() data without a unique id", function () {
+	it("should throw an exception when attempting to add() an item with a non-unique id", function () {
 		var item = {data: {id: 101, name: 'updated'}}
 		expect(function () {
+			methodGrid.add(item)
 			methodGrid.add(item)
 		}).toThrow('You are not allowed to add() items without a unique \'id\' value. A row with id \'' + item.data.id + '\' already exists.')
 	})
@@ -63,8 +63,10 @@ describe("Methods and Data Manipulation", function () {
 
 
 	it("should be able to get() model by id", function () {
-		var gotten = methodGrid.get(101)
-		expect(gotten.data.id).toEqual(101)
+		var item = {data: {id: 102, name: 'updated'}}
+		methodGrid.add(item)
+		var gotten = methodGrid.get(102)
+		expect(gotten.data.id).toEqual(102)
 	})
 
 
@@ -72,8 +74,32 @@ describe("Methods and Data Manipulation", function () {
 
 
 	it("should be able to get() model by reference", function () {
-		var gotten = methodGrid.get({data: {id: 101, name: 'updated'}})
-		expect(gotten.data.id).toEqual(101)
+		var item = {data: {id: 103, name: 'updated'}}
+		methodGrid.add(item)
+		var gotten = methodGrid.get({data: {id: 103, name: 'updated'}})
+		expect(gotten.data.id).toEqual(103)
+	})
+
+
+	// ==========================================================================================
+
+
+	it("should be able to reset() the grid with a new set of data", function () {
+		var newdata = [{data: {id: 1, name: 'test'}}, {data: {id: 2, name: 'test2'}}];
+		methodGrid = methodGrid.reset(newdata)
+		expect(methodGrid.collection.items).toEqual(newdata)
+	})
+
+
+	// ==========================================================================================
+
+
+	it("should be able to empty the grid via reset()", function () {
+		// Ensure empty alert isn't on
+		methodGrid.setOptions({emptyNotice: false})
+
+		methodGrid = methodGrid.reset()
+		expect(methodGrid.collection.items).toEqual([])
 	})
 
 
@@ -84,6 +110,7 @@ describe("Methods and Data Manipulation", function () {
 		methodGrid.destroy()
 		expect(methodGrid.$el).toEqual(null)
 	})
+
 
 
 })

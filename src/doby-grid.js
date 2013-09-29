@@ -197,7 +197,6 @@
 			idProperty = "id",	// property holding a unique row id
 			initialize,
 			initialized = false,
-			insertEmptyAlert,
 			invalidate,
 			invalidateAllRows,
 			invalidatePostProcessingResults,
@@ -373,9 +372,7 @@
 			getBrowserData();
 
 			// Create a new data collection
-			self.collection = new Collection(self.options.data, {
-				remote: self.options.remote
-			})
+			self.collection = new Collection(self)
 
 			// Create the grid
 			createGrid();
@@ -1562,19 +1559,14 @@
 		//		simulate objects that haven't been fetched from the server yet. Backbone doesn't allow
 		//		you to have "fake" data in their collections.
 		//
-		// @param	data		object		Raw data set that will be converted to a Data View
-		// @param	options		object		Data View options
+		// @param	grid		object		Reference pointer to the grid instance
 		//
 		// @return object
-		Collection = function (data, options) {
+		Collection = function (grid) {
 
 			// Private Variables
 
 			var self = this,
-				defaults = {
-				inlineFilters: false,
-				remote: false
-			},
 				filter = null,		// filter function
 				filterArgs,
 				filterCache = [],
@@ -1612,6 +1604,7 @@
 				getFilteredAndPagedItems,
 				getFunctionInfo,
 				getRowDiffs,
+				insertEmptyAlert,
 				recalc,
 				uncompiledFilter,
 				uncompiledFilterWithCaching,
@@ -1621,8 +1614,6 @@
 
 			// Events
 			_.extend(this, Backbone.Events);
-
-			options = $.extend(true, {}, defaults, options);
 
 			// Items by index
 			this.items = [];
@@ -1634,12 +1625,12 @@
 			// @return object
 			this.initialize = function () {
 
-				if (data) {
+				if (grid.options.data) {
 					// TODO: Don't convert to Backbone Collection -- use initial collection
-					if (data instanceof Backbone.Collection) {
-						this.setItems(data.models);
+					if (grid.options.data instanceof Backbone.Collection) {
+						this.reset(grid.options.data.models);
 					} else {
-						this.setItems(data);
+						this.reset(grid.options.data);
 					}
 				}
 
@@ -1871,7 +1862,7 @@
 				delete cache.indexById[id];
 				this.items.splice(idx, 1);
 				updateIndexById(idx);
-				if (options.remote) length--;
+				if (grid.options.remote) length--;
 				this.refresh();
 			}
 
@@ -2237,7 +2228,7 @@
 			//
 			// @return integer
 			this.getLength = function () {
-				return options.remote ? length : cache.rows.length;
+				return grid.options.remote ? length : cache.rows.length;
 			}
 
 
@@ -2320,6 +2311,28 @@
 				}
 
 				return diff;
+			}
+
+
+			// insertEmptyAlert()
+			// When the grid is empty and the empty alert is enabled -- add a NonDataItem to the grid
+			//
+			// @param	type		string			"default", "remote" or "filter"
+			//
+			insertEmptyAlert = function (type) {
+				if (!type) type = "default"
+
+				var obj = new NonDataItem({
+					__alert: true,
+					data: {
+						id: '-empty-alert-message-',
+						data: {
+							msg: getLocale("empty." + type)
+						}
+					}
+				})
+
+				self.reset([obj])
 			}
 
 
@@ -2450,16 +2463,17 @@
 			}
 
 
-			// setItems()
+			// reset()
 			// Given an array of items, binds those items to the data view collection, generates
 			// index caches and checks for id uniqueness.
 			//
-			// @param	data				array		Array of objects
+			// @param	models		array		Array of objects
 			//
-			this.setItems = function (data) {
+			this.reset = function (models) {
+				if (!models) models = [];
 				suspend = true;
 
-				this.items = filteredItems = data;
+				this.items = filteredItems = models;
 				cache.indexById = {};
 
 				updateIndexById();
@@ -2607,6 +2621,9 @@
 						throw "Each data item must have a unique 'id' key.";
 					}
 				}
+
+				// If no data - add an empty alert
+				if (grid.options.emptyNotice && !self.items.length) insertEmptyAlert()
 			}
 
 			return this.initialize();
@@ -4409,29 +4426,6 @@
 		}
 
 
-		// insertEmptyAlert()
-		// When the grid is empty and the empty alert is enabled -- add a NonDataItem to the grid
-		//
-		// @param	type		string			"default", "remote" or "filter"
-		//
-		insertEmptyAlert = function (type) {
-			if (!type) type = "default"
-
-			var obj = new NonDataItem({
-				__alert: true,
-				data: {
-					id: '-empty-alert-message-',
-					data: {
-						msg: getLocale("empty." + type)
-					}
-				}
-			})
-
-			// TODO: Convert this to a NonDataItem object
-			self.add(obj)
-		}
-
-
 		// invalidate()
 		// Clears the caching for all rows counts and positions
 		//
@@ -5012,6 +5006,15 @@
 			if (needToReselectCell) {
 				activeCellNode = getCellNode(activeRow, activeCell);
 			}
+		}
+
+
+		// reset()
+		// Entry point for collection.reset(). See collection.reset for more info.
+		//
+		this.reset = function (models) {
+			this.collection.reset(models)
+			return this
 		}
 
 
