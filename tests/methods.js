@@ -27,8 +27,6 @@ describe("Methods and Data Manipulation", function () {
 
 	it("should be able to insert a new data item via add() at a specific index", function () {
 		var item = {data: {id: 101, name: 'test'}}
-		var originalItems = JSON.parse(JSON.stringify(methodGrid.collection.items));
-		var originalDataItems = _.filter(originalItems, function (i) {return !i.__nonDataRow})
 		methodGrid.add(item, {at: 0})
 		var newItems = methodGrid.collection.items;
 		var newDataItems = _.filter(newItems, function (i) {return !i.__nonDataRow})
@@ -100,6 +98,19 @@ describe("Methods and Data Manipulation", function () {
 
 		methodGrid = methodGrid.reset()
 		expect(methodGrid.collection.items).toEqual([])
+	})
+
+
+	// ==========================================================================================
+
+
+	it("should be able to remove() an item from the grid", function () {
+		// Prepare grid for test
+		var newdata = [{data: {id: 1, name: 'test'}}, {data: {id: 2, name: 'test2'}}];
+		methodGrid.reset(newdata)
+
+		methodGrid = methodGrid.remove(2)
+		expect(methodGrid.collection.items).toEqual([newdata[0]])
 	})
 
 

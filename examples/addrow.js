@@ -6,8 +6,8 @@ define([], function() {
 		for (var i = 0; i < 10; i++) {
 			data.push({
 				data: {
-					id: 'fancy_id_'+i,
-					name: "Bob Robert Jr. "+i
+					id: 'fancy_id_' + i,
+					name: "Bob Robert Jr. " + i
 				}
 			});
 		}
@@ -31,10 +31,12 @@ define([], function() {
 				id: "action",
 				name: "Action",
 				field: "action",
+				focusable: false,
 				formatter: function () {
-					return '<div style="text-align:center"><a>Add Another Row</a></div>'
+					return '<button class="add">Add Another Row</button><button class="remove">Remove This Row</button>'
 				},
-				width: 200
+				selectable: false,
+				width: 260
 			}],
 			editable: true,
 			data: data
@@ -43,9 +45,11 @@ define([], function() {
 		grid.on('click', function(event, args) {
 			event.stopPropagation()
 
-			if (args.cell == 2) {
+			if ($(event.target).hasClass('add')) {
 				i++
-				grid.add({data: {id: i}})
+				grid.add({data: {id: 'fancy_id_' + i, name: "Bob Robert Jr. " + i}})
+			} else if ($(event.target).hasClass('remove')) {
+				grid.remove(args.item.data.id)
 			}
 		})
 

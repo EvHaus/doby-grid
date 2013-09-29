@@ -1854,15 +1854,27 @@
 				*/
 			}
 
+
+			// deleteItem()
+			// Removes an item from the collection
+			//
+			// @param	id		string		ID of the row item
+			//
 			this.deleteItem = function (id) {
 				var idx = cache.indexById[id];
 				if (idx === undefined) {
 					throw "Unable to delete collection item. Invalid id (" + id + ") supplied.";
 				}
 				delete cache.indexById[id];
+				delete cache.rowPositions[idx]
+
 				this.items.splice(idx, 1);
 				updateIndexById(idx);
 				if (grid.options.remote) length--;
+
+				// Recache positions from row
+				cacheRowPositions(idx)
+
 				this.refresh();
 			}
 
@@ -2370,13 +2382,14 @@
 
 				var countBefore = cache.rows.length,
 					totalRowsBefore = totalRows,
-					diff = recalc(this.items, filter); // pass as direct refs to avoid closure perf hit
+					diff = recalc(this.items);
 
 				// if the current page is no longer valid, go to last page and recalc
-				// we suffer a performance penalty here, but the main loop (recalc) remains highly optimized
+				// we suffer a performance penalty here, but the main loop (recalc)
+				// remains highly optimized
 				if (pagesize && totalRows < pagenum * pagesize) {
 					pagenum = Math.max(0, Math.ceil(totalRows / pagesize) - 1);
-					diff = recalc(this.items, filter);
+					diff = recalc(this.items);
 				}
 
 				updated = null;
@@ -2405,6 +2418,34 @@
 					})
 				}
 			}
+
+
+			// reset()
+			// Given an array of items, binds those items to the data view collection, generates
+			// index caches and checks for id uniqueness.
+			//
+			// @param	models		array		Array of objects
+			// @param	recache		boolean		(Optional) Force a recache of positions and rows
+			//
+			this.reset = function (models, recache) {
+				if (!models) models = [];
+				suspend = true;
+
+				this.items = filteredItems = models;
+				cache.indexById = {};
+
+				if (recache) {
+					cache.rows = []
+					cacheRowPositions()
+				}
+
+				updateIndexById();
+				validate();
+				suspend = false;
+
+				this.refresh();
+			}
+
 
 			// resetLength()
 			// Resets the length back to null to ensure remote fetches will be re-executed
@@ -2458,27 +2499,6 @@
 
 					toggledGroupsByLevel[i] = {};
 				}
-
-				this.refresh();
-			}
-
-
-			// reset()
-			// Given an array of items, binds those items to the data view collection, generates
-			// index caches and checks for id uniqueness.
-			//
-			// @param	models		array		Array of objects
-			//
-			this.reset = function (models) {
-				if (!models) models = [];
-				suspend = true;
-
-				this.items = filteredItems = models;
-				cache.indexById = {};
-
-				updateIndexById();
-				validate();
-				suspend = false;
 
 				this.refresh();
 			}
@@ -3672,8 +3692,6 @@
 			if (row in cache.rowPositions) {
 				return cache.rowPositions[row]
 			}
-
-			throw "CAN'T GET POSITION OF: " + row
 		}
 
 
@@ -4808,7 +4826,7 @@
 		// @param	id			integer		Lookup data object via id instead
 		//
 		// @return object
-		this.removeRow = function (id) {
+		this.remove = function (id) {
 			// TODO: Convert this to use a similar to input to Backbone.Collection.remove()
 			this.collection.deleteItem(id);
 			return this
@@ -4900,6 +4918,7 @@
 			if (!cacheEntry) {
 				return;
 			}
+
 			$canvas[0].removeChild(cacheEntry.rowNode);
 			delete cache.nodes[row];
 
@@ -5013,7 +5032,7 @@
 		// Entry point for collection.reset(). See collection.reset for more info.
 		//
 		this.reset = function (models) {
-			this.collection.reset(models)
+			this.collection.reset(models, true)
 			return this
 		}
 
@@ -5229,9 +5248,8 @@
 		// @param	cell	integer		Cell index
 		//
 		setActiveCell = function (row, cell) {
-			if (!initialized) {
-				return;
-			}
+			if (!initialized) return;
+
 			if (row > getDataLength() || row < 0 || cell >= self.options.columns.length || cell < 0) {
 				return;
 			}
@@ -6176,8 +6194,9 @@
 			}
 
 			// remove the rows that are now outside of the data range
-			// this helps avoid redundant calls to .removeRow() when the size of the data decreased by thousands of rows
-			var l = getDataLengthIncludingAddNew() - 1;
+			// this helps avoid redundant calls to .remove() when the size of the data
+			// decreased by thousands of rows
+			var l = getDataLengthIncludingAddNew();
 			for (var i in cache.nodes) {
 				if (i >= l) {
 					removeRowFromCache(i);

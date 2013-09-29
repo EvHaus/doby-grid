@@ -131,6 +131,29 @@ describe("Rendering", function () {
 
 			// Check to see if alert was rendered
 			expect(grid.$el).toContain('.doby-grid-alert')
+
+			// Disable empty notice
+			grid.setOptions({emptyNotice: false})
+		})
+
+
+		// ==========================================================================================
+
+
+		it("should remove the relevant row from the DOM when calling remove()", function () {
+			// Prepare the grid for testing
+			grid.reset([{data: {id: 1}}, {data: {id: 2}}])
+
+			// Remove the second row
+			grid.remove(2)
+
+			// Check to see if the right row was removed
+			rows = grid.$el.find('.doby-grid-row')
+			cell = $(rows[0]).children('.doby-grid-cell:first').first()
+			expect(rows.length).toEqual(1)
+
+			// Make sure the first row is left behind
+			expect(cell.text()).toEqual('1')
 		})
 
 
