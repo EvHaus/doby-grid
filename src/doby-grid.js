@@ -90,7 +90,6 @@
 			classgroup = this.NAME + '-group',
 			classgrouptitle = this.NAME + '-group-title',
 			classgrouptoggle = this.NAME + '-group-toggle',
-			classgrouptotals = this.NAME + '-group-totals',
 			classhandle = this.NAME + '-resizable-handle',
 			classheader = this.NAME + '-header',
 			classheadercolumns = this.NAME + '-header-columns',
@@ -205,8 +204,6 @@
 			invalidateRow,
 			invalidateRows,
 			isCellPotentiallyEditable,
-			isGrouped,
-			isSorted,
 			lastRenderedScrollLeft = 0,
 			lastRenderedScrollTop = 0,
 			makeActiveCellEditable,
@@ -256,7 +253,6 @@
 			serializedEditorValue,
 			setActiveCell,
 			setActiveCellInternal,
-			setColumns,
 			setRowHeight,
 			setSelectedRows,
 			setupColumnReorder,
@@ -699,16 +695,16 @@
 		// applyColumnHeaderWidths()
 		// Ensures that the header column widths are all set correctly
 		//
-		applyColumnHeaderWidths = function () {
-			if (!initialized) {
-				return;
-			}
-			var h;
-			for (var i = 0, headers = $headers.children(), ii = headers.length; i < ii; i++) {
-				h = $(headers[i]);
-				if (h.width() !== self.options.columns[i].width - headerColumnWidthDiff) {
-					h.width(self.options.columns[i].width - headerColumnWidthDiff);
-				}
+		// @param	headers		array		(Optional) Header column DOM elements to resize
+		//
+		applyColumnHeaderWidths = function (headers) {
+			if (!initialized) return;
+			if (!headers) headers = $headers.children();
+
+			var w;
+			for (var i = 0, l = headers.length; i < l; i++) {
+				w = self.options.columns[i].width - headerColumnWidthDiff;
+				$(headers[i]).attr('style', 'width:' + w + 'px');
 			}
 
 			updateColumnCaches();
@@ -719,10 +715,7 @@
 		// Sets the widths of the columns to what they should be
 		//
 		applyColumnWidths = function () {
-			var x = 0,
-				c,
-				w,
-				rule;
+			var x = 0, c, w, rule;
 
 			for (var i = 0, l = self.options.columns.length; i < l; i++) {
 				c = self.options.columns[i];
@@ -894,7 +887,7 @@
 				_dragging = null;
 
 			$canvas
-				.on('draginit', function (event, dd) {
+				.on('draginit', function (event) {
 					// Prevent the grid from cancelling drag'n'drop by default
 					event.stopImmediatePropagation();
 				})
@@ -2465,7 +2458,7 @@
 			//
 			// @param	data				array		Array of objects
 			//
-			this.setItems = function (data, objectIdProperty) {
+			this.setItems = function (data) {
 				suspend = true;
 
 				this.items = filteredItems = data;
@@ -2608,7 +2601,7 @@
 			// validate()
 			// Ensures that the given items are valid.
 			//
-			validate = function (items) {
+			validate = function () {
 				var id;
 				for (var i = 0, l = self.items.length; i < l; i++) {
 					id = self.items[i].data[idProperty];
@@ -2785,7 +2778,7 @@
 		// @param	data		object		The full data object for the given cell
 		//
 		// @return string
-		defaultFormatter = function (row, cell, value, columnDef, data) {
+		defaultFormatter = function (row, cell, value) {
 			// Never write "undefined" or "null" in the grid -- that's just bad programming
 			if (value === undefined || value === null) {
 				return "";
@@ -3803,9 +3796,8 @@
 		//
 		// @param	row			integer		Index of the row
 		// @param	cell		integer		Index of the cell
-		// @param	posX		integer		TODO: ???
 		//
-		gotoLeft = function (row, cell, posX) {
+		gotoLeft = function (row, cell) {
 			if (cell <= 0) {
 				return null;
 			}
@@ -3923,9 +3915,8 @@
 		//
 		// @param	row			integer		Index of the row
 		// @param	cell		integer		Index of the cell
-		// @param	posX		integer		TODO: ???
 		//
-		gotoRight = function (row, cell, posX) {
+		gotoRight = function (row, cell) {
 			if (cell >= self.options.columns.length) {
 				return null;
 			}
@@ -5439,7 +5430,7 @@
 				sortCols: []
 			}
 
-			_.each(options, function (col, i) {
+			_.each(options, function (col) {
 				args.sortCols.push({
 					sortCol: getColumnById(col.columnId),
 					sortAsc: col.sortAsc
@@ -5506,7 +5497,7 @@
 
 			columnElements = $headers.children();
 			columnElements.find("." + classhandle).remove();
-			columnElements.each(function (i, e) {
+			columnElements.each(function (i) {
 				if (self.options.columns[i].resizable) {
 					if (firstResizable === undefined) {
 						firstResizable = i;
@@ -5519,7 +5510,7 @@
 				return;
 			}
 
-			var lockColumnWidths = function (i) {
+			var lockColumnWidths = function () {
 				columnElements.each(function (i, e) {
 					self.options.columns[i].previousWidth = $(e).outerWidth();
 				});
@@ -5645,8 +5636,9 @@
 				minPageX = pageX - Math.min(shrinkLeewayOnLeft, stretchLeewayOnRight);
 			}
 
+			var headers = $headers.children();
 			var applyColWidths = function () {
-				applyColumnHeaderWidths();
+				applyColumnHeaderWidths(headers);
 				if (self.options.resizeCells) {
 					applyColumnWidths();
 				}
@@ -5677,9 +5669,6 @@
 				// If resizable columns are disabled -- return
 				if (!self.options.resizableColumns) return
 
-				// Find the column data object
-				var column = self.options.columns[i];
-
 				$('<div class="' + classhandle + '"><span></span></div>')
 					.appendTo(e)
 					// Auto resize on double click
@@ -5697,8 +5686,7 @@
 						columnEl.width(currentWidth)
 
 						// Determine the width of the widest visible value
-						var cellWidths = [headerWidth],
-							right;
+						var cellWidths = [headerWidth];
 						$canvas.find('.l' + i + ':visible')
 							.removeClass('r' + i)
 							.each(function () {
@@ -5721,7 +5709,7 @@
 						}
 					})
 					// Custom drag to resize
-					.on('dragstart', function (event, dd) {
+					.on('dragstart', function (event) {
 						pageX = event.pageX;
 						$(this).parent().addClass(classheadercolumndrag);
 
@@ -5731,7 +5719,7 @@
 						// Ensures the leeway has another room to move around
 						prepareLeeway(i, pageX)
 					})
-					.on('drag', function (event, dd) {
+					.on('drag', function (event) {
 						var delta = Math.min(maxPageX, Math.max(minPageX, event.pageX)) - pageX;
 
 						// Sets the new column widths
@@ -5740,7 +5728,7 @@
 						// Save changes
 						applyColWidths()
 					})
-					.on('dragend', function (event, dd) {
+					.on('dragend', function () {
 						$(this).parent().removeClass(classheadercolumndrag);
 						submitColResize()
 					})
@@ -5853,7 +5841,7 @@
 
 			var headerColumnEls = $headers.children();
 			headerColumnEls
-				.removeClass(classheadercolumnactive)
+				.removeClass(classheadercolumnsorted)
 				.find("." + classsortindicator)
 				.removeClass(classsortindicatorasc + " " + classsortindicatordesc);
 
@@ -5864,7 +5852,7 @@
 				var columnIndex = getColumnIndex(col.columnId);
 				if (columnIndex !== null) {
 					headerColumnEls.eq(columnIndex)
-						.addClass(classheadercolumnactive)
+						.addClass(classheadercolumnsorted)
 						.find("." + classsortindicator)
 						.addClass(col.sortAsc ? classsortindicatorasc : classsortindicatordesc);
 				}
@@ -6172,8 +6160,6 @@
 		// Updates the cache of row data
 		//
 		updateRowCount = function () {
-			var dataLength = getDataLength();
-
 			if (!initialized) return;
 
 			var numberOfRows = getDataLengthIncludingAddNew() +
