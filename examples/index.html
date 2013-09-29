@@ -97,6 +97,8 @@
 				var start = new Date()
 
 				require(['examples/' + name], function(gridInit) {
+					if (window.grid) window.grid.destroy();
+
 					var grid = gridInit(DobyGrid);
 					grid.appendTo($('#gridwrapper').empty())
 

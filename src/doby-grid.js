@@ -686,8 +686,6 @@
 			// Resize grid when window is changed
 			$(window).on('resize', handleWindowResize);
 
-			console.log(cache)
-
 			return this;
 		};
 
