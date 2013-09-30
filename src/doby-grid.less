@@ -248,7 +248,7 @@
 		position: absolute;
 		text-overflow: ellipsis;
 		top: -1px;
-		.transition(~"background 0.3s ease-in-out, box-shadow 0.3s ease-in-out");
+		.transition(~"background 0.3s ease-in-out, border 0.3s ease-in-out, box-shadow 0.3s ease-in-out");
 		white-space: nowrap;
 		z-index: 1;
 
@@ -394,6 +394,13 @@
 		text-indent: 0;
 		text-shadow: none;
 		width: 100%;
+	}
+
+	// Errors
+	&.invalid {
+		background: rgba(255,100,100,0.5);
+		box-shadow: rgba(200,60,80,0.3) 4px 4px 2px inset;
+		border-color: rgba(200,60,80,0.8);
 	}
 }
 

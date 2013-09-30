@@ -98,6 +98,7 @@
 			classheadercolumndrag = this.NAME + '-header-column-dragging',
 			classheadercolumnsorted = this.NAME + '-header-column-sorted',
 			classheadersortable = this.NAME + '-header-sortable',
+			classinvalid = 'invalid',
 			classplaceholder = this.NAME + '-sortable-placeholder',
 			classrangedecorator = this.NAME + '-range-decorator',
 			classrow = this.NAME + '-row',
@@ -153,11 +154,9 @@
 			getDataItem,
 			getDataItemValueForColumn,
 			getDataLength,
-			getDataLengthIncludingAddNew,
 			getEditor,
 			getFormatter,
 			getHeadersWidth,
-			getItemId,
 			getLocale,
 			getMaxCSSHeight,
 			getRenderedRange,
@@ -197,6 +196,7 @@
 			idProperty = "id",	// property holding a unique row id
 			initialize,
 			initialized = false,
+			insertAddRow,
 			invalidate,
 			invalidateAllRows,
 			invalidatePostProcessingResults,
@@ -298,6 +298,7 @@
 			columnWidth:			80,
 			editable:				false,
 			editor:					null,
+			editCommandHandler:		null,		// TODO: This is still needed. Fix and document.
 			emptyNotice:			true,
 			forceSyncScrolling:		false,		// TODO: Determine if still needed. Then document.
 			formatter:				null,
@@ -375,6 +376,9 @@
 
 			// Create a new data collection
 			self.collection = new Collection(self);
+
+			// Insert an 'addRow' row
+			if (self.options.addRow) insertAddRow();
 
 			// Create the grid
 			createGrid();
@@ -734,12 +738,13 @@
 		// Processing the post-render action on all cells that need it
 		//
 		asyncPostProcessRows = function () {
+			var dataLength = getDataLength();
 			while (postProcessFromRow <= postProcessToRow) {
 				var row = (vScrollDir >= 0) ? postProcessFromRow++ : postProcessToRow--,
 					cacheEntry = cache.nodes[row],
 					columnIdx;
 
-				if (!cacheEntry || row >= getDataLength()) {
+				if (!cacheEntry || row >= dataLength) {
 					continue;
 				}
 
@@ -1049,11 +1054,8 @@
 				};
 			}
 
-			var itemsWithAddNew = self.collection.items.length;
-			if (self.options.addRow) itemsWithAddNew++;
-
-			var item, data;
-			for (var i = from, l = itemsWithAddNew; i < l; i++) {
+			var count = self.collection.items.length, item, data;
+			for (var i = from, l = count; i < l; i++) {
 				item = self.collection.items[i];
 				data = {
 					top: (cache.rowPositions[i - 1]) ? (cache.rowPositions[i - 1].bottom - offset) : 0
@@ -1077,7 +1079,7 @@
 		//
 		// @return boolean
 		canCellBeActive = function (row, cell) {
-			if (!self.options.keyboardNavigation || row >= getDataLengthIncludingAddNew() ||
+			if (!self.options.keyboardNavigation || row >= getDataLength() ||
 				row < 0 || cell >= self.options.columns.length || cell < 0) {
 				return false;
 			}
@@ -1351,11 +1353,59 @@
 
 			if (!currentEditor) return true;
 
+			var showInvalid = function () {
+				// Re-add the CSS class to trigger transitions, if any.
+				$(activeCellNode)
+					.removeClass(classinvalid)
+					.width(); // force layout
+				$(activeCellNode).addClass(classinvalid);
+
+				self.trigger('onValidationError', {}, {
+					editor: currentEditor,
+					cellNode: activeCellNode,
+					validationResults: validationResults,
+					row: activeRow,
+					cell: activeCell,
+					column: column
+				});
+
+				currentEditor.focus();
+			};
+
 			if (currentEditor.isValueChanged()) {
 				var validationResults = currentEditor.validate();
 
 				if (validationResults.valid) {
-					if (activeRow < getDataLength()) {
+					// If we're inside an "addRow", create a duplicate and write to that
+					if (item.__addRow) {
+						var newItem = {
+							data: {}
+						};
+
+						// Add row
+						currentEditor.applyValue(newItem, currentEditor.serializeValue());
+
+						// Make sure item has an id
+						if (!newItem.data.id && !newItem.id) {
+							validationResults = {
+								valid: false,
+								msg: "Unable to create a new item without a unique 'id' value."
+							};
+							showInvalid();
+							return;
+						}
+
+						self.add(newItem);
+
+						// Activate the next cell in the original row
+						navigate('up');
+						navigate('next');
+
+						self.trigger('onAddNewRow', {}, {
+							item: newItem,
+							column: column
+						});
+					} else {
 						var editCommand = {
 							cell: activeCell,
 							editor: currentEditor,
@@ -1385,34 +1435,11 @@
 							cell: activeCell,
 							item: item
 						});
-					} else {
-						var newItem = {};
-						currentEditor.applyValue(newItem, currentEditor.serializeValue());
-						makeActiveCellNormal();
-
-						self.trigger('onAddNewRow', {}, {
-							item: newItem,
-							column: column
-						});
 					}
 
 					return true;
 				} else {
-					// Re-add the CSS class to trigger transitions, if any.
-					$(activeCellNode).removeClass("invalid");
-					$(activeCellNode).width(); // force layout
-					$(activeCellNode).addClass("invalid");
-
-					self.trigger('onValidationError', {}, {
-						editor: currentEditor,
-						cellNode: activeCellNode,
-						validationResults: validationResults,
-						row: activeRow,
-						cell: activeCell,
-						column: column
-					});
-
-					currentEditor.focus();
+					showInvalid();
 					return false;
 				}
 			}
@@ -1615,6 +1642,7 @@
 				getFunctionInfo,
 				getRowDiffs,
 				insertEmptyAlert,
+				parse,
 				recalc,
 				uncompiledFilter,
 				uncompiledFilterWithCaching,
@@ -1635,6 +1663,7 @@
 			// @return object
 			this.initialize = function () {
 
+				// Process the data
 				if (grid.options.data) {
 					// TODO: Don't convert to Backbone Collection -- use initial collection
 					if (grid.options.data instanceof Backbone.Collection) {
@@ -1660,16 +1689,19 @@
 				options = options || {};
 				var at = options.at, model, existing, toAdd = [];
 
+				// Parse models
+				parse(models);
+
 				// Merge existing models and collect the new ones
 				for (var i = 0, l = models.length; i < l; i++) {
 					model = models[i];
 					existing = this.get(model);
 					if (existing) {
 						if (options.merge) {
-							this.updateItem(existing.data.id, model);
+							this.updateItem(existing[idProperty], model);
 						} else {
 							throw ["You are not allowed to add() items without a unique 'id' value. ",
-							"A row with id '" + existing.data.id + "' already exists."].join('');
+							"A row with id '" + existing[idProperty] + "' already exists."].join('');
 						}
 					} else {
 						toAdd.push(model);
@@ -1678,11 +1710,20 @@
 
 				// If data used to be empty, with an alert - remove alert
 				if (this.items.length == 1 && this.items[0].__alert) {
-					this.deleteItem(getItemId(this.items[0]));
+					this.deleteItem(this.items[0][idProperty]);
 				}
 
 				// Add the new models
 				if (toAdd.length) {
+					// If "addRow" is enabled, make sure we don't insert below it
+					if (grid.options.addRow && (
+							(at && at > this.items.length) ||
+							at === null || at === undefined
+						) && !('__addRow' in toAdd[0])
+					) {
+						at = this.items.length - 1;
+					}
+
 					if (at !== null && at !== undefined) {
 						Array.prototype.splice.apply(this.items, [at, 0].concat(toAdd));
 						updateIndexById((at > 0 ? at - 1 : 0));
@@ -1975,7 +2016,7 @@
 				if (!rowsById) {
 					rowsById = {};
 					for (var i = 0, l = cache.rows.length; i < l; i++) {
-						if (cache.rows[i]) rowsById[cache.rows[i].data[idProperty]] = i;
+						if (cache.rows[i]) rowsById[cache.rows[i][idProperty]] = i;
 					}
 				}
 			};
@@ -2156,8 +2197,8 @@
 				if (obj === null) return void 0;
 				var id = obj;
 				if (typeof obj == 'object') {
-					id = getItemId(obj);
-					if (!id) throw "Unable to get() item because the given 'obj' param is missing a unique 'id' attribute.";
+					id = obj[idProperty] || obj.data[idProperty];
+					if (!id) return null;
 				}
 
 				return this.items[cache.indexById[id]];
@@ -2201,7 +2242,7 @@
 				}
 
 				// Group headers should return their own metadata object
-				if (item.__nonDataRow) {
+				if (item.__group) {
 					return {
 						selectable: false,
 						cssClasses: [classgroup, classgrouptoggle, (item.collapsed ? classcollapsed : classexpanded)].join(' '),
@@ -2310,7 +2351,7 @@
 								(
 									groupingInfos.length && eitherIsNonData &&
 									(item && item.__group !== r.__group) ||
-									(item && item.__group) && (getItemId(item) != getItemId(r)) ||
+									(item && item.__group) && (item[idProperty] != r[idProperty]) ||
 									(item && item.__group) && (item.collapsed != r.collapsed)
 								) ||
 								// Compare between different non-data types
@@ -2323,8 +2364,8 @@
 								) ||
 								// Compare between different data object ids
 								(
-									item && item.data && r.data && item.data[idProperty] != r.data[idProperty] ||
-									(updated && updated[item.data[idProperty]])
+									item && item.data && r.data && item[idProperty] != r[idProperty] ||
+									(updated && updated[item[idProperty]])
 								)
 							)
 						) {
@@ -2356,6 +2397,24 @@
 				});
 
 				self.reset([obj]);
+			};
+
+
+			// parse()
+			// Given a list of items objects to convert to models, returns a list of parsed items
+			//
+			// @param	item		array		List of objects
+			//
+			// @retrurn array
+			parse = function (items) {
+				var i, l = items.length;
+				for (i = 0; i < l; i++) {
+					// Steal the 'id' from the 'data' object
+					if (!(idProperty in items[i]) && idProperty in items[i].data) {
+						items[i][idProperty] = items[i].data[idProperty];
+					}
+				}
+				return items;
 			};
 
 
@@ -2441,6 +2500,9 @@
 			this.reset = function (models, recache) {
 				if (!models) models = [];
 				suspend = true;
+
+				// Parse data
+				parse(models);
 
 				this.items = filteredItems = models;
 				cache.indexById = {};
@@ -2612,7 +2674,7 @@
 				var id;
 				for (var i = startingIndex, l = self.items.length; i < l; i++) {
 					if (self.items[i] === null) continue;
-					id = self.items[i].data ? self.items[i].data[idProperty] : null;
+					id = self.items[i][idProperty];
 					if (id === null || id === undefined) {
 						throw "Each data element must implement a unique 'id' property";
 					}
@@ -2629,7 +2691,7 @@
 			//
 			// @return object
 			this.updateItem = function (id, data) {
-				if (cache.indexById[id] === undefined || id !== data.data[idProperty]) {
+				if (cache.indexById[id] === undefined || id !== data[idProperty]) {
 					throw "Unable to update item (id: " + id + "). Invalid or non-matching id";
 				}
 				this.items[cache.indexById[id]] = data;
@@ -2647,7 +2709,7 @@
 			validate = function () {
 				var id;
 				for (var i = 0, l = self.items.length; i < l; i++) {
-					id = self.items[i].data[idProperty];
+					id = self.items[i][idProperty];
 					if (id === undefined || cache.indexById[id] !== i) {
 						throw "Each data item must have a unique 'id' key.";
 					}
@@ -2685,10 +2747,15 @@
 				this.$input = $('<input type="text" class="editor" value="' + value + '"/>')
 					.appendTo(options.cell)
 					.on("keydown", function (event) {
-						// Esc
-						if (event.which == 27) {
-							return self.cancel();
+						// Escape out of here for 'Tab' and 'Enter' so that
+						// the grid can capture that event
+						if (event.which == 9 || event.which == 13) {
+							event.preventDefault();
+							return;
 						}
+
+						// Esc
+						if (event.which == 27) return self.cancel();
 
 						// Check if position of cursor is on the ends, if it's not then
 						// left or right arrow keys will prevent editor from saving
@@ -2797,8 +2864,10 @@
 			//
 			// @return object
 			this.validate = function () {
+				var value = this.getValue();
+
 				if (options.column.validator) {
-					var validationResults = options.column.validator(this.input.val());
+					var validationResults = options.column.validator(value);
 					if (!validationResults.valid) {
 						return validationResults;
 					}
@@ -3464,15 +3533,6 @@
 		};
 
 
-		// getDataLengthIncludingAddNew()
-		// Gets the numbers of items in the data set including the space for the add new row options
-		//
-		// @return integer
-		getDataLengthIncludingAddNew = function () {
-			return getDataLength() + (self.options.addRow ? 1 : 0);
-		};
-
-
 		// getEditor()
 		// Given a row and cell index, returns the editor factory for that cell
 		//
@@ -3538,16 +3598,6 @@
 			headersWidth += window.scrollbarDimensions.width;
 
 			return Math.max(headersWidth, viewportW) + 1000;
-		};
-
-
-		// getItemId()
-		// Given a data model, returns that item's unique id
-		//
-		getItemId = function (model) {
-			if (idProperty in model) return model[idProperty];
-			else if (model.data && idProperty in model.data) return model.data[idProperty];
-			return null;
 		};
 
 
@@ -3627,7 +3677,7 @@
 			}
 
 			range.top = Math.max(0, range.top);
-			range.bottom = Math.min(getDataLengthIncludingAddNew() - 1, range.bottom);
+			range.bottom = Math.min(getDataLength() - 1, range.bottom);
 
 			range.leftPx -= viewportW;
 			range.rightPx += viewportW;
@@ -3812,9 +3862,10 @@
 		// @param	posX		integer		TODO: ???
 		//
 		gotoDown = function (row, cell, posX) {
-			var prevCell;
+			var prevCell,
+				dataLength = getDataLength();
 			while (true) {
-				if (++row >= getDataLengthIncludingAddNew()) {
+				if (++row >= dataLength) {
 					return null;
 				}
 
@@ -3894,8 +3945,10 @@
 				return pos;
 			}
 
-			var firstFocusableCell = null;
-			while (++row < getDataLengthIncludingAddNew()) {
+			var firstFocusableCell = null,
+				dataLength = getDataLength();
+
+			while (++row < dataLength) {
 				firstFocusableCell = findFirstFocusableCell(row);
 				if (firstFocusableCell !== null) {
 					return {
@@ -3918,7 +3971,7 @@
 		//
 		gotoPrev = function (row, cell, posX) {
 			if (row === null && cell === null) {
-				row = getDataLengthIncludingAddNew() - 1;
+				row = getDataLength() - 1;
 				cell = posX = self.options.columns.length - 1;
 				if (canCellBeActive(row, cell)) {
 					return {
@@ -4078,9 +4131,9 @@
 
 				if (isToggler) {
 					if (item.collapsed) {
-						self.collection.expandGroup(getItemId(item));
+						self.collection.expandGroup(item[idProperty]);
 					} else {
-						self.collection.collapseGroup(getItemId(item));
+						self.collection.collapseGroup(item[idProperty]);
 					}
 
 					e.stopImmediatePropagation();
@@ -4216,46 +4269,67 @@
 					// Left Arrow
 					} else if (e.which == 37) {
 						if (self.options.editable && currentEditor) {
-							commitCurrentEdit();
+							if (commitCurrentEdit()) {
+								handled = navigate("left");
+							}
+						} else {
+							handled = navigate("left");
 						}
-						handled = navigate("left");
 					// Right Arrow
 					} else if (e.which == 39) {
 						if (self.options.editable && currentEditor) {
-							commitCurrentEdit();
+							if (commitCurrentEdit()) {
+								handled = navigate("right");
+							}
+						} else {
+							handled = navigate("right");
 						}
-						handled = navigate("right");
 					// Up Arrow
 					} else if (e.which == 38) {
 						if (self.options.editable && currentEditor) {
-							commitCurrentEdit();
+							if (commitCurrentEdit()) {
+								handled = navigate("up");
+							}
+						} else {
+							handled = navigate("up");
 						}
-						handled = navigate("up");
 					// Down Arrow
 					} else if (e.which == 40) {
 						if (self.options.editable && currentEditor) {
-							commitCurrentEdit();
+							if (commitCurrentEdit()) {
+								handled = navigate("down");
+							}
+						} else {
+							handled = navigate("down");
 						}
-						handled = navigate("down");
 					// Tab
 					} else if (e.which == 9) {
 						if (self.options.editable && currentEditor) {
-							commitCurrentEdit();
+							if (commitCurrentEdit()) {
+								handled = navigate("next");
+							}
+						} else {
+							handled = navigate("next");
 						}
-						handled = navigate("next");
 					// Enter
 					} else if (e.which == 13) {
 						if (self.options.editable && currentEditor) {
-							commitCurrentEdit();
+							if (commitCurrentEdit()) {
+								handled = navigate("down");
+							}
+						} else {
+							handled = navigate("down");
 						}
-						handled = navigate("down");
 					}
 				// Shift Tab
 				} else if (e.which == 9 && e.shiftKey && !e.ctrlKey && !e.altKey) {
 					if (self.options.editable && currentEditor) {
-						commitCurrentEdit();
+						if (commitCurrentEdit()) {
+							handled = navigate("prev");
+						}
+					} else {
+						handled = navigate("prev");
 					}
-					handled = navigate("prev");
 				}
 			}
 
@@ -4264,6 +4338,7 @@
 				// (bubbling/propagation) or browser (default) handle it
 				e.stopPropagation();
 				e.preventDefault();
+
 				try {
 					// prevent default behaviour for special keys in IE browsers (F3, F5, etc.)
 					e.originalEvent.which = 0;
@@ -4429,6 +4504,21 @@
 		};
 
 
+		// insertAddRow()
+		// Inserts a new row to the end of the collection used for adding new rows to the grid
+		//
+		//
+		insertAddRow = function () {
+			var obj = new NonDataItem({
+				__addRow: true,
+				id: '--add-row--',
+				data: {}
+			});
+
+			self.collection.add(obj);
+		};
+
+
 		// isCellPotentiallyEditable()
 		// Determines if a given cell is editable
 		//
@@ -4437,14 +4527,16 @@
 		//
 		// @return boolean
 		isCellPotentiallyEditable = function (row, cell) {
+			var dataLength = getDataLength();
+
 			// Is this column editable?
 			if (self.options.columns[cell].editable === false) return false;
 
 			// Is the data for this row loaded?
-			if (row < getDataLength() && !getDataItem(row)) return false;
+			if (row < dataLength && !getDataItem(row)) return false;
 
 			// are we in the Add New row?  can we create new from this cell?
-			if (self.options.columns[cell].cannotTriggerInsert && row >= getDataLength()) {
+			if (self.options.columns[cell].cannotTriggerInsert && row >= dataLength) {
 				return false;
 			}
 
@@ -4967,7 +5059,7 @@
 			renderRows(rendered);
 
 			postProcessFromRow = visible.top;
-			postProcessToRow = Math.min(getDataLengthIncludingAddNew() - 1, visible.bottom);
+			postProcessToRow = Math.min(getDataLength() - 1, visible.bottom);
 			startPostProcessing();
 
 			lastRenderedScrollTop = scrollTop;
@@ -5155,9 +5247,10 @@
 			render();
 
 			if (self.options.keyboardNavigation && activeRow !== null) {
-				var row = activeRow + deltaRows;
-				if (row >= getDataLengthIncludingAddNew()) {
-					row = getDataLengthIncludingAddNew() - 1;
+				var row = activeRow + deltaRows,
+					dataLength = getDataLength();
+				if (row >= dataLength) {
+					row = dataLength - 1;
 				}
 				if (row < 0) {
 					row = 0;
@@ -5418,7 +5511,7 @@
 			// TODO: This is hacky. There should be a collection.set() method to expend existing data
 			var item = self.collection.items[row];
 			item.height = height;
-			self.collection.updateItem(getItemId(item), item);
+			self.collection.updateItem(item[idProperty], item);
 
 			// Invalidate rows below the edited one
 			cacheRowPositions();
@@ -6192,8 +6285,8 @@
 		updateRowCount = function () {
 			if (!initialized) return;
 
-			var numberOfRows = getDataLengthIncludingAddNew() +
-				(self.options.leaveSpaceForNewRows ? numVisibleRows - 1 : 0);
+			var dataLength = getDataLength();
+			var numberOfRows = dataLength + (self.options.leaveSpaceForNewRows ? numVisibleRows - 1 : 0);
 
 			var oldViewportHasVScroll = viewportHasVScroll;
 
@@ -6207,14 +6300,13 @@
 			// remove the rows that are now outside of the data range
 			// this helps avoid redundant calls to .remove() when the size of the data
 			// decreased by thousands of rows
-			var l = getDataLengthIncludingAddNew();
 			for (var i in cache.nodes) {
-				if (i >= l) {
+				if (i >= dataLength) {
 					removeRowFromCache(i);
 				}
 			}
 
-			if (activeCellNode && activeRow > l) {
+			if (activeCellNode && activeRow > dataLength) {
 				resetActiveCell();
 			}
 
@@ -6222,18 +6314,9 @@
 			if (numberOfRows === 0) {
 				th = viewportH - window.scrollbarDimensions.height;
 			} else {
-				// TODO: Remove this extra logic. getRowPosition should figure it out
-				var pos = numberOfRows - 1;
-				if (self.options.addRow) {
-					pos--;
-				}
-
-				var rps = getRowPosition(pos);
-				var	rowMax = rps.bottom;
-
-				if (self.options.addRow) {
-					rowMax += self.options.rowHeight;
-				}
+				var pos = numberOfRows - 1,
+					rps = getRowPosition(pos),
+					rowMax = rps.bottom;
 
 				th = Math.max(rowMax, viewportH - window.scrollbarDimensions.height);
 			}
@@ -6336,10 +6419,10 @@
 		validateOptions = function () {
 			// Validate loaded JavaScript modules against requested options
 			if (self.options.resizableColumns && !$.fn.drag) {
-				throw new Error('In other to use "resizable", you must ensure the jquery-ui.draggable module is loaded.');
+				throw new Error('In order to use "resizable", you must ensure the jquery-ui.draggable module is loaded.');
 			}
 			if (self.options.reorderable && !$.fn.sortable) {
-				throw new Error('In other to use "reorderable", you must ensure the jquery-ui.sortable module is loaded.');
+				throw new Error('In order to use "reorderable", you must ensure the jquery-ui.sortable module is loaded.');
 			}
 
 			// Ensure "columns" option is an array
@@ -6352,8 +6435,11 @@
 				throw new TypeError('The "data" option must be an array.');
 			}
 
-			// Disable "addRow" if "editable" isn't turned on
-			if (self.options.addRow && !self.options.editable) self.options.addRow = false;
+			// Warn if "addRow" is used without "editable"
+			if (self.options.addRow && !self.options.editable) {
+				console.warn('In order to use "addRow", you must enable the "editable" parameter. The "addRow" option has been disabled.');
+				self.options.addRow = false;
+			}
 
 			// Validate and pre-process
 			validateColumns();

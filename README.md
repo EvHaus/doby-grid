@@ -49,7 +49,8 @@ Default icon set used is copyright of <http://p.yusukekamiyamane.com/>.
 
 ### Limitations
 
-- If your grid is rendered inside an invisible element, or an element that is resized - you will need to manually call "resize()" to correct the rendering. Window resizing is auto-detected however.
+- If your grid is rendered inside an invisible element, or an element that is resized - you will need to manually call the `resize()` method to correct the rendering. Window resizing is auto-detected however.
+- Due to the way Doby Grid handles the caching of data, it is not enough to remove the grid element from view when you want to discard it. You must call the `destroy()` method. Otherwise you will be left with a large memory leak.
 
 ---
 

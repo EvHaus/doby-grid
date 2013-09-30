@@ -14,7 +14,7 @@ define([], function() {
 
 		// Generate Grid
 		var grid = new DobyGrid({
-			addRow: false,
+			addRow: true,
 			columns: [{
 				id: "id",
 				name: "ID",
@@ -36,7 +36,7 @@ define([], function() {
 					return '<button class="add">Add Another Row</button><button class="remove">Remove This Row</button>'
 				},
 				selectable: false,
-				width: 260
+				width: 300
 			}],
 			editable: true,
 			data: data
