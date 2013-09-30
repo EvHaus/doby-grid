@@ -4,7 +4,7 @@
 // For all details and documentation:
 // https://github.com/globexdesigns/doby-grid
 
-/*jslint browser: true, vars: true, plusplus: true, devel: true, nomen: true, indent: 4, maxerr: 50*/
+/*jslint asi: false, browser: true, vars: true, plusplus: true, devel: true, indent: 4, maxerr: 50*/
 /*global define*/
 
 (function (root, factory) {
@@ -29,17 +29,17 @@
 	"use strict";
 
 	var DobyGrid = function (options) {
-		options = options || {}
+		options = options || {};
 
 		// Name of this Doby component
-		this.NAME = 'doby-grid',
+		this.NAME = 'doby-grid';
 
 		// Current version of the library
 		this.VERSION = '0.0.1';
 
 		// Ensure options are an object
 		if (typeof options !== "object" || _.isArray(options)) {
-			throw new TypeError('The "options" param must be an object.')
+			throw new TypeError('The "options" param must be an object.');
 		}
 
 		// Private
@@ -69,7 +69,7 @@
 				indexById: {},
 				nodes: {},
 				rowPositions: {},
-				rows: [],
+				rows: []
 			},
 			cacheRowPositions,
 			canCellBeActive,
@@ -218,7 +218,9 @@
 				// @param	data		object		Data object for this item
 				//
 				this.__nonDataRow = true;
-				if (data) _.extend(this, data);
+				if (data) {
+					_.extend(this, data);
+				}
 			},
 			numVisibleRows,
 			offset = 0,		// current page offset
@@ -289,7 +291,7 @@
 			asyncPostRenderDelay:	25,
 			autoColumnWidth:		false,
 			autoEdit:				true,
-			class:					null,
+			"class":				null,
 			columns:				[],
 			data:					[],
 			dataExtractor:			null,
@@ -322,7 +324,7 @@
 					sort_desc:			'Sort By "{{name}}" (Descending)'
 				},
 				empty: {
-					default:			'No data available',
+					"default":			'No data available',
 					remote:				'No results found',
 					filter:				'No items matching that filter'
 				}
@@ -372,13 +374,13 @@
 			getBrowserData();
 
 			// Create a new data collection
-			self.collection = new Collection(self)
+			self.collection = new Collection(self);
 
 			// Create the grid
 			createGrid();
 
 			if (self.options.selectable) {
-				bindCellRangeSelect()
+				bindCellRangeSelect();
 			}
 
 			return self;
@@ -403,12 +405,12 @@
 
 			// walk up the tree
 			var offsetParent = elem.offsetParent;
-			while ((elem = elem.parentNode) != document.body) {
-				if (box.visible && elem.scrollHeight != elem.offsetHeight && $(elem).css("overflowY") != "visible") {
+			while ((elem = elem.parentNode) !== document.body) {
+				if (box.visible && elem.scrollHeight !== elem.offsetHeight && $(elem).css("overflowY") !== "visible") {
 					box.visible = box.bottom > elem.scrollTop && box.top < elem.scrollTop + elem.clientHeight;
 				}
 
-				if (box.visible && elem.scrollWidth != elem.offsetWidth && $(elem).css("overflowX") != "visible") {
+				if (box.visible && elem.scrollWidth !== elem.offsetWidth && $(elem).css("overflowX") !== "visible") {
 					box.visible = box.right > elem.scrollLeft && box.left < elem.scrollLeft + elem.clientWidth;
 				}
 
@@ -426,16 +428,16 @@
 			}
 
 			return box;
-		}
+		};
 
 
 		// add()
 		// Entry point for collection.add(). See collection.add for more info.
 		//
 		this.add = function (models, options) {
-			this.collection.add(models, options)
-			return this
-		}
+			this.collection.add(models, options);
+			return this;
+		};
 
 
 		// addColumn()
@@ -447,9 +449,9 @@
 		// @return object
 		this.addColumn = function (data, insertBefore) {
 			// TODO: Convert "insertBefore" to 'position'. So you can say - insert column at position 0. With 'null' being 'insert at the end
-			if (!data || typeof(data) !== 'object') return this
+			if (!data || typeof (data) !== 'object') return this;
 
-			var columns = this.options.columns
+			var columns = this.options.columns;
 			if (!insertBefore && insertBefore !== 0) {
 				columns.push(data);
 			} else {
@@ -459,7 +461,7 @@
 			// Set the grid columns
 			self.setColumns(columns);
 			return this;
-		}
+		};
 
 
 		// addGrouping()
@@ -470,15 +472,15 @@
 		//
 		// @return object
 		this.addGrouping = function (column_id) {
-			var column_ids = hasGrouping(column_id)
+			var column_ids = hasGrouping(column_id);
 			if (!column_ids) {
 				var grouping = this.collection.getGrouping();
 				column_ids = _.pluck(grouping, 'column_id');
-				column_ids.push(column_id)
-				this.setGrouping(column_ids)
+				column_ids.push(column_id);
+				this.setGrouping(column_ids);
 			}
-			return this
-		}
+			return this;
+		};
 
 
 		// appendCellHtml()
@@ -506,17 +508,17 @@
 
 			// If this is a cached, postprocessed row -- use the cache
 			if (m.cache && m.postprocess && postProcessedRows[row] && postProcessedRows[row][cell]) {
-				result.push(postProcessedRows[row][cell])
-			}
-			// if there is a corresponding row (if not, this is the Add New row or
-			// this data hasn't been loaded yet)
-			else if (item) {
+				result.push(postProcessedRows[row][cell]);
+			} else if (item) {
+				// if there is a corresponding row (if not, this is the Add New row or
+				// this data hasn't been loaded yet)
+
 				var value = getDataItemValueForColumn(item, m);
 				try {
 					result.push(getFormatter(row, m)(row, cell, value, m, item));
 				} catch (e) {
-					result.push('')
-					console.error("Cell failed to render due to failed column formatter. Error: " + e.message, e)
+					result.push('');
+					console.error("Cell failed to render due to failed column formatter. Error: " + e.message, e);
 				}
 			}
 
@@ -524,7 +526,7 @@
 
 			cache.nodes[row].cellRenderQueue.push(cell);
 			cache.nodes[row].cellColSpans[cell] = colspan;
-		}
+		};
 
 
 		// appendRowHtml()
@@ -541,9 +543,10 @@
 				rowCss = classrow +
 					(dataLoading ? " loading" : "") +
 					(row === activeRow ? " active" : "") +
-					(row % 2 == 1 ? " odd" : ""),
+					(row % 2 === 1 ? " odd" : ""),
 				data = self.collection,
 				pos = getRowPosition(row);
+
 
 			var metadata = data.getItemMetadata && data.getItemMetadata(row);
 
@@ -561,8 +564,8 @@
 
 			stringArray.push("'>");
 
-			var colspan, m;
-			for (var i = 0, l = self.options.columns.length; i < l; i++) {
+			var colspan, m, i, l;
+			for (i = 0, l = self.options.columns.length; i < l; i++) {
 				m = self.options.columns[i];
 				colspan = 1;
 				if (metadata && metadata.columns) {
@@ -590,11 +593,11 @@
 
 			// Add row resizing handle
 			if (self.options.resizableRows) {
-				stringArray.push('<div class="' + classrowhandle + '"></div>')
+				stringArray.push('<div class="' + classrowhandle + '"></div>');
 			}
 
 			stringArray.push("</div>");
-		}
+		};
 
 
 		// appendTo()
@@ -639,28 +642,30 @@
 					// custom click handlers. Investigate a merge path.
 					//.on("click", handleClick)
 					.on("scroll", handleScroll);
+
 				$headerScroller
 					.on("contextmenu", handleHeaderContextMenu)
-					.on("click", handleHeaderClick)
+					.on("click", handleHeaderClick);
+
 				$canvas
 					.on("keydown", handleKeyDown)
 					.on("click", handleClick)
 					.on("dblclick", handleDblClick)
-					.on("contextmenu", handleContextMenu)
-
+					.on("contextmenu", handleContextMenu);
 
 				if (this.options.resizableRows) {
-					bindRowResize()
+					bindRowResize();
 				}
 
 				// Subscribe to cell range selection events
 				this.on('onCellRangeSelected', function (event, args) {
-					ranges = removeInvalidRanges(args.ranges)
+					ranges = removeInvalidRanges(args.ranges);
 					self.trigger('onCellRangeChanged', event, {
 						ranges: ranges
-					})
-				})
-				this.on('onCellRangeChanged', handleSelectedRangesChanged)
+					});
+				});
+
+				this.on('onCellRangeChanged', handleSelectedRangesChanged);
 
 			} catch (e) {
 				console.error(e);
@@ -696,23 +701,23 @@
 			if (!initialized) return;
 			if (!headers) headers = $headers.children();
 
-			var w;
-			for (var i = 0, l = headers.length; i < l; i++) {
+			var i, l, w;
+			for (i = 0, l = headers.length; i < l; i++) {
 				w = self.options.columns[i].width - headerColumnWidthDiff;
 				$(headers[i]).attr('style', 'width:' + w + 'px');
 			}
 
 			updateColumnCaches();
-		}
+		};
 
 
 		// applyColumnWidths()
 		// Sets the widths of the columns to what they should be
 		//
 		applyColumnWidths = function () {
-			var x = 0, c, w, rule;
+			var x = 0, c, w, rule, i, l;
 
-			for (var i = 0, l = self.options.columns.length; i < l; i++) {
+			for (i = 0, l = self.options.columns.length; i < l; i++) {
 				c = self.options.columns[i];
 				w = c.width - 2;
 
@@ -722,7 +727,7 @@
 
 				x += c.width;
 			}
-		}
+		};
 
 
 		// asyncPostProcessRows()
@@ -731,18 +736,24 @@
 		asyncPostProcessRows = function () {
 			while (postProcessFromRow <= postProcessToRow) {
 				var row = (vScrollDir >= 0) ? postProcessFromRow++ : postProcessToRow--,
-					cacheEntry = cache.nodes[row];
+					cacheEntry = cache.nodes[row],
+					columnIdx;
 
-				if (!cacheEntry || row >= getDataLength()) continue;
-				if (!postProcessedRows[row]) postProcessedRows[row] = {};
+				if (!cacheEntry || row >= getDataLength()) {
+					continue;
+				}
+
+				if (!postProcessedRows[row]) {
+					postProcessedRows[row] = {};
+				}
 
 				ensureCellNodesInRowsCache(row);
-				for (var columnIdx in cacheEntry.cellNodesByColumnIdx) {
+				for (columnIdx in cacheEntry.cellNodesByColumnIdx) {
 					if (!cacheEntry.cellNodesByColumnIdx.hasOwnProperty(columnIdx)) {
 						continue;
 					}
 
-					columnIdx = columnIdx | 0;
+					columnIdx = columnIdx || 0;
 
 					var col = self.options.columns[columnIdx];
 					if (col.postprocess && !postProcessedRows[row][columnIdx]) {
@@ -755,7 +766,7 @@
 								rowIndex: row
 							}, function () {
 								if (col.cache) {
-									postProcessedRows[row][columnIdx] = $(node).html()
+									postProcessedRows[row][columnIdx] = $(node).html();
 								}
 							});
 						}
@@ -769,7 +780,7 @@
 				h_postrender = setTimeout(asyncPostProcessRows, self.options.asyncPostRenderDelay);
 				return;
 			}
-		}
+		};
 
 
 		// autosizeColumns()
@@ -848,7 +859,7 @@
 				invalidateAllRows();
 				render();
 			}
-		}
+		};
 
 
 		// bindAncestorScrollEvents()
@@ -871,7 +882,7 @@
 				}
 			}
 			*/
-		}
+		};
 
 
 		// bindCellRangeSelect()
@@ -888,7 +899,7 @@
 				})
 				.on('dragstart', function (event, dd) {
 					var cell = getCellFromEvent(event);
-					if (!cell) return
+					if (!cell) return;
 
 					// This prevents you from starting to drag on a cell that can't be selected
 					if (canCellBeSelected(cell.row, cell.cell)) {
@@ -942,18 +953,18 @@
 						dd._range.start.cell,
 						dd._range.end.row,
 						dd._range.end.cell
-					)]
+					)];
 
 					// Make sure we're not selecting any cells that aren't allowed to be selected
-					var cleanranges = removeInvalidRanges(ranges)
+					var cleanranges = removeInvalidRanges(ranges);
 
 					if (cleanranges && cleanranges.length) {
 						self.trigger('onCellRangeSelected', event, {
 							ranges: cleanranges
-						})
+						});
 					}
-				})
-		}
+				});
+		};
 
 
 		// bindRowResize()
@@ -967,34 +978,34 @@
 					event.stopImmediatePropagation();
 				})*/
 				.on('dragstart', function (event, dd) {
-					if (!$(event.target).hasClass(classrowhandle)) return
-					event.stopImmediatePropagation()
-					dd._row = getRowFromNode($(event.target).parent()[0])
-					dd._rowNode = cache.nodes[dd._row].rowNode
+					if (!$(event.target).hasClass(classrowhandle)) return;
+					event.stopImmediatePropagation();
+					dd._row = getRowFromNode($(event.target).parent()[0]);
+					dd._rowNode = cache.nodes[dd._row].rowNode;
 
 					// Grab all the row nodes below the current row
-					dd._rowsBelow = []
+					dd._rowsBelow = [];
 					$(dd._rowNode).siblings().each(function () {
 						// If the row is below the dragged one - collected it
-						var r = getRowFromNode(this)
-						if (r > dd._row) dd._rowsBelow.push(this)
-					})
+						var r = getRowFromNode(this);
+						if (r > dd._row) dd._rowsBelow.push(this);
+					});
 
 					// Put the rows below into a temporary container
-					$(dd._rowsBelow).wrapAll('<div class="' + classrowdragcontainer + '"></div>')
-					dd._container = $(dd._rowsBelow).parent()
+					$(dd._rowsBelow).wrapAll('<div class="' + classrowdragcontainer + '"></div>');
+					dd._container = $(dd._rowsBelow).parent();
 				})
 				.on('drag', function (event, dd) {
 					// Resize current row
 					var node = dd._rowNode,
 						pos = getRowPosition(dd._row),
 						height = (pos.height || self.options.rowHeight);
-					dd._height = height + dd.deltaY
+					dd._height = height + dd.deltaY;
 
 					// Do not allow invisible heights
-					if (dd._height < 5) dd._height = 5
+					if (dd._height < 5) dd._height = 5;
 
-					$(node).height(dd._height)
+					$(node).height(dd._height);
 
 					// If cells have height set - resize them too
 					$(node).children('.' + classcell).each(function () {
@@ -1002,21 +1013,20 @@
 							$(this).css({
 								height: dd._height + 'px',
 								lineHeight: dd._height + 'px'
-							})
-
+							});
 						}
-					})
+					});
 
 					// Drag and container of rows below
-					dd._container.css({marginTop: (dd._height - height) + 'px'})
+					dd._container.css({marginTop: (dd._height - height) + 'px'});
 				})
 				.on('dragend', function (event, dd) {
 					// Unwrap rows below
-					$(dd._rowsBelow).unwrap()
+					$(dd._rowsBelow).unwrap();
 
-					setRowHeight(dd._row, dd._height)
-				})
-		}
+					setRowHeight(dd._row, dd._height);
+				});
+		};
 
 
 		// cacheRowPositions()
@@ -1044,19 +1054,19 @@
 
 			var item, data;
 			for (var i = from, l = itemsWithAddNew; i < l; i++) {
-				item = self.collection.items[i]
+				item = self.collection.items[i];
 				data = {
 					top: (cache.rowPositions[i - 1]) ? (cache.rowPositions[i - 1].bottom - offset) : 0
-				}
+				};
 
 				if (item.height && item.height != self.options.rowHeight) {
-					data.height = item.height
+					data.height = item.height;
 				}
 
 				data.bottom = data.top + (data.height || self.options.rowHeight);
-				cache.rowPositions[i] = data
+				cache.rowPositions[i] = data;
 			}
-		}
+		};
 
 
 		// canCellBeActive()
@@ -1090,7 +1100,7 @@
 			}
 
 			return self.options.columns[cell].focusable;
-		}
+		};
 
 
 		// canCellBeSelected()
@@ -1117,7 +1127,7 @@
 			}
 
 			return c[cell].selectable;
-		}
+		};
 
 
 		// cellExists()
@@ -1129,14 +1139,14 @@
 		// @return bolean
 		cellExists = function (row, cell) {
 			return !(row < 0 || row >= getDataLength() || cell < 0 || cell >= self.options.columns.length);
-		}
+		};
 
 
 		// CellRangeDecorator()
 		// Displays an overlay on top of a given cell range.
 		//
 		CellRangeDecorator = function () {
-			this.$el = null
+			this.$el = null;
 
 			this.show = function (range) {
 				if (!this.$el) {
@@ -1157,15 +1167,15 @@
 				}
 
 				return this.$el;
-			}
+			};
 
 			this.hide = function () {
 				if (this.$el) {
 					this.$el.remove();
 					this.$el = null;
 				}
-			}
-		}
+			};
+		};
 
 
 		// cleanUpAndRenderCells()
@@ -1254,7 +1264,7 @@
 					cacheEntry.cellNodesByColumnIdx[columnIdx] = node;
 				}
 			}
-		}
+		};
 
 
 		// cleanUpCells()
@@ -1297,7 +1307,7 @@
 				}
 				totalCellsRemoved++;
 			}
-		}
+		};
 
 
 		// cleanupRows()
@@ -1311,7 +1321,7 @@
 					removeRowFromCache(i);
 				}
 			}
-		}
+		};
 
 
 		// clearTextSelection()
@@ -1329,7 +1339,7 @@
 					sel.removeAllRanges();
 				}
 			}
-		}
+		};
 
 
 		// commitCurrentEdit()
@@ -1339,7 +1349,7 @@
 			var item = getDataItem(activeRow),
 				column = self.options.columns[activeCell];
 
-			if (!currentEditor) return true
+			if (!currentEditor) return true;
 
 			if (currentEditor.isValueChanged()) {
 				var validationResults = currentEditor.validate();
@@ -1409,7 +1419,7 @@
 
 			makeActiveCellNormal();
 			return true;
-		}
+		};
 
 
 		// createColumnHeaders()
@@ -1427,25 +1437,25 @@
 				column = self.options.columns[i];
 
 				// Determine classes
-				classes = [classheadercolumn, (column.headerCssClass || "")]
+				classes = [classheadercolumn, (column.headerCssClass || "")];
 				if (column.sortable) classes.push(classheadersortable);
 
 				w = column.width - headerColumnWidthDiff;
-				html.push('<div class="' + classes.join(' ') + '" style="width:' + w + 'px" ')
-				html.push('id="' + (uid + column.id) + '"')
+				html.push('<div class="' + classes.join(' ') + '" style="width:' + w + 'px" ');
+				html.push('id="' + (uid + column.id) + '"');
 
 				if (column.tooltip) {
-					html.push(' tooltip="' + column.tooltip + '"')
+					html.push(' tooltip="' + column.tooltip + '"');
 				}
 
-				html.push('>')
-				html.push('<span class="' + classcolumnname + '">' + column.name + '</span>')
+				html.push('>');
+				html.push('<span class="' + classcolumnname + '">' + column.name + '</span>');
 
 				if (column.sortable) {
 					html.push('<span class="' + classsortindicator + '"></span>');
 				}
 
-				html.push('</div>')
+				html.push('</div>');
 			}
 			$headers.append(html.join(''));
 
@@ -1454,7 +1464,7 @@
 
 			if (self.options.resizableColumns) setupColumnResize();
 			if (self.options.reorderable) setupColumnReorder();
-		}
+		};
 
 
 		// createCssRules()
@@ -1473,7 +1483,7 @@
 			}
 
 			$style[0].appendChild(document.createTextNode(rules.join("\n")));
-		}
+		};
 
 
 		// createGrid()
@@ -1483,7 +1493,7 @@
 		createGrid = function () {
 
 			// Create the container
-			var cclasses = [self.NAME]
+			var cclasses = [self.NAME];
 			if (self.options.class) cclasses.push(self.options.class);
 
 			self.$el = $('<div class="' + cclasses.join(' ') + '" id="' + uid + '"></div>');
@@ -1509,7 +1519,7 @@
 		//
 		// @return object
 		createGroupingObject = function (column_id) {
-			var column = getColumnById(column_id)
+			var column = getColumnById(column_id);
 
 			return {
 				aggregators: [],
@@ -1523,17 +1533,17 @@
 				},
 				displayTotalsRow: true,
 				getter: function (item) {
-					if (!item) return null
+					if (!item) return null;
 
 					// If this item has a parent data reference object - use that for grouping
 					if (item.parent) {
-						item = item.parent
+						item = item.parent;
 					}
 
 					if (item instanceof Backbone.Model) {
-						return item.get(column.field)
+						return item.get(column.field);
 					} else {
-						return item.data[column.field]
+						return item.data[column.field];
 					}
 				},
 				formatter: function (g) {
@@ -1541,14 +1551,14 @@
 						"<strong>" + column.name + ":</strong> ",
 						(g.value === null ? '-empty-' : g.value),
 						' <span class="count">(<strong>' + g.count + '</strong> item'
-					]
-					if (g.count !== 1) h.push("s")
-					h.push(")</span>")
-					return h.join('')
+					];
+					if (g.count !== 1) h.push("s");
+					h.push(")</span>");
+					return h.join('');
 				},
-				predefinedValues: [],
-			}
-		}
+				predefinedValues: []
+			};
+		};
 
 
 		// Collection()
@@ -1635,7 +1645,7 @@
 				}
 
 				return this;
-			}
+			};
 
 
 			// add()
@@ -1653,13 +1663,13 @@
 				// Merge existing models and collect the new ones
 				for (var i = 0, l = models.length; i < l; i++) {
 					model = models[i];
-					existing = this.get(model)
+					existing = this.get(model);
 					if (existing) {
 						if (options.merge) {
-							this.updateItem(existing.data.id, model)
+							this.updateItem(existing.data.id, model);
 						} else {
 							throw ["You are not allowed to add() items without a unique 'id' value. ",
-							"A row with id '" + existing.data.id + "' already exists."].join('')
+							"A row with id '" + existing.data.id + "' already exists."].join('');
 						}
 					} else {
 						toAdd.push(model);
@@ -1668,32 +1678,32 @@
 
 				// If data used to be empty, with an alert - remove alert
 				if (this.items.length == 1 && this.items[0].__alert) {
-					this.deleteItem(getItemId(this.items[0]))
+					this.deleteItem(getItemId(this.items[0]));
 				}
 
 				// Add the new models
 				if (toAdd.length) {
 					if (at !== null && at !== undefined) {
-						Array.prototype.splice.apply(this.items, [at, 0].concat(toAdd))
+						Array.prototype.splice.apply(this.items, [at, 0].concat(toAdd));
 						updateIndexById((at > 0 ? at - 1 : 0));
-						cacheRowPositions(at)
+						cacheRowPositions(at);
 					} else {
 						var prevLength = this.items.length;
-						Array.prototype.push.apply(this.items, toAdd)
+						Array.prototype.push.apply(this.items, toAdd);
 						updateIndexById(this.items.length - 1);
-						cacheRowPositions(prevLength)
+						cacheRowPositions(prevLength);
 					}
 				}
 
 				this.refresh();
 
 				return this;
-			}
+			};
 
 
 			// TODO:  lazy totals calculation
 			calculateGroupTotals = function (group) {
-				console.error('calculateGroupTotals TODO')
+				console.error('calculateGroupTotals TODO');
 				/*
 				// TODO:  try moving iterating over groups into compiled accumulator
 				var gi = groupingInfos[group.level];
@@ -1709,7 +1719,7 @@
 				totals.group = group;
 				group.totals = totals;
 				*/
-			}
+			};
 
 			calculateTotals = function (groups, level) {
 				level = level || 0;
@@ -1733,7 +1743,7 @@
 						calculateGroupTotals(g);
 					}
 				}
-			}
+			};
 
 
 			// collapseAllGroups()
@@ -1743,7 +1753,7 @@
 			//
 			this.collapseAllGroups = function (level) {
 				this.expandCollapseAllGroups(level, true);
-			}
+			};
 
 
 			// collapseGroup()
@@ -1761,10 +1771,10 @@
 				} else {
 					expandCollapseGroup(args.length - 1, args.join(groupingDelimiter), true);
 				}
-			}
+			};
 
 			compileAccumulatorLoop = function (aggregator) {
-				console.error('compileAccumulatorLoop TODO')
+				console.error('compileAccumulatorLoop TODO');
 				/*
 				var accumulatorInfo = getFunctionInfo(aggregator.accumulate);
 				var fn = new Function(
@@ -1776,10 +1786,10 @@
 				fn.displayName = fn.name = "compiledAccumulatorLoop";
 				return fn;
 				*/
-			}
+			};
 
 			compileFilter = function () {
-				console.error('compileFilter TODO')
+				console.error('compileFilter TODO');
 				/*
 				var filterInfo = getFunctionInfo(filter);
 
@@ -1812,10 +1822,10 @@
 				fn.displayName = fn.name = "compiledFilter";
 				return fn;
 				*/
-			}
+			};
 
 			compileFilterWithCaching = function () {
-				console.error('compileFilterWithCaching TODO')
+				console.error('compileFilterWithCaching TODO');
 				/*
 				var filterInfo = getFunctionInfo(filter);
 
@@ -1852,7 +1862,7 @@
 				fn.displayName = fn.name = "compiledFilterWithCaching";
 				return fn;
 				*/
-			}
+			};
 
 
 			// deleteItem()
@@ -1866,17 +1876,17 @@
 					throw "Unable to delete collection item. Invalid id (" + id + ") supplied.";
 				}
 				delete cache.indexById[id];
-				delete cache.rowPositions[idx]
+				delete cache.rowPositions[idx];
 
 				this.items.splice(idx, 1);
 				updateIndexById(idx);
 				if (grid.options.remote) length--;
 
 				// Recache positions from row
-				cacheRowPositions(idx)
+				cacheRowPositions(idx);
 
 				this.refresh();
-			}
+			};
 
 
 			// expandAllGroups()
@@ -1885,7 +1895,7 @@
 			//
 			this.expandAllGroups = function (level) {
 				this.expandCollapseAllGroups(level, false);
-			}
+			};
 
 
 			// expandCollapseAllGroups()
@@ -1906,7 +1916,7 @@
 				}
 
 				this.refresh();
-			}
+			};
 
 
 			// expandCollapseGroup()
@@ -1919,7 +1929,7 @@
 			expandCollapseGroup = function (level, group_id, collapse) {
 				toggledGroupsByLevel[level][group_id] = groupingInfos[level].collapsed ^ collapse;
 				self.refresh();
-			}
+			};
 
 
 			// expandGroup()
@@ -1938,7 +1948,7 @@
 				} else {
 					expandCollapseGroup(args.length - 1, args.join(groupingDelimiter), false);
 				}
-			}
+			};
 
 
 			// ensureCellNodesInRowsCache()
@@ -1950,7 +1960,7 @@
 				var cacheEntry = cache.nodes[row];
 				if (cacheEntry) {
 					if (cacheEntry.cellRenderQueue.length) {
-						var lastChild = $(cacheEntry.rowNode).children('.' + classcell + '').last()[0]
+						var lastChild = $(cacheEntry.rowNode).children('.' + classcell + '').last()[0];
 						while (cacheEntry.cellRenderQueue.length) {
 							var columnIdx = cacheEntry.cellRenderQueue.pop();
 							cacheEntry.cellNodesByColumnIdx[columnIdx] = lastChild;
@@ -1958,7 +1968,7 @@
 						}
 					}
 				}
-			}
+			};
 
 
 			ensureRowsByIdCache = function () {
@@ -1968,7 +1978,7 @@
 						if (cache.rows[i]) rowsById[cache.rows[i].data[idProperty]] = i;
 					}
 				}
-			}
+			};
 
 			extractGroups = function (rows, parentGroup) {
 				var group,
@@ -2020,7 +2030,7 @@
 				groups.sort(groupingInfos[level].comparer);
 
 				return groups;
-			}
+			};
 
 
 			// finalizeGroups()
@@ -2050,7 +2060,7 @@
 						g.rows = [];
 					}
 				}
-			}
+			};
 
 			flattenGroupedRows = function (groups, level) {
 				level = level || 0;
@@ -2076,7 +2086,7 @@
 				}
 
 				return groupedRows;
-			}
+			};
 
 			getFilteredAndPagedItems = function (items) {
 				if (filter) {
@@ -2112,7 +2122,7 @@
 					totalRows: filteredItems.length,
 					rows: paged
 				};
-			}
+			};
 
 			getFunctionInfo = function (fn) {
 				var fnRegex = new RegExp(/^function[^(]*\(([^)]*)\)\s*\{([\s\S]*)\}$/),
@@ -2121,15 +2131,15 @@
 					params: matches[1].split(","),
 					body: matches[2]
 				};
-			}
+			};
 
 			this.getGrouping = function () {
 				return groupingInfos;
-			}
+			};
 
 			this.getItem = function (i) {
 				return cache.rows[i];
-			}
+			};
 
 
 			// get()
@@ -2144,19 +2154,19 @@
 			// @return object
 			this.get = function (obj) {
 				if (obj === null) return void 0;
-				var id = obj
+				var id = obj;
 				if (typeof obj == 'object') {
-					id = getItemId(obj)
-					if (!id) throw "Unable to get() item because the given 'obj' param is missing a unique 'id' attribute."
+					id = getItemId(obj);
+					if (!id) throw "Unable to get() item because the given 'obj' param is missing a unique 'id' attribute.";
 				}
 
 				return this.items[cache.indexById[id]];
-			}
+			};
 
 
 			this.getItemByIdx = function (i) {
 				return this.items[i];
-			}
+			};
 
 
 			// getItemMetadata()
@@ -2165,11 +2175,12 @@
 			// @param	row		integer		Row index
 			//
 			// @return object
+			// TODO: Remove this and store metadata in the item object instead.
 			this.getItemMetadata = function (row) {
 				var item = this.getItem(row);
 
 				// For remote models -- skip rows that don't have data yet
-				if (!item) return
+				if (!item) return;
 
 				// Empty Alert
 				if (item.__alert) {
@@ -2181,12 +2192,12 @@
 							0: {
 								colspan: "*",
 								formatter: function (row, cell, value, columnDef, data) {
-									return data.data.data.msg
+									return data.data.data.msg;
 								},
 								editor: null
 							}
 						}
-					}
+					};
 				}
 
 				// Group headers should return their own metadata object
@@ -2209,30 +2220,30 @@
 								}
 							}
 						}
-					}
+					};
 				}
 
 				var obj = {
 					columns: {},
 					rows: {}
-				}
+				};
 
 				// Add support for variable row 'height'
 				if (item.height) {
 					obj.rows[row] = {
 						height: item.height
-					}
+					};
 				}
 
 				// Add support for 'fullspan'
 				if (item.fullspan) {
 					obj.columns[0] = {
 						colspan: '*'
-					}
+					};
 				}
 
-				return obj
-			}
+				return obj;
+			};
 
 
 			// getLength()
@@ -2241,7 +2252,7 @@
 			// @return integer
 			this.getLength = function () {
 				return grid.options.remote ? length : cache.rows.length;
-			}
+			};
 
 
 			this.getPagingInfo = function () {
@@ -2252,12 +2263,12 @@
 					totalRows: totalRows,
 					totalPages: totalPages
 				};
-			}
+			};
 
 			this.getRowById = function (id) {
 				ensureRowsByIdCache();
 				return rowsById[id];
-			}
+			};
 
 
 			// getRowDiffs()
@@ -2287,7 +2298,7 @@
 					} else {
 						item = newRows[i];
 						r = rows[i];
-						eitherIsNonData = (item && item.__nonDataRow) || (r && r.__nonDataRow)
+						eitherIsNonData = (item && item.__nonDataRow) || (r && r.__nonDataRow);
 
 						// Determine if 'r' is different from 'item'
 						if (item && r &&
@@ -2323,7 +2334,7 @@
 				}
 
 				return diff;
-			}
+			};
 
 
 			// insertEmptyAlert()
@@ -2332,7 +2343,7 @@
 			// @param	type		string			"default", "remote" or "filter"
 			//
 			insertEmptyAlert = function (type) {
-				if (!type) type = "default"
+				if (!type) type = "default";
 
 				var obj = new NonDataItem({
 					__alert: true,
@@ -2342,10 +2353,10 @@
 							msg: getLocale("empty." + type)
 						}
 					}
-				})
+				});
 
-				self.reset([obj])
-			}
+				self.reset([obj]);
+			};
 
 
 			recalc = function (_items) {
@@ -2375,7 +2386,7 @@
 				cache.rows = newRows;
 
 				return diff;
-			}
+			};
 
 			this.refresh = function () {
 				if (suspend) return;
@@ -2397,7 +2408,7 @@
 				refreshHints = {};
 
 				if (totalRowsBefore != totalRows) {
-					this.trigger('onPagingInfoChanged', {}, this.getPagingInfo())
+					this.trigger('onPagingInfoChanged', {}, this.getPagingInfo());
 				}
 
 				if (countBefore != cache.rows.length) {
@@ -2406,7 +2417,7 @@
 					this.trigger('onRowCountChanged', {}, {
 						previous: countBefore,
 						current: cache.rows.length
-					})
+					});
 				}
 
 				if (diff.length > 0) {
@@ -2415,9 +2426,9 @@
 
 					this.trigger('onRowsChanged', {}, {
 						rows: diff
-					})
+					});
 				}
-			}
+			};
 
 
 			// reset()
@@ -2435,8 +2446,8 @@
 				cache.indexById = {};
 
 				if (recache) {
-					cache.rows = []
-					cacheRowPositions()
+					cache.rows = [];
+					cacheRowPositions();
 				}
 
 				updateIndexById();
@@ -2444,21 +2455,21 @@
 				suspend = false;
 
 				this.refresh();
-			}
+			};
 
 
 			// resetLength()
 			// Resets the length back to null to ensure remote fetches will be re-executed
 			//
 			this.resetLength = function () {
-				length = null
-			}
+				length = null;
+			};
 
 			this.reSort = function () {
 				if (sortComparer) {
 					this.sort(sortComparer, sortAsc);
 				}
-			}
+			};
 
 			this.setFilter = function (filterFn) {
 				filter = filterFn;
@@ -2467,11 +2478,11 @@
 					compiledFilterWithCaching = compileFilterWithCaching();
 				}
 				this.refresh();
-			}
+			};
 
 			this.setFilterArgs = function (args) {
 				filterArgs = args;
-			}
+			};
 
 
 			// setGrouping()
@@ -2488,7 +2499,7 @@
 				var gi;
 
 				for (var i = 0, l = groupingInfos.length; i < l; i++) {
-					gi = groupingInfos[i]
+					gi = groupingInfos[i];
 
 					// pre-compile accumulator loops
 					gi.compiledAccumulators = [];
@@ -2501,7 +2512,7 @@
 				}
 
 				this.refresh();
-			}
+			};
 
 
 			// setLength()
@@ -2511,16 +2522,16 @@
 			// @param	count	integer		Number of items in the collection
 			//
 			this.setLength = function (count) {
-				length = count
+				length = count;
 
 				// Ensert nulls for all pending items
 				for (var i = 0; i < count; i++) {
-					if (this.items[i] === undefined) this.items[i] = null
+					if (this.items[i] === undefined) this.items[i] = null;
 				}
 				this.refresh();
 
-				return count
-			}
+				return count;
+			};
 
 			this.setPagingOptions = function (args) {
 				if (args.pageSize !== undefined) {
@@ -2532,14 +2543,14 @@
 					pagenum = Math.min(args.pageNum, Math.max(0, Math.ceil(totalRows / pagesize) - 1));
 				}
 
-				this.trigger('onPagingInfoChanged', {}, this.getPagingInfo())
+				this.trigger('onPagingInfoChanged', {}, this.getPagingInfo());
 
 				this.refresh();
-			}
+			};
 
 			this.setRefreshHints = function (hints) {
 				refreshHints = hints;
-			}
+			};
 
 			this.sort = function (comparer, ascending) {
 				sortAsc = ascending;
@@ -2554,7 +2565,7 @@
 				cache.indexById = {};
 				updateIndexById();
 				this.refresh();
-			}
+			};
 
 			uncompiledFilter = function (items, args) {
 				var retval = [],
@@ -2567,7 +2578,7 @@
 				}
 
 				return retval;
-			}
+			};
 
 			uncompiledFilterWithCaching = function (items, args, cache) {
 				var retval = [],
@@ -2585,7 +2596,7 @@
 				}
 
 				return retval;
-			}
+			};
 
 
 			// updateIndexById()
@@ -2607,7 +2618,7 @@
 					}
 					cache.indexById[id] = i;
 				}
-			}
+			};
 
 
 			// updateItem()
@@ -2627,7 +2638,7 @@
 				}
 				updated[id] = true;
 				this.refresh();
-			}
+			};
 
 
 			// validate()
@@ -2643,11 +2654,11 @@
 				}
 
 				// If no data - add an empty alert
-				if (grid.options.emptyNotice && !self.items.length) insertEmptyAlert()
-			}
+				if (grid.options.emptyNotice && !self.items.length) insertEmptyAlert();
+			};
 
 			return this.initialize();
-		}
+		};
 
 
 		// defaultEditor()
@@ -2668,15 +2679,15 @@
 				// Will hold the current value of the item being edited
 				this.loadValue(options.item);
 
-				var value = this.currentValue
-				if (value === null || value === undefined) value = ""
+				var value = this.currentValue;
+				if (value === null || value === undefined) value = "";
 
 				this.$input = $('<input type="text" class="editor" value="' + value + '"/>')
 					.appendTo(options.cell)
 					.on("keydown", function (event) {
 						// Esc
 						if (event.which == 27) {
-							return self.cancel()
+							return self.cancel();
 						}
 
 						// Check if position of cursor is on the ends, if it's not then
@@ -2704,7 +2715,7 @@
 			//
 			this.applyValue = function (item, value) {
 				item.data[options.column.field] = value;
-			}
+			};
 
 
 			// cancel()
@@ -2712,7 +2723,7 @@
 			//
 			this.cancel = function () {
 				makeActiveCellNormal();
-			}
+			};
 
 
 			// destroy()
@@ -2720,7 +2731,7 @@
 			//
 			this.destroy = function () {
 				this.$input.remove();
-			}
+			};
 
 
 			// focus()
@@ -2728,7 +2739,7 @@
 			//
 			this.focus = function () {
 				this.$input.focus();
-			}
+			};
 
 
 			// getValue()
@@ -2737,7 +2748,7 @@
 			// @return string
 			this.getValue = function () {
 				return this.$input.val();
-			}
+			};
 
 
 			// isValueChanged()
@@ -2746,7 +2757,7 @@
 			// @return boolean
 			this.isValueChanged = function () {
 				return (!(this.$input.val() === "" && this.currentValue === null)) && (this.$input.val() != this.currentValue);
-			}
+			};
 
 
 			// loadValue()
@@ -2755,9 +2766,9 @@
 			// @param	item	object		Data model object that is being edited
 			//
 			this.loadValue = function (item) {
-				if (!item || !item.data) return null
-				return this.currentValue = item.data[options.column.field] || null
-			}
+				if (!item || !item.data) return null;
+				return this.currentValue = item.data[options.column.field] || null;
+			};
 
 
 			// serializeValue()
@@ -2765,7 +2776,7 @@
 			//
 			this.serializeValue = function () {
 				return this.$input.val();
-			}
+			};
 
 
 			// setValue()
@@ -2776,7 +2787,7 @@
 			//
 			this.setValue = function (val) {
 				this.$input.val(val);
-			}
+			};
 
 
 			// validate()
@@ -2800,7 +2811,7 @@
 			};
 
 			return this.initialize();
-		}
+		};
 
 
 		// defaultFormatter()
@@ -2824,7 +2835,7 @@
 				.replace(/&/g, "&amp;")
 				.replace(/</g, "&lt;")
 				.replace(/>/g, "&gt;");
-		}
+		};
 
 
 		// destroy()
@@ -2841,18 +2852,18 @@
 			//unbindAncestorScrollEvents();
 
 			// Remove grid
-			this.$el.remove()
-			this.$el = null
+			this.$el.remove();
+			this.$el = null;
 
 			// Remove window resize function
-			$(window).off('resize', handleWindowResize)
+			$(window).off('resize', handleWindowResize);
 
 			// Remove CSS Rules
 			removeCssRules();
 
 			// Destroy cache so it can be garbage collected
 			cache = null;
-		}
+		};
 
 
 		// disableSelection()
@@ -2875,7 +2886,7 @@
 					return false;
 				}); // from jquery:ui.core.js 1.7.2
 			}
-		}
+		};
 
 
 		// Dropdown()
@@ -2895,42 +2906,42 @@
 			this.initialize = function () {
 				this.$parent = options.parent || $(event.currentTarget);
 				this.$el = options.menu;
-				this.id = [uid, classdropdown, options.id].join('_')
+				this.id = [uid, classdropdown, options.id].join('_');
 
 				// Create data store in the parent object if it doesn't already exist
 				var existing = null;
 				if (!this.$parent.data(classdropdown)) {
-					this.$parent.data(classdropdown, [])
+					this.$parent.data(classdropdown, []);
 				} else {
 					// Also find the existing dropdown for this id (if it exists)
 					existing = this.$parent.data(classdropdown).filter(function (i) {
 						return i.id == self.id;
-					})
-					if (existing) existing = existing[0]
+					});
+					if (existing) existing = existing[0];
 				}
 
 				// If this parent already has a dropdown enabled -- initializing will close it
 				if (existing && existing.open) {
-					existing.hide()
+					existing.hide();
 				} else {
 					// Ensure dropdown has the right styling
-					this.$el.attr('id', this.id)
-					this.$el.addClass(['off', classdropdown].join(' '))
-					this.show()
+					this.$el.attr('id', this.id);
+					this.$el.addClass(['off', classdropdown].join(' '));
+					this.show();
 				}
 
 				// Clicking outside - closes the dropdown
 				var bodyEscape;
 				bodyEscape = function (e) {
 					if (e.target == event.target) return;
-					self.hide()
-					$(document).off('click', bodyEscape)
-				}
+					self.hide();
+					$(document).off('click', bodyEscape);
+				};
 
-				$(document).on('click', bodyEscape)
+				$(document).on('click', bodyEscape);
 
 				return this;
-			}
+			};
 
 
 			// show()
@@ -2939,21 +2950,21 @@
 			this.show = function () {
 				if (this.open) return;
 
-				this.$el.appendTo(this.$parent)
+				this.$el.appendTo(this.$parent);
 
 				this.position();
 
-				var store = this.$parent.data(classdropdown)
-				store.push(this)
-				this.$parent.data(classdropdown, store)
+				var store = this.$parent.data(classdropdown);
+				store.push(this);
+				this.$parent.data(classdropdown, store);
 
 				// Animate fade in
 				setTimeout(function () {
 					self.$el.removeClass('off');
-				}, 150)
+				}, 150);
 
 				this.open = true;
-			}
+			};
 
 
 			// hide()
@@ -2963,20 +2974,20 @@
 				if (!this.open) return;
 
 				var store = this.$parent.data(classdropdown).filter(function (i) {
-					return i != self
-				})
+					return i != self;
+				});
 
-				this.$parent.data(classdropdown, store)
+				this.$parent.data(classdropdown, store);
 
-				this.$el.addClass('off')
+				this.$el.addClass('off');
 
 				// Animate fade out
 				setTimeout(function () {
-					self.$el.remove()
-				}, 150)
+					self.$el.remove();
+				}, 150);
 
 				this.open = false;
-			}
+			};
 
 
 			// position()
@@ -2989,11 +3000,11 @@
 				this.$el.css({
 					left: left,
 					top: top
-				})
-			}
+				});
+			};
 
 			return this.initialize();
-		}
+		};
 
 
 		// executeSorter()
@@ -3007,15 +3018,15 @@
 			// If remote, and not all data is fetched - sort on server
 			if (self.options.remote && !self.loader.isAllDataLoaded()) {
 				// Empty the collection so that Backbone can re-fetch results in the right order
-				self.collection.reset()
+				self.collection.reset();
 
 				// Invalidate Grid as we'll need to re-render it
-				self.invalidate()
+				self.invalidate();
 
 				// Ask the RemoteModel to refetch the data -- this time using the new sort settings
 				// TODO: Find a better solution than touchViewport
 				//self.touchViewport()
-				return
+				return;
 			}
 
 			self.collection.sort(function (dataRow1, dataRow2) {
@@ -3035,12 +3046,12 @@
 
 					// Use custom column comparer if it exists
 					if (typeof(column.comparer) === 'function') {
-						return column.comparer(value1, value2) * sign
+						return column.comparer(value1, value2) * sign;
 					} else {
 						// Always keep null values on the bottom
-						if (value1 === null && value2 === null) return 0
-						if (value1 === null) return 1
-						if (value2 === null) return -1
+						if (value1 === null && value2 === null) return 0;
+						if (value1 === null) return 1;
+						if (value2 === null) return -1;
 
 						// Use natural sort by default
 						result += naturalSort(value1, value2) * sign;
@@ -3049,7 +3060,7 @@
 
 				return result;
 			});
-		}
+		};
 
 
 		// findFirstFocusableCell()
@@ -3067,7 +3078,7 @@
 				cell += getColspan(row, cell);
 			}
 			return null;
-		}
+		};
 
 
 		// findLastFocusableCell()
@@ -3086,15 +3097,15 @@
 				cell += getColspan(row, cell);
 			}
 			return lastFocusableCell;
-		}
+		};
 
 
 		// get()
 		// Entry point for collection.get(). See collection.get for more info.
 		//
 		this.get = function (id) {
-			return this.collection.get(id)
-		}
+			return this.collection.get(id);
+		};
 
 
 		// getActive()
@@ -3110,7 +3121,7 @@
 					cell: activeCell
 				};
 			}
-		}
+		};
 
 
 		// getActiveCellPosition()
@@ -3119,7 +3130,7 @@
 		// @return object
 		getActiveCellPosition = function () {
 			return absBox(activeCellNode);
-		}
+		};
 
 
 		// getBrowserData()
@@ -3129,7 +3140,7 @@
 		getBrowserData = function () {
 			window.maxSupportedCssHeight = window.maxSupportedCssHeight || getMaxCSSHeight();
 			window.scrollbarDimensions = window.scrollbarDimensions || getScrollbarSize();
-		}
+		};
 
 
 		// getCanvasWidth()
@@ -3144,7 +3155,7 @@
 				rowWidth += self.options.columns[i].width;
 			}
 			return self.options.fullWidthRows ? Math.max(rowWidth, availableWidth) : rowWidth;
-		}
+		};
 
 
 		// getCaretPosition()
@@ -3165,14 +3176,14 @@
 			}
 			// If text is selected -- return null
 			else if (input.selectionStart !== input.selectionEnd) {
-				return null
+				return null;
 			// Find cursor position
 			} else if (input.selectionStart || input.selectionStart == '0') {
 				pos = input.selectionStart;
 			}
 
 			return pos;
-		}
+		};
 
 
 		// getCellFromNode()
@@ -3188,7 +3199,7 @@
 				throw "getCellFromNode: cannot get cell - " + cellNode.className;
 			}
 			return parseInt(cls[0].substr(1, cls[0].length - 1), 10);
-		}
+		};
 
 
 		// getCellFromPoint()
@@ -3213,8 +3224,8 @@
 			return {
 				cell: cell - 1,
 				row: row
-			}
-		}
+			};
+		};
 
 
 		// getCellNode()
@@ -3230,7 +3241,7 @@
 				return cache.nodes[row].cellNodesByColumnIdx[cell];
 			}
 			return null;
-		}
+		};
 
 
 		// getCellNodeBox()
@@ -3261,8 +3272,8 @@
 				left: x1,
 				right: x2,
 				top: y1
-			}
-		}
+			};
+		};
 
 
 		// getCellFromEvent()
@@ -3288,7 +3299,7 @@
 					"cell": cell
 				};
 			}
-		}
+		};
 
 
 		// getColspan()
@@ -3313,7 +3324,7 @@
 			}
 
 			return colspan;
-		}
+		};
 
 
 		// getColumnById()
@@ -3323,8 +3334,8 @@
 		//
 		// @return object
 		getColumnById = function (column_id) {
-			return _.findWhere(self.options.columns, {id: column_id})
-		}
+			return _.findWhere(self.options.columns, {id: column_id});
+		};
 
 
 		// getColumnCssRules()
@@ -3354,13 +3365,13 @@
 				var cssRules = (stylesheet.cssRules || stylesheet.rules);
 				var matches, columnIdx;
 				for (i = 0; i < cssRules.length; i++) {
-					var selector = cssRules[i].selectorText
+					var selector = cssRules[i].selectorText;
 					matches = new RegExp(/\.l\d+/).exec(selector);
 					if (matches) {
 						columnIdx = parseInt(matches[0].substr(2, matches[0].length - 2), 10);
 						columnCssRulesL[columnIdx] = cssRules[i];
 					} else {
-						matches = new RegExp(/\.r\d+/).exec(selector)
+						matches = new RegExp(/\.r\d+/).exec(selector);
 						if (matches) {
 							columnIdx = parseInt(matches[0].substr(2, matches[0].length - 2), 10);
 							columnCssRulesR[columnIdx] = cssRules[i];
@@ -3373,7 +3384,7 @@
 				"left": columnCssRulesL[idx],
 				"right": columnCssRulesR[idx]
 			};
-		}
+		};
 
 
 		// getColumnFromEvent()
@@ -3384,9 +3395,9 @@
 		// @return object
 		getColumnFromEvent = function (event) {
 			var $column = $(event.target).closest("." + classheadercolumn),
-				column_id = $column.attr('id').replace(uid, '')
-			return getColumnById(column_id)
-		}
+				column_id = $column.attr('id').replace(uid, '');
+			return getColumnById(column_id);
+		};
 
 
 		// getColumnIndex()
@@ -3397,7 +3408,7 @@
 		// @return integer
 		getColumnIndex = function (id) {
 			return columnsById[id];
-		}
+		};
 
 
 		// getDataItem()
@@ -3412,7 +3423,7 @@
 			} else {
 				return self.collection[i];
 			}
-		}
+		};
 
 
 		// getDataItemValueForColumns()
@@ -3429,14 +3440,14 @@
 
 			// Backbone Model support
 			if (item instanceof Backbone.Model) {
-				return item.get(columnDef.field)
+				return item.get(columnDef.field);
 			}
 
 			// Group headers
 			if (item.__group) return item.value;
 
-			return item.data[columnDef.field]
-		}
+			return item.data[columnDef.field];
+		};
 
 
 		// getDataLength()
@@ -3450,7 +3461,7 @@
 			} else {
 				return self.collection.length;
 			}
-		}
+		};
 
 
 		// getDataLengthIncludingAddNew()
@@ -3459,7 +3470,7 @@
 		// @return integer
 		getDataLengthIncludingAddNew = function () {
 			return getDataLength() + (self.options.addRow ? 1 : 0);
-		}
+		};
 
 
 		// getEditor()
@@ -3484,7 +3495,7 @@
 
 			// If no column editor, use editor in the options, otherwise use defaultEditor
 			return column.editor || (self.options.editor && self.options.editor.getEditor(column)) || defaultEditor;
-		}
+		};
 
 
 		// getFormatter()
@@ -3508,7 +3519,7 @@
 				(self.options.formatterFactory && self.options.formatterFactory.getFormatter(column)) ||
 				self.options.formatter ||
 				defaultFormatter;
-		}
+		};
 
 
 		// getHeadersWidth()
@@ -3527,17 +3538,17 @@
 			headersWidth += window.scrollbarDimensions.width;
 
 			return Math.max(headersWidth, viewportW) + 1000;
-		}
+		};
 
 
 		// getItemId()
 		// Given a data model, returns that item's unique id
 		//
 		getItemId = function (model) {
-			if (idProperty in model) return model[idProperty]
-			else if (model.data && idProperty in model.data) return model.data[idProperty]
-			return null
-		}
+			if (idProperty in model) return model[idProperty];
+			else if (model.data && idProperty in model.data) return model.data[idProperty];
+			return null;
+		};
 
 
 		// getLocale()
@@ -3548,13 +3559,13 @@
 		//
 		// @return string
 		getLocale = function (key, data) {
-			data = data || {}
+			data = data || {};
 
 			// Convert "a.b.c" notation to reference in options.locale
 			var string = self.options.locale;
 			_.each(key.split('.'), function (p) {
 				string = string[p];
-			})
+			});
 
 			if (!string) {
 				throw new Error('Doby Grid does not have a locale string defined for "' + key + '"');
@@ -3563,8 +3574,8 @@
 			// Parse data object and return locale string
 			return _.template(string, data, {
 				interpolate: /\{\{(.+?)\}\}/gim
-			})
-		}
+			});
+		};
 
 
 		// getMaxCSS ()
@@ -3592,7 +3603,7 @@
 
 			div.remove();
 			return supportedHeight;
-		}
+		};
 
 
 		// getRenderedRange()
@@ -3625,7 +3636,7 @@
 			range.rightPx = Math.min(canvasWidth, range.rightPx);
 
 			return range;
-		}
+		};
 
 
 		// getRowFromNode()
@@ -3642,7 +3653,7 @@
 			}
 
 			return null;
-		}
+		};
 
 
 		// getRowFromPosition()
@@ -3660,7 +3671,7 @@
 			if (rowLength) {
 				// Loop through the row position cache and break when the row is found
 				for (var i = 0; i < rowLength; i++) {
-					pos = getRowPosition(i)
+					pos = getRowPosition(i);
 					if (pos.top <= maxPosition && pos.bottom >= maxPosition) {
 						row = i;
 						continue;
@@ -3668,20 +3679,20 @@
 				}
 
 				// Return the last row in the grid
-				lastpos = getRowPosition(rowLength - 1)
+				lastpos = getRowPosition(rowLength - 1);
 				if (maxPosition > lastpos.bottom) {
 					row = rowLength - 1;
 				}
 			} else {
 				// TODO: This was a hack to get remote+variableRowHeight working. I'm not sure
 				// why this works as. Investigate later.
-				row = Math.floor((maxPosition + offset) / self.options.rowHeight)
+				row = Math.floor((maxPosition + offset) / self.options.rowHeight);
 			}
 
 			result = row;
 
-			return result
-		}
+			return result;
+		};
 
 
 		// getRowPosition()
@@ -3690,9 +3701,9 @@
 		getRowPosition = function (row) {
 			// Check if item is in position cache
 			if (row in cache.rowPositions) {
-				return cache.rowPositions[row]
+				return cache.rowPositions[row];
 			}
-		}
+		};
 
 
 		// getScrollbarSize()
@@ -3710,8 +3721,8 @@
 					height: c.height() - c[0].clientHeight
 				};
 			c.remove();
-			return result
-		}
+			return result;
+		};
 
 
 		// getVBoxDelta()
@@ -3727,7 +3738,7 @@
 				delta += parseFloat($el.css(val)) || 0;
 			});
 			return delta;
-		}
+		};
 
 
 		// getViewportHeight()
@@ -3739,7 +3750,7 @@
 				parseFloat($.css(self.$el[0], "paddingTop", true)) -
 				parseFloat($.css(self.$el[0], "paddingBottom", true)) -
 				parseFloat($.css($headerScroller[0], "height")) - getVBoxDelta($headerScroller);
-		}
+		};
 
 
 		// getVisibleRange()
@@ -3766,7 +3777,7 @@
 				leftPx: viewportLeft,
 				rightPx: viewportLeft + viewportW
 			};
-		}
+		};
 
 
 		// gotoCell()
@@ -3790,7 +3801,7 @@
 
 			// if selecting the 'add new' row, start editing right away
 			setActiveCellInternal(newCell, forceEdit || (row === getDataLength()) || self.options.autoEdit);
-		}
+		};
 
 
 		// gotoDown()
@@ -3821,7 +3832,7 @@
 					};
 				}
 			}
-		}
+		};
 
 
 		// gotoLeft()
@@ -3856,7 +3867,7 @@
 				}
 				prev = pos;
 			}
-		}
+		};
 
 
 		// gotoNext()
@@ -3895,7 +3906,7 @@
 				}
 			}
 			return null;
-		}
+		};
 
 
 		// gotoPrev()
@@ -3940,7 +3951,7 @@
 				}
 			}
 			return pos;
-		}
+		};
 
 
 		// gotoRight()
@@ -3967,7 +3978,7 @@
 				};
 			}
 			return null;
-		}
+		};
 
 
 		// gotoUp()
@@ -3998,7 +4009,7 @@
 					};
 				}
 			}
-		}
+		};
 
 
 		// Group()
@@ -4015,7 +4026,7 @@
 			this.title = null;			// Formatted display value of the group
 			this.totals = null;			// GroupTotals, if any
 			this.value = null;			// Grouping value
-		}
+		};
 
 		Group.prototype = new NonDataItem();
 
@@ -4028,7 +4039,7 @@
 				return;
 			}
 
-			self.trigger('onActiveCellPositionChanged', {})
+			self.trigger('onActiveCellPositionChanged', {});
 
 			if (currentEditor) {
 				var cellBox = getActiveCellPosition();
@@ -4044,7 +4055,7 @@
 					currentEditor.position(cellBox);
 				}
 			}
-		}
+		};
 
 
 		// handleClick()
@@ -4059,7 +4070,7 @@
 			}
 
 			// Get item from cell
-			var item = getDataItem(cell.row)
+			var item = getDataItem(cell.row);
 
 			// Handle group expand/collapse
 			if (item && item instanceof Group) {
@@ -4075,7 +4086,7 @@
 					e.stopImmediatePropagation();
 					e.preventDefault();
 
-					return
+					return;
 				}
 			}
 
@@ -4083,7 +4094,7 @@
 				row: cell.row,
 				cell: cell.cell,
 				item: item
-			})
+			});
 
 			if (e.isImmediatePropagationStopped()) {
 				return;
@@ -4094,7 +4105,7 @@
 				scrollRowIntoView(cell.row, false);
 				setActiveCellInternal(getCellNode(cell.row, cell.cell));
 			}
-		}
+		};
 
 
 		// handleContextMenu()
@@ -4113,8 +4124,8 @@
 				return;
 			}
 
-			self.trigger('onContextMenu', e)
-		}
+			self.trigger('onContextMenu', e);
+		};
 
 
 		// handleDblClick()
@@ -4131,7 +4142,7 @@
 			self.trigger('onDblClick', e, {
 				row: cell.row,
 				cell: cell.cell
-			})
+			});
 
 			if (e.isImmediatePropagationStopped()) {
 				return;
@@ -4140,7 +4151,7 @@
 			if (self.options.editable) {
 				gotoCell(cell.row, cell.cell, true);
 			}
-		}
+		};
 
 
 		// handleHeaderClick()
@@ -4149,13 +4160,13 @@
 		// @param	event		object		Event object
 		//
 		handleHeaderClick = function (event) {
-			var column = getColumnFromEvent(event)
+			var column = getColumnFromEvent(event);
 			if (column) {
 				self.trigger('onHeaderClick', event, {
 					column: column
-				})
+				});
 			}
-		}
+		};
 
 
 		// handleHeaderContextMenu()
@@ -4164,13 +4175,13 @@
 		// @param	event		object		Event object
 		//
 		handleHeaderContextMenu = function (event) {
-			var column = getColumnFromEvent(event)
+			var column = getColumnFromEvent(event);
 			if (column) {
 				self.trigger('onHeaderContextMenu', event, {
 					column: column
-				})
+				});
 			}
-		}
+		};
 
 
 		// handleKeyDown()
@@ -4182,7 +4193,7 @@
 			self.trigger('onKeyDown', e, {
 				row: activeRow,
 				cell: activeCell
-			})
+			});
 
 			var handled = e.isImmediatePropagationStopped();
 
@@ -4244,7 +4255,7 @@
 					if (self.options.editable && currentEditor) {
 						commitCurrentEdit();
 					}
-					handled = navigate("prev")
+					handled = navigate("prev");
 				}
 			}
 
@@ -4262,7 +4273,7 @@
 				// nothing else), "Shift" (maybe others)
 				catch (error) {}
 			}
-		}
+		};
 
 
 		// handleSelectedRangesChanges()
@@ -4271,23 +4282,23 @@
 		// @param	e	object		Javascript event object
 		//
 		handleSelectedRangesChanged = function (e, args) {
-			ranges = args.ranges
+			ranges = args.ranges;
 
 			// Deselect the previous range
-			var removeHash = {}
+			var removeHash = {};
 			if (selectedRows) {
-				var clearAllColumns = {}
+				var clearAllColumns = {};
 				for (var ic = 0, lc = self.options.columns.length; ic < lc; ic++) {
-					clearAllColumns[self.options.columns[ic].id] = self.options.selectedClass
+					clearAllColumns[self.options.columns[ic].id] = self.options.selectedClass;
 				}
 
 				for (var iw = 0, lw = selectedRows.length; iw < lw; iw++) {
-					removeHash[selectedRows[iw]] = clearAllColumns
+					removeHash[selectedRows[iw]] = clearAllColumns;
 				}
 			}
 
 			// Decelect cells
-			updateCellCssStylesOnRenderedRows(null, removeHash)
+			updateCellCssStylesOnRenderedRows(null, removeHash);
 
 			// Select the new range
 			selectedRows = [];
@@ -4307,12 +4318,12 @@
 			}
 
 			// Select cells
-			updateCellCssStylesOnRenderedRows(addHash)
+			updateCellCssStylesOnRenderedRows(addHash);
 
 			self.trigger('onSelectedRowsChanged', e, {
 				rows: selectedRows
-			})
-		}
+			});
+		};
 
 
 		// handleScroll()
@@ -4367,15 +4378,15 @@
 						h_render = setTimeout(render, 50);
 					}
 
-					self.trigger('onViewportChanged', event, {})
+					self.trigger('onViewportChanged', event, {});
 				}
 			}
 
 			self.trigger('onScroll', event, {
 				scrollLeft: scrollLeft,
 				scrollTop: scrollTop
-			})
-		}
+			});
+		};
 
 
 		// handleWindowResize()
@@ -4385,7 +4396,7 @@
 			// Only if the object is visible
 			if (!self.$el.is(':visible')) return;
 			resizeCanvas();
-		}
+		};
 
 
 		// hasGrouping()
@@ -4396,13 +4407,13 @@
 		//
 		// @return boolean, array
 		hasGrouping = function (column_id) {
-			if (!column_id) return false
-			var column = getColumnById(column_id)
-			if (!column) return false
+			if (!column_id) return false;
+			var column = getColumnById(column_id);
+			if (!column) return false;
 			var grouping = self.collection.getGrouping(),
-				column_ids = _.pluck(grouping, 'column_id')
-			return column_ids.indexOf(column_id) >= 0 ? column_ids : false
-		}
+				column_ids = _.pluck(grouping, 'column_id');
+			return column_ids.indexOf(column_id) >= 0 ? column_ids : false;
+		};
 
 
 		// hasSorting()
@@ -4412,10 +4423,10 @@
 		//
 		// @return boolean
 		hasSorting = function (column_id) {
-			if (!column_id) return false
-			var column_ids = _.pluck(sortColumns, 'columnId')
+			if (!column_id) return false;
+			var column_ids = _.pluck(sortColumns, 'columnId');
 			return column_ids.indexOf(column_id) >= 0;
-		}
+		};
 
 
 		// isCellPotentiallyEditable()
@@ -4441,7 +4452,7 @@
 			if (!getEditor(row, cell)) return false;
 
 			return true;
-		}
+		};
 
 
 		// invalidate()
@@ -4451,7 +4462,7 @@
 			updateRowCount();
 			invalidateAllRows();
 			render();
-		}
+		};
 
 
 		// invalidateAllRows()
@@ -4464,7 +4475,7 @@
 			for (var row in cache.nodes) {
 				removeRowFromCache(row);
 			}
-		}
+		};
 
 
 		// invalidatePostProcessingResults()
@@ -4477,7 +4488,7 @@
 			postProcessFromRow = Math.min(postProcessFromRow, row);
 			postProcessToRow = Math.max(postProcessToRow, row);
 			startPostProcessing();
-		}
+		};
 
 
 		// invalidateRow()
@@ -4487,7 +4498,7 @@
 		//
 		invalidateRow = function (row) {
 			invalidateRows([row]);
-		}
+		};
 
 
 		// invalidateRows()
@@ -4509,7 +4520,7 @@
 					removeRowFromCache(rows[i]);
 				}
 			}
-		}
+		};
 
 
 		// isGrouped()
@@ -4517,8 +4528,8 @@
 		//
 		// @return boolean
 		this.isGrouped = function () {
-			return this.collection.getGrouping().length ? true : false
-		}
+			return this.collection.getGrouping().length ? true : false;
+		};
 
 
 		// isSorted()
@@ -4526,8 +4537,8 @@
 		//
 		// @return boolean
 		this.isSorted = function () {
-			return sortColumns.length ? true : false
-		}
+			return sortColumns.length ? true : false;
+		};
 
 
 		// makeActiveCellEditable()
@@ -4562,7 +4573,7 @@
 			// If no editor is given, clear the cell
 			if (!editor) activeCellNode.innerHTML = "";
 
-			var CellEditor = editor || getEditor(activeRow, activeCell)
+			var CellEditor = editor || getEditor(activeRow, activeCell);
 
 			currentEditor = new CellEditor({
 				grid: self,
@@ -4585,7 +4596,7 @@
 			if (currentEditor.position) {
 				handleActiveCellPositionChange();
 			}
-		}
+		};
 
 
 		// makeActiveCellNormal()
@@ -4597,7 +4608,7 @@
 
 			self.trigger('onBeforeCellEditorDestroy', {}, {
 				editor: currentEditor
-			})
+			});
 
 			currentEditor.destroy();
 			currentEditor = null;
@@ -4618,7 +4629,7 @@
 			if (navigator.userAgent.toLowerCase().match(/msie/)) {
 				clearTextSelection();
 			}
-		}
+		};
 
 
 		// measureCellPaddingAndBorder()
@@ -4659,7 +4670,7 @@
 			r.remove();
 
 			absoluteColumnMinWidth = Math.max(headerColumnWidthDiff, cellWidthDiff);
-		}
+		};
 
 
 		// naturalSort()
@@ -4673,7 +4684,7 @@
 				hre = /^0x[0-9a-f]+$/i,
 				ore = /^0/,
 				i = function (s) {
-					return ('' + s).toLowerCase() || '' + s
+					return ('' + s).toLowerCase() || '' + s;
 				},
 				// convert all to strings strip whitespace
 				x = i(a).replace(sre, '') || '',
@@ -4707,7 +4718,7 @@
 				if (oFxNcL > oFyNcL) return 1;
 			}
 			return 0;
-		}
+		};
 
 
 		// navigate()
@@ -4756,7 +4767,7 @@
 				setActiveCellInternal(getCellNode(activeRow, activeCell));
 				return false;
 			}
-		}
+		};
 
 
 		// Range()
@@ -4786,7 +4797,7 @@
 			this.contains = function (row, cell) {
 				return row >= this.fromRow && row <= this.toRow &&
 					cell >= this.fromCell && cell <= this.toCell;
-			}
+			};
 
 
 			// isSingleCell()
@@ -4795,7 +4806,7 @@
 			// @return boolean
 			this.isSingleCell = function () {
 				return this.fromRow == this.toRow && this.fromCell == this.toCell;
-			}
+			};
 
 
 			// isSingleRow()
@@ -4804,7 +4815,7 @@
 			// @return boolean
 			this.isSingleRow = function () {
 				return this.fromRow == this.toRow;
-			}
+			};
 
 			// toString()
 			// Returns a readable representation of a range
@@ -4816,8 +4827,8 @@
 				} else {
 					return "(" + this.fromRow + ":" + this.fromCell + " - " + this.toRow + ":" + this.toCell + ")";
 				}
-			}
-		}
+			};
+		};
 
 
 		// remove()
@@ -4829,8 +4840,8 @@
 		this.remove = function (id) {
 			// TODO: Convert this to use a similar to input to Backbone.Collection.remove()
 			this.collection.deleteItem(id);
-			return this
-		}
+			return this;
+		};
 
 
 		// removeColumn()
@@ -4840,21 +4851,21 @@
 		//
 		// @return object
 		this.removeColumn = function (column) {
-			if (!column) return this
-			if (typeof column == 'object') column = column.id
+			if (!column) return this;
+			if (typeof column == 'object') column = column.id;
 
 			var newcolumns = this.options.columns.filter(function (c) {
-				return c.id != column
-			})
+				return c.id != column;
+			});
 
 			// If column had a grouping - remove that grouping
 			if (hasGrouping(column)) {
-				this.removeGrouping(column)
+				this.removeGrouping(column);
 			}
 
 			self.setColumns(newcolumns);
-			return this
-		}
+			return this;
+		};
 
 
 		// removeCssRules()
@@ -4863,7 +4874,7 @@
 		removeCssRules = function () {
 			if ($style) $style.remove();
 			stylesheet = null;
-		}
+		};
 
 
 		// removeGrouping()
@@ -4874,18 +4885,18 @@
 		// @return object
 		this.removeGrouping = function (column) {
 			if (!column) return;
-			if (typeof column == 'object') column = column.id
+			if (typeof column == 'object') column = column.id;
 
-			var column_ids = hasGrouping(column)
+			var column_ids = hasGrouping(column);
 			if (column_ids) {
 				var idx = column_ids.indexOf(column);
 				if (idx >= 0) {
-					column_ids.splice(idx, 1)
+					column_ids.splice(idx, 1);
 				}
-				this.setGrouping(column_ids)
+				this.setGrouping(column_ids);
 			}
-			return this
-		}
+			return this;
+		};
 
 
 		// removeInvalidRanges()
@@ -4905,7 +4916,7 @@
 			}
 
 			return result;
-		}
+		};
 
 
 		// removeRowFromCache()
@@ -4925,14 +4936,14 @@
 			// Clear postprocessing cache (only for non-cached columns)
 			if (postProcessedRows[row]) {
 				for (var i in postProcessedRows[row]) {
-					col = self.options.columns[i]
-					if (!col.cache) delete postProcessedRows[row][i]
+					col = self.options.columns[i];
+					if (!col.cache) delete postProcessedRows[row][i];
 				}
 			}
 
 			renderedRows--;
 			counter_rows_removed++;
-		}
+		};
 
 
 		// render()
@@ -4962,7 +4973,7 @@
 			lastRenderedScrollTop = scrollTop;
 			lastRenderedScrollLeft = scrollLeft;
 			h_render = null;
-		}
+		};
 
 
 		// renderRows()
@@ -5025,16 +5036,16 @@
 			if (needToReselectCell) {
 				activeCellNode = getCellNode(activeRow, activeCell);
 			}
-		}
+		};
 
 
 		// reset()
 		// Entry point for collection.reset(). See collection.reset for more info.
 		//
 		this.reset = function (models) {
-			this.collection.reset(models, true)
-			return this
-		}
+			this.collection.reset(models, true);
+			return this;
+		};
 
 
 		// resetActiveCell()
@@ -5042,7 +5053,7 @@
 		//
 		resetActiveCell = function () {
 			setActiveCellInternal(null, false);
-		}
+		};
 
 
 		// resize()
@@ -5051,8 +5062,8 @@
 		// @return object
 		this.resize = function () {
 			// Resize the grid
-			resizeCanvas()
-			invalidate()
+			resizeCanvas();
+			invalidate();
 
 			// Clear remote data and touch viewport to re-draw it
 			// TODO: Find a better solution to touchViewport
@@ -5060,8 +5071,8 @@
 				this.touchViewport()
 			}*/
 
-			return this
-		}
+			return this;
+		};
 
 
 		// resizeCanvas()
@@ -5086,7 +5097,7 @@
 			// Since the width has changed, force the render() to reevaluate virtually rendered cells.
 			lastRenderedScrollLeft = -1;
 			render();
-		}
+		};
 
 
 		// rowsToRanges()
@@ -5103,7 +5114,7 @@
 			}
 
 			return ranges;
-		}
+		};
 
 
 		// scrollCellIntoView()
@@ -5130,7 +5141,7 @@
 				handleScroll();
 				render();
 			}
-		}
+		};
 
 
 		// scrollPage()
@@ -5169,7 +5180,7 @@
 					resetActiveCell();
 				}
 			}
-		}
+		};
 
 
 		// scrollRowIntoView()
@@ -5186,7 +5197,7 @@
 
 			// need to page down?
 			var pgdwn = pos.bottom > scrollTop + viewportH + offset,
-				pgup = pos.top < scrollTop + offset
+				pgup = pos.top < scrollTop + offset;
 
 			if (pgdwn) {
 				scrollTo(doPaging ? rowAtTop : rowAtBottom);
@@ -5197,7 +5208,7 @@
 				scrollTo(doPaging ? rowAtBottom : rowAtTop);
 				render();
 			}
-		}
+		};
 
 
 		// scrollRowToTop()
@@ -5206,10 +5217,10 @@
 		// @param	row		integer		Row index
 		//
 		scrollRowToTop = function (row) {
-			var pos = getRowPosition(row)
+			var pos = getRowPosition(row);
 			scrollTo(pos.top);
 			render();
-		}
+		};
 
 
 		// scrollTo()
@@ -5236,9 +5247,9 @@
 				vScrollDir = (prevScrollTop + oldOffset < newScrollTop + offset) ? 1 : -1;
 				$viewport[0].scrollTop = (lastRenderedScrollTop = scrollTop = prevScrollTop = newScrollTop);
 
-				self.trigger('onViewportChanged', {})
+				self.trigger('onViewportChanged', {});
 			}
-		}
+		};
 
 
 		// setActiveCell()
@@ -5260,7 +5271,7 @@
 
 			scrollCellIntoView(row, cell, false);
 			setActiveCellInternal(getCellNode(row, cell), false);
-		}
+		};
 
 
 		// setActiveCellInternal()
@@ -5309,9 +5320,9 @@
 			}
 
 			if (activeCellChanged) {
-				self.trigger('onActiveCellChanged', {}, getActiveCell())
+				self.trigger('onActiveCellChanged', {}, getActiveCell());
 			}
-		}
+		};
 
 
 		// setColumns()
@@ -5321,7 +5332,7 @@
 		//
 		this.setColumns = function (columns) {
 
-			this.options.columns = columns
+			this.options.columns = columns;
 
 			columnsById = {};
 			var m;
@@ -5339,13 +5350,13 @@
 				}
 			}
 
-			validateColumns()
+			validateColumns();
 
 			updateColumnCaches();
 
 			this.trigger('onColumnsChanged', {}, {
 				columns: columns
-			})
+			});
 
 			if (initialized) {
 				invalidateAllRows();
@@ -5356,7 +5367,7 @@
 				applyColumnWidths();
 				handleScroll();
 			}
-		}
+		};
 
 
 		// setGrouping()
@@ -5366,14 +5377,14 @@
 		//
 		// @return object
 		this.setGrouping = function (column_ids) {
-			var grps = []
+			var grps = [];
 			_.each(column_ids, function (cid) {
-				grps.push(createGroupingObject(cid))
-			})
+				grps.push(createGroupingObject(cid));
+			});
 
 			this.collection.setGrouping(grps);
-			return this
-		}
+			return this;
+		};
 
 
 		// setOptions()
@@ -5391,10 +5402,10 @@
 
 			self.options = $.extend(self.options, options);
 
-			validateOptions()
+			validateOptions();
 
 			render();
-		}
+		};
 
 
 		// setRowHeight()
@@ -5407,13 +5418,13 @@
 			// TODO: This is hacky. There should be a collection.set() method to expend existing data
 			var item = self.collection.items[row];
 			item.height = height;
-			self.collection.updateItem(getItemId(item), item)
+			self.collection.updateItem(getItemId(item), item);
 
 			// Invalidate rows below the edited one
-			cacheRowPositions()
-			invalidateRows(_.range(row, self.collection.getLength() + 1))
-			render()
-		}
+			cacheRowPositions();
+			invalidateRows(_.range(row, self.collection.getLength() + 1));
+			render();
+		};
 
 
 		// setSelectedRows()
@@ -5423,7 +5434,7 @@
 		//
 		setSelectedRows = function (rows) {
 			selectionModel.setSelectedRanges(rowsToRanges(rows));
-		}
+		};
 
 
 		// setSorting()
@@ -5434,33 +5445,33 @@
 		// @return object
 		this.setSorting = function (options) {
 			if (!$.isArray(options)) {
-				throw new Error('Doby Grid cannot set the sorting because the "options" parameter must be an array of objects.')
+				throw new Error('Doby Grid cannot set the sorting because the "options" parameter must be an array of objects.');
 			}
 
 			// Updating the sorting dictionary
 			sortColumns = options;
 
 			// Update the sorting data
-			styleSortColumns()
+			styleSortColumns();
 
 			// Re-process column args into something the execute sorter can understand
 			var args = {
 				multiColumnSort: true,
 				sortCols: []
-			}
+			};
 
 			_.each(options, function (col) {
 				args.sortCols.push({
 					sortCol: getColumnById(col.columnId),
 					sortAsc: col.sortAsc
-				})
+				});
 			});
 
 			// Manually execute the sorter that will actually re-draw the table
-			executeSorter(args)
+			executeSorter(args);
 
-			return this
-		}
+			return this;
+		};
 
 
 		// setupColumnReorder()
@@ -5498,12 +5509,12 @@
 
 					self.setColumns(reorderedColumns);
 
-					self.trigger('onColumnsReordered', e)
+					self.trigger('onColumnsReordered', e);
 
 					setupColumnResize();
 				}
 			});
-		}
+		};
 
 
 		// setupColumnResize()
@@ -5533,11 +5544,11 @@
 				columnElements.each(function (i, e) {
 					self.options.columns[i].previousWidth = $(e).outerWidth();
 				});
-			}
+			};
 
 			var resizeColumn = function (i, d) {
 				var actualMinWidth, x;
-				x = d
+				x = d;
 				if (d < 0) { // shrink column
 					for (j = i; j >= 0; j--) {
 						c = self.options.columns[j];
@@ -5599,7 +5610,7 @@
 						}
 					}
 				}
-			}
+			};
 
 			var prepareLeeway = function (i, pageX) {
 				var shrinkLeewayOnRight = null,
@@ -5653,7 +5664,7 @@
 				}
 				maxPageX = pageX + Math.min(shrinkLeewayOnRight, stretchLeewayOnLeft);
 				minPageX = pageX - Math.min(shrinkLeewayOnLeft, stretchLeewayOnRight);
-			}
+			};
 
 			var headers = $headers.children();
 			var applyColWidths = function () {
@@ -5661,7 +5672,7 @@
 				if (self.options.resizeCells) {
 					applyColumnWidths();
 				}
-			}
+			};
 
 			var submitColResize = function () {
 				var newWidth;
@@ -5676,8 +5687,8 @@
 
 				updateCanvasWidth(true);
 				render();
-				self.trigger('onColumnsResized', {})
-			}
+				self.trigger('onColumnsResized', {});
+			};
 
 			columnElements.each(function (i, e) {
 				if (i < firstResizable || (self.options.autoColumnWidth && i >= lastResizable)) {
@@ -5686,7 +5697,7 @@
 				$col = $(e);
 
 				// If resizable columns are disabled -- return
-				if (!self.options.resizableColumns) return
+				if (!self.options.resizableColumns) return;
 
 				$('<div class="' + classhandle + '"><span></span></div>')
 					.appendTo(e)
@@ -5697,34 +5708,34 @@
 							headerPadding = columnEl.outerWidth() - columnEl.width();
 
 						// Determine the width of the column name text
-						var name = columnEl.children('.' + classcolumnname + ':first')
-						name.css('overflow', 'visible')
-						columnEl.width('auto')
-						var headerWidth = columnEl.outerWidth()
-						name.css('overflow', '')
-						columnEl.width(currentWidth)
+						var name = columnEl.children('.' + classcolumnname + ':first');
+						name.css('overflow', 'visible');
+						columnEl.width('auto');
+						var headerWidth = columnEl.outerWidth();
+						name.css('overflow', '');
+						columnEl.width(currentWidth);
 
 						// Determine the width of the widest visible value
 						var cellWidths = [headerWidth];
 						$canvas.find('.l' + i + ':visible')
 							.removeClass('r' + i)
 							.each(function () {
-								var w = $(this).outerWidth() + headerPadding
-								if (cellWidths.indexOf(w) < 0) cellWidths.push(w)
+								var w = $(this).outerWidth() + headerPadding;
+								if (cellWidths.indexOf(w) < 0) cellWidths.push(w);
 							})
-							.addClass('r' + i)
+							.addClass('r' + i);
 
-						var newWidth = Math.max.apply(null, cellWidths)
+						var newWidth = Math.max.apply(null, cellWidths);
 
 						if (currentWidth != newWidth) {
-							var diff = newWidth - currentWidth
+							var diff = newWidth - currentWidth;
 
 							// Duplicate the drag functionality
-							lockColumnWidths(i)
-							prepareLeeway(i, pageX)
-							resizeColumn(i, diff)
-							applyColWidths()
-							submitColResize()
+							lockColumnWidths(i);
+							prepareLeeway(i, pageX);
+							resizeColumn(i, diff);
+							applyColWidths();
+							submitColResize();
 						}
 					})
 					// Custom drag to resize
@@ -5733,26 +5744,26 @@
 						$(this).parent().addClass(classheadercolumndrag);
 
 						// lock each column's width option to current width
-						lockColumnWidths(i)
+						lockColumnWidths(i);
 
 						// Ensures the leeway has another room to move around
-						prepareLeeway(i, pageX)
+						prepareLeeway(i, pageX);
 					})
 					.on('drag', function (event) {
 						var delta = Math.min(maxPageX, Math.max(minPageX, event.pageX)) - pageX;
 
 						// Sets the new column widths
-						resizeColumn(i, delta)
+						resizeColumn(i, delta);
 
 						// Save changes
-						applyColWidths()
+						applyColWidths();
 					})
 					.on('dragend', function () {
 						$(this).parent().removeClass(classheadercolumndrag);
-						submitColResize()
-					})
+						submitColResize();
+					});
 			});
-		}
+		};
 
 
 		// setupColumnSort()
@@ -5765,7 +5776,7 @@
 				if (handle.length) return;
 
 				var column = getColumnFromEvent(e);
-				if (!column.sortable) return
+				if (!column.sortable) return;
 
 				var sortOpts = null;
 				for (var i = 0, l = sortColumns.length; i < l; i++) {
@@ -5804,7 +5815,7 @@
 						multiColumnSort: false,
 						sortCol: column,
 						sortAsc: sortOpts.sortAsc
-					}
+					};
 				} else {
 					args = {
 						multiColumnSort: true,
@@ -5814,16 +5825,16 @@
 								sortAsc: col.sortAsc
 							};
 						})
-					}
+					};
 				}
 
 				// Execute sort
-				executeSorter(args)
+				executeSorter(args);
 
 				// Fire onSort event
-				self.trigger('onSort', e, args)
+				self.trigger('onSort', e, args);
 			});
-		}
+		};
 
 
 		// sortBy()
@@ -5834,13 +5845,13 @@
 		//
 		// @return object
 		this.sortBy = function (column_id, ascending) {
-			if (ascending === undefined) ascending = true
-			if (!column_id)	throw new Error('Grid cannot sort by blank value. Column Id must be specified.')
+			if (ascending === undefined) ascending = true;
+			if (!column_id)	throw new Error('Grid cannot sort by blank value. Column Id must be specified.');
 			return this.setSorting([{
 				columnId: column_id,
 				sortAsc: ascending
-			}])
-		}
+			}]);
+		};
 
 
 		// startPostProcessing()
@@ -5850,7 +5861,7 @@
 			if (!enableAsyncPostRender) return;
 			clearTimeout(h_postrender);
 			h_postrender = setTimeout(asyncPostProcessRows, self.options.asyncPostRenderDelay);
-		}
+		};
 
 
 		// styleSortColumns()
@@ -5876,7 +5887,7 @@
 						.addClass(col.sortAsc ? classsortindicatorasc : classsortindicatordesc);
 				}
 			});
-		}
+		};
 
 
 		// toggleHeaderContextMenu()
@@ -5889,7 +5900,7 @@
 		toggleHeaderContextMenu = function (event, args) {
 			event.preventDefault();
 
-			var column = args.column || false
+			var column = args.column || false;
 
 			// Menu data object which will define what the menu will have
 			//
@@ -5902,7 +5913,7 @@
 				enabled: column && column.removable,
 				name: column ? getLocale('column.remove', {name: column.name}) : '',
 				fn: function () {
-					self.removeColumn(column.id)
+					self.removeColumn(column.id);
 				}
 			}, {
 				enabled: column && column.sortable,
@@ -5911,36 +5922,36 @@
 				enabled: column && column.sortable && !hasSorting(column.id),
 				name: column ? getLocale('column.sort_asc', {name: column.name}) : '',
 				fn: function () {
-					self.sortBy(column.id, true)
+					self.sortBy(column.id, true);
 				}
 			}, {
 				enabled: column && column.sortable && !hasSorting(column.id),
 				name: column ? getLocale('column.sort_desc', {name: column.name}) : '',
 				fn: function () {
-					self.sortBy(column.id, false)
+					self.sortBy(column.id, false);
 				}
 			}, {
 				enabled: column && column.sortable && self.isSorted() && !hasSorting(column.id),
 				name: column ? getLocale('column.add_sort_asc', {name: column.name}) : '',
 				fn: function () {
-					sortColumns.push({columnId: column.id, sortAsc: true})
-					self.setSorting(sortColumns)
+					sortColumns.push({columnId: column.id, sortAsc: true});
+					self.setSorting(sortColumns);
 				}
 			}, {
 				enabled: column && column.sortable && self.isSorted() && !hasSorting(column.id),
 				name: column ? getLocale('column.add_sort_desc', {name: column.name}) : '',
 				fn: function () {
-					sortColumns.push({columnId: column.id, sortAsc: false})
-					self.setSorting(sortColumns)
+					sortColumns.push({columnId: column.id, sortAsc: false});
+					self.setSorting(sortColumns);
 				}
 			}, {
 				enabled: column && column.sortable && hasSorting(column.id),
 				name: column ? getLocale('column.remove_sort', {name: column.name}) : '',
 				fn: function () {
 					sortColumns = _.filter(sortColumns, function (s) {
-						return s.columnId != column.id
-					})
-					self.setSorting(sortColumns)
+						return s.columnId != column.id;
+					});
+					self.setSorting(sortColumns);
 				}
 			}, {
 				enabled: self.options.groupable && column && column.groupable,
@@ -5949,25 +5960,25 @@
 				enabled: self.options.groupable && column && column.groupable && (!hasGrouping(column.id) || !self.isGrouped()),
 				name: column ? getLocale('column.group', {name: column.name}) : '',
 				fn: function () {
-					self.setGrouping([column.id])
+					self.setGrouping([column.id]);
 				}
 			}, {
 				enabled: self.options.groupable && column && column.groupable && !hasGrouping(column.id) && self.isGrouped(),
 				name: column ? getLocale('column.add_group', {name: column.name}) : '',
 				fn: function () {
-					self.addGrouping(column.id)
+					self.addGrouping(column.id);
 				}
 			}, {
 				enabled: self.options.groupable && column && hasGrouping(column.id),
 				name: column ? getLocale('column.remove_group', {name: column.name}) : '',
 				fn: function () {
-					self.removeGrouping(column.id)
+					self.removeGrouping(column.id);
 				}
 			}, {
 				enabled: self.options.groupable && column && self.isGrouped(),
 				name: getLocale("column.groups_clear"),
 				fn: function () {
-					self.setGrouping()
+					self.setGrouping();
 				}
 			}, {
 				enabled: self.options.groupable && column && self.isGrouped(),
@@ -5976,13 +5987,13 @@
 				enabled: self.options.groupable && column && self.isGrouped(),
 				name: getLocale('column.groups_expand'),
 				fn: function () {
-					self.collection.expandAllGroups()
+					self.collection.expandAllGroups();
 				}
 			}, {
 				enabled: self.options.groupable && column && self.isGrouped(),
 				name: getLocale('column.groups_collapse'),
 				fn: function () {
-					self.collection.collapseAllGroups()
+					self.collection.collapseAllGroups();
 				}
 			}, {
 				enabled: column && (column.sortable || column.removable || column.groupable),
@@ -5991,7 +6002,7 @@
 				name: getLocale('column.auto_width'),
 				value: self.options.autoColumnWidth,
 				fn: function () {
-					var force = !self.options.autoColumnWidth
+					var force = !self.options.autoColumnWidth;
 					self.setOptions({
 						autoColumnWidth: force
 					});
@@ -6001,26 +6012,26 @@
 					// Pending https://github.com/mleibman/SlickGrid/issues/686
 					self.setColumns(self.options.columns);
 				}
-			}]
+			}];
 
 			// Render Menu
-			var $menu = $('<div class="' + classcontextmenu + '"></div>')
+			var $menu = $('<div class="' + classcontextmenu + '"></div>');
 			_.each(menuData, function (item) {
-				if (item.enabled !== undefined && !item.enabled) return
+				if (item.enabled !== undefined && !item.enabled) return;
 				if (item.divider) {
-					$('<div class="divider"></div>').appendTo($menu)
+					$('<div class="divider"></div>').appendTo($menu);
 				} else {
 					var label = (item.name || ""),
-						cls = ""
+						cls = "";
 					if (item.value !== undefined) {
-						if (item.value) cls = " on"
-						label += '<span class="icon"></span>'
+						if (item.value) cls = " on";
+						label += '<span class="icon"></span>';
 					}
 					$('<div class="item' + cls + '">' + label + '</div>')
 						.appendTo($menu)
 						.click(function (event) {
-							if (item.fn) item.fn(event)
-						})
+							if (item.fn) item.fn(event);
+						});
 				}
 			});
 
@@ -6029,8 +6040,8 @@
 				id: column.id,
 				menu: $menu,
 				parent: self.$el
-			})
-		}
+			});
+		};
 
 
 		unbindAncestorScrollEvents = function () {
@@ -6039,7 +6050,7 @@
 			}
 			$boundAncestors.unbind("scroll#" + uid);
 			$boundAncestors = null;
-		}
+		};
 
 
 		// updateCanvasWidth()
@@ -6060,7 +6071,7 @@
 			if (canvasWidth != oldCanvasWidth || forceColumnWidthsUpdate) {
 				applyColumnWidths();
 			}
-		}
+		};
 
 
 		updateCell = function (row, cell) {
@@ -6077,7 +6088,7 @@
 				cellNode.innerHTML = d ? getFormatter(row, m)(row, cell, getDataItemValueForColumn(d, m), m, d) : "";
 				invalidatePostProcessingResults(row);
 			}
-		}
+		};
 
 
 		// updateCellCssStylesOnRenderedRows()
@@ -6124,7 +6135,7 @@
 					}
 				}
 			}
-		}
+		};
 
 
 		// updateColumnCaches()
@@ -6140,7 +6151,7 @@
 				columnPosRight[i] = x + self.options.columns[i].width;
 				x += self.options.columns[i].width;
 			}
-		}
+		};
 
 
 		updateRow = function (row) {
@@ -6172,7 +6183,7 @@
 			}
 
 			invalidatePostProcessingResults(row);
-		}
+		};
 
 
 		// updateRowCount()
@@ -6187,9 +6198,9 @@
 			var oldViewportHasVScroll = viewportHasVScroll;
 
 			if (numberOfRows === 0) {
-				viewportHasVScroll = false
+				viewportHasVScroll = false;
 			} else {
-				var rpc = getRowPosition(numberOfRows - 1)
+				var rpc = getRowPosition(numberOfRows - 1);
 				viewportHasVScroll = rpc && (rpc.bottom > viewportH);
 			}
 
@@ -6209,10 +6220,10 @@
 
 			var oldH = h;
 			if (numberOfRows === 0) {
-				th = viewportH - window.scrollbarDimensions.height
+				th = viewportH - window.scrollbarDimensions.height;
 			} else {
 				// TODO: Remove this extra logic. getRowPosition should figure it out
-				var pos = numberOfRows - 1
+				var pos = numberOfRows - 1;
 				if (self.options.addRow) {
 					pos--;
 				}
@@ -6221,7 +6232,7 @@
 				var	rowMax = rps.bottom;
 
 				if (self.options.addRow) {
-					rowMax += self.options.rowHeight
+					rowMax += self.options.rowHeight;
 				}
 
 				th = Math.max(rowMax, viewportH - window.scrollbarDimensions.height);
@@ -6261,14 +6272,14 @@
 				autosizeColumns();
 			}
 			updateCanvasWidth(false);
-		}
+		};
 
 
 		updateRowPositions = function () {
 			for (var row in cache.nodes) {
 				cache.nodes[row].rowNode.style.top = (getRowPosition(row).top + offset) + "px";
 			}
-		}
+		};
 
 
 		// validateColumns()
@@ -6276,7 +6287,7 @@
 		//
 		validateColumns = function () {
 			if (!self.options.columns && !(self.options.data instanceof Backbone.Collection)) {
-				return
+				return;
 			}
 
 			// If a Backbone Collection is given as the data set without any columns,
@@ -6290,24 +6301,24 @@
 			for (var i = 0, l = self.options.columns.length; i < l; i++) {
 				// Set defaults
 				// TODO: This is ugly. Can anything be done?
-				c = self.options.columns[i]
+				c = self.options.columns[i];
 				c = self.options.columns[i] = _.extend(JSON.parse(JSON.stringify(columnDefaults)), c);
 
 				// An "id" is required. If it's missing, auto-generate one
-				if (!c.id) c.id = c.field + '_' + i || c.name + '_' + i
+				if (!c.id) c.id = c.field + '_' + i || c.name + '_' + i;
 
 				// TODO: This is temporarily here until grouping via remote data can be enabled
-				if (self.options.remote) c.groupable = false
+				if (self.options.remote) c.groupable = false;
 
 				// Convert "tooltip" param to a Cumul8-friendly tooltip
 				if (c.tooltip) {
-					var cssClass = c.headerCssClass ? c.headerCssClass + " tooltip" : "tooltip"
-					c.headerCssClass = cssClass
-					c.toolTip = c.tooltip
+					var cssClass = c.headerCssClass ? c.headerCssClass + " tooltip" : "tooltip";
+					c.headerCssClass = cssClass;
+					c.toolTip = c.tooltip;
 				}
 
 				// If any columns require asyncPostRender, enable it on the grid
-				if (c.postprocess) enableAsyncPostRender = true
+				if (c.postprocess) enableAsyncPostRender = true;
 
 				// If min/max width is set -- use it to reset given width
 				if (c.minWidth && c.width < c.minWidth) c.width = c.minWidth;
@@ -6346,7 +6357,7 @@
 
 			// Validate and pre-process
 			validateColumns();
-		}
+		};
 
 
 		// Initialize the class
