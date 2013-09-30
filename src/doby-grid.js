@@ -4427,7 +4427,7 @@
 		// @return boolean
 		isCellPotentiallyEditable = function (row, cell) {
 			// Is this column editable?
-			if (!self.options.columns[cell].editable) return false;
+			if (self.options.columns[cell].editable === false) return false;
 
 			// Is the data for this row loaded?
 			if (row < getDataLength() && !getDataItem(row)) return false;
