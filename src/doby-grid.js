@@ -129,6 +129,7 @@
 			currentEditor = null,
 			defaultEditor,
 			defaultFormatter,
+			deselectCells,
 			disableSelection,
 			Dropdown,
 			enableAsyncPostRender = false,	// Does grid have any columns that require post-processing
@@ -249,13 +250,11 @@
 			scrollRowToTop,
 			scrollTo,
 			scrollTop = 0,
-			selectedRows = [],
-			selectionModel,
+			selectedRows = [],		// Currently selected ranges of cells
 			serializedEditorValue,
 			setActiveCell,
 			setActiveCellInternal,
 			setRowHeight,
-			setSelectedRows,
 			setupColumnReorder,
 			setupColumnResize,
 			setupColumnSort,
@@ -298,7 +297,6 @@
 			columnWidth:			80,
 			editable:				false,
 			editor:					null,
-			editCommandHandler:		null,		// TODO: This is still needed. Fix and document.
 			emptyNotice:			true,
 			forceSyncScrolling:		false,		// TODO: Determine if still needed. Then document.
 			formatter:				null,
@@ -360,6 +358,9 @@
 
 		// Enable events
 		_.extend(this, Backbone.Events);
+
+		// Stores the current event object
+		this._event = null;
 
 
 		// initialize()
@@ -655,21 +656,17 @@
 					.on("keydown", handleKeyDown)
 					.on("click", handleClick)
 					.on("dblclick", handleDblClick)
-					.on("contextmenu", handleContextMenu);
+					.on("contextmenu", handleContextMenu)
+					.on("mouseenter", function () {
+						// Focus on the canvas when the mouse is in it
+						if (document.activeElement != this) {
+							$(this).focus();
+						}
+					});
 
 				if (this.options.resizableRows) {
 					bindRowResize();
 				}
-
-				// Subscribe to cell range selection events
-				this.on('onCellRangeSelected', function (event, args) {
-					ranges = removeInvalidRanges(args.ranges);
-					self.trigger('onCellRangeChanged', event, {
-						ranges: ranges
-					});
-				});
-
-				this.on('onCellRangeChanged', handleSelectedRangesChanged);
 
 			} catch (e) {
 				console.error(e);
@@ -901,6 +898,9 @@
 				.on('draginit', function (event) {
 					// Prevent the grid from cancelling drag'n'drop by default
 					event.stopImmediatePropagation();
+
+					// Deselect any text the user may have selected
+					clearTextSelection();
 				})
 				.on('dragstart', function (event, dd) {
 					var cell = getCellFromEvent(event);
@@ -921,7 +921,7 @@
 
 					// Store a custom "_range" in the event attributes
 					dd._range = {
-						end: {},
+						end: start,
 						start: start
 					};
 
@@ -953,21 +953,15 @@
 
 					decorator.hide();
 
-					var ranges = [new Range(
+					self._event = event;
+
+					self.selectCells(
 						dd._range.start.row,
 						dd._range.start.cell,
 						dd._range.end.row,
 						dd._range.end.cell
-					)];
-
-					// Make sure we're not selecting any cells that aren't allowed to be selected
-					var cleanranges = removeInvalidRanges(ranges);
-
-					if (cleanranges && cleanranges.length) {
-						self.trigger('onCellRangeSelected', event, {
-							ranges: cleanranges
-						});
-					}
+					);
+					self._event = null;
 				});
 		};
 
@@ -1409,29 +1403,12 @@
 							column: column
 						});
 					} else {
-						var editCommand = {
-							cell: activeCell,
-							editor: currentEditor,
-							execute: function () {
-								this.editor.applyValue(item, this.serializedValue);
-								updateRow(this.row);
-							},
-							prevSerializedValue: serializedEditorValue,
-							row: activeRow,
-							serializedValue: currentEditor.serializeValue(),
-							undo: function () {
-								this.editor.applyValue(item, this.prevSerializedValue);
-								updateRow(this.row);
-							}
-						};
+						// Execute the operation
+						currentEditor.applyValue(item, currentEditor.serializeValue());
+						updateRow(activeRow);
 
-						if (self.options.editCommandHandler) {
-							makeActiveCellNormal();
-							self.options.editCommandHandler(item, column, editCommand);
-						} else {
-							editCommand.execute();
-							makeActiveCellNormal();
-						}
+						// Reset active cell
+						makeActiveCellNormal();
 
 						self.trigger('onCellChange', {}, {
 							row: activeRow,
@@ -1537,7 +1514,10 @@
 				.width(getHeadersWidth());
 
 			$viewport = $('<div class="' + classviewport + '"></div>').appendTo(self.$el);
-			$canvas = $('<div class="' + classcanvas + '"></div>').appendTo($viewport);
+
+			// The tabindex here ensures we can focus on this element
+			// otherwise we can't assign keyboard events
+			$canvas = $('<div class="' + classcanvas + '" tabindex="0"></div>').appendTo($viewport);
 
 		};
 
@@ -2764,7 +2744,7 @@
 						}
 
 						// Esc
-						if (event.which == 27) return self.cancel();
+						if (event.which == 27) return;
 
 						// Check if position of cursor is on the ends, if it's not then
 						// left or right arrow keys will prevent editor from saving
@@ -2913,6 +2893,28 @@
 				.replace(/&/g, "&amp;")
 				.replace(/</g, "&lt;")
 				.replace(/>/g, "&gt;");
+		};
+
+
+		// deselectCells()
+		// Deselects any selected cell ranges
+		//
+		deselectCells = function () {
+			// Deselect the previous range
+			var removeHash = {};
+			if (selectedRows) {
+				var clearAllColumns = {};
+				for (var ic = 0, lc = self.options.columns.length; ic < lc; ic++) {
+					clearAllColumns[self.options.columns[ic].id] = self.options.selectedClass;
+				}
+
+				for (var iw = 0, lw = selectedRows.length; iw < lw; iw++) {
+					removeHash[selectedRows[iw]] = clearAllColumns;
+				}
+			}
+
+			// Decelect cells
+			updateCellCssStylesOnRenderedRows(null, removeHash);
 		};
 
 
@@ -4163,7 +4165,7 @@
 			}
 
 			// Set clicked cells to active
-			if ((activeCell != cell.cell || activeRow != cell.row) && canCellBeActive(cell.row, cell.cell)) {
+			if (canCellBeActive(cell.row, cell.cell)) {
 				scrollRowIntoView(cell.row, false);
 				setActiveCellInternal(getCellNode(cell.row, cell.cell));
 			}
@@ -4265,7 +4267,13 @@
 					if (e.which == 27) {
 						if (self.options.editable && currentEditor) {
 							currentEditor.cancel();
+
+							// Return focus back to the canvas
+							$canvas.focus();
 							handled = true;
+						} else {
+							// If something is selected remove the selection range
+							deselectCells();
 						}
 					// Page Down
 					} else if (e.which == 34) {
@@ -4368,21 +4376,8 @@
 		handleSelectedRangesChanged = function (e, args) {
 			ranges = args.ranges;
 
-			// Deselect the previous range
-			var removeHash = {};
-			if (selectedRows) {
-				var clearAllColumns = {};
-				for (var ic = 0, lc = self.options.columns.length; ic < lc; ic++) {
-					clearAllColumns[self.options.columns[ic].id] = self.options.selectedClass;
-				}
-
-				for (var iw = 0, lw = selectedRows.length; iw < lw; iw++) {
-					removeHash[selectedRows[iw]] = clearAllColumns;
-				}
-			}
-
-			// Decelect cells
-			updateCellCssStylesOnRenderedRows(null, removeHash);
+			// Select currently selected
+			deselectCells();
 
 			// Select the new range
 			selectedRows = [];
@@ -4924,9 +4919,9 @@
 			// @return string
 			this.toString = function () {
 				if (this.isSingleCell()) {
-					return "(" + this.fromRow + ":" + this.fromCell + ")";
+					return "Range (" + this.fromRow + ":" + this.fromCell + ")";
 				} else {
-					return "(" + this.fromRow + ":" + this.fromCell + " - " + this.toRow + ":" + this.toCell + ")";
+					return "Range (" + this.fromRow + ":" + this.fromCell + " - " + this.toRow + ":" + this.toCell + ")";
 				}
 			};
 		};
@@ -5354,6 +5349,47 @@
 		};
 
 
+		// selectCells()
+		// Select a range of cells
+		//
+		// @param	startRow	integer		Row on which to start selection
+		// @param	startCell	integer		Cell on which to start selection
+		// @param	endRow		integer		Row on which to end selection
+		// @param	endCell		integer		Cell on which to end selection
+		//
+		// @return array
+		this.selectCells = function (startRow, startCell, endRow, endCell) {
+			if (!this.options.selectable) return;
+
+			// Validate params
+			if (startRow === undefined && startCell === undefined && endRow === undefined && endCell === undefined) {
+				// If no params given - deselect
+				deselectCells();
+				return;
+			} else {
+				var args = ['startRow', 'startCell', 'endRow', 'endCell'];
+				_.each([startRow, startCell, endRow, endCell], function (param, i) {
+					if (param === undefined) {
+						throw new Error('Unable to select cell range because "' + args[i] + '" param is missing.');
+					}
+				});
+			}
+
+			// Define a range
+			var ranges = [new Range(startRow, startCell, endRow, endCell)];
+
+			// Process the selection
+			handleSelectedRangesChanged(null, {
+				ranges: ranges
+			});
+
+			// Trigger range selection
+			this.trigger('onCellRangeSelected', this._event, {
+				ranges: ranges
+			});
+		};
+
+
 		// setActiveCell()
 		// Given a row and cell index, will set that cell as the active in the grid
 		//
@@ -5532,16 +5568,6 @@
 			cacheRowPositions();
 			invalidateRows(_.range(row, self.collection.getLength() + 1));
 			render();
-		};
-
-
-		// setSelectedRows()
-		// Selects some rows
-		//
-		// @param	rows		array		List of row indexes
-		//
-		setSelectedRows = function (rows) {
-			selectionModel.setSelectedRanges(rowsToRanges(rows));
 		};
 
 
@@ -5996,6 +6022,13 @@
 				}
 			});
 		};
+
+
+		// toString()
+		// Returns a readable representation of a Doby Grid Object
+		//
+		// @return string
+		this.toString = function () { return "DobyGrid"; };
 
 
 		// toggleHeaderContextMenu()
