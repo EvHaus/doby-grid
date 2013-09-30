@@ -1386,7 +1386,10 @@
 						currentEditor.applyValue(newItem, currentEditor.serializeValue());
 
 						// Make sure item has an id
-						if (!newItem.data.id && !newItem.id) {
+						if ((!newItem.data.id && !newItem.id) ||
+							newItem.id in cache.indexById ||
+							newItem.data.id in cache.indexById
+						) {
 							validationResults = {
 								valid: false,
 								msg: "Unable to create a new item without a unique 'id' value."
@@ -2233,10 +2236,20 @@
 							0: {
 								colspan: "*",
 								formatter: function (row, cell, value, columnDef, data) {
-									return data.data.data.msg;
+									return data.msg;
 								},
 								editor: null
 							}
+						}
+					};
+				}
+
+				// Add Row
+				if (item.__addRow) {
+					return {
+						// Default formatting for the "addRow" row should be blank
+						formatter: function () {
+							return "";
 						}
 					};
 				}
@@ -2388,12 +2401,8 @@
 
 				var obj = new NonDataItem({
 					__alert: true,
-					data: {
-						id: '-empty-alert-message-',
-						data: {
-							msg: getLocale("empty." + type)
-						}
-					}
+					id: '-empty-alert-message-',
+					msg: getLocale("empty." + type)
 				});
 
 				self.reset([obj]);
@@ -3515,7 +3524,7 @@
 			// Group headers
 			if (item.__group) return item.value;
 
-			return item.data[columnDef.field];
+			return item.data ? item.data[columnDef.field] : null;
 		};
 
 
@@ -5488,9 +5497,15 @@
 		this.setOptions = function (options) {
 			makeActiveCellNormal();
 
-			// If enabling "addRow", invalidate the last row since it needs to be re-rendered
-			if (self.options.addRow !== options.addRow) {
-				invalidateRow(getDataLength());
+			// If toggling "addRow"
+			if (options.addRow !== undefined && self.options.addRow !== options.addRow) {
+				// Insert if enabling
+				if (options.addRow) {
+					insertAddRow();
+				// Remove if disabling
+				} else {
+					this.remove('--add-row--');
+				}
 			}
 
 			self.options = $.extend(self.options, options);

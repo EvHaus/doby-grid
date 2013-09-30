@@ -49,7 +49,7 @@ define([], function() {
 				i++
 				grid.add({data: {id: 'fancy_id_' + i, name: "Bob Robert Jr. " + i}})
 			} else if ($(event.target).hasClass('remove')) {
-				grid.remove(args.item.data.id)
+				grid.remove(args.item.id)
 			}
 		})
 

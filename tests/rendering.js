@@ -160,17 +160,22 @@ describe("Rendering", function () {
 		// ==========================================================================================
 
 
-		// TODO: Fix Me
-		xit("should render a special row at the end of the grid when using enableAddRow", function () {
-			// Set option
-			grid.setOptions({addRow: true})
+		it("should render a special row at the end of the grid when using 'addRow'", function () {
+			// Prepare for test
+			grid.reset([{data: {id: 1, name: "one"}}, {data: {id: 2, name: "two"}}])
+			grid.setOptions({addRow: true, editable: true})
 
-			var lastcell = grid.$el.find('.doby-grid-row:last-child')
-			console.log(lastcell)
-			//expect(lastcell).toEqual(newrow.data.name)
+			grid.$el.find('.doby-grid-row:last-child .doby-grid-cell').each(function () {
+				expect(this).toBeEmpty()
+			})
 
 			// Disable to prevent conflict with other tests
-			grid.setOptions({addRow: false})
+			grid.setOptions({addRow: false, editable: false})
+
+			// Make sure row is removed
+			grid.$el.find('.doby-grid-row:last-child .doby-grid-cell').each(function () {
+				expect(this).not.toBeEmpty()
+			})
 		})
 
 	})
