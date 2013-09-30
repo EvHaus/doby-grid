@@ -49,14 +49,13 @@ Default icon set used is copyright of <http://p.yusukekamiyamane.com/>.
 
 ### Limitations
 
-- If the grid is rendered inside an invisible element, or an element that is resized - you will need to manually detect it and call "resize()" to correct the rendering. Window resizing is auto-detected.
-- Using variable row heights will have a severe speed impact. If you can get away with predefined row heights - that will make the grid faster.
+- If your grid is rendered inside an invisible element, or an element that is resized - you will need to manually call "resize()" to correct the rendering. Window resizing is auto-detected however.
 
 ---
 
 ### How To Use
 
-Download the *doby-grid.js* file and drop it into your web app. Then include into your app either via Require JS, or by adding a < script > tag after the required dependencies.
+Download the *doby-grid.js* file and drop it into your web app. Then include it into your app either via Require JS, or by adding a `<script>` tag after the required dependencies.
 
 Then simply call:
 
@@ -64,7 +63,7 @@ Then simply call:
 
 ### Documentation
 
-See <https://github.com/globexdesigns/doby-grid/wiki>.
+Doby Grid has a lot of configurable options and settings. See <https://github.com/globexdesigns/doby-grid/wiki>.
 
 ### Submitting Bugs and Feature Requests
 
@@ -78,35 +77,34 @@ Please use GitHub issues: <https://github.com/globexdesigns/doby-grid/issues>
 
 The Backbone is used for in Doby Grid for two reasons:
 
-1) To make use of Backbone's great Events objects for generating custom events
-2) To easily integrate Doby Grid into the Doby framework (coming soon)
+1) To make use of Backbone's great event objects for generating custom events
+2) To easily integrate Doby Grid into the Doby framework
 
-You can easily use another MVC module in your application, but Doby Grid needs Backbone to do its internal processing. If you're not a fan of Backbone -- don't worry -- it shouldn't affect anything you may be doing in your app with other frameworks.
+You can easily use another MVC module in your application, but Doby Grid needs Backbone to do its internal processing. If you're not a fan of Backbone -- don't worry -- it shouldn't affect anything you may be doing in your app with other frameworks, and its overhead is quite small.
 
-#### This looks exactly like SlickGrid. What gives?
+#### This looks exactly like SlickGrid. What's the difference?
 
 Doby Grid was indeed started as a fork of SlickGrid <https://github.com/mleibman/SlickGrid> but quickly evolved far beyond that. SlickGrid gives you module pieces and a raw foundation for building a grid, and expects you to fill in a lot of the blanks. This is simply too much work for what we wanted to do, so we created Doby Grid that packages the great work SlickGrid started into a nice single package requiring minimal out-of-the-box configuration.
 
-Additionally, there are several other key differences. Doby Grid will:
+Additionally, there are several other key differences. Doby Grid:
 
-- supports variable (and re-sizable!) row heights
-- has additional events required for tight integration
+- supports variable (and re-sizable) row heights
+- has more useful and consistent event triggers
 - provides a way to interact with cell and row DOM elements without compromising on performance
 - provide easy access to common functionality such as cell range selection, grouping or editing without the need to write "plugins"
 - integrates with Backbone Models and Collections
 - does *not* support jQuery UI Themes
 - comes in a single AMD-supported library, instead of various pieces that need to be compiled together
-- be open minded to all feature request, pull requests and suggestions
 
 Doby Grid tries to find a balance between performance and usability while offering developers ways to control which features they want to enable at a potential performance cost.
 
 #### So it's like BackGrid then...
 
-Nope. BackGrid <https://github.com/wyuenho/backgrid> has Backbone at its core for everything. Although it offers great flexibility because of the simplicity of having a Backbone API -- putting Backbone into the heart of the grid processing has made it much slower in processing your data sets. Doby Grid tries its best to keep up the speed of SlickGrid.
+Nope. BackGrid <https://github.com/wyuenho/backgrid> has Backbone at its core for everything. Although it offers great flexibility because of the simplicity of having a Backbone API -- putting Backbone into the heart of the grid processing has made it much slower in processing your data sets. Doby Grid tries its best to keep up to the speed standards of SlickGrid.
 
 #### So it's like SlickBack then...
 
-Not really. SlickBack <https://github.com/teleological/slickback> is a bridge between Backbone and SlickGrid. It tries to make the two work together nicely. Doby Grid is pretty detached from Backbone and SlickGrid, and can be a standalone module that doesn't rely on either.
+Not really. SlickBack <https://github.com/teleological/slickback> is a bridge between Backbone and SlickGrid. It tries to make the two work together nicely. Doby Grid doesn't require you to use Backbone or SlickGrid in your web application.
 
 #### I have a button inside a grid cell and I want to add a click event that picks up the id of the row data? How do I attach this event?
 
@@ -115,39 +113,25 @@ You have to attach the event to the whole grid and then isolate the cell you wan
 ```
 grid.on('click', function (event, args) {
 	if ($(event.target).hasClass("my-button")) {
-		var item = grid.getItem(args.row);
+		var item = args.item;
 	}
 });
 ```
 
 #### Why can't I assign events directly to my button?
 
-This would require the grid to be rendered with DOM references - making it much, MUCH slower. If you want to use DobyGrid() you must assign events as shown in the question above.
+This would require the grid to be rendered with DOM references - making it much, MUCH slower. If you want to use Doby Grid you must assign events as shown in the question above.
 
-#### Ok, well what about if I absolutely cannot draw my cell until DobyGrid() has finished rendering? Maybe it's a cell that's rendered after an Ajax event is fired, or has some other external conditions...
+#### Ok, well what about if I absolutely cannot draw my cell until Doby Grid has finished rendering? Maybe it's a cell that's rendered after an ajax event is fired, or has some other external conditions...
 
-If delegating events isn't enough, then you can use post-processing as demonstrated here: <http://INSERT_LIKE_TO_WIKI_HERE>. Keep in mind that this is going to have a very significant rendering performance hit and is not recommended on large grids.
+If delegating events isn't enough, then you can use post-processing as demonstrated in the post-processing example. Keep in mind that this is going to have a very significant rendering performance hit and is not recommended on large grids.
 
-```
-columns = [{
-	field: 'user',
-	name: 'user',
-	id: 'user',
-	formatter: function() {
-		return 'loading...'
-	},
-	asyncPostRender: function(cellNode, row, dataContext, colDef) {
-		$('<div>MyData</div>').appendTo($(cellNode))
-	}
-}]
-```
-
-And just to be clear -- do not use this for trying to assign events to your cell. It won't work and will only make your grid slow. All those references will be wiped when the grid is re-rendered. Don't bother.
+And just to be clear -- do not use this for trying to assign events to your cell. It won't work and will only make your grid slow. All those references will be wiped when the grid is re-rendered or scrolled. Don't bother.
 
 #### When using post-processing, my rows keep getting re-rendered when I scroll up and down. How do I stop that?
 
-SlickGrid had this problem and wasn't going to fix it (<https://github.com/mleibman/SlickGrid/issues/681>). In DobyGrid you can enable post-processing caching. This is not recommended for large grid however as it will eat up a lot of memory.
+SlickGrid had this problem and wasn't going to fix it (<https://github.com/mleibman/SlickGrid/issues/681>). In Doby Grid you can enable post-processing caching via the `cache` column option <https://github.com/globexdesigns/doby-grid/wiki/Column-Options>. This is not recommended for large grids as it will eat up a lot of memory.
 
-#### There's a bug in Internet Explorer, where...
+#### There's a bug in Internet Explorer...
 
-Doby Grid does not support Internet Explorer. Don't bother asking. If it's something that affects all browsers - definitely submit a new issue through GitHub, but if it's an issue specific to IE6 or IE7 or IE8 or even IE9 -- sorry, Doby Grid is not for you.
+Doby Grid does not support Internet Explorer. Don't bother posting bug reports. If it's something that affects all browsers - definitely let us know, but if it's an issue specific to IE6 or IE7 or IE8 or even IE9 -- sorry, Doby Grid is not for you.
