@@ -50,7 +50,6 @@
 			$headerScroller,
 			$style,
 			$viewport,
-			absBox,
 			absoluteColumnMinWidth,
 			activeCell,
 			activeCellNode = null,
@@ -138,7 +137,6 @@
 			findFirstFocusableCell,
 			findLastFocusableCell,
 			getActiveCell,
-			getActiveCellPosition,
 			getBrowserData,
 			getCanvasWidth,
 			getCaretPosition,
@@ -396,50 +394,6 @@
 			}
 
 			return self;
-		};
-
-
-		// absBox()
-		// TODO: Find out what absBox is.
-		//
-		absBox = function (elem) {
-			var box = {
-				top: elem.offsetTop,
-				left: elem.offsetLeft,
-				bottom: 0,
-				right: 0,
-				width: $(elem).outerWidth(),
-				height: $(elem).outerHeight(),
-				visible: true
-			};
-			box.bottom = box.top + box.height;
-			box.right = box.left + box.width;
-
-			// walk up the tree
-			var offsetParent = elem.offsetParent;
-			while ((elem = elem.parentNode) !== document.body) {
-				if (box.visible && elem.scrollHeight !== elem.offsetHeight && $(elem).css("overflowY") !== "visible") {
-					box.visible = box.bottom > elem.scrollTop && box.top < elem.scrollTop + elem.clientHeight;
-				}
-
-				if (box.visible && elem.scrollWidth !== elem.offsetWidth && $(elem).css("overflowX") !== "visible") {
-					box.visible = box.right > elem.scrollLeft && box.left < elem.scrollLeft + elem.clientWidth;
-				}
-
-				box.left -= elem.scrollLeft;
-				box.top -= elem.scrollTop;
-
-				if (elem === offsetParent) {
-					box.left += elem.offsetLeft;
-					box.top += elem.offsetTop;
-					offsetParent = elem.offsetParent;
-				}
-
-				box.bottom = box.top + box.height;
-				box.right = box.left + box.width;
-			}
-
-			return box;
 		};
 
 
@@ -840,6 +794,8 @@
 						dd._range.end.cell
 					);
 					self._event = null;
+
+					makeActiveCellEditable();
 				});
 		};
 
@@ -3074,15 +3030,6 @@
 		};
 
 
-		// getActiveCellPosition()
-		// Gets the position of the active cell
-		//
-		// @return object
-		getActiveCellPosition = function () {
-			return absBox(activeCellNode);
-		};
-
-
 		// getBrowserData()
 		// Calculates some information about the browser window that will be shared
 		// with all grid instances.
@@ -3973,21 +3920,6 @@
 			}
 
 			self.trigger('onActiveCellPositionChanged', {});
-
-			if (currentEditor) {
-				var cellBox = getActiveCellPosition();
-				if (currentEditor.show && currentEditor.hide) {
-					if (!cellBox.visible) {
-						currentEditor.hide();
-					} else {
-						currentEditor.show();
-					}
-				}
-
-				if (currentEditor.position) {
-					currentEditor.position(cellBox);
-				}
-			}
 		};
 
 
@@ -4532,8 +4464,6 @@
 
 			currentEditor = new CellEditor({
 				grid: self,
-				gridPosition: absBox(self.$el[0]),
-				position: absBox(activeCellNode),
 				cell: activeCellNode,
 				column: columnDef,
 				item: item || {},
@@ -5972,7 +5902,7 @@
 			el.attr('aria-describedby', tooltip_id);
 
 			// Assign removal event
-			var removeEvent = function (event) {
+			el.one("mouseleave", function (event) {
 				// Remove tooltip
 				if ($(this).attr('aria-describedby') !== undefined) {
 					var tltp = $('#' + tooltip_id);
@@ -5985,11 +5915,7 @@
 
 					$(this).removeAttr('aria-describedby');
 				}
-
-				// Unassign event
-				$(this).off("mouseleave", removeEvent);
-			};
-			el.on("mouseleave", removeEvent);
+			});
 
 			// Delay rendering by a few milliseconds to prevent rolling over tooltip
 			// and for better UX

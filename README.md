@@ -1,11 +1,15 @@
 Doby Grid
 =========
 
-Doby Grid is stand-alone module (and part of the Doby JS framework) for rendering a dynamic, data-driven grid. It's basically a `<table>` element on steroids.
+Doby Grid is stand-alone module (part of the Doby JS framework) for rendering a dynamic, data-driven grid. It's basically a `<table>` element on steroids.
 
-**===================================================================================**
-** DOBYGRID IS NOT READY FOR PUBLIC USE AND CHANGES FREQUENTLY. DOCS MAY BE MISSING  **
-**===================================================================================**
+---
+
+### !!! Warning !!!!
+
+Doby Grid is currently in **alpha** and not yet intended for production use. The library changes very rapidly, often with breaking changes. API methods and functions get renamed and parameters are reconfigured frequently. Documentation is only partially complete.
+
+At this time we're looking for early testers who are interested in [contributing](https://github.com/globexdesigns/doby-grid/blob/master/CONTRIBUTING.md) to the development and testing of the library.
 
 ---
 
