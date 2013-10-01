@@ -56,13 +56,11 @@
 			activeCellNode = null,
 			activePosX,
 			activeRow,
-			appendCellHtml,
-			appendRowHtml,
+			renderRow,
 			applyColumnHeaderWidths,
 			applyColumnWidths,
 			asyncPostProcessRows,
 			autosizeColumns,
-			bindAncestorScrollEvents,
 			bindCellRangeSelect,
 			bindRowResize,
 			cache = {
@@ -107,6 +105,8 @@
 			classsortindicator = this.NAME + '-sort-indicator',
 			classsortindicatorasc = classsortindicator + '-asc',
 			classsortindicatordesc = classsortindicator + '-desc',
+			classtooltip = this.NAME + '-tooltip',
+			classtooltiparrow = this.NAME + '-tooltip-arrow',
 			classviewport = this.NAME + '-viewport',
 			classcanvas = this.NAME + '-canvas',
 			cleanUpAndRenderCells,
@@ -238,6 +238,7 @@
 			removeInvalidRanges,
 			removeRowFromCache,
 			render,
+			renderCell,
 			renderedRows = 0,
 			renderRows,
 			resetActiveCell,
@@ -258,6 +259,7 @@
 			setupColumnReorder,
 			setupColumnResize,
 			setupColumnSort,
+			showTooltip,
 			sortColumns = [],
 			startPostProcessing,
 			stylesheet,
@@ -266,7 +268,6 @@
 			th,				// virtual height
 			toggleHeaderContextMenu,
 			uid = this.NAME + "-" + Math.round(1000000 * Math.random()),
-			unbindAncestorScrollEvents,
 			updateCanvasWidth,
 			updateCell,
 			updateCellCssStylesOnRenderedRows,
@@ -298,14 +299,11 @@
 			editable:				false,
 			editor:					null,
 			emptyNotice:			true,
-			forceSyncScrolling:		false,		// TODO: Determine if still needed. Then document.
 			formatter:				null,
-			formatterFactory:		null,		// TODO: Determine if still needed. Then document.
 			fullWidthRows:			true,
 			groupable:				true,
 			headerMenu:				true,
 			keyboardNavigation:		true,
-			leaveSpaceForNewRows:	false,		// TODO: Determine if still needed. Then document.
 			locale: {
 				column: {
 					add_group:			'Add Grouping By "{{name}}"',
@@ -329,7 +327,6 @@
 				}
 			},
 			multiColumnSort:		true,
-			multiSelect:			true,		// TODO: Determine if still needed. Then document.
 			remote:					false,
 			resizableColumns:		true,
 			resizableRows:			false,
@@ -337,23 +334,33 @@
 			reorderable:			true,
 			rowHeight:				28,
 			selectable:				true,
-			selectedClass:			"selected"
+			selectedClass:			"selected",
+			tooltipType:			"popup",
+			virtualScroll:			true
 		}, options);
 
 		// Default Column Options
 		var columnDefaults = {
-			defaultSortAsc:		true,		// Is the default sorting direction ascending?
-			focusable:			true,		// Can cells in this column be focused?
-			groupable:			true,		// Can this columns be grouped?
-			headerCssClass:		null,		// CSS class to add to the header
-			minWidth:			38,			// What is the minimum column width?
-			name:				"",			// Visible name of the column
-			removable:			true,		// Can this columns be removed?
-			rerenderOnResize:	false,		// Re-render the column when resized?
-			resizable:			true,		// Is the column resizable?
-			selectable:			true,		// Are cells in this column selectable?
-			sortable:			true,		// Is the column sortable?
-			width:				this.options.columnWidth
+			cache:				false,
+			"class":			null,
+			comparator:			null,
+			editable:			null,
+			focusable:			true,
+			groupable:			true,
+			headerClass:		null,
+			id:					null,
+			maxWidth:			null,
+			minWidth:			38,
+			name:				"",
+			postprocess:		null,
+			removable:			true,
+			rerenderOnResize:	false,
+			resizable:			true,
+			selectable:			true,
+			sortable:			true,
+			sortAsc:			true,
+			tooltip:			null,
+			width:				null
 		};
 
 		// Enable events
@@ -488,123 +495,6 @@
 		};
 
 
-		// appendCellHtml()
-		// Generates the HTML content for a given cell and adds it to the output cache
-		//
-		// @param	result		array		Output array to which to append
-		// @param	row			integer		Current row index
-		// @param	cell		integer		Current cell index
-		// @param	colspan		integer		Colspan of this cell
-		// @param	item		object		Data object for this cell
-		//
-		appendCellHtml = function (result, row, cell, colspan, item) {
-			var m = self.options.columns[cell],
-				rowI = Math.min(self.options.columns.length - 1, cell + colspan - 1),
-				mClass = (m.cssClass ? " " + m.cssClass : ""),
-				cellCss = classcell + " l" + cell + " r" + rowI + mClass;
-
-			if (row === activeRow && cell === activeCell) {
-				cellCss += (" active");
-			}
-
-			result.push("<div class='" + cellCss + "'");
-
-			result.push(">");
-
-			// If this is a cached, postprocessed row -- use the cache
-			if (m.cache && m.postprocess && postProcessedRows[row] && postProcessedRows[row][cell]) {
-				result.push(postProcessedRows[row][cell]);
-			} else if (item) {
-				// if there is a corresponding row (if not, this is the Add New row or
-				// this data hasn't been loaded yet)
-
-				var value = getDataItemValueForColumn(item, m);
-				try {
-					result.push(getFormatter(row, m)(row, cell, value, m, item));
-				} catch (e) {
-					result.push('');
-					console.error("Cell failed to render due to failed column formatter. Error: " + e.message, e);
-				}
-			}
-
-			result.push("</div>");
-
-			cache.nodes[row].cellRenderQueue.push(cell);
-			cache.nodes[row].cellColSpans[cell] = colspan;
-		};
-
-
-		// appendRowHtml()
-		// Generates the HTML content for a given cell and adds it to the output cache
-		//
-		// @param	stringArray		array		Output array to which to append
-		// @param	row				integer		Current row index
-		// @param	range			object		Viewport range to display
-		// @param	dataLength		integer		Total number of data object o render
-		//
-		appendRowHtml = function (stringArray, row, range, dataLength) {
-			var d = getDataItem(row),
-				dataLoading = row < dataLength && !d,
-				rowCss = classrow +
-					(dataLoading ? " loading" : "") +
-					(row === activeRow ? " active" : "") +
-					(row % 2 === 1 ? " odd" : ""),
-				data = self.collection,
-				pos = getRowPosition(row);
-
-
-			var metadata = data.getItemMetadata && data.getItemMetadata(row);
-
-			if (metadata && metadata.cssClasses) {
-				rowCss += " " + metadata.cssClasses;
-			}
-
-			stringArray.push("<div class='" + rowCss + "' ");
-			stringArray.push("style='top:" + (pos.top + offset) + "px;");
-
-			if (pos.height) {
-				var rowheight = pos.height - cellHeightDiff;
-				stringArray.push('height:' + rowheight + 'px;line-height:' + rowheight + 'px');
-			}
-
-			stringArray.push("'>");
-
-			var colspan, m, i, l;
-			for (i = 0, l = self.options.columns.length; i < l; i++) {
-				m = self.options.columns[i];
-				colspan = 1;
-				if (metadata && metadata.columns) {
-					var columnData = metadata.columns[m.id] || metadata.columns[i];
-					colspan = (columnData && columnData.colspan) || 1;
-					if (colspan === "*") {
-						colspan = l - i;
-					}
-				}
-
-				// Do not render cells outside of the viewport.
-				if (columnPosRight[Math.min(l - 1, i + colspan - 1)] > range.leftPx) {
-					if (columnPosLeft[i] > range.rightPx) {
-						// All columns to the right are outside the range.
-						break;
-					}
-
-					appendCellHtml(stringArray, row, i, colspan, d);
-				}
-
-				if (colspan > 1) {
-					i += (colspan - 1);
-				}
-			}
-
-			// Add row resizing handle
-			if (self.options.resizableRows) {
-				stringArray.push('<div class="' + classrowhandle + '"></div>');
-			}
-
-			stringArray.push("</div>");
-		};
-
-
 		// appendTo()
 		// Duplicates the jQuery appendTo() function
 		//
@@ -638,7 +528,6 @@
 
 				cacheRowPositions();
 				resizeCanvas();
-				bindAncestorScrollEvents();
 
 				this.$el
 					.on("resize." + this.NAME, resizeCanvas);
@@ -652,6 +541,15 @@
 					.on("contextmenu", handleHeaderContextMenu)
 					.on("click", handleHeaderClick);
 
+				// Events for column header tooltips
+				if (self.options.tooltipType != 'title') {
+					$headerScroller
+						.on("mouseover", function (event) {
+							// Show tooltips
+							showTooltip(event);
+						});
+				}
+
 				$canvas
 					.on("keydown", handleKeyDown)
 					.on("click", handleClick)
@@ -659,7 +557,8 @@
 					.on("contextmenu", handleContextMenu)
 					.on("mouseenter", function () {
 						// Focus on the canvas when the mouse is in it
-						if (document.activeElement != this) {
+						var ae = document.activeElement;
+						if (ae != this && !$(this).has($(ae))) {
 							$(this).focus();
 						}
 					});
@@ -801,7 +700,7 @@
 				widths.push(c.width);
 				total += c.width;
 				if (c.resizable) {
-					shrinkLeeway += c.width - Math.max(c.minWidth, absoluteColumnMinWidth);
+					shrinkLeeway += c.width - Math.max((c.minWidth || 0), absoluteColumnMinWidth);
 				}
 			}
 
@@ -812,7 +711,7 @@
 				for (i = 0; i < self.options.columns.length && total > availWidth; i++) {
 					c = self.options.columns[i];
 					var width = widths[i];
-					if (!c.resizable || width <= c.minWidth || width <= absoluteColumnMinWidth) {
+					if (!c.resizable || width <= (c.minWidth || 0) || width <= absoluteColumnMinWidth) {
 						continue;
 					}
 					var absMinWidth = Math.max(c.minWidth, absoluteColumnMinWidth);
@@ -834,10 +733,12 @@
 				var growProportion = availWidth / total;
 				for (i = 0; i < self.options.columns.length && total < availWidth; i++) {
 					c = self.options.columns[i];
-					if (!c.resizable || c.maxWidth <= c.width) {
+					if (!c.resizable || (c.maxWidth && c.maxWidth <= c.width)) {
 						continue;
 					}
-					var growSize = Math.min(Math.floor(growProportion * c.width) - c.width, (c.maxWidth - c.width) || 1000000) || 1;
+					var max = 1000000;
+					if (c.maxWidth && (c.maxWidth - c.width)) max = (c.maxWidth - c.width);
+					var growSize = Math.min(Math.floor(growProportion * c.width) - c.width, max) || 1;
 					total += growSize;
 					widths[i] += growSize;
 				}
@@ -861,29 +762,6 @@
 				invalidateAllRows();
 				render();
 			}
-		};
-
-
-		// bindAncestorScrollEvents()
-		// TODO: This binds a scroll event to event parent element inside which the grid sits.
-		// I'm not sure why this is necessary. Disabled temporarily since it's a bit performance hit.
-		//
-		bindAncestorScrollEvents = function () {
-			/*
-			var elem = $canvas[0];
-			while ((elem = elem.parentNode) != document.body && elem !== null) {
-				// bind to scroll containers only
-				if (elem == $viewport[0] || elem.scrollWidth != elem.clientWidth || elem.scrollHeight != elem.clientHeight) {
-					var $elem = $(elem);
-					if (!$boundAncestors) {
-						$boundAncestors = $elem;
-					} else {
-						$boundAncestors = $boundAncestors.add($elem);
-					}
-					$elem.on("scroll#" + uid, handleActiveCellPositionChange);
-				}
-			}
-			*/
 		};
 
 
@@ -1229,7 +1107,7 @@
 					}
 
 					if (columnPosRight[Math.min(ii - 1, i + colspan - 1)] > range.leftPx) {
-						appendCellHtml(stringArray, row, i, colspan, d);
+						renderCell(stringArray, row, i, colspan, d);
 						cellsAdded++;
 					}
 
@@ -1394,10 +1272,6 @@
 
 						self.add(newItem);
 
-						// Activate the next cell in the original row
-						navigate('up');
-						navigate('next');
-
 						self.trigger('onAddNewRow', {}, {
 							item: newItem,
 							column: column
@@ -1444,15 +1318,18 @@
 				column = self.options.columns[i];
 
 				// Determine classes
-				classes = [classheadercolumn, (column.headerCssClass || "")];
+				classes = [classheadercolumn, (column.headerClass || "")];
 				if (column.sortable) classes.push(classheadersortable);
 
 				w = column.width - headerColumnWidthDiff;
 				html.push('<div class="' + classes.join(' ') + '" style="width:' + w + 'px" ');
 				html.push('id="' + (uid + column.id) + '"');
 
+				// Tooltips
 				if (column.tooltip) {
-					html.push(' tooltip="' + column.tooltip + '"');
+					if (self.options.tooltipType == 'title') {
+						html.push(' title="' + (column.tooltip || "") + '"');
+					}
 				}
 
 				html.push('>');
@@ -2927,10 +2804,6 @@
 				$headers.filter(":ui-sortable").sortable("destroy");
 			}
 
-			// Unassign scroll events
-			// TODO: Remove this if bindAncestorScrollEvents is done
-			//unbindAncestorScrollEvents();
-
 			// Remove grid
 			this.$el.remove();
 			this.$el = null;
@@ -2940,9 +2813,6 @@
 
 			// Remove CSS Rules
 			removeCssRules();
-
-			// Destroy cache so it can be garbage collected
-			cache = null;
 		};
 
 
@@ -3125,8 +2995,8 @@
 					value2 = dataRow2.get ? dataRow2.get(field) : dataRow2.data[field];
 
 					// Use custom column comparer if it exists
-					if (typeof(column.comparer) === 'function') {
-						return column.comparer(value1, value2) * sign;
+					if (typeof(column.comparator) === 'function') {
+						return column.comparator(value1, value2) * sign;
 					} else {
 						// Always keep null values on the bottom
 						if (value1 === null && value2 === null) return 0;
@@ -3475,8 +3345,8 @@
 		// @return object
 		getColumnFromEvent = function (event) {
 			var $column = $(event.target).closest("." + classheadercolumn),
-				column_id = $column.attr('id').replace(uid, '');
-			return getColumnById(column_id);
+				column_id = $column.length ? $column.attr('id').replace(uid, '') : null;
+			return column_id ? getColumnById(column_id) : null;
 		};
 
 
@@ -3587,7 +3457,6 @@
 			return (columnOverrides && columnOverrides.formatter) ||
 				(rowMetadata && rowMetadata.formatter) ||
 				column.formatter ||
-				(self.options.formatterFactory && self.options.formatterFactory.getFormatter(column)) ||
 				self.options.formatter ||
 				defaultFormatter;
 		};
@@ -4240,11 +4109,9 @@
 		//
 		handleHeaderContextMenu = function (event) {
 			var column = getColumnFromEvent(event);
-			if (column) {
-				self.trigger('onHeaderContextMenu', event, {
-					column: column
-				});
-			}
+			self.trigger('onHeaderContextMenu', event, {
+				column: column
+			});
 		};
 
 
@@ -4449,7 +4316,7 @@
 
 				if (Math.abs(lastRenderedScrollTop - scrollTop) > 20 ||
 					Math.abs(lastRenderedScrollLeft - scrollLeft) > 20) {
-					if (self.options.forceSyncScrolling || (
+					if (!self.options.virtualScroll || (
 						Math.abs(lastRenderedScrollTop - scrollTop) < viewportH &&
 						Math.abs(lastRenderedScrollLeft - scrollLeft) < viewportW)) {
 						render();
@@ -4508,6 +4375,7 @@
 		};
 
 
+
 		// insertAddRow()
 		// Inserts a new row to the end of the collection used for adding new rows to the grid
 		//
@@ -4538,11 +4406,6 @@
 
 			// Is the data for this row loaded?
 			if (row < dataLength && !getDataItem(row)) return false;
-
-			// are we in the Add New row?  can we create new from this cell?
-			if (self.options.columns[cell].cannotTriggerInsert && row >= dataLength) {
-				return false;
-			}
 
 			// does this cell have an editor?
 			if (!getEditor(row, cell)) return false;
@@ -4643,14 +4506,10 @@
 		// @param	editor		function		Editor factory to use
 		//
 		makeActiveCellEditable = function (editor) {
-			if (!activeCellNode || !self.options.editable) return;
+			if (!activeCellNode || self.options.editable !== true) return;
 
 			// Cancel pending async call if there is one
 			clearTimeout(h_editorLoader);
-
-			if (!isCellPotentiallyEditable(activeRow, activeCell)) {
-				return;
-			}
 
 			var columnDef = self.options.columns[activeCell];
 			var item = getDataItem(activeRow);
@@ -5072,6 +4931,126 @@
 		};
 
 
+		// renderCell()
+		// Generates the HTML content for a given cell and adds it to the output cache
+		//
+		// @param	result		array		Output array to which to append
+		// @param	row			integer		Current row index
+		// @param	cell		integer		Current cell index
+		// @param	colspan		integer		Colspan of this cell
+		// @param	item		object		Data object for this cell
+		//
+		renderCell = function (result, row, cell, colspan, item) {
+			var m = self.options.columns[cell],
+				rowI = Math.min(self.options.columns.length - 1, cell + colspan - 1),
+				mClass = (m.cssClass ? " " + m.cssClass : ""),
+				cellCss = classcell + " l" + cell + " r" + rowI + mClass;
+
+			if (row === activeRow && cell === activeCell) {
+				cellCss += (" active");
+			}
+
+			// Column class
+			if (m.class) cellCss += " " + m.class;
+
+			result.push("<div class='" + cellCss + "'");
+
+			result.push(">");
+
+			// If this is a cached, postprocessed row -- use the cache
+			if (m.cache && m.postprocess && postProcessedRows[row] && postProcessedRows[row][cell]) {
+				result.push(postProcessedRows[row][cell]);
+			} else if (item) {
+				// if there is a corresponding row (if not, this is the Add New row or
+				// this data hasn't been loaded yet)
+
+				var value = getDataItemValueForColumn(item, m);
+				try {
+					result.push(getFormatter(row, m)(row, cell, value, m, item));
+				} catch (e) {
+					result.push('');
+					console.error("Cell failed to render due to failed column formatter. Error: " + e.message, e);
+				}
+			}
+
+			result.push("</div>");
+
+			cache.nodes[row].cellRenderQueue.push(cell);
+			cache.nodes[row].cellColSpans[cell] = colspan;
+		};
+
+
+		// renderRow()
+		// Generates the HTML content for a given cell and adds it to the output cache
+		//
+		// @param	stringArray		array		Output array to which to append
+		// @param	row				integer		Current row index
+		// @param	range			object		Viewport range to display
+		// @param	dataLength		integer		Total number of data object o render
+		//
+		renderRow = function (stringArray, row, range, dataLength) {
+			var d = getDataItem(row),
+				dataLoading = row < dataLength && !d,
+				rowCss = classrow +
+					(dataLoading ? " loading" : "") +
+					(row === activeRow ? " active" : "") +
+					(row % 2 === 1 ? " odd" : ""),
+				data = self.collection,
+				pos = getRowPosition(row);
+
+
+			var metadata = data.getItemMetadata && data.getItemMetadata(row);
+
+			if (metadata && metadata.cssClasses) {
+				rowCss += " " + metadata.cssClasses;
+			}
+
+			stringArray.push("<div class='" + rowCss + "' ");
+			stringArray.push("style='top:" + (pos.top + offset) + "px;");
+
+			if (pos.height) {
+				var rowheight = pos.height - cellHeightDiff;
+				stringArray.push('height:' + rowheight + 'px;line-height:' + rowheight + 'px');
+			}
+
+			stringArray.push("'>");
+
+			var colspan, m, i, l;
+			for (i = 0, l = self.options.columns.length; i < l; i++) {
+				m = self.options.columns[i];
+				colspan = 1;
+				if (metadata && metadata.columns) {
+					var columnData = metadata.columns[m.id] || metadata.columns[i];
+					colspan = (columnData && columnData.colspan) || 1;
+					if (colspan === "*") {
+						colspan = l - i;
+					}
+				}
+
+				// Do not render cells outside of the viewport.
+				if (columnPosRight[Math.min(l - 1, i + colspan - 1)] > range.leftPx) {
+					if (columnPosLeft[i] > range.rightPx) {
+						// All columns to the right are outside the range.
+						break;
+					}
+
+					renderCell(stringArray, row, i, colspan, d);
+				}
+
+				if (colspan > 1) {
+					i += (colspan - 1);
+				}
+			}
+
+			// Add row resizing handle
+			if (self.options.resizableRows) {
+				stringArray.push('<div class="' + classrowhandle + '"></div>');
+			}
+
+			stringArray.push("</div>");
+		};
+
+
 		// renderRows()
 		// Renders the rows of the grid
 		//
@@ -5092,25 +5071,25 @@
 				renderedRows++;
 				rows.push(i);
 
-				// Create an entry right away so that appendRowHtml() can
+				// Create an entry right away so that renderRow() can
 				// start populatating it.
 				cache.nodes[i] = {
-					"rowNode": null,
+					rowNode: null,
 
 					// ColSpans of rendered cells (by column idx).
 					// Can also be used for checking whether a cell has been rendered.
-					"cellColSpans": [],
+					cellColSpans: [],
 
 					// Cell nodes (by column idx).  Lazy-populated by ensureCellNodesInRowsCache().
-					"cellNodesByColumnIdx": [],
+					cellNodesByColumnIdx: [],
 
 					// Column indices of cell nodes that have been rendered, but not yet indexed in
 					// cellNodesByColumnIdx.  These are in the same order as cell nodes added at the
 					// end of the row.
-					"cellRenderQueue": []
+					cellRenderQueue: []
 				};
 
-				appendRowHtml(stringArray, i, range, dataLength);
+				renderRow(stringArray, i, range, dataLength);
 				if (activeCellNode && activeRow === i) {
 					needToReselectCell = true;
 				}
@@ -5933,7 +5912,7 @@
 					if (!sortOpts) {
 						sortOpts = {
 							columnId: column.id,
-							sortAsc: column.defaultSortAsc
+							sortAsc: column.sortAsc
 						};
 						sortColumns.push(sortOpts);
 					} else if (sortColumns.length === 0) {
@@ -5968,6 +5947,104 @@
 				// Fire onSort event
 				self.trigger('onSort', e, args);
 			});
+		};
+
+
+		// showTooltip()
+		// Show a tooltip on the column header
+		//
+		// @param	event		object		Javascript event object
+		//
+		showTooltip = function (event) {
+			if (self.options.tooltipType != 'popup') return;
+			var column = getColumnFromEvent(event);
+			if (!column || !column.tooltip) return;
+
+			var el = $(event.target).closest('.' + classheadercolumn);
+
+			// Don't create tooltip if this element already has one open
+			if (el.attr('aria-describedby')) return;
+
+			// ID of the tooltip element
+			var tooltip_id = uid + '-tooltip-column-' + column.id;
+
+			// Add describe by
+			el.attr('aria-describedby', tooltip_id);
+
+			// Assign removal event
+			var removeEvent = function (event) {
+				// Remove tooltip
+				if ($(this).attr('aria-describedby') !== undefined) {
+					var tltp = $('#' + tooltip_id);
+					tltp.removeClass('on');
+
+					// Animate out
+					setTimeout(function () {
+						tltp.remove();
+					}, 200);
+
+					$(this).removeAttr('aria-describedby');
+				}
+
+				// Unassign event
+				$(this).off("mouseleave", removeEvent);
+			};
+			el.on("mouseleave", removeEvent);
+
+			// Delay rendering by a few milliseconds to prevent rolling over tooltip
+			// and for better UX
+			setTimeout(function () {
+				// Make sure tooltip is still needed
+				if (el.attr('aria-describedby') === undefined) return;
+
+				// Height of the tooltip arrow
+				var arrowheight = 10;
+
+				// Build tooltip HTML
+				var html = ['<span class="' + classtooltip + '" id="' + tooltip_id + '">'];
+				html.push(column.tooltip);
+				html.push('<span class="' + classtooltiparrow + '"></span>');
+				html.push('</span>');
+
+				// Double check that element doesn't already exist
+				if ($('#' + tooltip_id).length) return;
+
+				// Insert into DOM
+				var tooltip = $(html.join(''));
+				tooltip.appendTo(document.body);
+
+				// Calculate position
+				var x = el.offset().left + (el.outerWidth() / 2) - (tooltip.outerWidth() / 2),
+					y = el.offset().top + el.outerHeight() + arrowheight;
+
+				// Compensate when we get close to the edge
+				var arrowoffset = 0,
+					win = $(window),
+					windowwidth = win.outerWidth(),
+					windowheight = win.outerHeight();
+
+				if (x < 0) {
+					arrowoffset = x;
+					x = 0;
+				} else if ((x + tooltip.outerWidth()) > windowwidth) {
+					arrowoffset = (x + tooltip.outerWidth()) - windowwidth;
+					x -= arrowoffset + 1;
+				}
+
+				// Position arrow
+				var arrow = tooltip.children('.' + classtooltiparrow).first();
+				arrow.css('left', (tooltip.outerWidth() / 2) - (arrow.outerWidth() / 2) + arrowoffset);
+
+				// Draw tooltip
+				tooltip
+					.addClass('on')
+					.css('left', x)
+					.css('top', y + 5)
+					.width(); // Force layout to display transitions
+
+				// Transition in
+				tooltip.css('top', y);
+			}, 250);
 		};
 
 
@@ -6185,15 +6262,6 @@
 		};
 
 
-		unbindAncestorScrollEvents = function () {
-			if (!$boundAncestors) {
-				return;
-			}
-			$boundAncestors.unbind("scroll#" + uid);
-			$boundAncestors = null;
-		};
-
-
 		// updateCanvasWidth()
 		// Resizes the canvas width
 		//
@@ -6334,14 +6402,13 @@
 			if (!initialized) return;
 
 			var dataLength = getDataLength();
-			var numberOfRows = dataLength + (self.options.leaveSpaceForNewRows ? numVisibleRows - 1 : 0);
 
 			var oldViewportHasVScroll = viewportHasVScroll;
 
-			if (numberOfRows === 0) {
+			if (dataLength === 0) {
 				viewportHasVScroll = false;
 			} else {
-				var rpc = getRowPosition(numberOfRows - 1);
+				var rpc = getRowPosition(dataLength - 1);
 				viewportHasVScroll = rpc && (rpc.bottom > viewportH);
 			}
 
@@ -6359,10 +6426,10 @@
 			}
 
 			var oldH = h;
-			if (numberOfRows === 0) {
+			if (dataLength === 0) {
 				th = viewportH - window.scrollbarDimensions.height;
 			} else {
-				var pos = numberOfRows - 1,
+				var pos = dataLength - 1,
 					rps = getRowPosition(pos),
 					rowMax = rps.bottom;
 
@@ -6443,13 +6510,16 @@
 
 				// Convert "tooltip" param to a Cumul8-friendly tooltip
 				if (c.tooltip) {
-					var cssClass = c.headerCssClass ? c.headerCssClass + " tooltip" : "tooltip";
-					c.headerCssClass = cssClass;
+					var cssClass = c.headerClass ? c.headerClass + " tooltip" : "tooltip";
+					c.headeClass = cssClass;
 					c.toolTip = c.tooltip;
 				}
 
 				// If any columns require asyncPostRender, enable it on the grid
 				if (c.postprocess) enableAsyncPostRender = true;
+
+				// If no width is set, use global default
+				if (c.width === undefined || c.width === null) c.width = self.options.columnWidth;
 
 				// If min/max width is set -- use it to reset given width
 				if (c.minWidth && c.width < c.minWidth) c.width = c.minWidth;

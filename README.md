@@ -129,13 +129,13 @@ This would require the grid to be rendered with DOM references - making it much,
 
 #### Ok, well what about if I absolutely cannot draw my cell until Doby Grid has finished rendering? Maybe it's a cell that's rendered after an ajax event is fired, or has some other external conditions...
 
-If delegating events isn't enough, then you can use post-processing as demonstrated in the post-processing example. Keep in mind that this is going to have a very significant rendering performance hit and is not recommended on large grids.
+If delegating events isn't enough, then you can use post-processing as demonstrated in the post-processing example. See the <a href="https://github.com/globexdesigns/doby-grid/wiki/Column-Options#wiki-doby-grid-postprocess">`postprocess`</a> Column Option for documentation. Keep in mind that this is going to have a very significant rendering performance hit and is not recommended on large grids.
 
 And just to be clear -- do not use this for trying to assign events to your cell. It won't work and will only make your grid slow. All those references will be wiped when the grid is re-rendered or scrolled. Don't bother.
 
 #### When using post-processing, my rows keep getting re-rendered when I scroll up and down. How do I stop that?
 
-SlickGrid had this problem and wasn't going to fix it (<https://github.com/mleibman/SlickGrid/issues/681>). In Doby Grid you can enable post-processing caching via the `cache` column option <https://github.com/globexdesigns/doby-grid/wiki/Column-Options>. This is not recommended for large grids as it will eat up a lot of memory.
+SlickGrid had this problem and wasn't going to fix it (<https://github.com/mleibman/SlickGrid/issues/681>). In Doby Grid you can enable post-processing caching via the <a href="https://github.com/globexdesigns/doby-grid/wiki/Column-Options#wiki-doby-grid-cache">`cache`</a> column option. This is not recommended for large grids as it will eat up a lot of memory.
 
 #### There's a bug in Internet Explorer...
 
