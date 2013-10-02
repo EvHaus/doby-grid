@@ -1188,7 +1188,7 @@
 					.width(); // force layout
 				$(activeCellNode).addClass(classinvalid);
 
-				self.trigger('onValidationError', {}, {
+				self.trigger('onValidationError', self._event, {
 					editor: currentEditor,
 					cellNode: activeCellNode,
 					validationResults: validationResults,
@@ -1228,7 +1228,7 @@
 
 						self.add(newItem);
 
-						self.trigger('onAddNewRow', {}, {
+						self.trigger('onAddNewRow', self._event, {
 							item: newItem,
 							column: column
 						});
@@ -1240,7 +1240,7 @@
 						// Reset active cell
 						makeActiveCellNormal();
 
-						self.trigger('onCellChange', {}, {
+						self.trigger('onCellChange', self._event, {
 							row: activeRow,
 							cell: activeCell,
 							item: item
@@ -2553,7 +2553,6 @@
 		defaultEditor = function (options) {
 
 			var self = this;
-
 
 			// initialize()
 			// The editor is actived when an active cell in the grid is focused.
@@ -4060,6 +4059,8 @@
 
 			var handled = e.isImmediatePropagationStopped();
 
+			this._event = e;
+
 			if (!handled) {
 				if (!e.shiftKey && !e.altKey && !e.ctrlKey) {
 					// Esc
@@ -4148,6 +4149,8 @@
 					}
 				}
 			}
+
+			this._event = null;
 
 			if (handled) {
 				// the event has been handled so don't let parent element
@@ -5886,8 +5889,19 @@
 		// @param	event		object		Javascript event object
 		//
 		showTooltip = function (event) {
+			// Proceed for popup tooltips only
 			if (self.options.tooltipType != 'popup') return;
+
+			// Proceed if not on a drag handle
+			if ($(event.target).closest('.' + classhandle).length) {
+				// Trigger mouseleave event so existing tooltips are hidden during resizing
+				$(event.target).trigger('mouseleave');
+				return;
+			}
+
 			var column = getColumnFromEvent(event);
+
+			// Proceed for valid columns only
 			if (!column || !column.tooltip) return;
 
 			var el = $(event.target).closest('.' + classheadercolumn);
