@@ -87,37 +87,35 @@
 		// Less Config
 		var less = {
 			env: "production"
-		}
+		};
 
 		// Initialize doby
 		require(['less', 'dobygrid', 'jquery-ui' ,'jquery.event.drag'], function(less, DobyGrid) {
 
 			// Load an example file
 			var loadExample = function(name) {
-				var start = new Date()
+				var start = new Date();
 
 				require(['examples/' + name], function(gridInit) {
-					if (window.grid) window.grid.destroy();
-
 					var grid = gridInit(DobyGrid);
-					grid.appendTo($('#gridwrapper').empty())
+					grid.appendTo($('#gridwrapper').empty());
 
 					// Expose grid to the world so we can debug via console
-					window.grid = grid
+					window.grid = grid;
 
 					var end = new Date();
-					console.info('Grid loaded and rendered in '+(end-start)+'ms')
+					console.info('Grid loaded and rendered in '+(end-start)+'ms');
 				})
 			}
 
 			// Enable Menu
 			$("#examplemenu a").click(function() {
-				loadExample($(this).attr('href').substring(1))
-			})
+				loadExample($(this).attr('href').substring(1));
+			});
 
 			// Load current example
 			if (document.location.hash) {
-				loadExample(document.location.hash.substring(1))
+				loadExample(document.location.hash.substring(1));
 			}
 		})
 		</script>

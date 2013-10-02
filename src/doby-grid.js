@@ -94,7 +94,7 @@
 			classheadercolumnactive = this.NAME + '-header-column-active',
 			classheadercolumndrag = this.NAME + '-header-column-dragging',
 			classheadercolumnsorted = this.NAME + '-header-column-sorted',
-			classheadersortable = this.NAME + '-header-sortable',
+			classheadersortable = 'sortable',
 			classinvalid = 'invalid',
 			classplaceholder = this.NAME + '-sortable-placeholder',
 			classrangedecorator = this.NAME + '-range-decorator',
@@ -119,7 +119,6 @@
 			columnPosRight = [],
 			columnsById = {},
 			commitCurrentEdit,
-			counter_rows_removed = 0,
 			counter_rows_rendered = 0,
 			createColumnHeaders,
 			createCssRules,
@@ -161,7 +160,6 @@
 			getRenderedRange,
 			getRowFromNode,
 			getRowFromPosition,
-			getRowPosition,
 			getScrollbarSize,
 			getVBoxDelta,
 			getViewportHeight,
@@ -218,7 +216,7 @@
 				//
 				this.__nonDataRow = true;
 				if (data) {
-					_.extend(this, data);
+					$.extend(this, data);
 				}
 			},
 			numVisibleRows,
@@ -237,7 +235,6 @@
 			removeRowFromCache,
 			render,
 			renderCell,
-			renderedRows = 0,
 			renderRows,
 			resetActiveCell,
 			resizeCanvas,
@@ -282,7 +279,7 @@
 			vScrollDir = 1;
 
 		// Default Grid Options
-		this.options = _.extend({
+		this.options = $.extend({
 			addRow:					false,
 			asyncEditorLoadDelay:	100,
 			asyncEditorLoading:		false,
@@ -362,7 +359,7 @@
 		};
 
 		// Enable events
-		_.extend(this, Backbone.Events);
+		$.extend(this, Backbone.Events);
 
 		// Stores the current event object
 		this._event = null;
@@ -831,7 +828,7 @@
 				.on('drag', function (event, dd) {
 					// Resize current row
 					var node = dd._rowNode,
-						pos = getRowPosition(dd._row),
+						pos = cache.rowPositions[dd._row],
 						height = (pos.height || self.options.rowHeight);
 					dd._height = height + dd.deltaY;
 
@@ -912,12 +909,10 @@
 				return false;
 			}
 
-			var rowMetadata = self.collection.getItemMetadata && self.collection.getItemMetadata(row);
-			if (rowMetadata && typeof rowMetadata.focusable === "boolean") {
-				return rowMetadata.focusable;
-			}
+			var item = self.collection.getItem(row);
+			if (typeof item.focusable === "boolean") return item.focusable;
 
-			var columnMetadata = rowMetadata && rowMetadata.columns;
+			var columnMetadata = item.columns;
 			if (
 				columnMetadata &&
 				columnMetadata[self.options.columns[cell].id] &&
@@ -946,12 +941,12 @@
 				return false;
 			}
 
-			var rowMetadata = self.collection.getItemMetadata && self.collection.getItemMetadata(row);
-			if (rowMetadata && typeof rowMetadata.selectable === "boolean") {
-				return rowMetadata.selectable;
+			var item = self.collection.getItem(row);
+			if (typeof item.selectable === "boolean") {
+				return item.selectable;
 			}
 
-			var columnMetadata = rowMetadata && rowMetadata.columns && (rowMetadata.columns[c[cell].id] || rowMetadata.columns[cell]);
+			var columnMetadata = item.columns && (item.columns[c[cell].id] || item.columns[cell]);
 			if (columnMetadata && typeof columnMetadata.selectable === "boolean") {
 				return columnMetadata.selectable;
 			}
@@ -1035,8 +1030,8 @@
 				// Render missing cells.
 				cellsAdded = 0;
 
-				var metadata = self.collection.getItemMetadata && self.collection.getItemMetadata(row);
-				metadata = metadata && metadata.columns;
+				var item = self.collection.getItem(row),
+					metadata = item.columns;
 
 				var d = getDataItem(row);
 
@@ -1160,7 +1155,7 @@
 		clearTextSelection = function () {
 			if (document.selection && document.selection.empty) {
 				try {
-					//IE fails here if selected element is not in dom
+					// IE fails here if selected element is not in DOM
 					document.selection.empty();
 				} catch (e) {}
 			} else if (window.getSelection) {
@@ -1338,6 +1333,11 @@
 
 			self.$el = $('<div class="' + cclasses.join(' ') + '" id="' + uid + '"></div>');
 
+			// Self-destroy when the element is deleted
+			self.$el.one('remove', function () {
+				self.destroy();
+			});
+
 			// Create the global grid elements
 			$headerScroller = $('<div class="' + classheader + '"></div>')
 					.appendTo(self.$el);
@@ -1427,7 +1427,6 @@
 				groupingDelimiter = ':|:',
 				groupingInfos = [],
 				groups = [],
-				length = null,		// Custom length of collection, for Remote Models
 				pagenum = 0,
 				pagesize = 0,
 				prevRefreshHints = {},
@@ -1467,10 +1466,13 @@
 
 
 			// Events
-			_.extend(this, Backbone.Events);
+			$.extend(this, Backbone.Events);
 
 			// Items by index
 			this.items = [];
+
+			// Size of the collection
+			this.length = 0;
 
 
 			// initialize()
@@ -1737,7 +1739,7 @@
 
 				this.items.splice(idx, 1);
 				updateIndexById(idx);
-				if (grid.options.remote) length--;
+				if (grid.options.remote) this.length--;
 
 				// Recache positions from row
 				cacheRowPositions(idx);
@@ -2025,103 +2027,6 @@
 				return this.items[i];
 			};
 
-
-			// getItemMetadata()
-			// Given a row index, returns any metadata available for that row.
-			//
-			// @param	row		integer		Row index
-			//
-			// @return object
-			// TODO: Remove this and store metadata in the item object instead.
-			this.getItemMetadata = function (row) {
-				var item = this.getItem(row);
-
-				// For remote models -- skip rows that don't have data yet
-				if (!item) return;
-
-				// Empty Alert
-				if (item.__alert) {
-					return {
-						selectable: false,
-						focusable: false,
-						cssClasses: classalert,
-						columns: {
-							0: {
-								colspan: "*",
-								formatter: function (row, cell, value, columnDef, data) {
-									return data.msg;
-								},
-								editor: null
-							}
-						}
-					};
-				}
-
-				// Add Row
-				if (item.__addRow) {
-					return {
-						// Default formatting for the "addRow" row should be blank
-						formatter: function () {
-							return "";
-						}
-					};
-				}
-
-				// Group headers should return their own metadata object
-				if (item.__group) {
-					return {
-						selectable: false,
-						cssClasses: [classgroup, classgrouptoggle, (item.collapsed ? classcollapsed : classexpanded)].join(' '),
-						columns: {
-							0: {
-								colspan: "*",
-								formatter: function (row, cell, value, columnDef, item) {
-									var indent = item.level * 15;
-									return [(indent ? '<span style="margin-left:' + indent + 'px">' : ''),
-										'<span class="icon"></span>',
-										'<span class="' + classgrouptitle + '" level="' + item.level + '">',
-										item.title,
-										'</span>',
-										(indent ? '</span>' : '')
-									].join('');
-								}
-							}
-						}
-					};
-				}
-
-				var obj = {
-					columns: {},
-					rows: {}
-				};
-
-				// Add support for variable row 'height'
-				if (item.height) {
-					obj.rows[row] = {
-						height: item.height
-					};
-				}
-
-				// Add support for 'fullspan'
-				if (item.fullspan) {
-					obj.columns[0] = {
-						colspan: '*'
-					};
-				}
-
-				return obj;
-			};
-
-
-			// getLength()
-			// Get the number of all items in this collection (including non-data and virtual items)
-			//
-			// @return integer
-			this.getLength = function () {
-				return grid.options.remote ? length : cache.rows.length;
-			};
-
-
 			this.getPagingInfo = function () {
 				var totalPages = pagesize ? Math.max(1, Math.ceil(totalRows / pagesize)) : 1;
 				return {
@@ -2215,7 +2120,18 @@
 				var obj = new NonDataItem({
 					__alert: true,
 					id: '-empty-alert-message-',
-					msg: getLocale("empty." + type)
+					selectable: false,
+					focusable: false,
+					class: classalert,
+					columns: {
+						0: {
+							colspan: "*",
+							formatter: function (row, cell, value, columnDef, data) {
+								return getLocale("empty." + type);
+							},
+							editor: null
+						}
+					}
 				});
 
 				self.reset([obj]);
@@ -2288,6 +2204,8 @@
 				prevRefreshHints = refreshHints;
 				refreshHints = {};
 
+				this.length = cache.rows.length;
+
 				if (totalRowsBefore != totalRows) {
 					this.trigger('onPagingInfoChanged', {}, this.getPagingInfo());
 				}
@@ -2342,13 +2260,6 @@
 			};
 
 
-			// resetLength()
-			// Resets the length back to null to ensure remote fetches will be re-executed
-			//
-			this.resetLength = function () {
-				length = null;
-			};
-
 			this.reSort = function () {
 				if (sortComparer) {
 					this.sort(sortComparer, sortAsc);
@@ -2398,24 +2309,6 @@
 				this.refresh();
 			};
 
-
-			// setLength()
-			// When using a remote model, it's necessary to set the total length
-			// since not all data is available on the client at the time of request
-			//
-			// @param	count	integer		Number of items in the collection
-			//
-			this.setLength = function (count) {
-				length = count;
-
-				// Ensert nulls for all pending items
-				for (var i = 0; i < count; i++) {
-					if (this.items[i] === undefined) this.items[i] = null;
-				}
-				this.refresh();
-
-				return count;
-			};
 
 			this.setPagingOptions = function (args) {
 				if (args.pageSize !== undefined) {
@@ -2759,15 +2652,17 @@
 				$headers.filter(":ui-sortable").sortable("destroy");
 			}
 
-			// Remove grid
-			this.$el.remove();
-			this.$el = null;
-
-			// Remove window resize function
-			$(window).off('resize', handleWindowResize);
+			if (this.$el && this.$el.length) {
+				// Prevent double destroy call when calling directly
+				this.$el.unbind('remove');
+				this.$el.remove();
+			}
 
 			// Remove CSS Rules
 			removeCssRules();
+
+			// Remove window resize binding
+			$(window).off('resize', handleWindowResize);
 		};
 
 
@@ -3152,7 +3047,7 @@
 				return null;
 			}
 
-			var pos = getRowPosition(row),
+			var pos = cache.rowPositions[row],
 				y1 = pos.top,
 				y2 = y1 + (pos.height || self.options.rowHeight) - 1,
 				x1 = 0;
@@ -3206,12 +3101,10 @@
 		//
 		// return integer
 		getColspan = function (row, cell) {
-			var metadata = self.collection.getItemMetadata && self.collection.getItemMetadata(row);
-			if (!metadata || !metadata.columns) {
-				return 1;
-			}
+			var item = self.collection.getItem(row);
+			if (!item.columns) return 1;
 
-			var columnData = metadata.columns[self.options.columns[cell].id] || metadata.columns[cell];
+			var columnData = item.columns[self.options.columns[cell].id] || item.columns[cell];
 			var colspan = (columnData && columnData.colspan);
 			if (colspan === "*") {
 				colspan = self.options.columns.length - cell;
@@ -3352,11 +3245,7 @@
 		// @return integer
 		getDataLength = function () {
 			if (!self.collection) return 0;
-			if (self.collection.getLength) {
-				return self.collection.getLength();
-			} else {
-				return self.collection.length;
-			}
+			return self.collection.length;
 		};
 
 
@@ -3368,9 +3257,9 @@
 		//
 		// @return function
 		getEditor = function (row, cell) {
-			var column = self.options.columns[cell];
-			var rowMetadata = self.collection.getItemMetadata && self.collection.getItemMetadata(row);
-			var columnMetadata = rowMetadata && rowMetadata.columns;
+			var column = self.options.columns[cell],
+				item = self.collection.getItem(row),
+				columnMetadata = item.columns;
 
 			// Get the editor from the column definition
 			if (columnMetadata && columnMetadata[column.id] && columnMetadata[column.id].editor !== undefined) {
@@ -3393,15 +3282,14 @@
 		//
 		// @return function
 		getFormatter = function (row, column) {
-			var rowMetadata = self.collection.getItemMetadata && self.collection.getItemMetadata(row);
+			var item = self.collection.getItem(row);
 
-			// look up by id, then index
-			var columnOverrides = rowMetadata &&
-				rowMetadata.columns &&
-				(rowMetadata.columns[column.id] || rowMetadata.columns[getColumnIndex(column.id)]);
+			// Check if item has column overrides
+			var columnOverrides = item.columns && (item.columns[column.id] || item.columns[getColumnIndex(column.id)]);
 
-			return (columnOverrides && columnOverrides.formatter) ||
-				(rowMetadata && rowMetadata.formatter) ||
+			// Pick formatter starting at the item formatter and working down to the default
+			return item.formatter ||
+				(columnOverrides && columnOverrides.formatter) ||
 				column.formatter ||
 				self.options.formatter ||
 				defaultFormatter;
@@ -3539,15 +3427,14 @@
 		//
 		// @return integer
 		getRowFromPosition = function (maxPosition) {
-			var result = null,
-				row = 0,
+			var row = 0,
 				rowLength = getDataLength(),
-				pos, lastpos;
+				pos, lastpos, i;
 
 			if (rowLength) {
 				// Loop through the row position cache and break when the row is found
-				for (var i = 0; i < rowLength; i++) {
-					pos = getRowPosition(i);
+				for (i = 0; i < rowLength; i++) {
+					pos = cache.rowPositions[i];
 					if (pos.top <= maxPosition && pos.bottom >= maxPosition) {
 						row = i;
 						continue;
@@ -3555,7 +3442,7 @@
 				}
 
 				// Return the last row in the grid
-				lastpos = getRowPosition(rowLength - 1);
+				lastpos = cache.rowPositions[rowLength - 1];
 				if (maxPosition > lastpos.bottom) {
 					row = rowLength - 1;
 				}
@@ -3565,20 +3452,7 @@
 				row = Math.floor((maxPosition + offset) / self.options.rowHeight);
 			}
 
-			result = row;
-
-			return result;
-		};
-
-
-		// getRowPosition()
-		// Given a row index, returns an object of that row's positions and height
-		//
-		getRowPosition = function (row) {
-			// Check if item is in position cache
-			if (row in cache.rowPositions) {
-				return cache.rowPositions[row];
-			}
+			return row;
 		};
 
 
@@ -3896,15 +3770,36 @@
 		//
 		Group = function () {
 			this.__group = true;		// TODO: Is this even needed? Can't we just check instanceof? Which is faster?
+			this.class = function () {
+				var collapseclass = (this.collapsed ? classcollapsed : classexpanded);
+				return [classgroup, classgrouptoggle, collapseclass].join(' ');
+			};
 			this.collapsed = false;		// Whether the group is collapsed
 			this.count = 0;				// Number of rows in the group
 			this.groups = null;			// Sub-groups that are part of this group
 			this.id = null;				// A unique key used to identify the group
 			this.level = 0;				// Grouping level, starting with 0 (for nesting groups)
 			this.rows = [];				// Rows that are part of this group
+			this.selectable = false;	// Don't allow selecting groups
 			this.title = null;			// Formatted display value of the group
 			this.totals = null;			// GroupTotals, if any
 			this.value = null;			// Grouping value
+
+			this.columns = {
+				0: {
+					colspan: "*",
+					formatter: function (row, cell, value, columnDef, item) {
+						var indent = item.level * 15;
+						return [(indent ? '<span style="margin-left:' + indent + 'px">' : ''),
+							'<span class="icon"></span>',
+							'<span class="' + classgrouptitle + '" level="' + item.level + '">',
+							item.title,
+							'</span>',
+							(indent ? '</span>' : '')
+						].join('');
+					}
+				}
+			};
 		};
 
 		Group.prototype = new NonDataItem();
@@ -4318,8 +4213,11 @@
 		insertAddRow = function () {
 			var obj = new NonDataItem({
 				__addRow: true,
+				data: {},
+				formatter: function () {
+					return "";
+				},
 				id: '--add-row--',
-				data: {}
 			});
 
 			self.collection.add(obj);
@@ -4814,9 +4712,7 @@
 		//
 		removeRowFromCache = function (row) {
 			var cacheEntry = cache.nodes[row], col;
-			if (!cacheEntry) {
-				return;
-			}
+			if (!cacheEntry) return;
 
 			$canvas[0].removeChild(cacheEntry.rowNode);
 			delete cache.nodes[row];
@@ -4828,9 +4724,6 @@
 					if (!col.cache) delete postProcessedRows[row][i];
 				}
 			}
-
-			renderedRows--;
-			counter_rows_removed++;
 		};
 
 
@@ -4876,7 +4769,7 @@
 		renderCell = function (result, row, cell, colspan, item) {
 			var m = self.options.columns[cell],
 				rowI = Math.min(self.options.columns.length - 1, cell + colspan - 1),
-				mClass = (m.cssClass ? " " + m.cssClass : ""),
+				mClass = (m.class ? typeof m.class === "function" ? m.class() : " " + m.class : ""),
 				cellCss = classcell + " l" + cell + " r" + rowI + mClass;
 
 			if (row === activeRow && cell === activeCell) {
@@ -4929,14 +4822,10 @@
 					(row === activeRow ? " active" : "") +
 					(row % 2 === 1 ? " odd" : ""),
 				data = self.collection,
-				pos = getRowPosition(row);
+				pos = cache.rowPositions[row];
 
 
-			var metadata = data.getItemMetadata && data.getItemMetadata(row);
-
-			if (metadata && metadata.cssClasses) {
-				rowCss += " " + metadata.cssClasses;
-			}
+			if (d.class) rowCss += " " + (typeof d.class === 'function' ? d.class() : d.class);
 
 			stringArray.push("<div class='" + rowCss + "' ");
 			stringArray.push("style='top:" + (pos.top + offset) + "px;");
@@ -4952,8 +4841,8 @@
 			for (i = 0, l = self.options.columns.length; i < l; i++) {
 				m = self.options.columns[i];
 				colspan = 1;
-				if (metadata && metadata.columns) {
-					var columnData = metadata.columns[m.id] || metadata.columns[i];
+				if (d.columns) {
+					var columnData = d.columns[m.id] || d.columns[i];
 					colspan = (columnData && columnData.colspan) || 1;
 					if (colspan === "*") {
 						colspan = l - i;
@@ -5001,7 +4890,6 @@
 				if (cache.nodes[i]) {
 					continue;
 				}
-				renderedRows++;
 				rows.push(i);
 
 				// Create an entry right away so that renderRow() can
@@ -5100,7 +4988,10 @@
 			}
 
 			updateRowCount();
-			handleScroll();
+			// TODO: This was in SlickGrid, but it's probably there to catch active cells being
+			// out of bounds after a resize. There's got to be a better way to catch that
+			// instead of calling handleScroll() which is pretty slow
+			//handleScroll();
 
 			// Since the width has changed, force the render() to reevaluate virtually rendered cells.
 			lastRenderedScrollLeft = -1;
@@ -5199,7 +5090,7 @@
 		// @param	doPaging	boolean		TODO: ??
 		//
 		scrollRowIntoView = function (row, doPaging) {
-			var pos = getRowPosition(row),
+			var pos = cache.rowPositions[row],
 				rowAtTop = pos.top,
 				rowAtBottom = pos.bottom - viewportH + (viewportHasHScroll ? window.scrollbarDimensions.height : 0);
 
@@ -5226,7 +5117,7 @@
 		// @param	row		integer		Row index
 		//
 		scrollRowToTop = function (row) {
-			var pos = getRowPosition(row);
+			var pos = cache.rowPositions[row];
 			scrollTo(pos.top);
 			render();
 		};
@@ -5389,7 +5280,7 @@
 			for (var i = 0, l = this.options.columns.length; i < l; i++) {
 				// TODO: This is ugly. Can anything be done?
 				m = self.options.columns[i];
-				m = self.options.columns[i] = _.extend(JSON.parse(JSON.stringify(columnDefaults)), m);
+				m = self.options.columns[i] = $.extend(JSON.parse(JSON.stringify(columnDefaults)), m);
 
 				columnsById[m.id] = i;
 				if (m.minWidth && m.width < m.minWidth) {
@@ -5478,7 +5369,7 @@
 
 			// Invalidate rows below the edited one
 			cacheRowPositions();
-			invalidateRows(_.range(row, self.collection.getLength() + 1));
+			invalidateRows(_.range(row, self.collection.length + 1));
 			render();
 		};
 
@@ -5569,22 +5460,21 @@
 		// TODO: Perhaps assign the handle events on the whole header instead of on each element
 		//
 		setupColumnResize = function () {
+			// If resizable columns are disabled -- return
+			if (!self.options.resizableColumns) return;
+
 			var $col, j, c, pageX, columnElements, minPageX, maxPageX, firstResizable, lastResizable;
 
 			columnElements = $headers.children();
 			columnElements.find("." + classhandle).remove();
 			columnElements.each(function (i) {
-				if (self.options.columns[i].resizable) {
-					if (firstResizable === undefined) {
-						firstResizable = i;
-					}
-					lastResizable = i;
-				}
+				if (!self.options.columns[i].resizable) return;
+				if (firstResizable === undefined) firstResizable = i;
+				lastResizable = i;
 			});
 
-			if (firstResizable === undefined) {
-				return;
-			}
+			// No resizable columns found
+			if (firstResizable === undefined) return;
 
 			var lockColumnWidths = function () {
 				columnElements.each(function (i, e) {
@@ -5736,60 +5626,66 @@
 				self.trigger('onColumnsResized', {});
 			};
 
-			columnElements.each(function (i, e) {
+			// Assign double-click to auto-resize event
+			// This is done once for the whole header because event assignments are expensive
+			$headers.on("dblclick", function (event) {
+				// Make sure we're clicking on a handle
+				if (!$(event.target).closest('.' + classhandle).length) return;
+
+				var columndef = getColumnFromEvent(event);
+				if (!columndef) return;
+
+				var column_index = columnsById[columndef.id],
+					$column = $(columnElements[column_index]),
+					currentWidth = $column.width(),
+					headerPadding = $column.outerWidth() - currentWidth;
+
+				// Determine the width of the column name text
+				var name = $column.children('.' + classcolumnname + ':first');
+				name.css('overflow', 'visible');
+				$column.width('auto');
+				var headerWidth = $column.outerWidth();
+				name.css('overflow', '');
+				$column.width(currentWidth);
+
+				// Determine the width of the widest visible value
+				var cellWidths = [headerWidth];
+				$canvas.find('.l' + column_index + ':visible')
+					.removeClass('r' + column_index)
+					.each(function () {
+						var w = $(this).outerWidth() + headerPadding;
+						if (cellWidths.indexOf(w) < 0) cellWidths.push(w);
+					})
+					.addClass('r' + column_index);
+
+				var newWidth = Math.max.apply(null, cellWidths);
+
+				if (currentWidth != newWidth) {
+					var diff = newWidth - currentWidth;
+
+					// Duplicate the drag functionality
+					lockColumnWidths(column_index);
+					prepareLeeway(column_index, pageX);
+					resizeColumn(column_index, diff);
+					applyColWidths();
+					submitColResize();
+				}
+			});
+
+			// Create drag handles
+			// This has to be done for each drag handle to not conflict with drag reordering
+			$.each(columnElements, function (i, columnEl) {
 				if (i < firstResizable || (self.options.autoColumnWidth && i >= lastResizable)) {
 					return;
 				}
-				$col = $(e);
-
-				// If resizable columns are disabled -- return
-				if (!self.options.resizableColumns) return;
 
 				$('<div class="' + classhandle + '"><span></span></div>')
-					.appendTo(e)
-					// Auto resize on double click
-					.on("dblclick", function (event) {
-						var columnEl = $(event.currentTarget).parent(),
-							currentWidth = columnEl.width(),
-							headerPadding = columnEl.outerWidth() - columnEl.width();
-
-						// Determine the width of the column name text
-						var name = columnEl.children('.' + classcolumnname + ':first');
-						name.css('overflow', 'visible');
-						columnEl.width('auto');
-						var headerWidth = columnEl.outerWidth();
-						name.css('overflow', '');
-						columnEl.width(currentWidth);
-
-						// Determine the width of the widest visible value
-						var cellWidths = [headerWidth];
-						$canvas.find('.l' + i + ':visible')
-							.removeClass('r' + i)
-							.each(function () {
-								var w = $(this).outerWidth() + headerPadding;
-								if (cellWidths.indexOf(w) < 0) cellWidths.push(w);
-							})
-							.addClass('r' + i);
-
-						var newWidth = Math.max.apply(null, cellWidths);
-
-						if (currentWidth != newWidth) {
-							var diff = newWidth - currentWidth;
-
-							// Duplicate the drag functionality
-							lockColumnWidths(i);
-							prepareLeeway(i, pageX);
-							resizeColumn(i, diff);
-							applyColWidths();
-							submitColResize();
-						}
-					})
-					// Custom drag to resize
+					.appendTo(columnEl)
 					.on('dragstart', function (event) {
 						pageX = event.pageX;
 						$(this).parent().addClass(classheadercolumndrag);
 
-						// lock each column's width option to current width
+						// Lock each column's width option to current width
 						lockColumnWidths(i);
 
 						// Ensures the leeway has another room to move around
@@ -5949,7 +5845,7 @@
 				// Double check that element doesn't already exist
 				if ($('#' + tooltip_id).length) return;
 
-				// Insert into DOM
+				// Insert into DOM temporarily so we can calculate size
 				var tooltip = $(html.join(''));
 				tooltip.appendTo(document.body);
 
@@ -5977,9 +5873,10 @@
 
 				// Draw tooltip
 				tooltip
+					.remove()	// Need to remove it from body and re-insert to ensure Chrome animates
 					.addClass('on')
-					.css('left', x)
-					.css('top', y + 5)
+					.attr('style', 'left:' + x + 'px;top:' + (y + 5) + 'px')
+					.appendTo(document.body)
 					.width(); // Force layout to display transitions
 
 				// Transition in
@@ -6348,7 +6245,7 @@
 			if (dataLength === 0) {
 				viewportHasVScroll = false;
 			} else {
-				var rpc = getRowPosition(dataLength - 1);
+				var rpc = cache.rowPositions[dataLength - 1];
 				viewportHasVScroll = rpc && (rpc.bottom > viewportH);
 			}
 
@@ -6370,7 +6267,7 @@
 				th = viewportH - window.scrollbarDimensions.height;
 			} else {
 				var pos = dataLength - 1,
-					rps = getRowPosition(pos),
+					rps = cache.rowPositions[pos],
 					rowMax = rps.bottom;
 
 				th = Math.max(rowMax, viewportH - window.scrollbarDimensions.height);
@@ -6415,7 +6312,7 @@
 
 		updateRowPositions = function () {
 			for (var row in cache.nodes) {
-				cache.nodes[row].rowNode.style.top = (getRowPosition(row).top + offset) + "px";
+				cache.nodes[row].rowNode.style.top = (cache.rowPositions[row].top + offset) + "px";
 			}
 		};
 
@@ -6440,7 +6337,7 @@
 				// Set defaults
 				// TODO: This is ugly. Can anything be done?
 				c = self.options.columns[i];
-				c = self.options.columns[i] = _.extend(JSON.parse(JSON.stringify(columnDefaults)), c);
+				c = self.options.columns[i] = $.extend(JSON.parse(JSON.stringify(columnDefaults)), c);
 
 				// An "id" is required. If it's missing, auto-generate one
 				if (!c.id) c.id = c.field + '_' + i || c.name + '_' + i;
