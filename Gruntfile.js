@@ -20,16 +20,14 @@ module.exports = function (grunt) {
 			src: 'src/<%= pkg.name %>.js',
 			options: {
 				specs: 'tests/*.js',
-
-				/* Keep in sync with test/SpecRunner.html dependencies */
-                vendor: [
-					'libs/require.js',
-                    'libs/jquery.js',
+				vendor: [
+					'libs/jquery.js',
 					'libs/jquery-ui.js',
 					'libs/jquery.event.drag.js',
 					'libs/underscore.js',
                     'libs/backbone.js',
-					'libs/less.js'
+					'libs/less.js',
+					'libs/jasmine/jasmine-jquery.js'
                 ]
 			}
 		},
@@ -62,10 +60,12 @@ module.exports = function (grunt) {
 
 	// Load plugins
 	grunt.loadNpmTasks('grunt-contrib-jshint');
-	//grunt.loadNpmTasks('grunt-contrib-jasmine');
+	grunt.loadNpmTasks('grunt-contrib-jasmine');
 	grunt.loadNpmTasks('grunt-contrib-uglify');
 	grunt.loadNpmTasks('grunt-contrib-less');
 
 	// Run tasks.
+	// TODO: jasmine is temporarily disabled because it doesn't behave
+	// as expected when testing the rendering of elements
 	grunt.registerTask('default', ['jshint', 'uglify', 'less']);
 };

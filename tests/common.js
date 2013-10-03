@@ -17,49 +17,6 @@ describe("Initialization and validation", function () {
 	// ==========================================================================================
 
 
-	it("should be AMD compatible", function () {
-		var loaded = false;
-		runs(function () {
-			$('<script src="../libs/require.js"></script>').appendTo(document.head);
-			require.config({
-				baseUrl: "../libs/",
-				shim: {
-					'backbone': {
-						deps: ['underscore'],
-						exports: 'Backbone'
-					},
-					'underscore': {
-						exports: '_'
-					},
-					'jquery-ui': {
-						deps: ['jquery']
-					},
-					'jquery.event.drag': {
-						deps: ['jquery']
-					}
-				}
-			});
-			require([
-				'../src/doby-grid'
-			], function (dbgrd) {
-				loaded = dbgrd;
-			})
-		})
-
-		waitsFor(function () {
-			return loaded;
-		}, "Module was never imported via require.js", 150);
-
-		runs(function () {
-			expect(loaded).toBeDefined();
-			expect(typeof(loaded)).toEqual('function')
-		})
-	})
-
-
-	// ==========================================================================================
-
-
 	it("should be able to initialize a grid with default options", function () {
 		expect(function () {new DobyGrid(function () {})}).toThrow();
 	})

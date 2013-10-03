@@ -144,7 +144,6 @@ describe("Methods and Data Manipulation", function () {
 			var bad_data = [[], 'asd', 123, document.body];
 			_.each(bad_data, function(bd) {
 				expect(function() {
-					console.log(bd)
 					methodGrid.addColumn(bd)
 				}).toThrow("Unable to addColumn() because the given 'data' param is invalid.");
 			})
