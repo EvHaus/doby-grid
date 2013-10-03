@@ -10,6 +10,7 @@ describe("Rendering", function () {
 
 	// Default options for the grid
 	var options = {
+		autoDestroy: false,
 		columns: [{
 			id: "id",
 			name: "ID",

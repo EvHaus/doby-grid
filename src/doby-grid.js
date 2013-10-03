@@ -285,6 +285,7 @@
 			asyncEditorLoading:		false,
 			asyncPostRenderDelay:	25,
 			autoColumnWidth:		false,
+			autoDestroy:			true,
 			autoEdit:				true,
 			"class":				null,
 			columns:				[],
@@ -407,18 +408,38 @@
 		// Inserts a new column into the grid
 		//
 		// @param	data			object		Column data object
-		// @param	insertBefore	integer		Index of the column to insert in front
+		// @param	options			object		(Optional) Additional options for handling the insert.
 		//
 		// @return object
-		this.addColumn = function (data, insertBefore) {
-			// TODO: Convert "insertBefore" to 'position'. So you can say - insert column at position 0. With 'null' being 'insert at the end
-			if (!data || typeof (data) !== 'object') return this;
+		this.addColumn = function (data, options) {
+			if (!data || typeof data !== 'object' || $.isArray(data) || data instanceof HTMLElement) {
+				throw new Error("Unable to addColumn() because the given 'data' param is invalid.");
+			}
+
+			options = options || {};
+
+			// Check for a column with the same id
+			var existing = columnsById[data.id];
+			if (existing) {
+				if (options.merge !== true) {
+					var err = ["Unable to addColumn() because a column with id '" + data.id];
+					err.push("' already exists. Did you want to {merge: true} maybe?");
+					throw new Error(err.join(''));
+				} else {
+					// Merge column with existing
+					for (var i = 0, l = this.options.columns.length; i < l; i++) {
+						if (this.options.columns[i].id != data.id) continue;
+						$.extend(this.options.columns[i], data);
+					}
+					return this;
+				}
+			}
 
 			var columns = this.options.columns;
-			if (!insertBefore && insertBefore !== 0) {
+			if (options.at === null || options.at === undefined) {
 				columns.push(data);
 			} else {
-				columns.splice(insertBefore, 0, data);
+				columns.splice(columns, options.at, data);
 			}
 
 			// Set the grid columns
@@ -482,6 +503,14 @@
 
 				this.$el
 					.on("resize." + this.NAME, resizeCanvas);
+
+				if (this.options.autoDestroy) {
+					this.$el.one("remove", function (event) {
+						// Self-destroy when the element is deleted
+						self.destroy();
+					});
+				}
+
 				$viewport
 					// TODO: This is in the SlickGrid 2.2 upgrade, but it breaks ui.grid()
 					// custom click handlers. Investigate a merge path.
@@ -1332,11 +1361,6 @@
 			if (self.options.class) cclasses.push(self.options.class);
 
 			self.$el = $('<div class="' + cclasses.join(' ') + '" id="' + uid + '"></div>');
-
-			// Self-destroy when the element is deleted
-			self.$el.one('remove', function () {
-				self.destroy();
-			});
 
 			// Create the global grid elements
 			$headerScroller = $('<div class="' + classheader + '"></div>')
@@ -2656,6 +2680,7 @@
 				// Prevent double destroy call when calling directly
 				this.$el.unbind('remove');
 				this.$el.remove();
+				this.$el = null;
 			}
 
 			// Remove CSS Rules
