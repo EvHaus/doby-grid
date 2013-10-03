@@ -44,7 +44,6 @@
 
 		// Private
 		var self = this,
-			$boundAncestors,
 			$canvas,
 			$headers,
 			$headerScroller,
@@ -63,6 +62,9 @@
 			bindCellRangeSelect,
 			bindRowResize,
 			cache = {
+				columnPosLeft: [],
+				columnPosRight: [],
+				columnsById: {},
 				indexById: {},
 				nodes: {},
 				rowPositions: {},
@@ -115,9 +117,6 @@
 			Collection,
 			columnCssRulesL,
 			columnCssRulesR,
-			columnPosLeft = [],
-			columnPosRight = [],
-			columnsById = {},
 			commitCurrentEdit,
 			counter_rows_rendered = 0,
 			createColumnHeaders,
@@ -280,6 +279,7 @@
 
 		// Default Grid Options
 		this.options = $.extend({
+			activateSelection:		true,
 			addRow:					false,
 			asyncEditorLoadDelay:	100,
 			asyncEditorLoading:		false,
@@ -419,7 +419,7 @@
 			options = options || {};
 
 			// Check for a column with the same id
-			var existing = columnsById[data.id];
+			var existing = cache.columnsById[data.id];
 			if (existing) {
 				if (options.merge !== true) {
 					var err = ["Unable to addColumn() because a column with id '" + data.id];
@@ -488,18 +488,17 @@
 				// Calculate viewport width
 				viewportW = parseFloat($.css(this.$el[0], "width", true));
 
-				// TODO: Fix these functions and combine into a cache collector
+				// Calculate caches, dimensions and prepare layout
 				measureCellPaddingAndBorder();
-
 				disableSelection($headers);
-
 				updateColumnCaches();
 				createColumnHeaders();
 				setupColumnSort();
 				createCssRules();
-
 				cacheRowPositions();
 				resizeCanvas();
+
+				// Assign events
 
 				this.$el
 					.on("resize." + this.NAME, resizeCanvas);
@@ -512,9 +511,6 @@
 				}
 
 				$viewport
-					// TODO: This is in the SlickGrid 2.2 upgrade, but it breaks ui.grid()
-					// custom click handlers. Investigate a merge path.
-					//.on("click", handleClick)
 					.on("scroll", handleScroll);
 
 				$headerScroller
@@ -800,8 +796,9 @@
 					decorator.show(new Range(dd._range.start.row, dd._range.start.cell, end.row, end.cell));
 
 					// Set the active cell as you drag. This is default spreadsheet behavior.
-					// TODO: This may make a good toggle-able setting
-					setActiveCellInternal(getCellNode(end.row, end.cell), false);
+					if (self.options.activateSelection) {
+						setActiveCellInternal(getCellNode(end.row, end.cell), false);
+					}
 				})
 				.on('dragend', function (event, dd) {
 					if (!_dragging) return;
@@ -821,7 +818,10 @@
 					);
 					self._event = null;
 
-					makeActiveCellEditable();
+					// Automatically go into edit mode
+					if (self.options.activateSelection) {
+						makeActiveCellEditable();
+					}
 				});
 		};
 
@@ -831,11 +831,6 @@
 		//
 		bindRowResize = function () {
 			$canvas
-				// TODO: Is this needed?
-				/*.on('draginit', function (event, dd) {
-					// Prevent the grid from cancelling drag'n'drop by default
-					event.stopImmediatePropagation();
-				})*/
 				.on('dragstart', function (event, dd) {
 					if (!$(event.target).hasClass(classrowhandle)) return;
 					event.stopImmediatePropagation();
@@ -1033,9 +1028,9 @@
 
 
 		// cleanUpAndRenderCells()
-		// ??
+		// Re-renders existing cells
 		//
-		// @param		range		object		??
+		// @param		range		object		Cell range to render
 		//
 		cleanUpAndRenderCells = function (range) {
 			var cacheEntry,
@@ -1060,14 +1055,12 @@
 				cellsAdded = 0;
 
 				var item = self.collection.getItem(row),
-					metadata = item.columns;
+					metadata = item.columns,
+					d = getDataItem(row);
 
-				var d = getDataItem(row);
-
-				// TODO:  shorten this loop (index? heuristics? binary search?)
 				for (var i = 0, ii = self.options.columns.length; i < ii; i++) {
 					// Cells to the right are outside the range.
-					if (columnPosLeft[i] > range.rightPx) {
+					if (cache.columnPosLeft[i] > range.rightPx) {
 						break;
 					}
 
@@ -1086,7 +1079,7 @@
 						}
 					}
 
-					if (columnPosRight[Math.min(ii - 1, i + colspan - 1)] > range.leftPx) {
+					if (cache.columnPosRight[Math.min(ii - 1, i + colspan - 1)] > range.leftPx) {
 						renderCell(stringArray, row, i, colspan, d);
 						cellsAdded++;
 					}
@@ -1143,8 +1136,8 @@
 				i = i | 0;
 
 				var colspan = cacheEntry.cellColSpans[i];
-				if (columnPosLeft[i] > range.rightPx ||
-					columnPosRight[Math.min(self.options.columns.length - 1, i + colspan - 1)] < range.leftPx) {
+				if (cache.columnPosLeft[i] > range.rightPx ||
+					cache.columnPosRight[Math.min(self.options.columns.length - 1, i + colspan - 1)] < range.leftPx) {
 					if (!(row == activeRow && i == activeCell)) {
 						cellsToRemove.push(i);
 					}
@@ -1507,12 +1500,7 @@
 
 				// Process the data
 				if (grid.options.data) {
-					// TODO: Don't convert to Backbone Collection -- use initial collection
-					if (grid.options.data instanceof Backbone.Collection) {
-						this.reset(grid.options.data.models);
-					} else {
-						this.reset(grid.options.data);
-					}
+					this.reset(grid.options.data);
 				}
 
 				return this;
@@ -1616,7 +1604,8 @@
 						continue;
 					}
 
-					// Do a depth-first aggregation so that parent setGrouping aggregators can access subgroup totals.
+					// Do a depth-first aggregation so that parent setGrouping aggregators
+					// can access subgroup totals.
 					if (g.groups) {
 						calculateTotals(g.groups, level + 1);
 					}
@@ -2572,7 +2561,8 @@
 			//
 			this.loadValue = function (item) {
 				if (!item || !item.data) return null;
-				return this.currentValue = item.data[options.column.field] || null;
+				this.currentValue = item.data[options.column.field] || null;
+				return this.currentValue;
 			};
 
 
@@ -3221,7 +3211,7 @@
 		//
 		// @return integer
 		getColumnIndex = function (id) {
-			return columnsById[id];
+			return cache.columnsById[id];
 		};
 
 
@@ -4765,6 +4755,7 @@
 			cleanupRows(rendered);
 
 			// Add new rows & missing cells in existing rows
+			// Handles horizontal scrolling and cell reveal
 			if (lastRenderedScrollLeft != scrollLeft) {
 				cleanUpAndRenderCells(rendered);
 			}
@@ -4875,8 +4866,8 @@
 				}
 
 				// Do not render cells outside of the viewport.
-				if (columnPosRight[Math.min(l - 1, i + colspan - 1)] > range.leftPx) {
-					if (columnPosLeft[i] > range.rightPx) {
+				if (cache.columnPosRight[Math.min(l - 1, i + colspan - 1)] > range.leftPx) {
+					if (cache.columnPosLeft[i] > range.rightPx) {
 						// All columns to the right are outside the range.
 						break;
 					}
@@ -5052,8 +5043,8 @@
 			scrollRowIntoView(row, doPaging);
 
 			var colspan = getColspan(row, cell);
-			var left = columnPosLeft[cell],
-				right = columnPosRight[cell + (colspan > 1 ? colspan - 1 : 0)],
+			var left = cache.columnPosLeft[cell],
+				right = cache.columnPosRight[cell + (colspan > 1 ? colspan - 1 : 0)],
 				scrollRight = scrollLeft + viewportW;
 
 			if (left < scrollLeft) {
@@ -5300,14 +5291,14 @@
 
 			this.options.columns = columns;
 
-			columnsById = {};
+			cache.columnsById = {};
 			var m;
 			for (var i = 0, l = this.options.columns.length; i < l; i++) {
 				// TODO: This is ugly. Can anything be done?
 				m = self.options.columns[i];
 				m = self.options.columns[i] = $.extend(JSON.parse(JSON.stringify(columnDefaults)), m);
 
-				columnsById[m.id] = i;
+				cache.columnsById[m.id] = i;
 				if (m.minWidth && m.width < m.minWidth) {
 					m.width = m.minWidth;
 				}
@@ -5660,7 +5651,7 @@
 				var columndef = getColumnFromEvent(event);
 				if (!columndef) return;
 
-				var column_index = columnsById[columndef.id],
+				var column_index = cache.columnsById[columndef.id],
 					$column = $(columnElements[column_index]),
 					currentWidth = $column.width(),
 					headerPadding = $column.outerWidth() - currentWidth;
@@ -6214,12 +6205,12 @@
 		//
 		updateColumnCaches = function () {
 			// Pre-calculate cell boundaries.
-			columnPosLeft = [];
-			columnPosRight = [];
+			cache.columnPosLeft = [];
+			cache.columnPosRight = [];
 			var x = 0;
 			for (var i = 0, l = self.options.columns.length; i < l; i++) {
-				columnPosLeft[i] = x;
-				columnPosRight[i] = x + self.options.columns[i].width;
+				cache.columnPosLeft[i] = x;
+				cache.columnPosRight[i] = x + self.options.columns[i].width;
 				x += self.options.columns[i].width;
 			}
 		};
@@ -6388,7 +6379,7 @@
 				if (c.maxWidth && c.width > c.maxWidth)	c.width = c.maxWidth;
 
 				// Build column id cache
-				columnsById[c.id] = i;
+				cache.columnsById[c.id] = i;
 			}
 		},
 

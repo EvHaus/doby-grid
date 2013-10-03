@@ -1,0 +1,29 @@
+{
+	"name": "doby-grid",
+	"description": "Doby Grid is a <table> on steroids",
+	"version": "0.0.1",
+	"author": "Globex Designs, Inc.",
+	"homepage": "http://www.dobyjs.com/grid",
+	"issues": {
+		"url": "https://github.com/globexdesigns/doby-grid/issues"
+	},
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/globexdesigns/doby-grid.git",
+		"branch": "master"
+	},
+	"devDependencies": {
+		"grunt": "~0.4.1",
+		"grunt-contrib-jshint": "~0.6.0",
+		"grunt-contrib-uglify": "~0.2.2",
+		"grunt-contrib-less": "~0.7.0",
+		"grunt-contrib-jasmine": "~0.5.1"
+	},
+	"licenses": [
+		{
+			"type": "MIT",
+			"url": "https://github.com/globexdesigns/doby-grid/blob/master/LICENSE"
+    }
+	],
+	"main": "Gruntfile.js"
+}
