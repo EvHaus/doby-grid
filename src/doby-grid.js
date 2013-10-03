@@ -70,7 +70,7 @@
 				rowPositions: {},
 				rows: []
 			},
-			cacheRowPositions,
+			cacheRows,
 			canCellBeActive,
 			canCellBeSelected,
 			canvasWidth,
@@ -217,6 +217,8 @@
 				if (data) {
 					$.extend(this, data);
 				}
+
+				this.toString = function () { return "NonDataItem"; };
 			},
 			numVisibleRows,
 			offset = 0,		// current page offset
@@ -495,7 +497,7 @@
 				createColumnHeaders();
 				setupColumnSort();
 				createCssRules();
-				cacheRowPositions();
+				cacheRows();
 				resizeCanvas();
 
 				// Assign events
@@ -883,17 +885,18 @@
 		};
 
 
-		// cacheRowPositions()
+		// cacheRows()
 		// Walks through the data and caches positions for all the rows into
 		// the 'cache.rowPositions' object
 		//
 		// @param	from		integer		(Optional) Start to cache from which row?
 		//
-		cacheRowPositions = function (from) {
+		cacheRows = function (from) {
 			from = from || 0;
 
 			// Start cache object
 			if (from === 0) {
+				cache.indexById = {};
 				cache.rowPositions = {
 					0: {
 						top: 0,
@@ -906,6 +909,13 @@
 			var count = self.collection.items.length, item, data;
 			for (var i = from, l = count; i < l; i++) {
 				item = self.collection.items[i];
+
+				// Cache by item id
+
+				cache.indexById[item[idProperty]] = i;
+
+				// Cache row position
+
 				data = {
 					top: (cache.rowPositions[i - 1]) ? (cache.rowPositions[i - 1].bottom - offset) : 0
 				};
@@ -1478,7 +1488,6 @@
 				recalc,
 				uncompiledFilter,
 				uncompiledFilterWithCaching,
-				updateIndexById,
 				validate;
 
 
@@ -1538,13 +1547,13 @@
 					}
 				}
 
-				// If data used to be empty, with an alert - remove alert
-				if (this.items.length == 1 && this.items[0].__alert) {
-					this.deleteItem(this.items[0][idProperty]);
-				}
-
 				// Add the new models
 				if (toAdd.length) {
+					// If data used to be empty, with an alert - remove alert
+					if (grid.options.emptyNotice && this.items.length == 1 && this.items[0].__alert) {
+						this.deleteItem(this.items[0][idProperty]);
+					}
+
 					// If "addRow" is enabled, make sure we don't insert below it
 					if (grid.options.addRow && (
 							(at && at > this.items.length) ||
@@ -1556,13 +1565,11 @@
 
 					if (at !== null && at !== undefined) {
 						Array.prototype.splice.apply(this.items, [at, 0].concat(toAdd));
-						updateIndexById((at > 0 ? at - 1 : 0));
-						cacheRowPositions(at);
+						cacheRows((at > 0 ? at - 1 : 0));
 					} else {
 						var prevLength = this.items.length;
 						Array.prototype.push.apply(this.items, toAdd);
-						updateIndexById(this.items.length - 1);
-						cacheRowPositions(prevLength);
+						cacheRows(prevLength - 1);
 					}
 				}
 
@@ -1743,20 +1750,27 @@
 			// @param	id		string		ID of the row item
 			//
 			this.deleteItem = function (id) {
-				var idx = cache.indexById[id];
-				if (idx === undefined) {
-					throw "Unable to delete collection item. Invalid id (" + id + ") supplied.";
+				if (id === undefined || id === null) {
+					throw "Unable to delete collection item. Invalid 'id' supplied.";
 				}
+
+				var idx = cache.indexById[id];
+				if (!idx) return;
+
+				// Remove from items
+				this.items.splice(idx, 1);
+
+				// Clear cache
 				delete cache.indexById[id];
 				delete cache.rowPositions[idx];
 
-				this.items.splice(idx, 1);
-				updateIndexById(idx);
-				if (grid.options.remote) this.length--;
+				// TODO: Update length. Still needed?
+				//if (grid.options.remote) this.length--;
 
-				// Recache positions from row
-				cacheRowPositions(idx);
+				// Recache positions from affected row
+				cacheRows(idx);
 
+				// Re-render grid
 				this.refresh();
 			};
 
@@ -2091,7 +2105,7 @@
 								// Compare group with non group
 								(item.__group && !r.__group) ||
 								(!item.__group && r.__group) ||
-								// Compare between groups
+								// Compare two groups
 								(
 									groupingInfos.length && eitherIsNonData &&
 									(item && item.__group !== r.__group) ||
@@ -2108,7 +2122,7 @@
 								) ||
 								// Compare between different data object ids
 								(
-									item && item.data && r.data && item[idProperty] != r[idProperty] ||
+									item && item[idProperty] != r[idProperty] ||
 									(updated && updated[item[idProperty]])
 								)
 							)
@@ -2125,11 +2139,9 @@
 			// insertEmptyAlert()
 			// When the grid is empty and the empty alert is enabled -- add a NonDataItem to the grid
 			//
-			// @param	type		string			"default", "remote" or "filter"
+			// @param	items	array		Array of items to insert into
 			//
-			insertEmptyAlert = function (type) {
-				if (!type) type = "default";
-
+			insertEmptyAlert = function (items) {
 				var obj = new NonDataItem({
 					__alert: true,
 					id: '-empty-alert-message-',
@@ -2140,14 +2152,14 @@
 						0: {
 							colspan: "*",
 							formatter: function (row, cell, value, columnDef, data) {
-								return getLocale("empty." + type);
+								return getLocale("empty.default");
 							},
 							editor: null
 						}
 					}
 				});
 
-				self.reset([obj]);
+				items.push(obj);
 			};
 
 
@@ -2198,6 +2210,10 @@
 				return diff;
 			};
 
+
+			// refresh()
+			// Automatically re-render the grid when rows have changed
+			//
 			this.refresh = function () {
 				if (suspend) return;
 
@@ -2257,16 +2273,13 @@
 				// Parse data
 				parse(models);
 
-				this.items = filteredItems = models;
-				cache.indexById = {};
+				// Load items and validate
+				this.items = filteredItems = validate(models);
 
 				if (recache) {
-					cache.rows = [];
-					cacheRowPositions();
+					cacheRows();
 				}
 
-				updateIndexById();
-				validate();
 				suspend = false;
 
 				this.refresh();
@@ -2352,8 +2365,10 @@
 				if (ascending === false) {
 					this.items.reverse();
 				}
-				cache.indexById = {};
-				updateIndexById();
+
+				// TODO: This only needs to re-index ID, not recalculate positions.
+				// Maybe update cacheRows to support different modes?
+				cacheRows();
 				this.refresh();
 			};
 
@@ -2389,28 +2404,6 @@
 			};
 
 
-			// updateIndexById()
-			// Given a starting index, will update the index of models by id from that index onwards
-			//
-			// @param	startingIndex		integer		Where to start
-			//
-			updateIndexById = function (startingIndex) {
-				// TODO: Combine this with cacheRowPositions so we don't need to loop over the
-				// full data set twice. Also determine whether or not we even have variable heights
-				// here and decide whether or not to create a cache
-				startingIndex = startingIndex || 0;
-				var id;
-				for (var i = startingIndex, l = self.items.length; i < l; i++) {
-					if (self.items[i] === null) continue;
-					id = self.items[i][idProperty];
-					if (id === null || id === undefined) {
-						throw "Each data element must implement a unique 'id' property";
-					}
-					cache.indexById[id] = i;
-				}
-			};
-
-
 			// updateItem()
 			// Update and redraw an existing items
 			//
@@ -2432,19 +2425,24 @@
 
 
 			// validate()
-			// Ensures that the given items are valid.
+			// Ensures that the given items are valid. Returns a list of validated items.
 			//
-			validate = function () {
+			// @param	items		array		Array of models to validate
+			//
+			// @return array
+			validate = function (items) {
 				var id;
-				for (var i = 0, l = self.items.length; i < l; i++) {
-					id = self.items[i][idProperty];
-					if (id === undefined || cache.indexById[id] !== i) {
-						throw "Each data item must have a unique 'id' key.";
+				for (var i = 0, l = items.length; i < l; i++) {
+					id = items[i][idProperty];
+					if (id === undefined || id === null) {
+						throw "Each data item must have a unique 'id' key. The following item is missing an 'id': " + self.items[i];
 					}
 				}
 
 				// If no data - add an empty alert
-				if (grid.options.emptyNotice && !self.items.length) insertEmptyAlert();
+				if (grid.options.emptyNotice && !items.length) insertEmptyAlert(items);
+
+				return items;
 			};
 
 			return this.initialize();
@@ -4844,11 +4842,11 @@
 			if (d.class) rowCss += " " + (typeof d.class === 'function' ? d.class() : d.class);
 
 			stringArray.push("<div class='" + rowCss + "' ");
-			stringArray.push("style='top:" + (pos.top + offset) + "px;");
+			stringArray.push("style='top:" + (pos.top + offset) + "px");
 
 			if (pos.height) {
 				var rowheight = pos.height - cellHeightDiff;
-				stringArray.push('height:' + rowheight + 'px;line-height:' + rowheight + 'px');
+				stringArray.push(';height:' + rowheight + 'px;line-height:' + rowheight + 'px');
 			}
 
 			stringArray.push("'>");
@@ -4895,8 +4893,7 @@
 		// @param	range		object		Range of rows to render
 		//
 		renderRows = function (range) {
-			var parentNode = $canvas[0],
-				stringArray = [],
+			var stringArray = [],
 				rows = [],
 				needToReselectCell = false,
 				dataLength = getDataLength(),
@@ -4933,16 +4930,14 @@
 				counter_rows_rendered++;
 			}
 
-			if (!rows.length) {
-				return;
-			}
+			if (!rows.length) return;
 
 			var x = document.createElement("div");
 			x.innerHTML = stringArray.join("");
 
 			// Cache the row nodes
 			for (i = 0, ii = rows.length; i < ii; i++) {
-				cache.nodes[rows[i]].rowNode = parentNode.appendChild(x.firstChild);
+				cache.nodes[rows[i]].rowNode = $canvas[0].appendChild(x.firstChild);
 			}
 
 			if (needToReselectCell) {
@@ -5383,8 +5378,9 @@
 			item.height = height;
 			self.collection.updateItem(item[idProperty], item);
 
+			cacheRows(row);
+
 			// Invalidate rows below the edited one
-			cacheRowPositions();
 			invalidateRows(_.range(row, self.collection.length + 1));
 			render();
 		};
