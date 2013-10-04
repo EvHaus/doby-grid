@@ -3071,10 +3071,16 @@
 				return null;
 			}
 
-			var pos = cache.rowPositions[row],
-				y1 = pos.top,
-				y2 = y1 + (pos.height || self.options.rowHeight) - 1,
-				x1 = 0;
+			var y1, y2;
+			if (variableRowHeight) {
+				var pos = cache.rowPositions[row];
+				y1 = pos.top;
+				y2 = y1 + (pos.height || self.options.rowHeight) - 1;
+			} else {
+				y1 = self.options.rowHeight * row - offset;
+				y2 = y1 + self.options.rowHeight - 1;
+			}
+			var x1 = 0;
 
 			for (var i = 0; i < cell; i++) {
 				x1 += self.options.columns[i].width;
@@ -5124,14 +5130,26 @@
 		// @param	doPaging	boolean		TODO: ??
 		//
 		scrollRowIntoView = function (row, doPaging) {
-			var pos = cache.rowPositions[row],
-				rowAtTop = pos.top,
+			var rowAtTop, rowAtBottom;
+			if (variableRowHeight) {
+				var pos = cache.rowPositions[row];
+				rowAtTop = pos.top;
 				rowAtBottom = pos.bottom - viewportH + (viewportHasHScroll ? window.scrollbarDimensions.height : 0);
+			} else {
+				rowAtTop = row * self.options.rowHeight;
+				rowAtBottom = (row + 1) * self.options.rowHeight - viewportH + (viewportHasHScroll ? scrollbarDimensions.height : 0);
+			}
 
-
-			// need to page down?
-			var pgdwn = pos.bottom > scrollTop + viewportH + offset,
+			// Need to page down?
+			var pgdwn,
+				pgup;
+			if (!options.variableRowHeight) {
+				pgdwn = (row + 1) * self.options.rowHeight > scrollTop + viewportH + offset;
+				pgup = row * self.options.rowHeight < scrollTop + offset;
+			} else {
+				pgdwn = pos.bottom > scrollTop + viewportH + offset;
 				pgup = pos.top < scrollTop + offset;
+			}
 
 			if (pgdwn) {
 				scrollTo(doPaging ? rowAtTop : rowAtBottom);
@@ -5151,8 +5169,14 @@
 		// @param	row		integer		Row index
 		//
 		scrollRowToTop = function (row) {
-			var pos = cache.rowPositions[row];
-			scrollTo(pos.top);
+
+			if (!options.variableRowHeight) {
+				scrollTo(row * self.options.rowHeight);
+			} else {
+				var pos = cache.rowPositions[row];
+				scrollTo(pos.top);
+			}
+
 			render();
 		};
 

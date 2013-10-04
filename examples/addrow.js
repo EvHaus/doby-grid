@@ -5,6 +5,7 @@ define([], function() {
 		var data = []
 		for (var i = 0; i < 10; i++) {
 			data.push({
+				id: 'fancy_id_' + i,
 				data: {
 					id: 'fancy_id_' + i,
 					name: "Bob Robert Jr. " + i
