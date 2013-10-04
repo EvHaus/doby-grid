@@ -95,10 +95,12 @@
 			// Load an example file
 			var loadExample = function(name) {
 				require(['examples/' + name], function(example) {
-					var size = example[0].data ? example[0].data.length : 0;
-					var type = 'DobyGrid with ' + size + ' objects created in';
+					var opts = example[0](),
+						size = opts.data ? opts.data.length : 0,
+						type = 'DobyGrid with ' + size + ' objects created in';
+
 					console.time(type);
-					window.grid = new DobyGrid(example[0]).appendTo($('#gridwrapper').empty());
+					window.grid = new DobyGrid(opts).appendTo($('#gridwrapper').empty());
 					if (example[1]) {
 						example[1](window.grid);
 					}

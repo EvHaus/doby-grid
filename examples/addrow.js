@@ -1,44 +1,46 @@
 define([], function() {
-	// Generate Data
-	var data = []
-	for (var i = 0; i < 10; i++) {
-		data.push({
-			data: {
-				id: 'fancy_id_' + i,
-				name: "Bob Robert Jr. " + i
-			}
-		});
-	}
+	return [function () {
 
-	// Generate Grid
-	return [{
-		addRow: true,
-		columns: [{
-			id: "id",
-			name: "ID",
-			field: "id",
-			sortable: true
-		}, {
-			id: "name",
-			name: "Name",
-			field: "name",
-			minWidth: 100,
-			sortable: true
-		}, {
-			editable: false,
-			id: "action",
-			name: "Action",
-			field: "action",
-			focusable: false,
-			formatter: function () {
-				return '<button class="add">Add Another Row</button><button class="remove">Remove This Row</button>'
-			},
-			selectable: false,
-			width: 300
-		}],
-		editable: true,
-		data: data
-	}, function(grid) {
+		// Generate Data
+		var data = []
+		for (var i = 0; i < 10; i++) {
+			data.push({
+				data: {
+					id: 'fancy_id_' + i,
+					name: "Bob Robert Jr. " + i
+				}
+			});
+		}
+
+		return {
+			addRow: true,
+			columns: [{
+				id: "id",
+				name: "ID",
+				field: "id",
+				sortable: true
+			}, {
+				id: "name",
+				name: "Name",
+				field: "name",
+				minWidth: 100,
+				sortable: true
+			}, {
+				editable: false,
+				id: "action",
+				name: "Action",
+				field: "action",
+				focusable: false,
+				formatter: function () {
+					return '<button class="add">Add Another Row</button><button class="remove">Remove This Row</button>'
+				},
+				selectable: false,
+				width: 300
+			}],
+			editable: true,
+			data: data
+		}
+	}, function (grid) {
 		grid.on('click', function(event, args) {
 			event.stopPropagation()
 
