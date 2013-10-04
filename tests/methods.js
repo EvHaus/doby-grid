@@ -62,6 +62,7 @@ describe("Methods and Data Manipulation", function () {
 				methodGrid.add(item)
 			}).toThrow('You are not allowed to add() items without a unique \'id\' value. A row with id \'' + item.data.id + '\' already exists.')
 		})
+
 	})
 
 

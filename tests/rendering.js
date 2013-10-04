@@ -182,6 +182,23 @@ describe("Rendering", function () {
 			})
 		})
 
+
+		// ==========================================================================================
+
+
+		it("should enable variable row height mode when an item is add()ed with a custom height", function () {
+			// Reset
+			grid.reset([{data: {id: 1, name: 'test'}}])
+
+			// Insert
+			grid.add({data: {id: 2, name: 'test'}, height: 1500})
+
+			// Make sure row has the right height
+			grid.$el.find('.doby-grid-row:last-child').each(function () {
+				expect($(this).height()).toEqual(1500)
+			})
+		})
+
 	})
 
 

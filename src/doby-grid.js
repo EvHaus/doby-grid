@@ -273,6 +273,7 @@
 			updateRowPositions,
 			validateColumns,
 			validateOptions,
+			variableRowHeight,
 			viewportH,
 			viewportHasHScroll,
 			viewportHasVScroll,
@@ -897,13 +898,15 @@
 			// Start cache object
 			if (from === 0) {
 				cache.indexById = {};
-				cache.rowPositions = {
-					0: {
-						top: 0,
-						height: self.options.rowHeight,
-						bottom: self.options.rowHeight
-					}
-				};
+				if (variableRowHeight) {
+					cache.rowPositions = {
+						0: {
+							top: 0,
+							height: self.options.rowHeight,
+							bottom: self.options.rowHeight
+						}
+					};
+				}
 			}
 
 			var count = self.collection.items.length, item, data;
@@ -915,17 +918,19 @@
 				cache.indexById[item[idProperty]] = i;
 
 				// Cache row position
+				if (variableRowHeight) {
 
-				data = {
-					top: (cache.rowPositions[i - 1]) ? (cache.rowPositions[i - 1].bottom - offset) : 0
-				};
+					data = {
+						top: (cache.rowPositions[i - 1]) ? (cache.rowPositions[i - 1].bottom - offset) : 0
+					};
 
-				if (item.height && item.height != self.options.rowHeight) {
-					data.height = item.height;
+					if (item.height && item.height != self.options.rowHeight) {
+						data.height = item.height;
+					}
+
+					data.bottom = data.top + (data.height || self.options.rowHeight);
+					cache.rowPositions[i] = data;
 				}
-
-				data.bottom = data.top + (data.height || self.options.rowHeight);
-				cache.rowPositions[i] = data;
 			}
 		};
 
@@ -2164,7 +2169,8 @@
 
 
 			// parse()
-			// Given a list of items objects to convert to models, returns a list of parsed items
+			// Given a list of items objects to convert to models, returns a list of parsed items.
+			// This also checks to see if we need to enable variable height support.
 			//
 			// @param	item		array		List of objects
 			//
@@ -2175,6 +2181,11 @@
 					// Steal the 'id' from the 'data' object
 					if (!(idProperty in items[i]) && idProperty in items[i].data) {
 						items[i][idProperty] = items[i].data[idProperty];
+					}
+
+					// Detect if variable row heights are used
+					if (!variableRowHeight && 'height' in items[i] && items[i].height !== grid.options.rowHeight) {
+						variableRowHeight = true;
 					}
 				}
 				return items;
@@ -3444,7 +3455,9 @@
 				rowLength = getDataLength(),
 				pos, lastpos, i;
 
-			if (rowLength) {
+			if (!variableRowHeight) {
+				return Math.floor((maxPosition + offset) / self.options.rowHeight);
+			} else if (rowLength) {
 				// Loop through the row position cache and break when the row is found
 				for (i = 0; i < rowLength; i++) {
 					pos = cache.rowPositions[i];
@@ -4836,15 +4849,20 @@
 					(row === activeRow ? " active" : "") +
 					(row % 2 === 1 ? " odd" : ""),
 				data = self.collection,
+				top = self.options.rowHeight * row - offset,
+				pos = {};
+
+			if (variableRowHeight) {
 				pos = cache.rowPositions[row];
+				top = (pos.top - offset);
+			}
 
 
 			if (d.class) rowCss += " " + (typeof d.class === 'function' ? d.class() : d.class);
 
-			stringArray.push("<div class='" + rowCss + "' ");
-			stringArray.push("style='top:" + (pos.top - offset) + "px");
+			stringArray.push("<div class='" + rowCss + "' style='top:" + top + "px");
 
-			if (pos.height) {
+			if (variableRowHeight && pos.height) {
 				var rowheight = pos.height - cellHeightDiff;
 				stringArray.push(';height:' + rowheight + 'px;line-height:' + rowheight + 'px');
 			}
@@ -4990,7 +5008,12 @@
 
 			viewportH = getViewportHeight();
 
-			numVisibleRows = Math.ceil(getRowFromPosition(viewportH));
+			if (!variableRowHeight) {
+				numVisibleRows = Math.ceil(viewportH / self.options.rowHeight);
+			} else {
+				numVisibleRows = Math.ceil(getRowFromPosition(viewportH));
+			}
+
 			viewportW = parseFloat($.css(self.$el[0], "width", true));
 			$viewport.height(viewportH);
 
@@ -6262,8 +6285,12 @@
 			if (dataLength === 0) {
 				viewportHasVScroll = false;
 			} else {
-				var rpc = cache.rowPositions[dataLength - 1];
-				viewportHasVScroll = rpc && (rpc.bottom > viewportH);
+				if (variableRowHeight) {
+					var rpc = cache.rowPositions[dataLength - 1];
+					viewportHasVScroll = rpc && (rpc.bottom > viewportH);
+				} else {
+					viewportHasVScroll = dataLength * self.options.rowHeight > viewportH;
+				}
 			}
 
 			// remove the rows that are now outside of the data range
@@ -6283,9 +6310,14 @@
 			if (dataLength === 0) {
 				th = viewportH - window.scrollbarDimensions.height;
 			} else {
-				var pos = dataLength - 1,
-					rps = cache.rowPositions[pos],
+				var rowMax;
+				if (!variableRowHeight) {
+					rowMax = self.options.rowHeight * dataLength;
+				} else {
+					var pos = dataLength - 1,
+						rps = cache.rowPositions[pos];
 					rowMax = rps.bottom;
+				}
 
 				th = Math.max(rowMax, viewportH - window.scrollbarDimensions.height);
 			}
@@ -6411,6 +6443,11 @@
 			if (self.options.addRow && !self.options.editable) {
 				console.warn('In order to use "addRow", you must enable the "editable" parameter. The "addRow" option has been disabled.');
 				self.options.addRow = false;
+			}
+
+			// If 'resizableRows' are enabled, turn on variableRowHeight mode
+			if (self.options.resizableRows && !variableRowHeight) {
+				variableRowHeight = true;
 			}
 
 			// Validate and pre-process

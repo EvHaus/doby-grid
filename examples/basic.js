@@ -4,7 +4,7 @@ define([], function() {
 
 		// Generate Data
 		var data = []
-		for (var i = 0; i < 150000; i++) {
+		for (var i = 0; i < 500000; i++) {
 			data.push({
 				data: {
 					id: i,
