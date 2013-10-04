@@ -4842,7 +4842,7 @@
 			if (d.class) rowCss += " " + (typeof d.class === 'function' ? d.class() : d.class);
 
 			stringArray.push("<div class='" + rowCss + "' ");
-			stringArray.push("style='top:" + (pos.top + offset) + "px");
+			stringArray.push("style='top:" + (pos.top - offset) + "px");
 
 			if (pos.height) {
 				var rowheight = pos.height - cellHeightDiff;
