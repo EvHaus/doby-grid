@@ -4230,7 +4230,7 @@
 				formatter: function () {
 					return "";
 				},
-				id: '--add-row--',
+				id: '-add-row-',
 			});
 
 			self.collection.add(obj);
@@ -5347,6 +5347,11 @@
 		this.setOptions = function (options) {
 			makeActiveCellNormal();
 
+			// If setting new data
+			if (options.data) {
+				this.reset(options.data);
+			}
+
 			// If toggling "addRow"
 			if (options.addRow !== undefined && self.options.addRow !== options.addRow) {
 				// Insert if enabling
@@ -5354,7 +5359,7 @@
 					insertAddRow();
 				// Remove if disabling
 				} else {
-					this.remove('--add-row--');
+					this.remove('-add-row-');
 				}
 			}
 

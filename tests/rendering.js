@@ -162,9 +162,12 @@ describe("Rendering", function () {
 
 
 		it("should render a special row at the end of the grid when using 'addRow'", function () {
-			// Prepare for test
-			grid.reset([{data: {id: 1, name: "one"}}, {data: {id: 2, name: "two"}}])
-			grid.setOptions({addRow: true, editable: true})
+			// Prepare data for test
+			grid.setOptions({
+				addRow: true,
+				data: [{data: {id: 1, name: "one"}}, {data: {id: 2, name: "two"}}],
+				editable: true
+			})
 
 			grid.$el.find('.doby-grid-row:last-child .doby-grid-cell').each(function () {
 				expect(this).toBeEmpty()

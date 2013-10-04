@@ -39,8 +39,14 @@ describe("Methods and Data Manipulation", function () {
 
 
 		it("should be able to merge data item via add() when adding item with the same id", function () {
+			// Prepare for unit test
+			methodGrid.reset([{data: {id: 101, name: 'test'}}])
+
+			// Execute
 			var item = {data: {id: 101, name: 'updated'}}
 			methodGrid.add(item, {merge: true})
+
+			// Validate
 			var newItem = methodGrid.get(101)
 			expect(JSON.stringify(item)).toEqual(JSON.stringify(newItem))
 		})
@@ -156,8 +162,11 @@ describe("Methods and Data Manipulation", function () {
 
 	describe("get()", function () {
 		it("should be able to get() model by id", function () {
+			// Prepare for test
 			var item = {data: {id: 102, name: 'updated'}}
-			methodGrid.add(item)
+			methodGrid.reset([item])
+
+			// Validate
 			var gotten = methodGrid.get(102)
 			expect(gotten.data.id).toEqual(102)
 		})
@@ -167,8 +176,11 @@ describe("Methods and Data Manipulation", function () {
 
 
 		it("should be able to get() model by reference", function () {
+			// Prepare for test
 			var item = {data: {id: 103, name: 'updated'}}
-			methodGrid.add(item)
+			methodGrid.reset([item])
+
+			// Validate
 			var gotten = methodGrid.get({data: {id: 103, name: 'updated'}})
 			expect(gotten.data.id).toEqual(103)
 		})
@@ -210,6 +222,20 @@ describe("Methods and Data Manipulation", function () {
 
 			methodGrid = methodGrid.remove(2)
 			expect(methodGrid.collection.items).toEqual([newdata[0]])
+		})
+	})
+
+
+	// ==========================================================================================
+
+
+	describe("setOptions()", function () {
+		it("should be able to reload data using setOptions()", function () {
+			methodGrid.setOptions({
+				data: [{data: {id: 189, name: 'test'}}, {data: {id: 289, name: 'test2'}}]
+			})
+
+			expect(_.pluck(methodGrid.collection.items, 'id')).toEqual([189, 289])
 		})
 	})
 
