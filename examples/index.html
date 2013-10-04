@@ -97,14 +97,14 @@
 				require(['examples/' + name], function(example) {
 					var opts = example[0](),
 						size = opts.data ? opts.data.length : 0,
-						type = 'DobyGrid with ' + size + ' objects created in';
+						type = 'DobyGrid "' + name + '" example with ' + size + ' objects';
 
-					console.time(type);
+					console.profile(type);
 					window.grid = new DobyGrid(opts).appendTo($('#gridwrapper').empty());
 					if (example[1]) {
 						example[1](window.grid);
 					}
-					console.timeEnd(type)
+					console.profileEnd(type)
 				})
 			}
 
