@@ -837,6 +837,7 @@
 				.on('dragstart', function (event, dd) {
 					if (!$(event.target).hasClass(classrowhandle)) return;
 					event.stopImmediatePropagation();
+
 					dd._row = getRowFromNode($(event.target).parent()[0]);
 					dd._rowNode = cache.nodes[dd._row].rowNode;
 
@@ -853,6 +854,8 @@
 					dd._container = $(dd._rowsBelow).parent();
 				})
 				.on('drag', function (event, dd) {
+					if (dd._row === undefined) return;
+
 					// Resize current row
 					var node = dd._rowNode,
 						pos = cache.rowPositions[dd._row],
@@ -878,6 +881,8 @@
 					dd._container.css({marginTop: (dd._height - height) + 'px'});
 				})
 				.on('dragend', function (event, dd) {
+					if (dd._row === undefined) return;
+
 					// Unwrap rows below
 					$(dd._rowsBelow).unwrap();
 
@@ -4863,7 +4868,6 @@
 				top = (pos.top - offset);
 			}
 
-
 			if (d.class) rowCss += " " + (typeof d.class === 'function' ? d.class() : d.class);
 
 			stringArray.push("<div class='" + rowCss + "' style='top:" + top + "px");
@@ -5130,14 +5134,14 @@
 		// @param	doPaging	boolean		TODO: ??
 		//
 		scrollRowIntoView = function (row, doPaging) {
-			var rowAtTop, rowAtBottom;
+			var rowAtTop, rowAtBottom, pos;
 			if (variableRowHeight) {
-				var pos = cache.rowPositions[row];
+				pos = cache.rowPositions[row];
 				rowAtTop = pos.top;
 				rowAtBottom = pos.bottom - viewportH + (viewportHasHScroll ? window.scrollbarDimensions.height : 0);
 			} else {
 				rowAtTop = row * self.options.rowHeight;
-				rowAtBottom = (row + 1) * self.options.rowHeight - viewportH + (viewportHasHScroll ? scrollbarDimensions.height : 0);
+				rowAtBottom = (row + 1) * self.options.rowHeight - viewportH + (viewportHasHScroll ? window.scrollbarDimensions.height : 0);
 			}
 
 			// Need to page down?
