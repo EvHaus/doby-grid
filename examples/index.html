@@ -12,8 +12,17 @@
 				padding: 0;
 			}
 
+			body.light {
+				background: #FFF;
+				color: #000;
+			}
+
+			body.dark {
+				background: #000;
+				color: #FFF;
+			}
+
 			#examplemenu {
-				border-right: 1px solid rgba(0,0,0,0.5);
 				bottom: 0;
 				left: 0;
 				list-style: none;
@@ -24,9 +33,11 @@
 				width: 180px
 			}
 
-				#examplemenu li {
-					border-bottom: 1px solid rgba(0,0,0,0.2);
-				}
+			.light #examplemenu {border-right: 1px solid rgba(0,0,0,0.5)}
+			.dark #examplemenu {border-right: 1px solid rgba(255,255,255,0.5)}
+
+				.light #examplemenu li {border-bottom: 1px solid rgba(0,0,0,0.2)}
+				.dark #examplemenu li {border-bottom: 1px solid rgba(255,255,255,0.2)}
 
 				#examplemenu h1 {
 					font-size: 24px;
@@ -34,7 +45,6 @@
 				}
 
 				#examplemenu a {
-					color: #325498;
 					cursor: pointer;
 					font-size: 12px;
 					display: block;
@@ -42,16 +52,32 @@
 					text-decoration: none;
 				}
 
-					#examplemenu a:hover {
-						background: rgba(0,0,0,0.05);
-					}
+				.light #examplemenu a {color: #325498}
+				.dark #examplemenu a {color: #FB0}
+
+					.light #examplemenu a:hover {background: rgba(0,0,0,0.05)}
+					.dark #examplemenu a:hover {background: rgba(255,255,255,0.05)}
+
+			#toolbar {
+				height: 50px;
+				font-size: 12px;
+				left: 180px;
+				line-height: 50px;
+				padding: 0 10px;
+				position: absolute;
+				right: 0;
+				top: 0;
+			}
+
+			.light #toolbar {border-bottom: 1px solid rgba(0,0,0,0.5);}
+			.dark #toolbar {border-bottom: 1px solid rgba(255,255,255,0.5);}
 
 			#gridwrapper {
 				bottom: 10px;
 				left: 190px;
 				position: absolute;
 				right: 10px;
-				top: 10px;
+				top: 60px;
 			}
 		</style>
 		<script>
@@ -113,10 +139,40 @@
 				loadExample($(this).attr('href').substring(1));
 			});
 
-			// Load current example
-			if (document.location.hash) {
-				loadExample(document.location.hash.substring(1));
+			var loadTheme = function(theme) {
+				$(document.body).attr('class','');
+				$('#dobythemeless').remove();
+				$('#gridwrapper').html('Loading...')
+
+				// Load new theme
+				var less_file = '../src/themes/doby-grid-'+theme+'.less';
+				$.get(less_file, function(data) {
+					less.Parser({}).parse(data, function (err, t) {
+						if (err) {
+							return console.error(err)
+						}
+
+						$('<style id="dobythemeless"/>').html(t.toCSS()).appendTo("body");
+						$(document.body).addClass(theme);
+
+						// Load current example
+						if (document.location.hash) {
+							loadExample(document.location.hash.substring(1));
+						}
+					});
+				});
 			}
+
+			// Enable Theme Selector
+			$('#theme-selector').change(function(event) {
+				var theme = $(this).val();
+				localStorage.dobytheme = theme;
+				loadTheme(theme);
+			})
+
+			// Set current theme
+			var currentTheme = localStorage.dobytheme || 'light';
+			loadTheme(currentTheme)
 		})
 		</script>
 	</head>
@@ -130,6 +186,14 @@
 			<li><a href="#rowheights">Resizable Row Heights</a></li>
 			<li><a href="#addrow">Add Row</a></li>
 		</ul>
+
+		<div id="toolbar">
+			Theme:
+			<select id="theme-selector">
+				<option value="light">Light</option>
+				<option value="dark">Dark</option>
+			</select>
+		</div>
 
 		<div id="gridwrapper"></div>
 	</body>

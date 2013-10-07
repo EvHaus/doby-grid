@@ -1,0 +1,296 @@
+/*! doby-grid-light.less (Light Theme for Doby Grid)
+ * (c) 2013 Evgueni Naverniouk, Globex Designs, Inc.
+ * Doby may be freely distributed under the MIT license.
+ * For all details and documentation:
+ * https://github.com/globexdesigns/doby-grid */
+
+@w3c: true;
+@import "../../libs/lesshat/lesshat";
+@url: "../../assets/img/";
+
+
+// Containers
+// ==================================================================================================
+
+
+.doby-grid {
+	background: #111;
+	border: 1px solid #666;
+}
+
+
+// Header
+// ==================================================================================================
+
+
+.doby-grid-header {
+	border-bottom: 1px solid rgba(255,255,255,0.2);
+	box-shadow: rgba(0,0,0,0.6) 0 4px 4px;
+}
+
+	.doby-grid-header-columns {
+		.gradient(~"linear-gradient(#333, #222)");
+		text-indent: 4px;
+	}
+
+		.doby-grid-header-column {
+			border-right: 1px solid rgba(255,255,255,0.1);
+			box-shadow: rgba(0,0,0,0.2) 0 1px 0 inset;
+			color: #EEE;
+			.transition(~"background 0.2s ease-in-out, box-shadow 0.2s ease-in-out");
+
+			&.sortable:hover {
+				background: rgba(255,255,255,0.05);
+				box-shadow: rgba(0,0,0,0.1) 2px 2px 2px inset;
+			}
+
+			&.ui-sortable-helper {
+				.gradient(~"linear-gradient(#3F3F3F, #2F2F2F)");
+				border-left: 1px solid rgba(255,255,255,0.2);
+			}
+
+			// Sorted
+			&.doby-grid-header-column-sorted {
+				background: rgba(255,255,255,0.25);
+			}
+		}
+
+			.doby-grid-column-name {
+				text-shadow: #000 0 1px 0;
+			}
+
+			// Resize handle
+			.doby-grid-resizable-handle {
+				span {
+					border-color: rgba(255,255,255,0.2);
+					.transition(~'all 0.2s ease-in-out');
+				}
+			}
+
+		// Resize handle hover/active
+		.doby-grid-header-column-dragging .doby-grid-resizable-handle span,
+		.doby-grid-resizable-handle:hover span {
+			background: #000;
+			border-left: 1px solid rgba(255,255,255,0.3);
+			border-right: 1px solid rgba(0,0,0,0.7);
+			box-shadow: #222 0 0 2px inset;
+		}
+
+		// Sorting Indicator
+		.doby-grid-sort-indicator-desc {
+			background-image: url("/@{url}sort-alphabet-descending.png");
+		}
+
+		.doby-grid-sort-indicator-asc {
+			background-image: url("/@{url}sort-alphabet.png");
+		}
+
+		// Placeholder when re-ordering columns
+		.doby-grid-sortable-placeholder {
+			background: rgba(0,0,0,0.1);
+			box-shadow: rgba(0,0,0,0.4) 2px 2px 5px inset;
+		}
+
+
+// Header Context Menu
+// ==================================================================================================
+
+
+.doby-grid-dropdown {
+	background: rgba(0,0,0,0.95);
+	border: 1px solid;
+	border-color: rgba(255,255,255,0.3) rgba(80,80,80,0.5) rgba(80,80,80,0.4);
+	border-radius: 5px;
+	box-shadow: #000 0 4px 4px;
+	.transition(~"opacity 0.15s ease-in-out");
+
+	.item {
+		.transition(~"background 0.3s ease-in-out");
+
+		&:hover {
+			background: rgba(255,255,255,0.15);
+		}
+
+		&.on .icon {
+			background: url("/@{url}tick.png") no-repeat;
+		}
+	}
+
+	.divider {
+		border-top: 1px solid rgba(255,255,255,0.2);
+	}
+}
+
+
+// Rows
+// ==================================================================================================
+
+
+.doby-grid-row {
+	border-bottom: 1px solid rgba(255,255,255,0.2);
+
+	&.odd:not(.doby-grid-group) {
+		background: rgba(255,255,255,0.05)
+	}
+}
+
+	.doby-grid-cell {
+		border-right: 1px dotted rgba(255,255,255,0.2);
+		.transition(~"background 0.3s ease-in-out, border 0.3s ease-in-out, box-shadow 0.3s ease-in-out");
+
+		&.selected {
+			background: rgba(90,255,40,0.1);
+		}
+
+		&.active {
+			background: rgba(20,90,255,0.1);
+			border: 1px solid rgba(10,70,180,0.3);
+			box-shadow: 1px 1px 1px rgba(10,70,180,0.2) inset;
+		}
+	}
+
+	// Row resize handle
+	.doby-grid-row-handle {
+		border-bottom: 1px solid rgba(255,255,255,0);
+		border-top: 1px solid rgba(0,0,0,0);
+		.transition(~"all 0.3s ease-in-out");
+
+		&:hover {
+			background: #AAA;
+			border-bottom: 1px solid rgba(255,255,255,0.8);
+			border-top: 1px solid rgba(0,0,0,0.5);
+			box-shadow: #333 0 0 2px inset;
+		}
+	}
+
+// Row drag container
+.doby-grid-row-drag-container {
+	bottom: 0;
+	left: 0;
+	top: 0;
+	position: absolute;
+	right: 0;
+}
+
+
+// Groups
+// ==================================================================================================
+
+
+.doby-grid-group {
+	.gradient(~"linear-gradient(#111, #000)");
+}
+
+	.doby-grid-group-title {
+		font-weight: bold;
+		text-shadow: rgba(0,0,0,0.5) 0 1px 1px;
+
+		strong {
+			color: #DDD;
+			font-weight: 300;
+		}
+
+		.count {
+			color: #DDD;
+			font-size: 11px;
+			font-weight: 300;
+
+			strong {
+				color: #EFD02A;
+				font-weight: 400;
+			}
+		}
+	}
+
+	// Click this to expand/collapse groups
+	.doby-grid-group-toggle {
+		.transition(~"box-shadow 0.2s ease-in-out");
+
+		&:hover {
+			.gradient(~"linear-gradient(#2A2A2A, #1A1A1A)");
+			box-shadow: rgba(0,0,0,0.3) 2px 2px 5px inset;
+		}
+
+		&.expanded .icon {background-image: url("/@{url}minus-circle.png")}
+		&.collapsed .icon {background-image: url("/@{url}plus-circle.png")}
+	}
+
+
+// Row Alert
+// ==================================================================================================
+
+
+.doby-grid-alert {
+	color: #AAA;
+	text-align: center;
+}
+
+
+// Editing
+// ==================================================================================================
+
+
+.doby-grid-cell {
+	// Input Editor
+	input.editor {
+		color: #FFF;
+	}
+
+	// Focused cell
+	&.editable {
+		background: rgba(10,90,170,0.6);
+		border-color: rgba(10,70,170,0.9);
+		box-shadow: rgba(0,30,100,0.5) 4px 4px 2px inset;
+	}
+
+	// Errors
+	&.invalid {
+		background: rgba(255,100,100,0.6);
+		border-color: rgba(200,60,80,0.9);
+		box-shadow: rgba(200,60,80,0.4) 4px 4px 2px inset;
+	}
+}
+
+// Cell range decorator
+.doby-grid-range-decorator {
+	border: 2px dashed rgba(90,185,70,0.6);
+}
+
+
+// Popup Tooltips
+// ==================================================================================================
+
+
+.doby-grid-tooltip {
+	.gradient(~"linear-gradient(#3775A1, #223C4F)");
+	border-radius: 4px;
+	box-shadow: rgba(0,0,0,0.8) 2px 2px 5px;
+	font-size: 12px;
+	max-width: 200px;
+	padding: 4px 8px;
+	text-align: center;
+	text-shadow: #286500 0 1px 0;
+	.transition(~"opacity 0.3s ease-in-out, top 0.3s ease-in-out");
+
+	strong {
+		font-weight: 500;
+	}
+}
+
+.doby-grid-tooltip-arrow {
+	border: 5px solid transparent;
+	border-bottom: 5px solid #3775A1;
+}
+
+
+// Remote Loading Spinner
+// ==================================================================================================
+
+
+.doby-grid-loader {
+	background: rgba(0,0,0,0.5) url(themes/default/img/loader-big.gif) no-repeat center center;
+}
+
+	.doby-grid-message > div > div {
+		color: #E98;
+	}
