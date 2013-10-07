@@ -3411,8 +3411,14 @@
 		// @param	viewportTop		integer
 		getRenderedRange = function (viewportTop, viewportLeft) {
 			var range = getVisibleRange(viewportTop, viewportLeft),
-				buffer = Math.round(getRowFromPosition(viewportH)),
+				buffer,
 				minBuffer = 3;
+
+			if (!variableRowHeight) {
+				buffer = Math.round(viewportH / self.options.rowHeight);
+			} else {
+				buffer = Math.round(getRowFromPosition(viewportH));
+			}
 
 			if (vScrollDir == -1) {
 				range.top -= buffer;
@@ -3555,15 +3561,24 @@
 				viewportLeft = scrollLeft;
 			}
 
-			var rowTop = Math.floor(getRowFromPosition(viewportTop + offset));
-			var rowBottom = Math.ceil(getRowFromPosition(viewportTop + offset + viewportH));
+			if (!variableRowHeight) {
+				return {
+					top: getRowFromPosition(viewportTop),
+					bottom: getRowFromPosition(viewportTop + viewportH) + 1,
+					leftPx: viewportLeft,
+					rightPx: viewportLeft + viewportW
+				};
+			} else {
+				var rowTop = Math.floor(getRowFromPosition(viewportTop + offset));
+				var rowBottom = Math.ceil(getRowFromPosition(viewportTop + offset + viewportH));
 
-			return {
-				top: rowTop,
-				bottom: rowBottom,
-				leftPx: viewportLeft,
-				rightPx: viewportLeft + viewportW
-			};
+				return {
+					top: rowTop,
+					bottom: rowBottom,
+					leftPx: viewportLeft,
+					rightPx: viewportLeft + viewportW
+				};
+			}
 		};
 
 
@@ -4188,7 +4203,10 @@
 						Math.abs(lastRenderedScrollLeft - scrollLeft) < viewportW)) {
 						render();
 					} else {
-						h_render = setTimeout(render, 50);
+						h_render = setTimeout(function () {
+							render();
+							h_render = null;
+						}, 50);
 					}
 
 					self.trigger('onViewportChanged', event, {});
@@ -4791,7 +4809,6 @@
 
 			lastRenderedScrollTop = scrollTop;
 			lastRenderedScrollLeft = scrollLeft;
-			h_render = null;
 		};
 
 

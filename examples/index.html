@@ -140,7 +140,6 @@
 			});
 
 			var loadTheme = function(theme) {
-				$(document.body).attr('class','');
 				$('#dobythemeless').remove();
 				if (document.location.hash) $('#gridwrapper').html('Loading...')
 
@@ -154,7 +153,7 @@
 						}
 
 						$('<style id="dobythemeless"/>').html(t.toCSS()).appendTo("body");
-						$(document.body).addClass(theme);
+						$(document.body).attr('class', theme);
 
 						// Load current example
 						if (document.location.hash) {
