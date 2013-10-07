@@ -142,11 +142,12 @@
 			var loadTheme = function(theme) {
 				$(document.body).attr('class','');
 				$('#dobythemeless').remove();
-				$('#gridwrapper').html('Loading...')
+				if (document.location.hash) $('#gridwrapper').html('Loading...')
 
 				// Load new theme
 				var less_file = '../src/themes/doby-grid-'+theme+'.less';
 				$.get(less_file, function(data) {
+					data = data.replace(/\.\.\/\.\.\//g, '../')
 					less.Parser({}).parse(data, function (err, t) {
 						if (err) {
 							return console.error(err)
@@ -195,6 +196,6 @@
 			</select>
 		</div>
 
-		<div id="gridwrapper"></div>
+		<div id="gridwrapper">Pick an example from the menu</div>
 	</body>
 </html>
