@@ -40,12 +40,16 @@ module.exports = function (grunt) {
 		},
 
 		less: {
-			options: {
-				yuicompress: true
-			},
-			production: {
+			compressed: {
+				options: {
+					yuicompress: true
+				},
 				files: {
-					'build/<%= pkg.version %>/<%= pkg.name %>.min.css': 'src/<%= pkg.name %>.less',
+					'build/<%= pkg.version %>/<%= pkg.name %>.min.css': 'src/<%= pkg.name %>.less'
+				}
+			},
+			standard: {
+				files: {
 					'build/<%= pkg.version %>/themes/<%= pkg.name %>-light.css': 'src/themes/<%= pkg.name %>-light.less',
 					'build/<%= pkg.version %>/themes/<%= pkg.name %>-dark.css': 'src/themes/<%= pkg.name %>-dark.less'
 				}
