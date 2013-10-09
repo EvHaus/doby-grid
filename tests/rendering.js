@@ -5,8 +5,10 @@
 // https://github.com/globexdesigns/doby-grid
 
 /*jslint vars: true, plusplus: true, devel: true, nomen: true, indent: 4, maxerr: 50*/
+/*global _, describe, document, expect, DobyGrid, it, setFixtures*/
 
 describe("Rendering", function () {
+	"use strict";
 
 	// Default options for the grid
 	var options = {
@@ -19,11 +21,17 @@ describe("Rendering", function () {
 			id: "name",
 			name: "Name",
 			field: "name"
+		}, {
+			id: "category",
+			name: "Category",
+			field: "category"
 		}],
 		data: [{
+			id: 1,
 			data: {
 				id: 1,
-				name: "Some Name"
+				name: "Some Name",
+				category: _.random(["a", "b", "c"])
 			}
 		}]
 	}
@@ -80,10 +88,10 @@ describe("Rendering", function () {
 
 
 		it("should automatically render a new row when you use add()", function () {
-			var newrow = {data: {id: 2, name: "adding a new row"}}
+			var newrow = {data: {id: 2, name: "adding a new row", category: "oohlala"}, id: 2}
 			grid.add(newrow)
 			var lastcell = grid.$el.find('.doby-grid-row:last-child .doby-grid-cell:last-child').text()
-			expect(lastcell).toEqual(newrow.data.name)
+			expect(lastcell).toEqual(newrow.data.category)
 		})
 
 
@@ -91,25 +99,25 @@ describe("Rendering", function () {
 
 
 		it("should render collapsed group headers when adding grouping", function () {
-			gcolumn = options.columns[1]
+			var gcolumn = options.columns[1]
 
 			// Add some additional rows for testing
 			grid.add([
-				{data: {id: 3, name: "adding a new row"}},
-				{data: {id: 4, name: "adding a new row"}},
-				{data: {id: 5, name: "adding a new row"}},
-				{data: {id: 6, name: "adding a new row"}}
+				{data: {id: 3, name: "adding a new row"}, id: 3},
+				{data: {id: 4, name: "adding a new row"}, id: 3},
+				{data: {id: 5, name: "adding a new row"}, id: 3},
+				{data: {id: 6, name: "adding a new row"}, id: 3}
 			])
 
 			// Group by column
 			grid.addGrouping(gcolumn.id)
 
 			// Figure out how many groups to expect
-			groups = _.groupBy(grid.collection.items, function (i) { return i.data[gcolumn.field]})
+			var groups = _.groupBy(grid.collection.items, function (i) { return i.data[gcolumn.field]})
 			groups = _.keys(groups)
 
 			// Grab the grid rows
-			rows = grid.$el.find('.doby-grid-row')
+			var rows = grid.$el.find('.doby-grid-row')
 
 			// Expect to find as many group headers as there are different values
 			expect(rows.length).toEqual(groups.length)
@@ -143,14 +151,15 @@ describe("Rendering", function () {
 
 		it("should remove the relevant row from the DOM when calling remove()", function () {
 			// Prepare the grid for testing
-			grid.reset([{data: {id: 1}}, {data: {id: 2}}])
+			grid.reset([{data: {id: 1}, id: 1}, {data: {id: 2}, id: 2}])
 
 			// Remove the second row
 			grid.remove(2)
 
 			// Check to see if the right row was removed
-			rows = grid.$el.find('.doby-grid-row')
-			cell = $(rows[0]).children('.doby-grid-cell:first').first()
+			var rows = grid.$el.find('.doby-grid-row'),
+				cell = $(rows[0]).children('.doby-grid-cell:first').first()
+
 			expect(rows.length).toEqual(1)
 
 			// Make sure the first row is left behind
@@ -165,7 +174,7 @@ describe("Rendering", function () {
 			// Prepare data for test
 			grid.setOptions({
 				addRow: true,
-				data: [{data: {id: 1, name: "one"}}, {data: {id: 2, name: "two"}}],
+				data: [{data: {id: 1, name: "one"}, id: 1}, {data: {id: 2, name: "two", category: "asd"}, id: 2}],
 				editable: true
 			})
 
@@ -188,14 +197,37 @@ describe("Rendering", function () {
 
 		it("should enable variable row height mode when an item is add()ed with a custom height", function () {
 			// Reset
-			grid.reset([{data: {id: 1, name: 'test'}}])
+			grid.reset([{data: {id: 1, name: 'test'}, id: 1}])
 
 			// Insert
-			grid.add({data: {id: 2, name: 'test'}, height: 1500})
+			grid.add({data: {id: 2, name: 'test'}, id: 2, height: 1500})
 
 			// Make sure row has the right height
 			grid.$el.find('.doby-grid-row:last-child').each(function () {
 				expect($(this).height()).toEqual(1500)
+			})
+		})
+
+
+		// ==========================================================================================
+
+
+		it("should correctly handle the row metadata processing for group rows when in variable height mode", function () {
+			// Reset
+			grid.setOptions({
+				data: [
+					{data: {id: 1, name: 'test1', category: 'a'}, id: 1, height: 50},
+					{data: {id: 2, name: 'test2', category: 'b'}, id: 2, height: 100},
+					{data: {id: 3, name: 'test3', category: 'b'}, id: 3, height: 150}
+				]
+			})
+
+			// Group
+			grid.setGrouping(['category'])
+
+			// Make sure row has the right height
+			grid.$el.find('.doby-grid-row:first-child').each(function () {
+				expect($(this).height()).not.toEqual(50)
 			})
 		})
 

@@ -5,8 +5,10 @@
 // https://github.com/globexdesigns/doby-grid
 
 /*jslint vars: true, plusplus: true, devel: true, nomen: true, indent: 4, maxerr: 50*/
+/*global _, describe, document, expect, DobyGrid, it*/
 
 describe("Initialization and validation", function () {
+	"use strict";
 
 	it("should be accessible via browser script import", function () {
 		expect(DobyGrid).toBeDefined();
@@ -55,6 +57,22 @@ describe("Initialization and validation", function () {
 		expect(function () {
 			new DobyGrid({
 				data: {}
+			})
+		}).toThrow(tp);
+	})
+
+
+	// ==========================================================================================
+
+
+	it("should throw a TypeError if the given data object has items with missing 'id's", function () {
+		var tp = new TypeError("Each data item must have a unique 'id' key. The following item is missing an 'id': {\"test\":2}");
+		expect(function () {
+			new DobyGrid({
+				data: [
+					{test: 1, id: 'asd'},
+					{test: 2}
+				]
 			})
 		}).toThrow(tp);
 	})

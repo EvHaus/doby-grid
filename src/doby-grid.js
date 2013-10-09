@@ -2181,11 +2181,11 @@
 			//
 			// @retrurn array
 			parse = function (items) {
-				var i, l = items.length;
+				var i, l = items.length, id;
 				for (i = 0; i < l; i++) {
-					// Steal the 'id' from the 'data' object
-					if (!(idProperty in items[i]) && idProperty in items[i].data) {
-						items[i][idProperty] = items[i].data[idProperty];
+					// Validate that 'id' exists
+					if (!(idProperty in items[i])) {
+						throw "Each data item must have a unique 'id' key. The following item is missing an 'id': " + JSON.stringify(items[i]);
 					}
 
 					// Detect if variable row heights are used
@@ -2348,6 +2348,10 @@
 					toggledGroupsByLevel[i] = {};
 				}
 
+				// Recache positions
+				cacheRows();
+				console.log(cache, this.items)
+
 				this.refresh();
 			};
 
@@ -2448,12 +2452,6 @@
 			// @return array
 			validate = function (items) {
 				var id;
-				for (var i = 0, l = items.length; i < l; i++) {
-					id = items[i][idProperty];
-					if (id === undefined || id === null) {
-						throw "Each data item must have a unique 'id' key. The following item is missing an 'id': " + self.items[i];
-					}
-				}
 
 				// If no data - add an empty alert
 				if (grid.options.emptyNotice && !items.length) insertEmptyAlert(items);

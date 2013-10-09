@@ -5,14 +5,16 @@
 // https://github.com/globexdesigns/doby-grid
 
 /*jslint vars: true, plusplus: true, devel: true, nomen: true, indent: 4, maxerr: 50*/
+/*global _, describe, document, expect, DobyGrid, it*/
 
 describe("Methods and Data Manipulation", function () {
+	"use strict";
 
 	var methodGrid = new DobyGrid()
 
 	describe("add()", function () {
 		it("should be able to insert a new data item via add()", function () {
-			var item = {data: {id: 100, name: 'test'}}
+			var item = {data: {id: 100, name: 'test'}, id: 100}
 			var originalItems = JSON.parse(JSON.stringify(methodGrid.collection.items));
 			var originalDataItems = _.filter(originalItems, function (i) {return !i.__nonDataRow})
 			methodGrid.add(item)
@@ -27,7 +29,7 @@ describe("Methods and Data Manipulation", function () {
 
 
 		it("should be able to insert a new data item via add() at a specific index", function () {
-			var item = {data: {id: 101, name: 'test'}}
+			var item = {data: {id: 101, name: 'test'}, id: 101}
 			methodGrid.add(item, {at: 0})
 			var newItems = methodGrid.collection.items;
 			var newDataItems = _.filter(newItems, function (i) {return !i.__nonDataRow})
@@ -40,10 +42,10 @@ describe("Methods and Data Manipulation", function () {
 
 		it("should be able to merge data item via add() when adding item with the same id", function () {
 			// Prepare for unit test
-			methodGrid.reset([{data: {id: 101, name: 'test'}}])
+			methodGrid.reset([{data: {id: 101, name: 'test'}, id: 101}])
 
 			// Execute
-			var item = {data: {id: 101, name: 'updated'}}
+			var item = {data: {id: 101, name: 'updated'}, id: 101}
 			methodGrid.add(item, {merge: true})
 
 			// Validate
@@ -56,7 +58,7 @@ describe("Methods and Data Manipulation", function () {
 
 
 		it("should throw an exception when attempting to add() an item with a non-unique id", function () {
-			var item = {data: {id: 101, name: 'updated'}}
+			var item = {data: {id: 101, name: 'updated'}, id: 101}
 			expect(function () {
 				methodGrid.add(item)
 				methodGrid.add(item)
@@ -138,7 +140,7 @@ describe("Methods and Data Manipulation", function () {
 
 			methodGrid.addColumn(col_def)
 
-			expect(function() {
+			expect(function () {
 				methodGrid.addColumn(col_def)
 			}).toThrow("Unable to addColumn() because a column with id '" + col_def.id + "' already exists. Did you want to {merge: true} maybe?");
 		})
@@ -149,8 +151,8 @@ describe("Methods and Data Manipulation", function () {
 
 		it("should throw an error if attempting to addColumn() with non data objects", function () {
 			var bad_data = [[], 'asd', 123, document.body];
-			_.each(bad_data, function(bd) {
-				expect(function() {
+			_.each(bad_data, function (bd) {
+				expect(function () {
 					methodGrid.addColumn(bd)
 				}).toThrow("Unable to addColumn() because the given 'data' param is invalid.");
 			})
@@ -164,7 +166,7 @@ describe("Methods and Data Manipulation", function () {
 	describe("get()", function () {
 		it("should be able to get() model by id", function () {
 			// Prepare for test
-			var item = {data: {id: 102, name: 'updated'}}
+			var item = {data: {id: 102, name: 'updated'}, id: 102}
 			methodGrid.reset([item])
 
 			// Validate
@@ -178,11 +180,11 @@ describe("Methods and Data Manipulation", function () {
 
 		it("should be able to get() model by reference", function () {
 			// Prepare for test
-			var item = {data: {id: 103, name: 'updated'}}
+			var item = {data: {id: 103, name: 'updated'}, id: 103}
 			methodGrid.reset([item])
 
 			// Validate
-			var gotten = methodGrid.get({data: {id: 103, name: 'updated'}})
+			var gotten = methodGrid.get({data: {id: 103, name: 'updated'}, id: 103})
 			expect(gotten.data.id).toEqual(103)
 		})
 	})
@@ -193,7 +195,7 @@ describe("Methods and Data Manipulation", function () {
 
 	describe("reset()", function () {
 		it("should be able to reset() the grid with a new set of data", function () {
-			var newdata = [{data: {id: 1, name: 'test'}}, {data: {id: 2, name: 'test2'}}];
+			var newdata = [{data: {id: 1, name: 'test'}, id: 1}, {data: {id: 2, name: 'test2'}, id: 2}];
 			methodGrid = methodGrid.reset(newdata)
 			expect(methodGrid.collection.items).toEqual(newdata)
 		})
@@ -218,7 +220,7 @@ describe("Methods and Data Manipulation", function () {
 	describe("remove()", function () {
 		it("should be able to remove() an item from the grid", function () {
 			// Prepare grid for test
-			var newdata = [{data: {id: 1, name: 'test'}}, {data: {id: 2, name: 'test2'}}];
+			var newdata = [{data: {id: 1, name: 'test'}, id: 1}, {data: {id: 2, name: 'test2'}, id: 2}];
 			methodGrid.reset(newdata)
 
 			methodGrid = methodGrid.remove(2)
@@ -233,7 +235,7 @@ describe("Methods and Data Manipulation", function () {
 	describe("setOptions()", function () {
 		it("should be able to reload data using setOptions()", function () {
 			methodGrid.setOptions({
-				data: [{data: {id: 189, name: 'test'}}, {data: {id: 289, name: 'test2'}}]
+				data: [{data: {id: 189, name: 'test'}, id: 189}, {data: {id: 289, name: 'test2'}, id: 289}]
 			})
 
 			expect(_.pluck(methodGrid.collection.items, 'id')).toEqual([189, 289])

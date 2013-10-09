@@ -59,7 +59,11 @@ Default icon set used is copyright of <http://p.yusukekamiyamane.com/>.
 
 ### How To Use
 
-Download the *doby-grid.js* file and drop it into your web app. Then include it into your app either via Require JS, or by adding a `<script>` tag after the required dependencies.
+Download the latest version from <https://github.com/globexdesigns/doby-grid/tree/master/build>.
+
+Doby Grid is made up of two files (doby-grid.js and doby-grid.css) and well as a theme package. You can choose which theme to download and use. You may also want to grab <https://github.com/globexdesigns/doby-grid/tree/master/assets> for images.
+
+Then include it into your app either via Require JS, or by adding `<script>` and `<link>` tags to load in the Javascript and CSS files after the required dependencies.
 
 Then simply call:
 
@@ -135,10 +139,6 @@ This would require the grid to be rendered with DOM references - making it much,
 If delegating events isn't enough, then you can use post-processing as demonstrated in the post-processing example. See the <a href="https://github.com/globexdesigns/doby-grid/wiki/Column-Options#wiki-doby-grid-postprocess">`postprocess`</a> Column Option for documentation. Keep in mind that this is going to have a very significant rendering performance hit and is not recommended on large grids.
 
 And just to be clear -- do not use this for trying to assign events to your cell. It won't work and will only make your grid slow. All those references will be wiped when the grid is re-rendered or scrolled. Don't bother.
-
-#### When using post-processing, my rows keep getting re-rendered when I scroll up and down. How do I stop that?
-
-SlickGrid had this problem and wasn't going to fix it (<https://github.com/mleibman/SlickGrid/issues/681>). In Doby Grid you can enable post-processing caching via the <a href="https://github.com/globexdesigns/doby-grid/wiki/Column-Options#wiki-doby-grid-cache">`cache`</a> column option. This is not recommended for large grids as it will eat up a lot of memory.
 
 #### There's a bug in Internet Explorer...
 
