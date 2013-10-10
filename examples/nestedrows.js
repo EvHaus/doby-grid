@@ -28,8 +28,8 @@ define([], function () {
 						columns: {
 							0: {
 								colspan: "*",
-								formatter: function () {
-									return "DETAILS"
+								formatter: function (row, cell, value, columnDef, data) {
+									return "Here you place a detailed description of " + data.parent.data.name + ".";
 								}
 							}
 						}

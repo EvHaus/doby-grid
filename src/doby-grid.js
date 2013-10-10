@@ -2283,6 +2283,7 @@
 						for (var r in newRows[i].rows) {
 							if (newRows[i].rows[r].collapsed) continue;
 							cRow = new NonDataItem(newRows[i].rows[r]);
+							cRow.parent = newRows[i];
 							newRows.splice((i + 1), 0, cRow);
 						}
 					}
@@ -4908,18 +4909,19 @@
 		//
 		renderCell = function (result, row, cell, colspan, item) {
 			var m = self.options.columns[cell],
+				mColumns = item.columns || {},
 				rowI = Math.min(self.options.columns.length - 1, cell + colspan - 1),
 
 				// Group rows do not inherit column class
-				mClass = item instanceof Group ? "" : (m.class ? typeof m.class === "function" ? m.class() : " " + m.class : ""),
+				mClass = item instanceof Group ? "" : (m.class ? typeof m.class === "function" ? m.class() : m.class : null),
 
-				cellCss = classcell + " l" + cell + " r" + rowI + mClass;
+				cellCss = [classcell, "l" + cell, " r" + rowI];
 
-			if (row === activeRow && cell === activeCell) {
-				cellCss += (" active");
-			}
+			if (mClass) cellCss.push(mClass);
+			if (row === activeRow && cell === activeCell) cellCss.push("active");
+			if (mColumns[cell] && mColumns[cell].class) cellCss.push(mColumns[cell].class);
 
-			result.push("<div class='" + cellCss + "'");
+			result.push("<div class='" + cellCss.join(" ") + "'");
 
 			result.push(">");
 
@@ -4973,7 +4975,7 @@
 			stringArray.push("<div class='" + rowCss + "' style='top:" + top + "px");
 
 			// In variable row height mode we need some fancy ways to determine height
-			if (variableRowHeight) {
+			if (variableRowHeight && pos.height) {
 				var rowheight = pos.height - cellHeightDiff;
 				stringArray.push(';height:' + rowheight + 'px;line-height:' + rowheight + 'px');
 			}
