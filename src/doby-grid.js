@@ -1438,6 +1438,7 @@
 					h.push(")</span>");
 					return h.join('');
 				},
+				rows: {},
 				predefinedValues: []
 			};
 		};
@@ -1908,11 +1909,9 @@
 						group.level = level;
 						group.predef = gi;
 						group.id = '__group' + (parentGroup ? parentGroup.id + groupingDelimiter : '') + val;
-						group.height = gi.height ? gi.height : null;
+						group.height = gi.rows[group.id] && gi.rows[group.id].height ? gi.rows[group.id].height : null;
 						groups[groups.length] = group;
 						groupsByVal[val] = group;
-
-						gi.row = group;
 					}
 				}
 
@@ -1926,12 +1925,9 @@
 						group.level = level;
 						group.predef = gi;
 						group.id = '__group' + (parentGroup ? parentGroup.id + groupingDelimiter : '') + val;
-						group.height = gi.height ? gi.height : null;
+						group.height = gi.rows[group.id] && gi.rows[group.id].height ? gi.rows[group.id].height : null;
 						groups[groups.length] = group;
 						groupsByVal[val] = group;
-
-
-						gi.row = group;
 					}
 
 					group.rows[group.count++] = r;
@@ -2473,13 +2469,15 @@
 
 				// Update the row cache and the item
 				var idx = cache.indexById[id];
+
 				cache.rows[idx] = data;
-				this.items[idx] = data;
 
-				if (!updated) {
-					updated = {};
-				}
+				// Find the data item
+				var item = _.findWhere(this.items, {id: id});
+				if (item) item = data;
 
+				// Store the ids that were updated so the refresh knows which row to update
+				if (!updated) updated = {};
 				updated[id] = true;
 
 				this.refresh();
@@ -5497,7 +5495,8 @@
 			if (item instanceof Group) {
 				// For groups we need to update the grouping options since the group rows
 				// will get regenerated, losing their custom height params during re-draws
-				item.predef.height = height;
+				item.predef.rows[item.id] = {height: height};
+				console.log(item.predef)
 
 				invalidateRows(_.range(row, cache.rows.length));
 

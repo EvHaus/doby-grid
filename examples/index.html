@@ -118,6 +118,9 @@
 		// Initialize doby
 		require(['less', 'dobygrid', 'jquery-ui' ,'jquery.event.drag'], function(less, DobyGrid) {
 
+			// or "profile"
+			var profiler = 'time';
+
 			// Load an example file
 			var loadExample = function(name) {
 				require(['examples/' + name], function(example) {
@@ -125,12 +128,12 @@
 						size = opts.data ? opts.data.length : 0,
 						type = 'DobyGrid "' + name + '" example with ' + size + ' objects';
 
-					console.profile(type);
+					console[profiler](type);
 					window.grid = new DobyGrid(opts).appendTo($('#gridwrapper').empty());
 					if (example[1]) {
 						example[1](window.grid);
 					}
-					console.profileEnd(type)
+					console[profiler+'End'](type)
 				})
 			}
 

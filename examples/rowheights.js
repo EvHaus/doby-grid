@@ -3,7 +3,7 @@ define([], function() {
 	return [function () {
 
 		// Generate Data
-		var data = []
+		var data = [];
 		for (var i = 0; i < 10; i++) {
 			data.push({
 				id: i,
@@ -39,6 +39,8 @@ define([], function() {
 			}],
 			data: data,
 			resizableRows: true
-		}
-	}]
-})
+		};
+	}, function (grid) {
+		//grid.setGrouping(['category']);
+	}];
+});
