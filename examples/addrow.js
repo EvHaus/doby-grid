@@ -1,4 +1,10 @@
-define([], function() {
+/*jslint browser:true,expr:true,vars:true,plusplus:true,devel:true,indent:4,maxerr:50*/
+/*jshint white: true*/
+/*global _, $, define*/
+
+define([], function () {
+	"use strict";
+
 	return [function () {
 
 		// Generate Data
@@ -18,7 +24,7 @@ define([], function() {
 				id: "id",
 				name: "ID",
 				field: "id",
-				formatter: function(row, cell, value, columnDef, data) {
+				formatter: function (row, cell, value, columnDef, data) {
 					return data.id;
 				},
 				sortable: true
@@ -44,7 +50,7 @@ define([], function() {
 			data: data
 		};
 	}, function (grid) {
-		grid.on('click', function(event, args) {
+		grid.on('click', function (event, args) {
 			event.stopPropagation();
 
 			if ($(event.target).hasClass('add')) {

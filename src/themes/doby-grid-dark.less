@@ -51,7 +51,7 @@
 
 			// Sorted
 			&.doby-grid-header-column-sorted {
-				background: rgba(255,255,255,0.25);
+				background: rgba(200,200,200,0.15);
 			}
 		}
 
@@ -127,10 +127,10 @@
 
 
 .doby-grid-row {
-	border-bottom: 1px solid rgba(255,255,255,0.2);
+	border-bottom: 1px solid rgba(255,255,255,0.1);
 
 	&.odd:not(.doby-grid-group) {
-		background: rgba(255,255,255,0.05)
+		background: rgba(255,255,255,0.03)
 	}
 }
 
@@ -152,14 +152,14 @@
 	// Row resize handle
 	.doby-grid-row-handle {
 		border-bottom: 1px solid rgba(255,255,255,0);
-		border-top: 1px solid rgba(0,0,0,0);
+		border-top: 1px solid rgba(255,255,255,0);
 		.transition(~"all 0.3s ease-in-out");
 
 		&:hover {
-			background: #AAA;
-			border-bottom: 1px solid rgba(255,255,255,0.8);
-			border-top: 1px solid rgba(0,0,0,0.5);
-			box-shadow: #333 0 0 2px inset;
+			background: #000;
+			border-bottom: 1px solid rgba(255,255,255,0.3);
+			border-top: 1px solid rgba(255,255,255,0.2);
+			box-shadow: #222 0 0 2px inset;
 		}
 	}
 
@@ -211,8 +211,8 @@
 			box-shadow: rgba(0,0,0,0.3) 2px 2px 5px inset;
 		}
 
-		&.expanded .icon {background-image: url("/@{url}minus-circle.png")}
-		&.collapsed .icon {background-image: url("/@{url}plus-circle.png")}
+		&.expanded .icon {background-image: url("/@{url}minus-small.png")}
+		&.collapsed .icon {background-image: url("/@{url}plus-small.png")}
 	}
 
 

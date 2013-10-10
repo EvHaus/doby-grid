@@ -1,16 +1,22 @@
-define([], function() {
+/*jslint browser:true,expr:true,vars:true,plusplus:true,devel:true,indent:4,maxerr:50*/
+/*jshint white: true*/
+/*global $, _, define*/
+
+define([], function () {
+	"use strict";
+
 	return [function () {
 
 		// Generate Data
-		var data = []
+		var data = [];
 		for (var i = 0; i < 10000; i++) {
 			data.push({
 				id: i,
 				data: {
 					id: i,
-					name: "Pope John "+i,
+					name: "Pope John " + i,
 					age: "100 years",
-					city: ['Venice','Vatican City','Rome'][_.random(0,2)],
+					city: ['Venice', 'Vatican City', 'Rome'][_.random(0, 2)],
 					rsvp: _.random(0, 1)
 				}
 			});
@@ -44,19 +50,19 @@ define([], function() {
 				name: "RSVP",
 				field: "rsvp",
 				sortable: true,
-				postprocess: function(data, callback) {
-					var icon = data.data.data.rsvp ? 'plus-circle' : 'minus-circle'
+				postprocess: function (data, callback) {
+					var icon = data.data.data.rsvp ? 'plus-circle' : 'minus-circle';
 					var img = new Image();
-					img.src = '../assets/img/' + icon + '.png'
-					img.onload = function() {
-						data.cell.empty()
+					img.src = '../assets/img/' + icon + '.png';
+					img.onload = function () {
+						data.cell.empty();
 						$(img)
 							.hide()
 							.appendTo(data.cell)
-							.fadeIn(250, function() {
-								callback()
-							})
-					}
+							.fadeIn(250, function () {
+								callback();
+							});
+					};
 				},
 			}, {
 				cache: true,
@@ -64,22 +70,22 @@ define([], function() {
 				name: "Cached RSVP",
 				field: "rsvpc",
 				sortable: true,
-				postprocess: function(data, callback) {
-					var icon = data.data.data.rsvp ? 'plus-circle' : 'minus-circle'
+				postprocess: function (data, callback) {
+					var icon = data.data.data.rsvp ? 'plus-circle' : 'minus-circle';
 					var img = new Image();
-					img.src = '../assets/img/' + icon + '.png'
-					img.onload = function() {
-						data.cell.empty()
+					img.src = '../assets/img/' + icon + '.png';
+					img.onload = function () {
+						data.cell.empty();
 						$(img)
 							.hide()
 							.appendTo(data.cell)
-							.fadeIn(250, function() {
-								callback()
-							})
-					}
+							.fadeIn(250, function () {
+								callback();
+							});
+					};
 				},
 			}],
 			data: data
-		}
-	}]
-})
+		};
+	}];
+});

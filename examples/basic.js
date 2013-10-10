@@ -1,24 +1,30 @@
-define([], function() {
+/*jslint browser:true,expr:true,vars:true,plusplus:true,devel:true,indent:4,maxerr:50*/
+/*jshint white: true*/
+/*global _, $, define*/
+
+define([], function () {
+	"use strict";
+
 	// Generate Grid Options
 	return [function () {
 
 		// Generate Data
-		var data = []
+		var data = [];
 		for (var i = 0; i < 500000; i++) {
 			data.push({
 				id: i,
 				data: {
 					id: i,
-					name: "Pope John "+i,
+					name: "Pope John " + i,
 					age: "100 years",
-					city: ['Venice','Vatican City','Rome','Milan','Constantinople'][_.random(0,4)],
+					city: ['Venice', 'Vatican City', 'Rome', 'Milan', 'Constantinople'][_.random(0, 4)],
 					country: "ITA"
 				}
 			});
 		}
 
 		// Generate Columns
-		var columns = []
+		var columns = [];
 		for (var q = 0; q < 5; q++) {
 			columns.push({
 				id: "id" + q,
@@ -51,12 +57,12 @@ define([], function() {
 				field: "country",
 				sortable: true,
 				tooltip: "Country of origin"
-			})
+			});
 		}
 
 		return {
 			columns: columns,
 			data: data
-		}
-	}]
-})
+		};
+	}];
+});

@@ -1,16 +1,22 @@
-define([], function() {
+/*jslint browser:true,expr:true,vars:true,plusplus:true,devel:true,indent:4,maxerr:50*/
+/*jshint white: true*/
+/*global _, define*/
+
+define([], function () {
+	"use strict";
+
 	return [function () {
 
 		// Generate Data
-		var data = []
+		var data = [];
 		for (var i = 0; i < 10000; i++) {
 			data.push({
 				id: i,
 				data: {
 					id: i,
-					name: "Pope John "+i,
+					name: "Pope John " + i,
 					age: "100 years",
-					city: ['Venice','Vatican City','Rome'][_.random(0,2)],
+					city: ['Venice', 'Vatican City', 'Rome'][_.random(0, 2)],
 					country: "ITA"
 				}
 			});
@@ -48,6 +54,6 @@ define([], function() {
 			}],
 			data: data,
 			editable: true
-		}
-	}]
-})
+		};
+	}];
+});

@@ -4,7 +4,8 @@
 // For all details and documentation:
 // https://github.com/globexdesigns/doby-grid
 
-/*jslint asi:true,browser:true,expr:true,vars:true,plusplus:true,devel:true,indent:4,maxerr:50*/
+/*jslint browser:true,expr:true,vars:true,plusplus:true,devel:true,indent:4,maxerr:50*/
+/*jshint white: true*/
 /*global define*/
 
 (function (root, factory) {
@@ -609,7 +610,7 @@
 				r = (canvasWidth - (x + 1) - w);
 
 				// If this is the last column, compensate for grid positioning
-				if (i+1 == l) r = r - 2;
+				if (i + 1 == l) r = r - 2;
 
 				rule.right.style.right = r + "px";
 
@@ -926,7 +927,7 @@
 				}
 			}
 
-			var item, data;
+			var item, data, childrowheight;
 			for (var i = from, l = items.length; i < l; i++) {
 				item = items[i];
 
@@ -1431,11 +1432,6 @@
 				getter: function (item) {
 					if (!item) return null;
 
-					// If this item has a parent data reference object - use that for grouping
-					if (item.parent) {
-						item = item.parent;
-					}
-
 					if (item instanceof Backbone.Model) {
 						return item.get(column.field);
 					} else {
@@ -1452,7 +1448,7 @@
 					h.push(")</span>");
 					return h.join('');
 				},
-				rows: {},
+				grouprows: {},
 				predefinedValues: []
 			};
 		};
@@ -1566,7 +1562,7 @@
 					existing = this.get(model);
 					if (existing) {
 						if (options.merge) {
-							this.updateItem(existing[idProperty], model);
+							this.setItem(existing[idProperty], model);
 						} else {
 							throw ["You are not allowed to add() items without a unique 'id' value. ",
 							"A row with id '" + existing[idProperty] + "' already exists."].join('');
@@ -1620,7 +1616,7 @@
 				while (idx--) {
 					agg = gi.aggregators[idx];
 					agg.init();
-					gi.compiledAccumulators[idx].call(agg, (!isLeafLevel && gi.aggregateChildGroups) ? group.groups : group.rows);
+					gi.compiledAccumulators[idx].call(agg, (!isLeafLevel && gi.aggregateChildGroups) ? group.groups : group.grouprows);
 					agg.storeResult(totals);
 				}
 				totals.group = group;
@@ -1647,7 +1643,7 @@
 					}
 
 					if (gi.aggregators.length && (
-						gi.aggregateEmpty || g.rows.length || (g.groups && g.groups.length))) {
+						gi.aggregateEmpty || g.grouprows.length || (g.groups && g.groups.length))) {
 						calculateGroupTotals(g);
 					}
 				}
@@ -1923,7 +1919,7 @@
 						group.level = level;
 						group.predef = gi;
 						group.id = '__group' + (parentGroup ? parentGroup.id + groupingDelimiter : '') + val;
-						group.height = gi.rows[group.id] && gi.rows[group.id].height ? gi.rows[group.id].height : null;
+						group.height = gi.grouprows[group.id] && gi.grouprows[group.id].height ? gi.grouprows[group.id].height : null;
 						groups[groups.length] = group;
 						groupsByVal[val] = group;
 					}
@@ -1939,18 +1935,18 @@
 						group.level = level;
 						group.predef = gi;
 						group.id = '__group' + (parentGroup ? parentGroup.id + groupingDelimiter : '') + val;
-						group.height = gi.rows[group.id] && gi.rows[group.id].height ? gi.rows[group.id].height : null;
+						group.height = gi.grouprows[group.id] && gi.grouprows[group.id].height ? gi.grouprows[group.id].height : null;
 						groups[groups.length] = group;
 						groupsByVal[val] = group;
 					}
 
-					group.rows[group.count++] = r;
+					group.grouprows[group.count++] = r;
 				}
 
 				if (level < self.groups.length - 1) {
 					for (i = 0, l = groups.length; i < l; i++) {
 						group = groups[i];
-						group.groups = extractGroups(group.rows, group);
+						group.groups = extractGroups(group.grouprows, group);
 					}
 				}
 
@@ -1984,7 +1980,7 @@
 						// Let the non-leaf setGrouping rows get garbage-collected.
 						// They may have been used by aggregates that go over all of the descendants,
 						// but at this point they are no longer needed.
-						g.rows = [];
+						g.grouprows = [];
 					}
 				}
 			};
@@ -2010,7 +2006,7 @@
 					groupedRows[gl++] = g;
 
 					if (!g.collapsed) {
-						rows = g.groups ? flattenGroupedRows(g.groups, level + 1) : g.rows;
+						rows = g.groups ? flattenGroupedRows(g.groups, level + 1) : g.grouprows;
 						for (var j = 0, m = rows.length; j < m; j++) {
 							groupedRows[gl++] = rows[j];
 						}
@@ -2153,14 +2149,13 @@
 						if (item && r &&
 							(
 								// Compare group with non group
-								(item.__group && !r.__group) ||
-								(!item.__group && r.__group) ||
+								(item instanceof Group && !(r instanceof Group)) ||
+								(!(item instanceof Group) && r instanceof Group) ||
 								// Compare two groups
 								(
 									self.groups.length && eitherIsNonData &&
-									(item && item.__group !== r.__group) ||
-									(item && item.__group) && (item[idProperty] != r[idProperty]) ||
-									(item && item.__group) && (item.collapsed != r.collapsed)
+									(item && item instanceof Group) && (item[idProperty] != r[idProperty]) ||
+									(item && item instanceof Group) && (item.collapsed != r.collapsed)
 								) ||
 								// Compare between different non-data types
 								(
@@ -2221,24 +2216,41 @@
 			//
 			// @retrurn array
 			parse = function (items) {
-				var i, l = items.length, id;
+				var i, l = items.length, id, childrow;
 				for (i = 0; i < l; i++) {
 					// Validate that 'id' exists
 					if (!(idProperty in items[i])) {
 						throw "Each data item must have a unique 'id' key. The following item is missing an 'id': " + JSON.stringify(items[i]);
 					}
 
+					// Check for children columns
+					if (items[i].rows) {
+						for (var rowIdx in items[i].rows) {
+							childrow = items[i].rows[rowIdx];
+							if (!variableRowHeight && 'height' in childrow && childrow.height != grid.options.rowHeight) {
+								variableRowHeight = true;
+								break;
+							}
+						}
+					}
+
 					// Detect if variable row heights are used
-					if (!variableRowHeight && 'height' in items[i] && items[i].height !== grid.options.rowHeight) {
+					if (
+						!variableRowHeight && 'height' in items[i] &&
+						items[i].height !== grid.options.rowHeight
+					) {
 						variableRowHeight = true;
 					}
 				}
+
 				return items;
 			};
 
 
 			// recalc()
 			// TODO: ?
+			//
+			// @param		_items		array			??
 			//
 			// @return array
 			recalc = function (_items) {
@@ -2253,6 +2265,7 @@
 				totalRows = filteredItems.totalRows;
 				var newRows = filteredItems.rows;
 
+				// Insert group rows
 				groups = [];
 				if (self.groups.length) {
 					groups = extractGroups(newRows);
@@ -2260,6 +2273,18 @@
 						calculateTotals(groups);
 						finalizeGroups(groups);
 						newRows = flattenGroupedRows(groups);
+					}
+				}
+
+				// Insert child rows
+				var cRow;
+				for (var i = 0, l = newRows.length; i < l; i++) {
+					if (newRows[i].rows) {
+						for (var r in newRows[i].rows) {
+							if (newRows[i].rows[r].collapsed) continue;
+							cRow = new NonDataItem(newRows[i].rows[r]);
+							newRows.splice((i + 1), 0, cRow);
+						}
 					}
 				}
 
@@ -2401,6 +2426,44 @@
 			};
 
 
+			// setItem()
+			// Update and redraw an existing items
+			//
+			// @param	id		string		The id of the item to update
+			// @param	data	object		The data to use for the item
+			//
+			// @return object
+			this.setItem = function (id, data) {
+				if (cache.indexById[id] === undefined) {
+					throw "Unable to update item (id: " + id + "). Invalid or non-matching id";
+				}
+
+				// Update the row cache and the item
+				var idx = cache.indexById[id];
+
+				cache.rows[idx] = $.extend(true, cache.rows[idx], data);
+
+				// Find the data item
+				for (var i = 0, l = this.items.length; i < l; i++) {
+					if (this.items[i].id == id) {
+						this.items[i] = $.extend(true, this.items[i], data);
+						break;
+					}
+				}
+
+				// If the rows were changed we need to invalidate the rows below
+				if (data.rows) {
+					invalidateRows(_.range(idx, cache.rows.length));
+				}
+
+				// Store the ids that were updated so the refresh knows which row to update
+				if (!updated) updated = {};
+				updated[id] = true;
+
+				this.refresh();
+			};
+
+
 			this.setPagingOptions = function (args) {
 				if (args.pageSize !== undefined) {
 					pagesize = args.pageSize;
@@ -2416,9 +2479,11 @@
 				this.refresh();
 			};
 
+
 			this.setRefreshHints = function (hints) {
 				refreshHints = hints;
 			};
+
 
 			this.sort = function (comparer, ascending) {
 				sortAsc = ascending;
@@ -2466,35 +2531,6 @@
 				}
 
 				return retval;
-			};
-
-
-			// updateItem()
-			// Update and redraw an existing items
-			//
-			// @param	id		string		The id of the item to update
-			// @param	data	object		The data to use for the item
-			//
-			// @return object
-			this.updateItem = function (id, data) {
-				if (cache.indexById[id] === undefined || id !== data[idProperty]) {
-					throw "Unable to update item (id: " + id + "). Invalid or non-matching id";
-				}
-
-				// Update the row cache and the item
-				var idx = cache.indexById[id];
-
-				cache.rows[idx] = data;
-
-				// Find the data item
-				var item = _.findWhere(this.items, {id: id});
-				if (item) item = data;
-
-				// Store the ids that were updated so the refresh knows which row to update
-				if (!updated) updated = {};
-				updated[id] = true;
-
-				this.refresh();
 			};
 
 
@@ -2911,10 +2947,6 @@
 			}
 
 			self.collection.sort(function (dataRow1, dataRow2) {
-				// If this item has a parent data reference object - use that for sorting
-				if (dataRow1.parent) dataRow1 = dataRow1.parent;
-				if (dataRow2.parent) dataRow2 = dataRow2.parent;
-
 				var column, field, sign, value1, value2, result = 0;
 
 				// Loops through the columns by which we are sorting
@@ -3320,7 +3352,7 @@
 			}
 
 			// Group headers
-			if (item.__group) return item.value;
+			if (item instanceof Group) return item.value;
 
 			return item.data ? item.data[columnDef.field] : null;
 		};
@@ -3873,7 +3905,6 @@
 		// Class that stores information about a group of rows.
 		//
 		Group = function () {
-			this.__group = true;		// TODO: Is this even needed? Can't we just check instanceof? Which is faster?
 			this.class = function () {
 				var collapseclass = (this.collapsed ? classcollapsed : classexpanded);
 				return [classgroup, classgrouptoggle, collapseclass].join(' ');
@@ -3883,7 +3914,7 @@
 			this.groups = null;			// Sub-groups that are part of this group
 			this.id = null;				// A unique key used to identify the group
 			this.level = 0;				// Grouping level, starting with 0 (for nesting groups)
-			this.rows = [];				// Rows that are part of this group
+			this.grouprows = [];		// Rows that are part of this group
 			this.selectable = false;	// Don't allow selecting groups
 			this.title = null;			// Formatted display value of the group
 			this.totals = null;			// GroupTotals, if any
@@ -3904,6 +3935,8 @@
 					}
 				}
 			};
+
+			this.toString = function () { return "Group"; };
 		};
 
 		Group.prototype = new NonDataItem();
@@ -4876,15 +4909,15 @@
 		renderCell = function (result, row, cell, colspan, item) {
 			var m = self.options.columns[cell],
 				rowI = Math.min(self.options.columns.length - 1, cell + colspan - 1),
-				mClass = (m.class ? typeof m.class === "function" ? m.class() : " " + m.class : ""),
+
+				// Group rows do not inherit column class
+				mClass = item instanceof Group ? "" : (m.class ? typeof m.class === "function" ? m.class() : " " + m.class : ""),
+
 				cellCss = classcell + " l" + cell + " r" + rowI + mClass;
 
 			if (row === activeRow && cell === activeCell) {
 				cellCss += (" active");
 			}
-
-			// Column class
-			if (m.class) cellCss += " " + m.class;
 
 			result.push("<div class='" + cellCss + "'");
 
@@ -4919,9 +4952,8 @@
 		// @param	stringArray		array		Output array to which to append
 		// @param	row				integer		Current row index
 		// @param	range			object		Viewport range to display
-		// @param	dataLength		integer		Total number of data object o render
 		//
-		renderRow = function (stringArray, row, range, dataLength) {
+		renderRow = function (stringArray, row, range) {
 			var d = getDataItem(row),
 				rowCss = classrow +
 					(row === activeRow ? " active" : "") +
@@ -4941,7 +4973,7 @@
 			stringArray.push("<div class='" + rowCss + "' style='top:" + top + "px");
 
 			// In variable row height mode we need some fancy ways to determine height
-			if (variableRowHeight && d.height) {
+			if (variableRowHeight) {
 				var rowheight = pos.height - cellHeightDiff;
 				stringArray.push(';height:' + rowheight + 'px;line-height:' + rowheight + 'px');
 			}
@@ -4952,6 +4984,8 @@
 			for (i = 0, l = self.options.columns.length; i < l; i++) {
 				m = self.options.columns[i];
 				colspan = 1;
+
+				// Render custom columns
 				if (d.columns) {
 					var columnData = d.columns[m.id] || d.columns[i];
 					colspan = (columnData && columnData.colspan) || 1;
@@ -5020,7 +5054,7 @@
 					cellRenderQueue: []
 				};
 
-				renderRow(stringArray, i, range, dataLength);
+				renderRow(stringArray, i, range);
 				if (activeCellNode && activeRow === i) {
 					needToReselectCell = true;
 				}
@@ -5459,6 +5493,15 @@
 		};
 
 
+		// setItem()
+		// Entry point for collection.setItem(). See collection.setItem for more info.
+		//
+		this.setItem = function (item_id, attributes) {
+			this.collection.setItem(item_id, attributes);
+			return this;
+		};
+
+
 		// setOptions()
 		// Given a set of options, updates the grid accordingly
 		//
@@ -5509,7 +5552,7 @@
 			if (item instanceof Group) {
 				// For groups we need to update the grouping options since the group rows
 				// will get regenerated, losing their custom height params during re-draws
-				item.predef.rows[item.id] = {height: height};
+				item.predef.grouprows[item.id] = {height: height};
 
 				invalidateRows(_.range(row, cache.rows.length));
 
@@ -5520,7 +5563,7 @@
 				// Update the item which will cause the grid to re-render the right bits
 				// TODO: This is hacky. There should be a collection.set() method to
 				// extend existing data instead of replacing the whole object
-				self.collection.updateItem(item[idProperty], item);
+				self.collection.setItem(item[idProperty], item);
 			}
 		};
 
@@ -5801,12 +5844,17 @@
 				$canvas.find('.l' + column_index + ':visible')
 					.removeClass('r' + column_index)
 					.each(function () {
-						var w = $(this).outerWidth() + headerPadding;
+						var w = $(this).width() + headerPadding;
 						if (cellWidths.indexOf(w) < 0) cellWidths.push(w);
 					})
 					.addClass('r' + column_index);
 
 				var newWidth = Math.max.apply(null, cellWidths);
+
+				// If new width is smaller than min width - leave
+				if (typeof columndef.minWidth !== undefined && typeof columndef.minWidth !== null && newWidth < columndef.minWidth) {
+					return;
+				}
 
 				if (currentWidth != newWidth) {
 					var diff = newWidth - currentWidth;
