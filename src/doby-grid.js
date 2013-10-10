@@ -4,7 +4,7 @@
 // For all details and documentation:
 // https://github.com/globexdesigns/doby-grid
 
-/*jslint asi: false, browser: true, vars: true, plusplus: true, devel: true, indent: 4, maxerr: 50*/
+/*jslint asi:false,browser:true,expr:true,vars:true,plusplus:true,devel:true,indent:4,maxerr:50*/
 /*global define*/
 
 (function (root, factory) {
@@ -613,7 +613,13 @@
 		// Processing the post-render action on all cells that need it
 		//
 		asyncPostProcessRows = function () {
-			var dataLength = getDataLength();
+			var dataLength = getDataLength(),
+				cb = function () {
+					if (col.cache) {
+						postProcessedRows[row][columnIdx] = $(node).html();
+					}
+				};
+
 			while (postProcessFromRow <= postProcessToRow) {
 				var row = (vScrollDir >= 0) ? postProcessFromRow++ : postProcessToRow--,
 					cacheEntry = cache.nodes[row],
@@ -644,11 +650,7 @@
 								column: col,
 								data: getDataItem(row),
 								rowIndex: row
-							}, function () {
-								if (col.cache) {
-									postProcessedRows[row][columnIdx] = $(node).html();
-								}
-							});
+							}, cb);
 						}
 
 						if (!col.cache && postProcessedRows[row]) {
