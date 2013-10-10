@@ -4,7 +4,7 @@
 // For all details and documentation:
 // https://github.com/globexdesigns/doby-grid
 
-/*jslint asi:false,browser:true,expr:true,vars:true,plusplus:true,devel:true,indent:4,maxerr:50*/
+/*jslint asi:true,browser:true,expr:true,vars:true,plusplus:true,devel:true,indent:4,maxerr:50*/
 /*global define*/
 
 (function (root, factory) {
@@ -583,6 +583,10 @@
 			var i, l, w;
 			for (i = 0, l = headers.length; i < l; i++) {
 				w = self.options.columns[i].width - headerColumnWidthDiff;
+
+				// Compensate for grid rendering
+				if (i + 1 == l) w = w + 2;
+
 				$(headers[i]).attr('style', 'width:' + w + 'px');
 			}
 
@@ -594,7 +598,7 @@
 		// Sets the widths of the columns to what they should be
 		//
 		applyColumnWidths = function () {
-			var x = 0, c, w, rule, i, l;
+			var x = 0, c, w, rule, i, l, r;
 
 			for (i = 0, l = self.options.columns.length; i < l; i++) {
 				c = self.options.columns[i];
@@ -602,7 +606,12 @@
 
 				rule = getColumnCssRules(i);
 				rule.left.style.left = (x - 1) + "px";
-				rule.right.style.right = (canvasWidth - (x + 1) - w) + "px";
+				r = (canvasWidth - (x + 1) - w);
+
+				// If this is the last column, compensate for grid positioning
+				if (i+1 == l) r = r - 2;
+
+				rule.right.style.right = r + "px";
 
 				x += c.width;
 			}
@@ -1316,7 +1325,12 @@
 				classes = [classheadercolumn, (column.headerClass || "")];
 				if (column.sortable) classes.push(classheadersortable);
 
+				// Determine width
 				w = column.width - headerColumnWidthDiff;
+
+				// Compensate for grid rendering
+				if (i + 1 == l) w = w + 2;
+
 				html.push('<div class="' + classes.join(' ') + '" style="width:' + w + 'px" ');
 				html.push('id="' + (uid + column.id) + '"');
 
@@ -5496,7 +5510,6 @@
 				// For groups we need to update the grouping options since the group rows
 				// will get regenerated, losing their custom height params during re-draws
 				item.predef.rows[item.id] = {height: height};
-				console.log(item.predef)
 
 				invalidateRows(_.range(row, cache.rows.length));
 
