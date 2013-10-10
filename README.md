@@ -39,7 +39,7 @@ At this time we're looking for early testers who are interested in [contributing
 ### Dependencies
 
 - jQuery 2.0.3 <http://jquery.com/>
-- Underscore 1.4.4 <http://underscorejs.org/>
+- Underscore 1.5.2 <http://underscorejs.org/>
 - Backbone 1.0.0 <http://backbonejs.org/>
 
 ### Optional Dependencies

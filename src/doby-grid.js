@@ -899,6 +899,7 @@
 		//
 		cacheRows = function (from) {
 			from = from || 0;
+			var items = cache.rows;
 
 			// Start cache object
 			if (from === 0) {
@@ -914,9 +915,9 @@
 				}
 			}
 
-			var count = self.collection.items.length, item, data;
-			for (var i = from, l = count; i < l; i++) {
-				item = self.collection.items[i];
+			var item, data;
+			for (var i = from, l = items.length; i < l; i++) {
+				item = items[i];
 
 				// Cache by item id
 
@@ -924,7 +925,6 @@
 
 				// Cache row position
 				if (variableRowHeight) {
-
 					data = {
 						top: (cache.rowPositions[i - 1]) ? (cache.rowPositions[i - 1].bottom - offset) : 0
 					};
@@ -1462,7 +1462,6 @@
 				filterCache = [],
 				filteredItems = [],
 				groupingDelimiter = ':|:',
-				groupingInfos = [],
 				groups = [],
 				pagenum = 0,
 				pagesize = 0,
@@ -1506,6 +1505,9 @@
 
 			// Items by index
 			this.items = [];
+
+			// Group definitions
+			this.groups = [];
 
 			// Size of the collection
 			this.length = 0;
@@ -1594,8 +1596,8 @@
 				console.error('calculateGroupTotals TODO');
 				/*
 				// TODO:  try moving iterating over groups into compiled accumulator
-				var gi = groupingInfos[group.level];
-				var isLeafLevel = (group.level == groupingInfos.length);
+				var gi = self.groups[group.level];
+				var isLeafLevel = (group.level == self.groups.length);
 				var totals = new Slick.GroupTotals();
 				var agg, idx = gi.aggregators.length;
 				while (idx--) {
@@ -1611,7 +1613,7 @@
 
 			calculateTotals = function (groups, level) {
 				level = level || 0;
-				var gi = groupingInfos[level];
+				var gi = self.groups[level];
 				var idx = groups.length,
 					g;
 				while (idx--) {
@@ -1802,13 +1804,13 @@
 			//
 			this.expandCollapseAllGroups = function (level, collapse) {
 				if (level === null || level === undefined) {
-					for (var i = 0; i < groupingInfos.length; i++) {
+					for (var i = 0, l = this.groups.length; i < l; i++) {
 						toggledGroupsByLevel[i] = {};
-						groupingInfos[i].collapsed = collapse;
+						this.groups[i].collapsed = collapse;
 					}
 				} else {
 					toggledGroupsByLevel[level] = {};
-					groupingInfos[level].collapsed = collapse;
+					this.groups[level].collapsed = collapse;
 				}
 
 				this.refresh();
@@ -1823,7 +1825,7 @@
 			// @param	collapse		boolean		Collapse? Otherwise expand.
 			//
 			expandCollapseGroup = function (level, group_id, collapse) {
-				toggledGroupsByLevel[level][group_id] = groupingInfos[level].collapsed ^ collapse;
+				toggledGroupsByLevel[level][group_id] = self.groups[level].collapsed ^ collapse;
 				self.refresh();
 			};
 
@@ -1876,6 +1878,14 @@
 				}
 			};
 
+
+			// extractGroups()
+			// Generates new group objects from the given rows
+			//
+			// @param	rows			??		TODO: ??
+			// @param	parentGroup		??		TODO: ??
+			//
+			// @return array
 			extractGroups = function (rows, parentGroup) {
 				var group,
 					val,
@@ -1883,7 +1893,7 @@
 					groupsByVal = {},
 					r,
 					level = parentGroup ? parentGroup.level + 1 : 0,
-					gi = groupingInfos[level],
+					gi = self.groups[level],
 					i, l, predef;
 
 				for (i = 0, l = gi.predefinedValues.length; i < l; i++) {
@@ -1894,9 +1904,13 @@
 						group = new Group();
 						group.value = val;
 						group.level = level;
-						group.id = (parentGroup ? parentGroup.id + groupingDelimiter : '') + val;
+						group.predef = gi;
+						group.id = '__group' + (parentGroup ? parentGroup.id + groupingDelimiter : '') + val;
+						group.height = gi.height ? gi.height : null;
 						groups[groups.length] = group;
 						groupsByVal[val] = group;
+
+						gi.row = group;
 					}
 				}
 
@@ -1908,22 +1922,27 @@
 						group = new Group();
 						group.value = val;
 						group.level = level;
-						group.id = (parentGroup ? parentGroup.id + groupingDelimiter : '') + val;
+						group.predef = gi;
+						group.id = '__group' + (parentGroup ? parentGroup.id + groupingDelimiter : '') + val;
+						group.height = gi.height ? gi.height : null;
 						groups[groups.length] = group;
 						groupsByVal[val] = group;
+
+
+						gi.row = group;
 					}
 
 					group.rows[group.count++] = r;
 				}
 
-				if (level < groupingInfos.length - 1) {
+				if (level < self.groups.length - 1) {
 					for (i = 0, l = groups.length; i < l; i++) {
 						group = groups[i];
 						group.groups = extractGroups(group.rows, group);
 					}
 				}
 
-				groups.sort(groupingInfos[level].comparer);
+				groups.sort(self.groups[level].comparer);
 
 				return groups;
 			};
@@ -1937,7 +1956,7 @@
 			//
 			finalizeGroups = function (groups, level) {
 				level = level || 0;
-				var gi = groupingInfos[level],
+				var gi = self.groups[level],
 					groupCollapsed = gi.collapsed,
 					toggledGroups = toggledGroupsByLevel[level],
 					idx = groups.length,
@@ -1958,9 +1977,18 @@
 				}
 			};
 
+
+			// flattenGroupedRows()
+			// Given a list of groups and the nesting levels returns the list of grouped rows that are
+			// expanded.
+			//
+			// @param	group		array		List of group objects
+			// @param	level		integer		Level of group nesting to scan
+			//
+			// @return array
 			flattenGroupedRows = function (groups, level) {
 				level = level || 0;
-				var gi = groupingInfos[level],
+				var gi = self.groups[level],
 					groupedRows = [],
 					rows, gl = 0,
 					g;
@@ -2030,7 +2058,7 @@
 			};
 
 			this.getGrouping = function () {
-				return groupingInfos;
+				return this.groups;
 			};
 
 			this.getItem = function (i) {
@@ -2117,7 +2145,7 @@
 								(!item.__group && r.__group) ||
 								// Compare two groups
 								(
-									groupingInfos.length && eitherIsNonData &&
+									self.groups.length && eitherIsNonData &&
 									(item && item.__group !== r.__group) ||
 									(item && item.__group) && (item[idProperty] != r[idProperty]) ||
 									(item && item.__group) && (item.collapsed != r.collapsed)
@@ -2197,6 +2225,10 @@
 			};
 
 
+			// recalc()
+			// TODO: ?
+			//
+			// @return array
 			recalc = function (_items) {
 				rowsById = null;
 
@@ -2210,7 +2242,7 @@
 				var newRows = filteredItems.rows;
 
 				groups = [];
-				if (groupingInfos.length) {
+				if (self.groups.length) {
 					groups = extractGroups(newRows);
 					if (groups.length) {
 						calculateTotals(groups);
@@ -2222,6 +2254,11 @@
 				var diff = getRowDiffs(cache.rows, newRows);
 
 				cache.rows = newRows;
+
+				if (diff.length) {
+					// Recache positions using the flattened group data
+					cacheRows(0);
+				}
 
 				return diff;
 			};
@@ -2332,25 +2369,21 @@
 
 				groups = [];
 				toggledGroupsByLevel = [];
-				groupingInfos = (options instanceof Array) ? options : [options];
-				var gi;
+				this.groups = (options instanceof Array) ? options : [options];
 
-				for (var i = 0, l = groupingInfos.length; i < l; i++) {
-					gi = groupingInfos[i];
+				var gi, idx;
+				for (var i = 0, l = this.groups.length; i < l; i++) {
+					gi = this.groups[i];
 
 					// pre-compile accumulator loops
 					gi.compiledAccumulators = [];
-					var idx = gi.aggregators.length;
+					idx = gi.aggregators.length;
 					while (idx--) {
 						gi.compiledAccumulators[idx] = compileAccumulatorLoop(gi.aggregators[idx]);
 					}
 
 					toggledGroupsByLevel[i] = {};
 				}
-
-				// Recache positions
-				cacheRows();
-				console.log(cache, this.items)
 
 				this.refresh();
 			};
@@ -2435,11 +2468,18 @@
 				if (cache.indexById[id] === undefined || id !== data[idProperty]) {
 					throw "Unable to update item (id: " + id + "). Invalid or non-matching id";
 				}
-				this.items[cache.indexById[id]] = data;
+
+				// Update the row cache and the item
+				var idx = cache.indexById[id];
+				cache.rows[idx] = data;
+				this.items[idx] = data;
+
 				if (!updated) {
 					updated = {};
 				}
+
 				updated[id] = true;
+
 				this.refresh();
 			};
 
@@ -4869,25 +4909,25 @@
 		//
 		renderRow = function (stringArray, row, range, dataLength) {
 			var d = getDataItem(row),
-				dataLoading = row < dataLength && !d,
 				rowCss = classrow +
-					(dataLoading ? " loading" : "") +
 					(row === activeRow ? " active" : "") +
 					(row % 2 === 1 ? " odd" : ""),
 				data = self.collection,
-				top = self.options.rowHeight * row - offset,
-				pos = {};
+				top, pos = {};
 
 			if (variableRowHeight) {
 				pos = cache.rowPositions[row];
 				top = (pos.top - offset);
+			} else {
+				top = self.options.rowHeight * row - offset;
 			}
 
 			if (d.class) rowCss += " " + (typeof d.class === 'function' ? d.class() : d.class);
 
 			stringArray.push("<div class='" + rowCss + "' style='top:" + top + "px");
 
-			if (variableRowHeight && pos.height) {
+			// In variable row height mode we need some fancy ways to determine height
+			if (variableRowHeight && d.height) {
 				var rowheight = pos.height - cellHeightDiff;
 				stringArray.push(';height:' + rowheight + 'px;line-height:' + rowheight + 'px');
 			}
@@ -4943,9 +4983,9 @@
 				i, ii;
 
 			for (i = range.top, ii = range.bottom; i <= ii; i++) {
-				if (cache.nodes[i]) {
-					continue;
-				}
+				// Don't re-render cached nodes
+				if (cache.nodes[i]) continue;
+
 				rows.push(i);
 
 				// Create an entry right away so that renderRow() can
@@ -5444,16 +5484,30 @@
 		// @param	height	integer		Height to set
 		//
 		setRowHeight = function (row, height) {
-			// TODO: This is hacky. There should be a collection.set() method to expend existing data
-			var item = self.collection.items[row];
+			var item = cache.rows[row];
+
+			// Change item height in the data
 			item.height = height;
-			self.collection.updateItem(item[idProperty], item);
 
-			cacheRows(row);
+			// Make sure rows below get re-evaluated
+			invalidateRows(_.range(row, cache.rows.length));
 
-			// Invalidate rows below the edited one
-			invalidateRows(_.range(row, self.collection.length + 1));
-			render();
+			if (item instanceof Group) {
+				// For groups we need to update the grouping options since the group rows
+				// will get regenerated, losing their custom height params during re-draws
+				item.predef.height = height;
+
+				invalidateRows(_.range(row, cache.rows.length));
+
+				// Re-cache and re-draw
+				cacheRows(row);
+				render();
+			} else {
+				// Update the item which will cause the grid to re-render the right bits
+				// TODO: This is hacky. There should be a collection.set() method to
+				// extend existing data instead of replacing the whole object
+				self.collection.updateItem(item[idProperty], item);
+			}
 		};
 
 
@@ -5496,7 +5550,6 @@
 
 		// setupColumnReorder()
 		// Allows columns to be re-orderable.
-		// TODO: Optimize me. I'm slow.
 		//
 		setupColumnReorder = function () {
 			$headers.filter(":ui-sortable").sortable("destroy");
@@ -5528,9 +5581,7 @@
 					}
 
 					self.setColumns(reorderedColumns);
-
 					self.trigger('onColumnsReordered', e);
-
 					setupColumnResize();
 				}
 			});

@@ -4,15 +4,13 @@ define([], function() {
 
 		// Generate Data
 		var data = []
-		for (var i = 0; i < 10000; i++) {
+		for (var i = 0; i < 10; i++) {
 			data.push({
 				id: i,
 				data: {
 					id: i,
-					name: "Pope John "+i,
-					age: "100 years",
-					city: ['Venice','Vatican City','Rome'][_.random(0,2)],
-					country: "ITA"
+					name: "This is row #" + i,
+					category: _.sample(['A','B','C','D'])
 				},
 				height: _.random(20, 70)
 			});
@@ -23,29 +21,21 @@ define([], function() {
 			columns: [{
 				id: "id",
 				name: "ID",
-				field: "id",
-				sortable: true
+				field: "id"
 			}, {
 				id: "name",
 				name: "Name",
-				field: "name",
-				minWidth: 100,
-				sortable: true
+				field: "name"
 			}, {
-				id: "age",
-				name: "Age",
-				field: "age",
-				sortable: true
+				id: "category",
+				name: "Category",
+				field: "category"
 			}, {
-				id: "city",
-				name: "City",
-				field: "city",
-				sortable: true
-			}, {
-				id: "country",
-				name: "Country",
-				field: "country",
-				sortable: true
+				id: "height",
+				name: "Row Height",
+				formatter: function(row, cell, value, columnDef, data) {
+					return data.height;
+				}
 			}],
 			data: data,
 			resizableRows: true
