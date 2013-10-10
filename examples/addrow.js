@@ -2,12 +2,11 @@ define([], function() {
 	return [function () {
 
 		// Generate Data
-		var data = []
+		var data = [];
 		for (var i = 0; i < 10; i++) {
 			data.push({
 				id: 'fancy_id_' + i,
 				data: {
-					id: 'fancy_id_' + i,
 					name: "Bob Robert Jr. " + i
 				}
 			});
@@ -19,6 +18,9 @@ define([], function() {
 				id: "id",
 				name: "ID",
 				field: "id",
+				formatter: function(row, cell, value, columnDef, data) {
+					return data.id;
+				},
 				sortable: true
 			}, {
 				id: "name",
@@ -33,24 +35,24 @@ define([], function() {
 				field: "action",
 				focusable: false,
 				formatter: function () {
-					return '<button class="add">Add Another Row</button><button class="remove">Remove This Row</button>'
+					return '<button class="add">Add Another Row</button><button class="remove">Remove This Row</button>';
 				},
 				selectable: false,
 				width: 300
 			}],
 			editable: true,
 			data: data
-		}
+		};
 	}, function (grid) {
 		grid.on('click', function(event, args) {
-			event.stopPropagation()
+			event.stopPropagation();
 
 			if ($(event.target).hasClass('add')) {
-				i++
-				grid.add({data: {id: 'fancy_id_' + i, name: "Bob Robert Jr. " + i}})
+				var i = grid.collection.items.length - 1;
+				grid.add({data: {name: "Bob Robert Jr. " + i}, id: 'fancy_id_' + i});
 			} else if ($(event.target).hasClass('remove')) {
-				grid.remove(args.item.id)
+				grid.remove(args.item.id);
 			}
-		})
-	}]
-})
+		});
+	}];
+});
