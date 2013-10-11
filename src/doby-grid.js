@@ -5621,6 +5621,9 @@
 				// extend existing data instead of replacing the whole object
 				self.collection.setItem(item[idProperty], item);
 			}
+
+			// This will recalculate scroll heights to ensure scrolling is properly handled.
+			updateRowCount();
 		};
 
 
