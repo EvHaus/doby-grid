@@ -6366,7 +6366,9 @@
 			if (canvasWidth != oldCanvasWidth) {
 				// The extra pixel here is to compensate for the grid cell layering
 				$canvas.width(canvasWidth - 1);
-				$headers.width(getHeadersWidth());
+
+				// And 2 pixels in the header for the same reason
+				$headers.width(getHeadersWidth() + 2);
 				viewportHasHScroll = (canvasWidth > viewportW - window.scrollbarDimensions.width);
 			}
 
