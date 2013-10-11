@@ -908,15 +908,16 @@
 		// the 'cache.rowPositions' object
 		//
 		// @param	from		integer		(Optional) Start to cache from which row?
+		// @param	indexOnly	boolean		(Optional) If true, will only perform a re-index
 		//
-		cacheRows = function (from) {
+		cacheRows = function (from, indexOnly) {
 			from = from || 0;
 			var items = cache.rows;
 
 			// Start cache object
 			if (from === 0) {
 				cache.indexById = {};
-				if (variableRowHeight) {
+				if (!indexOnly && variableRowHeight) {
 					cache.rowPositions = {
 						0: {
 							top: 0,
@@ -936,7 +937,7 @@
 				cache.indexById[item[idProperty]] = i;
 
 				// Cache row position
-				if (variableRowHeight) {
+				if (!indexOnly && variableRowHeight) {
 					data = {
 						top: (cache.rowPositions[i - 1]) ? (cache.rowPositions[i - 1].bottom - offset) : 0
 					};
@@ -1604,11 +1605,11 @@
 			};
 
 
-			// TODO:  lazy totals calculation
+			// TODO: lazy totals calculation
 			calculateGroupTotals = function (group) {
 				console.error('calculateGroupTotals TODO');
 				/*
-				// TODO:  try moving iterating over groups into compiled accumulator
+				// TODO: try moving iterating over groups into compiled accumulator
 				var gi = self.groups[group.level];
 				var isLeafLevel = (group.level == self.groups.length);
 				var totals = new Slick.GroupTotals();
@@ -1624,6 +1625,8 @@
 				*/
 			};
 
+
+			// TODO: ?
 			calculateTotals = function (groups, level) {
 				level = level || 0;
 				var gi = self.groups[level];
@@ -1677,6 +1680,8 @@
 				}
 			};
 
+
+			// TODO: ?
 			compileAccumulatorLoop = function (aggregator) {
 				console.error('compileAccumulatorLoop TODO');
 				/*
@@ -1692,6 +1697,8 @@
 				*/
 			};
 
+
+			// TODO: ?
 			compileFilter = function () {
 				console.error('compileFilter TODO');
 				/*
@@ -1728,8 +1735,9 @@
 				*/
 			};
 
+
+			// TODO: ?
 			compileFilterWithCaching = function () {
-				console.error('compileFilterWithCaching TODO');
 				/*
 				var filterInfo = getFunctionInfo(filter);
 
@@ -1882,6 +1890,7 @@
 			};
 
 
+			// TODO: ?
 			ensureRowsByIdCache = function () {
 				if (!rowsById) {
 					rowsById = {};
@@ -2056,6 +2065,8 @@
 				};
 			};
 
+
+			// TODO: ?
 			getFunctionInfo = function (fn) {
 				var fnRegex = new RegExp(/^function[^(]*\(([^)]*)\)\s*\{([\s\S]*)\}$/),
 					matches = fn.toString().match(fnRegex);
@@ -2065,10 +2076,14 @@
 				};
 			};
 
+
+			// TODO: ?
 			this.getGrouping = function () {
 				return this.groups;
 			};
 
+
+			// TODO: ?
 			this.getItem = function (i) {
 				return cache.rows[i];
 			};
@@ -2096,10 +2111,13 @@
 			};
 
 
+			// TODO: ?
 			this.getItemByIdx = function (i) {
 				return this.items[i];
 			};
 
+
+			// TODO: ?
 			this.getPagingInfo = function () {
 				var totalPages = pagesize ? Math.max(1, Math.ceil(totalRows / pagesize)) : 1;
 				return {
@@ -2110,6 +2128,8 @@
 				};
 			};
 
+
+			// TODO: ?
 			this.getRowById = function (id) {
 				ensureRowsByIdCache();
 				return rowsById[id];
@@ -2248,9 +2268,9 @@
 
 
 			// recalc()
-			// TODO: ?
+			// Given a list of rows we're viewing determines which of them need to be re-rendered
 			//
-			// @param		_items		array			??
+			// @param		_items		array		List of rows to render
 			//
 			// @return array
 			recalc = function (_items) {
@@ -2377,12 +2397,15 @@
 			};
 
 
+			// TODO: ?
 			this.reSort = function () {
 				if (sortComparer) {
 					this.sort(sortComparer, sortAsc);
 				}
 			};
 
+
+			// TODO: ?
 			this.setFilter = function (filterFn) {
 				filter = filterFn;
 				if (self.options.inlineFilters) {
@@ -2392,6 +2415,8 @@
 				this.refresh();
 			};
 
+
+			// TODO: ?
 			this.setFilterArgs = function (args) {
 				filterArgs = args;
 			};
@@ -2465,6 +2490,7 @@
 			};
 
 
+			// TODO: ?
 			this.setPagingOptions = function (args) {
 				if (args.pageSize !== undefined) {
 					pagesize = args.pageSize;
@@ -2481,11 +2507,18 @@
 			};
 
 
+			// TODO: ?
 			this.setRefreshHints = function (hints) {
 				refreshHints = hints;
 			};
 
 
+			// sort()
+			// Performs the sort operation and refreshes the grid render
+			//
+			// @param	comparer	function		The function to use to render
+			// @param	ascending	boolean			Is the direction ascending?
+			//
 			this.sort = function (comparer, ascending) {
 				sortAsc = ascending;
 				sortComparer = comparer;
@@ -2499,10 +2532,12 @@
 
 				// TODO: This only needs to re-index ID, not recalculate positions.
 				// Maybe update cacheRows to support different modes?
-				cacheRows();
+				cacheRows(null, true);
 				this.refresh();
 			};
 
+
+			// TODO: ?
 			uncompiledFilter = function (items, args) {
 				var retval = [],
 					idx = 0;
@@ -2516,6 +2551,8 @@
 				return retval;
 			};
 
+
+			// TODO: ?
 			uncompiledFilterWithCaching = function (items, args, cache) {
 				var retval = [],
 					idx = 0,
@@ -2611,6 +2648,11 @@
 			// @param	value		string		The user-input value being entered
 			//
 			this.applyValue = function (item, value) {
+				// Make sure we always have an id for our item
+				if (!('id' in item) && options.column.field == 'id') {
+					item.id = value;
+				}
+
 				item.data[options.column.field] = value;
 			};
 
@@ -2697,6 +2739,7 @@
 			this.validate = function () {
 				var value = this.getValue();
 
+				// TODO: What is this? Looks interesting.
 				if (options.column.validator) {
 					var validationResults = options.column.validator(value);
 					if (!validationResults.valid) {
@@ -4602,7 +4645,7 @@
 
 		// naturalSort()
 		// Natural Sort algorithm for Javascript - Version 0.7 - Released under MIT license
-		// Author: Jim Palmer (based on chunking idea from Dave Koelle
+		// Author: Jim Palmer (based on chunking idea from Dave Koelle)
 		//
 		naturalSort = function (a, b) {
 			var re = /(^-?[0-9]+(\.?[0-9]*)[df]?e?[0-9]?$|^0x[0-9a-f]+$|[0-9]+)/gi,
@@ -6318,6 +6361,7 @@
 		};
 
 
+		// TODO: ?
 		updateCell = function (row, cell) {
 			var cellNode = getCellNode(row, cell);
 			if (!cellNode) {
@@ -6398,6 +6442,7 @@
 		};
 
 
+		// TODO: ?
 		updateRow = function (row) {
 			var cacheEntry = cache.nodes[row];
 			if (!cacheEntry) {
@@ -6517,6 +6562,7 @@
 		};
 
 
+		// TODO: ?
 		updateRowPositions = function () {
 			for (var row in cache.nodes) {
 				cache.nodes[row].rowNode.style.top = (cache.rowPositions[row].top + offset) + "px";

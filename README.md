@@ -19,15 +19,16 @@ At this time we're looking for early testers who are interested in [contributing
 - Adaptive virtual scrolling (handle millions of rows with extreme responsiveness)
 - Data driven and fully MVC oriented
 - Table header that sticks to the top when you scroll
+- Ability to edit and create new rows and columns on the fly just like a spreadsheet
 - Ability to resize/reorder/show/hide/auto-resize columns
 - Ability to sort by more than 1 column at a time (multi-sort)
 - Ability to group rows by a column value (including nested groups)
 - Ability to double-click on column separator to maximize the column based its contents
 - Ability to resize rows and insert rows of any height
 - Ability to click+drag to select cells
+- Ability to define multiple rows for a single data item
 - Easily integrates with i18n libraries
 - (TODO) Full keyboard navigation
-- (TODO) Support for editing and creating new rows, cells and columns on the fly just like a spreadsheet
 - (TODO) Support for Backbone.Collection objects as data sets (including remote data fetching)
 - (TODO) Ability to select rows, including common keyboard conventions such as shift+click to multi-select
 - (TODO) Ability to export/import CSV/JSON data
