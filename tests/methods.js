@@ -5,20 +5,37 @@
 // https://github.com/globexdesigns/doby-grid
 
 /*jslint vars: true, plusplus: true, devel: true, nomen: true, indent: 4, maxerr: 50*/
-/*global _, describe, document, expect, DobyGrid, it*/
+/*global _, describe, document, expect, DobyGrid, it, setFixtures*/
 
 describe("Methods and Data Manipulation", function () {
 	"use strict";
 
-	var methodGrid = new DobyGrid();
+
+	// ==========================================================================================
+
+
+	// Utilities for resetting the grid
+	var resetGrid = function (options) {
+		options = options || {};
+		options.autoDestroy = false;
+		var grid = new DobyGrid(options);
+		grid.appendTo(setFixtures('<div id="test-container"></div>'));
+		return grid;
+	};
+
+
+	// ==========================================================================================
+
 
 	describe("add()", function () {
 		it("should be able to insert a new data item via add()", function () {
+			var grid = resetGrid();
+
 			var item = {data: {id: 100, name: 'test'}, id: 100};
-			var originalItems = JSON.parse(JSON.stringify(methodGrid.collection.items));
+			var originalItems = JSON.parse(JSON.stringify(grid.collection.items));
 			var originalDataItems = _.filter(originalItems, function (i) { return !i.__nonDataRow; });
-			methodGrid.add(item);
-			var newItems = methodGrid.collection.items;
+			grid.add(item);
+			var newItems = grid.collection.items;
 			var newDataItems = _.filter(newItems, function (i) { return !i.__nonDataRow; });
 			expect(originalDataItems.length).toEqual(0);
 			expect(newDataItems).toEqual([item]);
@@ -29,9 +46,11 @@ describe("Methods and Data Manipulation", function () {
 
 
 		it("should be able to insert a new data item via add() at a specific index", function () {
+			var grid = resetGrid();
+
 			var item = {data: {id: 101, name: 'test'}, id: 101};
-			methodGrid.add(item, {at: 0});
-			var newItems = methodGrid.collection.items;
+			grid.add(item, {at: 0});
+			var newItems = grid.collection.items;
 			var newDataItems = _.filter(newItems, function (i) { return !i.__nonDataRow; });
 			expect(newDataItems[0]).toEqual(item);
 		});
@@ -41,15 +60,16 @@ describe("Methods and Data Manipulation", function () {
 
 
 		it("should be able to merge data item via add() when adding item with the same id", function () {
-			// Prepare for unit test
-			methodGrid.reset([{data: {id: 101, name: 'test'}, id: 101}]);
+			var grid = resetGrid({
+				data: [{data: {id: 101, name: 'test'}, id: 101}]
+			});
 
 			// Execute
 			var item = {data: {id: 101, name: 'updated'}, id: 101};
-			methodGrid.add(item, {merge: true});
+			grid.add(item, {merge: true});
 
 			// Validate
-			var newItem = methodGrid.get(101);
+			var newItem = grid.get(101);
 			expect(JSON.stringify(item)).toEqual(JSON.stringify(newItem));
 		});
 
@@ -58,13 +78,32 @@ describe("Methods and Data Manipulation", function () {
 
 
 		it("should throw an exception when attempting to add() an item with a non-unique id", function () {
+			var grid = resetGrid();
+
 			var item = {data: {id: 101, name: 'updated'}, id: 101};
 			expect(function () {
-				methodGrid.add(item);
-				methodGrid.add(item);
+				grid.add(item);
+				grid.add(item);
 			}).toThrow('You are not allowed to add() items without a unique \'id\' value. A row with id \'' + item.data.id + '\' already exists.');
 		});
 
+
+		// ==========================================================================================
+
+
+		it("should automatically render a new row when you use add()", function () {
+			var grid = resetGrid({
+				columns: [
+					{id: 'id', field: 'id'},
+					{id: "name", field: 'name'},
+					{id: "category", field: "category"}
+				]
+			});
+			var newrow = {data: {id: 2, name: "adding a new row", category: "oohlala"}, id: 2};
+			grid.add(newrow);
+			var lastcell = grid.$el.find('.doby-grid-row:last-child .doby-grid-cell:last-child').text();
+			expect(lastcell).toEqual(newrow.data.category);
+		});
 	});
 
 
@@ -73,14 +112,16 @@ describe("Methods and Data Manipulation", function () {
 
 	describe("addColumn()", function () {
 		it("should be able to push a new column via addColumn()", function () {
+			var grid = resetGrid();
+
 			var col_def = {
 				id: "addColumnTest1",
 				field: "addColumnTest1"
 			};
 
-			methodGrid.addColumn(col_def);
+			grid.addColumn(col_def);
 
-			var lastcol = methodGrid.options.columns[methodGrid.options.columns.length - 1];
+			var lastcol = grid.options.columns[grid.options.columns.length - 1];
 			expect(lastcol.id).toEqual(col_def.id);
 		});
 
@@ -89,6 +130,8 @@ describe("Methods and Data Manipulation", function () {
 
 
 		it("should be able to push a new column via addColumn() 'at' a specific index", function () {
+			var grid = resetGrid();
+
 			var col_def = {
 				id: "addColumnTest1",
 				field: "addColumnTest1"
@@ -99,10 +142,10 @@ describe("Methods and Data Manipulation", function () {
 				field: "addColumnTest2"
 			};
 
-			methodGrid.addColumn(col_def);
-			methodGrid.addColumn(col_def2, {at: 0});
+			grid.addColumn(col_def);
+			grid.addColumn(col_def2, {at: 0});
 
-			var firstcol = methodGrid.options.columns[0];
+			var firstcol = grid.options.columns[0];
 			expect(firstcol.id).toEqual(col_def2.id);
 		});
 
@@ -111,19 +154,21 @@ describe("Methods and Data Manipulation", function () {
 
 
 		it("should be able to push a column update via addColumn() using merge", function () {
+			var grid = resetGrid();
+
 			var col_def = {
 				id: "addColumnTest3",
 				field: "addColumnTest3"
 			};
 
-			methodGrid.addColumn(col_def);
+			grid.addColumn(col_def);
 
 			col_def = JSON.parse(JSON.stringify(col_def));
 			col_def.field = 'CHANGED!';
 
-			methodGrid.addColumn(col_def, {merge: true});
+			grid.addColumn(col_def, {merge: true});
 
-			var lastcol = methodGrid.options.columns[methodGrid.options.columns.length - 1];
+			var lastcol = grid.options.columns[grid.options.columns.length - 1];
 			expect(lastcol.id).toEqual(col_def.id);
 			expect(lastcol.field).toEqual(col_def.field);
 		});
@@ -133,15 +178,17 @@ describe("Methods and Data Manipulation", function () {
 
 
 		it("should throw an error if attempting to addColumn() with 'id' that already exists", function () {
+			var grid = resetGrid();
+
 			var col_def = {
 				id: "addColumnTest4",
 				field: "addColumnTest4"
 			};
 
-			methodGrid.addColumn(col_def);
+			grid.addColumn(col_def);
 
 			expect(function () {
-				methodGrid.addColumn(col_def);
+				grid.addColumn(col_def);
 			}).toThrow("Unable to addColumn() because a column with id '" + col_def.id + "' already exists. Did you want to {merge: true} maybe?");
 		});
 
@@ -150,10 +197,12 @@ describe("Methods and Data Manipulation", function () {
 
 
 		it("should throw an error if attempting to addColumn() with non data objects", function () {
+			var grid = resetGrid();
+
 			var bad_data = [[], 'asd', 123, document.body];
 			_.each(bad_data, function (bd) {
 				expect(function () {
-					methodGrid.addColumn(bd);
+					grid.addColumn(bd);
 				}).toThrow("Unable to addColumn() because the given 'data' param is invalid.");
 			});
 		});
@@ -165,8 +214,9 @@ describe("Methods and Data Manipulation", function () {
 
 	describe("addGrouping()", function () {
 		it("should throw an error if attempt to addGrouping() by null", function () {
+			var grid = resetGrid();
 			expect(function () {
-				methodGrid.addGrouping();
+				grid.addGrouping();
 			}).toThrow("Unable to add grouping to grid because the 'column_id' value is missing.");
 		});
 
@@ -175,7 +225,7 @@ describe("Methods and Data Manipulation", function () {
 
 
 		it("should be able to apply grouping via addGrouping()", function () {
-			methodGrid.setOptions({
+			var grid = resetGrid({
 				columns: [{
 					id: 'id',
 					name: 'ID'
@@ -190,12 +240,37 @@ describe("Methods and Data Manipulation", function () {
 				]
 			});
 
-			methodGrid.addGrouping("category");
+			grid.addGrouping("category");
 
-			expect(methodGrid.collection.groups[0].column_id).toEqual("category");
+			expect(grid.collection.groups[0].column_id).toEqual("category");
 
 			// Reset
-			methodGrid.setGrouping()
+			grid.setGrouping();
+		});
+	});
+
+
+	// ==========================================================================================
+
+
+	describe("appendTo()", function () {
+		it("should append the grid to a container via appendTo()", function () {
+			var grid = resetGrid();
+			var fixture = setFixtures('<div class="test"></div>');
+			grid.appendTo(fixture);
+			expect(fixture).toContain('div.doby-grid');
+		});
+
+
+		// ==========================================================================================
+
+
+		it("should return a DobyGrid object via appendTo()", function () {
+			var grid = resetGrid();
+			var fixture = setFixtures('<div class="test"></div>');
+			grid.appendTo(fixture);
+			expect(grid instanceof DobyGrid).toEqual(true);
+			expect(typeof(grid)).toEqual('object');
 		});
 	});
 
@@ -205,12 +280,13 @@ describe("Methods and Data Manipulation", function () {
 
 	describe("get()", function () {
 		it("should be able to get() model by id", function () {
-			// Prepare for test
 			var item = {data: {id: 102, name: 'updated'}, id: 102};
-			methodGrid.reset([item]);
+			var grid = resetGrid({
+				data: [item]
+			});
 
 			// Validate
-			var gotten = methodGrid.get(102);
+			var gotten = grid.get(102);
 			expect(gotten.data.id).toEqual(102);
 		});
 
@@ -219,12 +295,13 @@ describe("Methods and Data Manipulation", function () {
 
 
 		it("should be able to get() model by reference", function () {
-			// Prepare for test
 			var item = {data: {id: 103, name: 'updated'}, id: 103};
-			methodGrid.reset([item]);
+			var grid = resetGrid({
+				data: [item]
+			});
 
 			// Validate
-			var gotten = methodGrid.get({data: {id: 103, name: 'updated'}, id: 103});
+			var gotten = grid.get({data: {id: 103, name: 'updated'}, id: 103});
 			expect(gotten.data.id).toEqual(103);
 		});
 	});
@@ -235,9 +312,10 @@ describe("Methods and Data Manipulation", function () {
 
 	describe("reset()", function () {
 		it("should be able to reset() the grid with a new set of data", function () {
+			var grid = resetGrid();
 			var newdata = [{data: {id: 1, name: 'test'}, id: 1}, {data: {id: 2, name: 'test2'}, id: 2}];
-			methodGrid = methodGrid.reset(newdata);
-			expect(methodGrid.collection.items).toEqual(newdata);
+			grid = grid.reset(newdata);
+			expect(grid.collection.items).toEqual(newdata);
 		});
 
 
@@ -245,11 +323,88 @@ describe("Methods and Data Manipulation", function () {
 
 
 		it("should be able to empty the grid via reset()", function () {
-			// Ensure empty alert isn't on
-			methodGrid.setOptions({emptyNotice: false});
+			var grid = resetGrid({emptyNotice: false});
+			grid = grid.reset();
+			expect(grid.collection.items).toEqual([]);
+		});
 
-			methodGrid = methodGrid.reset();
-			expect(methodGrid.collection.items).toEqual([]);
+
+		// ==========================================================================================
+
+
+		it("should re-render rows with the same id when using reset()", function () {
+			var grid = resetGrid({columns: [{id: 'test', field: 'name'}]});
+			grid.add({id: 1, data: {name: "bob"}});
+			grid.reset([{id: 1, data: {name: "steve"}}]);
+			var cell = grid.$el.find('.doby-grid-cell').first();
+			expect(cell.html()).toEqual("steve");
+		});
+
+
+		// ==========================================================================================
+
+
+		it("should re-render nested rows when using reset()", function () {
+			var grid = resetGrid({columns: [{id: 'test', field: 'name'}]});
+			grid.add({
+				id: 1,
+				data: {name: "bob"},
+				rows: {
+					0: {
+						id: 2,
+						data: {name: "bob jr"}
+					}
+				}
+			});
+
+			grid.reset([{
+				id: 1,
+				data: {name: "steve"},
+				rows: {
+					0: {
+						id: 2,
+						data: {name: "steve jr"}
+					}
+				}
+			}]);
+
+			var firstcell = grid.$el.find('.doby-grid-cell').first();
+			var lastcell = grid.$el.find('.doby-grid-cell').last();
+			expect(firstcell.html()).toEqual("steve");
+			expect(lastcell.html()).toEqual("steve jr");
+		});
+
+
+		// ==========================================================================================
+
+
+		it("should re-render correctly when using reset() and switching between normal and nested rows", function () {
+			var grid = resetGrid({
+				columns: [{id: 'test', field: 'name'}],
+				data: [{
+					id: 1,
+					data: {name: "bob"}
+				}, {
+					id: 2,
+					data: {name: "bob jr"}
+				}]
+			});
+
+			grid.reset([{
+				id: 1,
+				data: {name: "steve"},
+				rows: {
+					0: {
+						id: 2,
+						data: {name: "steve jr"}
+					}
+				}
+			}]);
+
+			var firstcell = grid.$el.find('.doby-grid-cell').first();
+			var lastcell = grid.$el.find('.doby-grid-cell').last();
+			expect(firstcell.html()).toEqual("steve");
+			expect(lastcell.html()).toEqual("steve jr");
 		});
 	});
 
@@ -259,12 +414,94 @@ describe("Methods and Data Manipulation", function () {
 
 	describe("remove()", function () {
 		it("should be able to remove() an item from the grid", function () {
-			// Prepare grid for test
 			var newdata = [{data: {id: 1, name: 'test'}, id: 1}, {data: {id: 2, name: 'test2'}, id: 2}];
-			methodGrid.reset(newdata);
+			var grid = resetGrid({
+				data: newdata
+			});
 
-			methodGrid = methodGrid.remove(2);
-			expect(methodGrid.collection.items).toEqual([newdata[0]]);
+			grid = grid.remove(2);
+			expect(grid.collection.items).toEqual([newdata[0]]);
+		});
+	});
+
+
+	// ==========================================================================================
+
+
+	describe("setColumns()", function () {
+		it("should be able to create columns using setColumns()", function () {
+			var grid = resetGrid({
+				data: [
+					{id: 1, data: {id: 1, name: 'one'}},
+					{id: 2, data: {id: 2, name: 'two'}}
+				]
+			});
+
+			grid.setColumns([
+				{id: 'id', field: 'id'},
+				{id: 'name', field: 'name'}
+			]);
+
+			// Confirm data
+			expect(grid.options.columns.length).toEqual(2);
+			expect(grid.options.columns[0].id).toEqual('id');
+			expect(grid.options.columns[1].id).toEqual('name');
+
+			// Confirm header render
+			var headers = grid.$el.find('.doby-grid-header-column');
+			expect(headers.length).toEqual(2);
+			expect(headers.first().attr('id')).toContain('id');
+			expect(headers.last().attr('id')).toContain('name');
+
+			// Confirm body render
+			var cells = grid.$el.find('.doby-grid-cell');
+			expect(cells.eq(0).html()).toEqual('1');
+			expect(cells.eq(1).html()).toEqual('one');
+			expect(cells.eq(2).html()).toEqual('2');
+			expect(cells.eq(3).html()).toEqual('two');
+		});
+
+
+		// ==========================================================================================
+
+
+		it("should be able to reset columns using setColumns()", function () {
+			var grid = resetGrid({
+				columns: [
+					{id: 'asd', field: 'asd'},
+					{id: 'dsa', field: 'dsa'}
+				],
+				data: [
+					{id: 1, data: {id: 1, name: 'one', middle: 'm1'}},
+					{id: 2, data: {id: 2, name: 'two', middle: 'm2'}}
+				]
+			});
+
+			grid.setColumns([
+				{id: 'id', field: 'id'},
+				{id: 'middle', field: 'middle'},
+				{id: 'name', field: 'name'},
+			]);
+
+			// Confirm data
+			expect(grid.options.columns.length).toEqual(3);
+			expect(grid.options.columns[0].id).toEqual('id');
+			expect(grid.options.columns[2].id).toEqual('name');
+
+			// Confirm render
+			var headers = grid.$el.find('.doby-grid-header-column');
+			expect(headers.length).toEqual(3);
+			expect(headers.first().attr('id')).toContain('id');
+			expect(headers.last().attr('id')).toContain('name');
+
+			// Confirm body render
+			var cells = grid.$el.find('.doby-grid-cell');
+			expect(cells.eq(0).html()).toEqual('1');
+			expect(cells.eq(1).html()).toEqual('m1');
+			expect(cells.eq(2).html()).toEqual('one');
+			expect(cells.eq(3).html()).toEqual('2');
+			expect(cells.eq(4).html()).toEqual('m2');
+			expect(cells.eq(5).html()).toEqual('two');
 		});
 	});
 
@@ -274,11 +511,49 @@ describe("Methods and Data Manipulation", function () {
 
 	describe("setOptions()", function () {
 		it("should be able to reload data using setOptions()", function () {
-			methodGrid.setOptions({
+			var grid = resetGrid();
+
+			grid.setOptions({
 				data: [{data: {id: 189, name: 'test'}, id: 189}, {data: {id: 289, name: 'test2'}, id: 289}]
 			});
 
-			expect(_.pluck(methodGrid.collection.items, 'id')).toEqual([189, 289]);
+			expect(_.pluck(grid.collection.items, 'id')).toEqual([189, 289]);
+		});
+
+
+		// ==========================================================================================
+
+
+		it("should be able to re-render columns setOptions()", function () {
+			var grid = resetGrid({
+				columns: [{id: 'id', field: 'id'}],
+				data: [
+					{id: 1, data: {id: 1, name: 'one'}},
+					{id: 2, data: {id: 2, name: 'two'}}
+				]
+			});
+
+			grid.setOptions({
+				columns: [{id: 'name', field: 'name'}, {id: 'id', field: 'id'}]
+			});
+
+			// Confirm data
+			expect(grid.options.columns.length).toEqual(2);
+			expect(grid.options.columns[0].id).toEqual('name');
+			expect(grid.options.columns[1].id).toEqual('id');
+
+			// Confirm render
+			var headers = grid.$el.find('.doby-grid-header-column');
+			expect(headers.length).toEqual(2);
+			expect(headers.first().attr('id')).toContain('name');
+			expect(headers.last().attr('id')).toContain('id');
+
+			// Confirm body render
+			var cells = grid.$el.find('.doby-grid-cell');
+			expect(cells.eq(0).html()).toEqual('one');
+			expect(cells.eq(1).html()).toEqual('1');
+			expect(cells.eq(2).html()).toEqual('two');
+			expect(cells.eq(3).html()).toEqual('2');
 		});
 	});
 
@@ -288,8 +563,9 @@ describe("Methods and Data Manipulation", function () {
 
 	describe("destroy()", function () {
 		it("should be able to destroy() the grid", function () {
-			methodGrid.destroy();
-			expect(methodGrid.$el).toEqual(null);
+			var grid = resetGrid();
+			grid.destroy();
+			expect(grid.$el).toEqual(null);
 		});
 	});
 

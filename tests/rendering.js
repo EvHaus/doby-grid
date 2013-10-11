@@ -5,7 +5,7 @@
 // https://github.com/globexdesigns/doby-grid
 
 /*jslint vars: true, plusplus: true, devel: true, nomen: true, indent: 4, maxerr: 50*/
-/*global _, describe, document, expect, DobyGrid, it, setFixtures*/
+/*global _, $, describe, document, expect, DobyGrid, it, setFixtures*/
 
 describe("Rendering", function () {
 	"use strict";
@@ -34,98 +34,31 @@ describe("Rendering", function () {
 				category: _.random(["a", "b", "c"])
 			}
 		}]
-	}
+	};
 
 	// Create a new grid inside a fixture
-	var grid = new DobyGrid(options)
-	var fixture = setFixtures('<div id="text-container"></div>')
-	grid.appendTo(fixture)
-
-
-	// ==========================================================================================
-
-
-	it("should append the grid to a container via appendTo()", function () {
-		expect(fixture).toContain('div.doby-grid')
-	})
-
-
-	// ==========================================================================================
-
-
-	it("should return a DobyGrid object via appendTo()", function () {
-		expect(grid instanceof DobyGrid).toEqual(true)
-		expect(typeof(grid)).toEqual('object')
-	})
+	var grid = new DobyGrid(options);
+	var fixture = setFixtures('<div id="text-container"></div>');
+	grid.appendTo(fixture);
 
 
 	// ==========================================================================================
 
 
 	describe("Column Headers", function () {
-
-
 		it("should render the expected number of column headers", function () {
-			expect(grid.$el.find('.doby-grid-header-column').length).toEqual(options.columns.length)
-		})
-
-
-	})
+			expect(grid.$el.find('.doby-grid-header-column').length).toEqual(options.columns.length);
+		});
+	});
 
 
 	// ==========================================================================================
 
 
 	describe("Grid Body", function () {
-
-
 		it("should render the expected number of columns for every row", function () {
-			expect(grid.$el.find('.doby-grid-row:first .doby-grid-cell').length).toEqual(options.columns.length)
-		})
-
-
-		// ==========================================================================================
-
-
-		it("should automatically render a new row when you use add()", function () {
-			var newrow = {data: {id: 2, name: "adding a new row", category: "oohlala"}, id: 2}
-			grid.add(newrow)
-			var lastcell = grid.$el.find('.doby-grid-row:last-child .doby-grid-cell:last-child').text()
-			expect(lastcell).toEqual(newrow.data.category)
-		})
-
-
-		// ==========================================================================================
-
-
-		it("should render collapsed group headers when adding grouping", function () {
-			var gcolumn = options.columns[1]
-
-			// Add some additional rows for testing
-			grid.add([
-				{data: {id: 3, name: "adding a new row"}, id: 3},
-				{data: {id: 4, name: "adding a new row"}, id: 3},
-				{data: {id: 5, name: "adding a new row"}, id: 3},
-				{data: {id: 6, name: "adding a new row"}, id: 3}
-			])
-
-			// Group by column
-			grid.addGrouping(gcolumn.id)
-
-			// Figure out how many groups to expect
-			var groups = _.groupBy(grid.collection.items, function (i) { return i.data[gcolumn.field]})
-			groups = _.keys(groups)
-
-			// Grab the grid rows
-			var rows = grid.$el.find('.doby-grid-row')
-
-			// Expect to find as many group headers as there are different values
-			expect(rows.length).toEqual(groups.length)
-			expect(rows).toHaveClass('doby-grid-group')
-
-			// Clear grouping
-			grid.setGrouping()
-		})
+			expect(grid.$el.find('.doby-grid-row:first .doby-grid-cell').length).toEqual(options.columns.length);
+		});
 
 
 		// ==========================================================================================
@@ -133,17 +66,17 @@ describe("Rendering", function () {
 
 		it("should render an empty notice when there is no data", function () {
 			// Ensure empty notice is on
-			grid.setOptions({emptyNotice: true})
+			grid.setOptions({emptyNotice: true});
 
 			// Empty the grid
-			grid.reset()
+			grid.reset();
 
 			// Check to see if alert was rendered
-			expect(grid.$el).toContain('.doby-grid-alert')
+			expect(grid.$el).toContain('.doby-grid-alert');
 
 			// Disable empty notice
-			grid.setOptions({emptyNotice: false})
-		})
+			grid.setOptions({emptyNotice: false});
+		});
 
 
 		// ==========================================================================================
@@ -151,20 +84,20 @@ describe("Rendering", function () {
 
 		it("should remove the relevant row from the DOM when calling remove()", function () {
 			// Prepare the grid for testing
-			grid.reset([{data: {id: 1}, id: 1}, {data: {id: 2}, id: 2}])
+			grid.reset([{data: {id: 1}, id: 1}, {data: {id: 2}, id: 2}]);
 
 			// Remove the second row
-			grid.remove(2)
+			grid.remove(2);
 
 			// Check to see if the right row was removed
 			var rows = grid.$el.find('.doby-grid-row'),
-				cell = $(rows[0]).children('.doby-grid-cell:first').first()
+				cell = $(rows[0]).children('.doby-grid-cell:first').first();
 
-			expect(rows.length).toEqual(1)
+			expect(rows.length).toEqual(1);
 
 			// Make sure the first row is left behind
-			expect(cell.text()).toEqual('1')
-		})
+			expect(cell.text()).toEqual('1');
+		});
 
 
 		// ==========================================================================================
@@ -176,20 +109,20 @@ describe("Rendering", function () {
 				addRow: true,
 				data: [{data: {id: 1, name: "one"}, id: 1}, {data: {id: 2, name: "two", category: "asd"}, id: 2}],
 				editable: true
-			})
+			});
 
 			grid.$el.find('.doby-grid-row:last-child .doby-grid-cell').each(function () {
-				expect(this).toBeEmpty()
-			})
+				expect(this).toBeEmpty();
+			});
 
 			// Disable to prevent conflict with other tests
-			grid.setOptions({addRow: false, editable: false})
+			grid.setOptions({addRow: false, editable: false});
 
 			// Make sure row is removed
 			grid.$el.find('.doby-grid-row:last-child .doby-grid-cell').each(function () {
-				expect(this).not.toBeEmpty()
-			})
-		})
+				expect(this).not.toBeEmpty();
+			});
+		});
 
 
 		// ==========================================================================================
@@ -197,16 +130,16 @@ describe("Rendering", function () {
 
 		it("should enable variable row height mode when an item is add()ed with a custom height", function () {
 			// Reset
-			grid.reset([{data: {id: 1, name: 'test'}, id: 1}])
+			grid.reset([{data: {id: 1, name: 'test'}, id: 1}]);
 
 			// Insert
-			grid.add({data: {id: 2, name: 'test'}, id: 2, height: 1500})
+			grid.add({data: {id: 2, name: 'test'}, id: 2, height: 1500});
 
 			// Make sure row has the right height
 			grid.$el.find('.doby-grid-row:last-child').each(function () {
-				expect($(this).height()).toEqual(1500)
-			})
-		})
+				expect($(this).height()).toEqual(1500);
+			});
+		});
 
 
 		// ==========================================================================================
@@ -216,22 +149,48 @@ describe("Rendering", function () {
 			// Reset
 			grid.setOptions({
 				data: [
-					{data: {id: 1, name: 'test1', category: 'a'}, id: 1, height: 50},
-					{data: {id: 2, name: 'test2', category: 'b'}, id: 2, height: 100},
-					{data: {id: 3, name: 'test3', category: 'b'}, id: 3, height: 150}
+					{data: {id: 1, name: 'Asd3', category: 'a'}, id: 1, height: 50},
+					{data: {id: 2, name: 'Asd2', category: 'b'}, id: 2, height: 100},
+					{data: {id: 3, name: 'Asd1', category: 'b'}, id: 3, height: 150}
 				]
-			})
+			});
 
 			// Group
-			grid.setGrouping(['category'])
+			grid.setGrouping(['category']);
 
 			// Make sure row has the right height
 			grid.$el.find('.doby-grid-row:first-child').each(function () {
-				expect($(this).height()).not.toEqual(50)
-			})
-		})
+				expect($(this).height()).not.toEqual(50);
+			});
 
-	})
+			// Reset
+			grid.setGrouping();
+		});
 
 
-})
+		// ==========================================================================================
+
+
+		it("should correctly render multiple rows when using nested rows", function () {
+			// Reset
+			grid.setOptions({
+				columns: [{id: 'name', field: 'name'}, {id: 'category', field: 'category'}],
+				data: [{
+					data: {name: 'test1', category: 'a'},
+					id: 1,
+					rows: {
+						0: {data: {name: 'test2', category: 'b'}, id: 2},
+						1: {data: {name: 'test3', category: 'c'}, id: 3}
+					}
+				}]
+			});
+
+			// Make sure row has the right height
+			var rows = grid.$el.find('.doby-grid-row');
+			console.log(rows, grid)
+			expect(rows.length).toEqual(3);
+			expect(rows.first().children('.doby-grid-cell').first().html()).toEqual("test1");
+			expect(rows.last().children('.doby-grid-cell').last().html()).toEqual("c");
+		});
+	});
+});

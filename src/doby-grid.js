@@ -424,7 +424,7 @@
 
 			// Check for a column with the same id
 			var existing = cache.columnsById[data.id];
-			if (existing) {
+			if (existing !== undefined) {
 				if (options.merge !== true) {
 					var err = ["Unable to addColumn() because a column with id '" + data.id];
 					err.push("' already exists. Did you want to {merge: true} maybe?");
@@ -587,7 +587,7 @@
 				w = self.options.columns[i].width - headerColumnWidthDiff;
 
 				// Compensate for grid rendering
-				if (i + 1 == l) w = w + 2;
+				if (i + 1 == l) w = w + 3;
 
 				$(headers[i]).attr('style', 'width:' + w + 'px');
 			}
@@ -2298,14 +2298,15 @@
 				}
 
 				// Insert child rows
-				var cRow;
+				var cRow, ri = 0;
 				for (var i = 0, l = newRows.length; i < l; i++) {
 					if (newRows[i].rows) {
 						for (var r in newRows[i].rows) {
 							if (newRows[i].rows[r].collapsed) continue;
 							cRow = new NonDataItem(newRows[i].rows[r]);
 							cRow.parent = newRows[i];
-							newRows.splice((i + 1), 0, cRow);
+							newRows.splice((i + ri + 1), 0, cRow);
+							ri++;
 						}
 					}
 				}
@@ -2381,6 +2382,10 @@
 			this.reset = function (models, recache) {
 				if (!models) models = [];
 				suspend = true;
+
+				// Make sure that rows are re-cached too. This is needed to make sure you can reset
+				// rows with 'id' values that previously existed
+				if (recache) cache.rows = [];
 
 				// Parse data
 				parse(models);
@@ -3103,6 +3108,7 @@
 			while (i--) {
 				rowWidth += self.options.columns[i].width;
 			}
+
 			return self.options.fullWidthRows ? Math.max(rowWidth, availableWidth) : rowWidth;
 		};
 
@@ -5573,8 +5579,12 @@
 			}
 
 			self.options = $.extend(self.options, options);
-
 			validateOptions();
+
+			// If setting new columns
+			if (options.columns) {
+				this.setColumns(options.columns);
+			}
 
 			render();
 		};
@@ -6351,7 +6361,8 @@
 			canvasWidth = getCanvasWidth();
 
 			if (canvasWidth != oldCanvasWidth) {
-				$canvas.width(canvasWidth);
+				// The extra pixel here is to compensate for the grid cell layering
+				$canvas.width(canvasWidth - 1);
 				$headers.width(getHeadersWidth());
 				viewportHasHScroll = (canvasWidth > viewportW - window.scrollbarDimensions.width);
 			}
