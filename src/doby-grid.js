@@ -63,6 +63,7 @@
 			bindCellRangeSelect,
 			bindRowResize,
 			cache = {
+				aggregatorsByColumnId: {},
 				columnPosLeft: [],
 				columnPosRight: [],
 				columnsById: {},
@@ -384,6 +385,9 @@
 			// Calculate some information about the browser window
 			getBrowserData();
 
+			// Cache some column stuff (needed to intialize a collection with aggregators)
+			updateColumnCaches();
+
 			// Create a new data collection
 			self.collection = new Collection(self);
 
@@ -486,7 +490,7 @@
 			this.class = classrowtotal;
 			this.columns = {};
 			this.editable = false;
-			this.focusable = false;
+			this.focusable = true;
 			this.formatter = function (row, cell, value, columnDef, data) {
 				if (self.aggregators[columnDef.id] && self.aggregators[columnDef.id].formatter) {
 					return self.aggregators[columnDef.id].formatter();
@@ -525,7 +529,6 @@
 				// Calculate caches, dimensions and prepare layout
 				measureCellPaddingAndBorder();
 				disableSelection($headers);
-				updateColumnCaches();
 				renderColumnHeaders();
 				setupColumnSort();
 				createCssRules();
@@ -1344,9 +1347,9 @@
 		//
 		createCssRules = function () {
 			$style = $('<style type="text/css" rel="stylesheet"></style>').appendTo($("head"));
-			var rowHeight = (self.options.rowHeight - cellHeightDiff);
+			var rowHeight = (self.options.rowHeight - cellHeightDiff) + 1;
 			var rules = [
-				"#" + uid + " ." + classrow + "{height:" + rowHeight + "px;line-height:" + rowHeight + "px}"
+				"#" + uid + " ." + classrow + "{height:" + rowHeight + "px;line-height:" + (rowHeight + 1) + "px}"
 			];
 
 			for (var i = 0, l = self.options.columns.length; i < l; i++) {
@@ -1464,9 +1467,7 @@
 
 			// Private Methods
 
-				calculateGroupTotals,
 				calculateTotals,
-				compileAccumulatorLoop,
 				compileFilter,
 				compiledFilter,
 				compileFilterWithCaching,
@@ -1482,6 +1483,7 @@
 				insertEmptyAlert,
 				parse,
 				processAggregators,
+				processGroupAggregators,
 				recalc,
 				uncompiledFilter,
 				uncompiledFilterWithCaching,
@@ -1579,26 +1581,6 @@
 			};
 
 
-			// TODO: lazy totals calculation
-			calculateGroupTotals = function (group) {
-				// TODO: try moving iterating over groups into compiled accumulator
-				/*
-				var gi = self.groups[group.level];
-				var isLeafLevel = (group.level == self.groups.length);
-				var totals = new GroupTotals();
-				var agg, idx = gi.aggregators.length;
-				while (idx--) {
-					agg = gi.aggregators[idx];
-					agg.init();
-					gi.compiledAccumulators[idx].call(agg, (!isLeafLevel && gi.aggregateChildGroups) ? group.groups : group.grouprows);
-					agg.storeResult(totals);
-				}
-				totals.group = group;
-				group.totals = totals;
-				*/
-			};
-
-
 			// TODO: ?
 			calculateTotals = function (groups, level) {
 				/*
@@ -1621,7 +1603,6 @@
 
 					if (gi.aggregators.length && (
 						gi.aggregateEmpty || g.grouprows.length || (g.groups && g.groups.length))) {
-						calculateGroupTotals(g);
 					}
 				}*/
 			};
@@ -1652,22 +1633,6 @@
 				} else {
 					expandCollapseGroup(args.length - 1, args.join(groupingDelimiter), true);
 				}
-			};
-
-
-			// TODO: ?
-			compileAccumulatorLoop = function (aggregator) {
-				/*
-				var accumulatorInfo = getFunctionInfo(aggregator.accumulate);
-				var fn = new Function(
-					"_items",
-					"for (var " + accumulatorInfo.params[0] + ", _i=0, _il=_items.length; _i<_il; _i++) {" +
-					accumulatorInfo.params[0] + " = _items[_i]; " +
-					accumulatorInfo.body +
-					"}");
-				//fn.displayName = fn.name = "compiledAccumulatorLoop";
-				return fn;
-				*/
 			};
 
 
@@ -1909,6 +1874,13 @@
 
 				for (i = 0, l = rows.length; i < l; i++) {
 					r = rows[i];
+
+					// Do not group grid aggregator
+					if (r instanceof Aggregate && r.__gridAggregate) {
+						groups.push(r);
+						continue;
+					}
+
 					val = typeof gi.getter === "function" ? gi.getter(r) : r[gi.getter];
 					group = groupsByVal[val];
 					if (!group) {
@@ -1989,6 +1961,7 @@
 
 					if (!g.collapsed) {
 						rows = g.groups ? flattenGroupedRows(g.groups, level + 1) : g.grouprows;
+						if (!rows) continue;
 						for (var j = 0, m = rows.length; j < m; j++) {
 							groupedRows[gl++] = rows[j];
 						}
@@ -2236,33 +2209,59 @@
 
 			// processAggregators()
 			// Processes any aggregrators that are enabled and caches their results.
-			// Then inserts new GroupTotal rows that are needed.
+			// Then inserts new Aggregate rows that are needed.
 			processAggregators = function () {
-				// Collect and instantiate the aggregators
-				var i, l, aggregators = {}, column;
-				for (i = 0, l = grid.options.columns.length; i < l; i++) {
-					column = grid.options.columns[i];
-					if (!column.aggregator) continue;
-					aggregators[column.id] = new column.aggregator(column);
-				}
-
 				// If nothing to aggregate -- goodbye!
-				if (Object.keys(aggregators).length === 0) return;
+				if (Object.keys(cache.aggregatorsByColumnId).length === 0) return;
 
-				var item;
+				var item, i, l;
 				// Loop through the data and process the aggregators
 				for (i = 0, l = self.items.length; i < l; i++) {
 					item = self.items[i];
-					for (var column_id in aggregators) {
-						aggregators[column_id].process(item);
+					for (var column_id in cache.aggregatorsByColumnId) {
+						cache.aggregatorsByColumnId[column_id].process(item);
 					}
 				}
 
 				// Insert grid totals row
-				self.items.push(new Aggregate(aggregators));
+				var gridAggregate = new Aggregate(cache.aggregatorsByColumnId);
+				// Mark this is the grid-level aggregate
+				gridAggregate.__gridAggregate = true;
+				self.items.push(gridAggregate);
+			};
 
-				// Insert group totals rows if needed
-				// TODO: FINISH ME
+
+			// processGroupAggregators()
+			// Processes the aggregation methods for each group.
+			// Then inserts new Aggregate rows at the bottom of each.
+			processGroupAggregators = function (groups) {
+				// For each group we're going to generate a new aggregate row
+				var i, l, group, item, column, column_id, ii, ll;
+				for (i = 0, l = groups.length; i < l; i++) {
+					group = groups[i];
+
+					// Make sure this is a group row
+					if (!(group instanceof Group)) continue;
+
+					// Create a new aggregator instance for each column
+					group.aggregators = {};
+					for (column_id in cache.aggregatorsByColumnId) {
+						// TODO: This can be optimized
+						column = getColumnById(column_id);
+						group.aggregators[column_id] = new column.aggregator(column);
+					}
+
+					// Loop through the group row data and process the aggregators
+					for (ii = 0, ll = groups[i].grouprows.length; ii < ll; ii++) {
+						item = groups[i].grouprows[ii];
+						for (column_id in group.aggregators) {
+							group.aggregators[column_id].process(item);
+						}
+					}
+
+					// Insert grid totals row
+					group.grouprows.push(new Aggregate(group.aggregators));
+				}
 			};
 
 
@@ -2289,10 +2288,7 @@
 				if (self.groups.length) {
 					groups = extractGroups(newRows);
 					if (groups.length) {
-
-						// TODO: Needs to be changed to run column aggregator for the group items
-						//calculateTotals(groups);
-
+						processGroupAggregators(groups);
 						finalizeGroups(groups);
 						newRows = flattenGroupedRows(groups);
 					}
@@ -2448,16 +2444,6 @@
 				var gi, idx;
 				for (var i = 0, l = this.groups.length; i < l; i++) {
 					gi = this.groups[i];
-
-					// pre-compile accumulator loops
-					// TODO: Still needed?
-					/*
-					gi.compiledAccumulators = [];
-					idx = gi.aggregators.length;
-					while (idx--) {
-						gi.compiledAccumulators[idx] = compileAccumulatorLoop(gi.aggregators[idx]);
-					}*/
-
 					toggledGroupsByLevel[i] = {};
 				}
 
@@ -3011,6 +2997,11 @@
 					column = cols[i].sortCol;
 					field = column.field;
 					sign = cols[i].sortAsc ? 1 : -1;
+
+					// Do not attempt to sort Aggregators. They will always go to the bottom.
+					if (dataRow1 instanceof Aggregate) return 1;
+					if (dataRow2 instanceof Aggregate) return -1;
+
 					value1 = dataRow1.get ? dataRow1.get(field) : dataRow1.data[field];
 					value2 = dataRow2.get ? dataRow2.get(field) : dataRow2.data[field];
 
@@ -3361,7 +3352,7 @@
 		// @return object
 		getColumnFromEvent = function (event) {
 			var $column = $(event.target).closest("." + classheadercolumn),
-				column_id = $column.length ? $column.attr('id').replace(uid, '') : null;
+				column_id = $column && $column.length ? $column.attr('id').replace(uid, '') : null;
 			return column_id ? getColumnById(column_id) : null;
 		};
 
@@ -3975,7 +3966,6 @@
 			this.grouprows = [];		// Rows that are part of this group
 			this.selectable = false;	// Don't allow selecting groups
 			this.title = null;			// Formatted display value of the group
-			this.totals = null;			// GroupTotals, if any
 			this.value = null;			// Grouping value
 
 			this.columns = {
@@ -6510,11 +6500,19 @@
 			// Pre-calculate cell boundaries.
 			cache.columnPosLeft = [];
 			cache.columnPosRight = [];
-			var x = 0;
+			cache.aggregatorsByColumnId = {};
+
+			var x = 0, column;
 			for (var i = 0, l = self.options.columns.length; i < l; i++) {
+				column = self.options.columns[i];
 				cache.columnPosLeft[i] = x;
-				cache.columnPosRight[i] = x + self.options.columns[i].width;
-				x += self.options.columns[i].width;
+				cache.columnPosRight[i] = x + column.width;
+				x += column.width;
+
+				// Cache aggregators
+				if (column.aggregator) {
+					cache.aggregatorsByColumnId[column.id] = new column.aggregator(column);
+				}
 			}
 		};
 

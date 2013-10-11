@@ -25,6 +25,17 @@ define([], function () {
 		var columns = [];
 		for (var q = 0; q < 5; q++) {
 			columns.push({
+				aggregator: function (column) {
+					this.total = [];
+					this.formatter = function () {
+						var avg = this.total.reduce(function (a, b) { return a + b; });
+						return "Avg: <strong>" + Math.round(avg / this.total.length) + "</strong>";
+					};
+					this.process = function (item) {
+						this.total.push(item.id);
+					};
+					return this;
+				},
 				id: "id" + q,
 				name: "ID",
 				field: "id",
@@ -32,15 +43,12 @@ define([], function () {
 			}, {
 				aggregator: function (column) {
 					this.total = 0;
-
 					this.formatter = function () {
 						return "Total: <strong>" + this.total + "</strong>";
 					};
-
 					this.process = function (item) {
 						this.total += (item.data[column.field] || 0);
 					};
-
 					return this;
 				},
 				id: "population" + q,
@@ -61,6 +69,6 @@ define([], function () {
 			data: data
 		};
 	}, function (grid) {
-		//grid.addGrouping('city1');
+		grid.addGrouping('city1');
 	}];
 });

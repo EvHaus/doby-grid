@@ -128,7 +128,7 @@
 .doby-grid-row {
 	border-bottom: 1px solid rgba(0,0,0,0.2);
 
-	&.odd:not(.doby-grid-group) {
+	&.odd:not(.doby-grid-group):not(.doby-grid-row-total) {
 		background: rgba(255,255,255,0.2)
 	}
 }
@@ -178,10 +178,12 @@
 
 
 .doby-grid-row-total {
-	.gradient(~"linear-gradient(#D0D0D0, #E0E0E0)");
+	.gradient(~"linear-gradient(#E0E0E0, #D0D0D0)");
+	text-shadow: #FFF 0 1px 0;
 
 	.doby-grid-cell {
-		box-shadow: 1px 1px 2px rgba(0, 0, 0, 0.05) inset;
+		box-shadow: 1px 1px 2px rgba(255,255,255,0.05) inset;
+		text-align: right;
 	}
 }
 
@@ -194,7 +196,7 @@
 	.gradient(~"linear-gradient(#EEE, #DDD)");
 
 	.doby-grid-cell {
-		box-shadow: 1px 1px 0 rgba(0,0,0,0.3) inset;
+		box-shadow: none;
 	}
 }
 
