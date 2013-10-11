@@ -55,7 +55,7 @@
 			activeCellNode = null,
 			activePosX,
 			activeRow,
-			renderRow,
+			Aggregate,
 			applyColumnHeaderWidths,
 			applyColumnWidths,
 			asyncPostProcessRows,
@@ -104,6 +104,7 @@
 			classrow = this.NAME + '-row',
 			classrowdragcontainer = this.NAME + '-row-drag-container',
 			classrowhandle = this.NAME + '-row-handle',
+			classrowtotal = this.NAME + '-row-total',
 			classsortindicator = this.NAME + '-sort-indicator',
 			classsortindicatorasc = classsortindicator + '-asc',
 			classsortindicatordesc = classsortindicator + '-desc',
@@ -120,7 +121,6 @@
 			columnCssRulesR,
 			commitCurrentEdit,
 			counter_rows_rendered = 0,
-			createColumnHeaders,
 			createCssRules,
 			createGrid,
 			createGroupingObject,
@@ -237,6 +237,8 @@
 			removeRowFromCache,
 			render,
 			renderCell,
+			renderColumnHeaders,
+			renderRow,
 			renderRows,
 			resetActiveCell,
 			resizeCanvas,
@@ -463,13 +465,40 @@
 			if (column_id === null || column_id === undefined) throw new Error("Unable to add grouping to grid because the 'column_id' value is missing.");
 			var column_ids = hasGrouping(column_id);
 			if (!column_ids) {
-				var grouping = this.collection.getGrouping();
+				var grouping = this.collection.groups;
 				column_ids = _.pluck(grouping, 'column_id');
 				column_ids.push(column_id);
 				this.setGrouping(column_ids);
 			}
 			return this;
 		};
+
+
+		// Aggregate()
+		// Information about data totals.
+		// An instance of GroupTotals will be created for each totals row and passed to the aggregators
+		// so that they can store arbitrary data in it. That data can later be accessed by group totals
+		// formatters during the display.
+		//
+		Aggregate = function (aggregators) {
+			var self = this;
+			this.aggregators = aggregators;
+			this.class = classrowtotal;
+			this.columns = {};
+			this.editable = false;
+			this.focusable = false;
+			this.formatter = function (row, cell, value, columnDef, data) {
+				if (self.aggregators[columnDef.id] && self.aggregators[columnDef.id].formatter) {
+					return self.aggregators[columnDef.id].formatter();
+				}
+				return "";
+			};
+			this.selectable = false;
+
+			this.toString = function () { return "Aggregate"; };
+		};
+
+		Aggregate.prototype = new NonDataItem();
 
 
 		// appendTo()
@@ -497,7 +526,7 @@
 				measureCellPaddingAndBorder();
 				disableSelection($headers);
 				updateColumnCaches();
-				createColumnHeaders();
+				renderColumnHeaders();
 				setupColumnSort();
 				createCssRules();
 				cacheRows();
@@ -587,7 +616,7 @@
 				w = self.options.columns[i].width - headerColumnWidthDiff;
 
 				// Compensate for grid rendering
-				if (i + 1 == l) w = w + 3;
+				if (i + 1 == l) w = w + 2;
 
 				$(headers[i]).attr('style', 'width:' + w + 'px');
 			}
@@ -1310,59 +1339,6 @@
 		};
 
 
-		// createColumnHeaders()
-		// Creates the column header elements.
-		//
-		createColumnHeaders = function () {
-			if (!$headers.is(':empty')) {
-				$headers.empty();
-				$headers.width(getHeadersWidth());
-			}
-
-			// Render columns
-			var column, html = [], classes, w;
-			for (var i = 0, l = self.options.columns.length; i < l; i++) {
-				column = self.options.columns[i];
-
-				// Determine classes
-				classes = [classheadercolumn, (column.headerClass || "")];
-				if (column.sortable) classes.push(classheadersortable);
-
-				// Determine width
-				w = column.width - headerColumnWidthDiff;
-
-				// Compensate for grid rendering
-				if (i + 1 == l) w = w + 2;
-
-				html.push('<div class="' + classes.join(' ') + '" style="width:' + w + 'px" ');
-				html.push('id="' + (uid + column.id) + '"');
-
-				// Tooltips
-				if (column.tooltip) {
-					if (self.options.tooltipType == 'title') {
-						html.push(' title="' + (column.tooltip || "") + '"');
-					}
-				}
-
-				html.push('>');
-				html.push('<span class="' + classcolumnname + '">' + column.name + '</span>');
-
-				if (column.sortable) {
-					html.push('<span class="' + classsortindicator + '"></span>');
-				}
-
-				html.push('</div>');
-			}
-			$headers.append(html.join(''));
-
-			// Style the column headers accordingly
-			styleSortColumns();
-
-			if (self.options.resizableColumns) setupColumnResize();
-			if (self.options.reorderable) setupColumnReorder();
-		};
-
-
 		// createCssRules()
 		// Generates the CSS styling that will drive the dimensions of the grid cells
 		//
@@ -1421,18 +1397,14 @@
 			var column = getColumnById(column_id);
 
 			return {
-				aggregators: [],
-				aggregateEmpty: false,
-				aggregateCollapsed: false,
-				aggregateChildGroups: false,
-				collapsed: true,		// All groups start off being collapsed
+				collapsed: true,	// All groups start off being collapsed
 				column_id: column.id,
 				comparer: function (a, b) {
 					return a.value - b.value;
 				},
 				displayTotalsRow: true,
 				getter: function (item) {
-					if (!item) return null;
+					if (!item || item instanceof NonDataItem) return null;
 
 					if (item instanceof Backbone.Model) {
 						return item.get(column.field);
@@ -1509,6 +1481,7 @@
 				getRowDiffs,
 				insertEmptyAlert,
 				parse,
+				processAggregators,
 				recalc,
 				uncompiledFilter,
 				uncompiledFilterWithCaching,
@@ -1608,12 +1581,11 @@
 
 			// TODO: lazy totals calculation
 			calculateGroupTotals = function (group) {
-				console.error('calculateGroupTotals TODO');
-				/*
 				// TODO: try moving iterating over groups into compiled accumulator
+				/*
 				var gi = self.groups[group.level];
 				var isLeafLevel = (group.level == self.groups.length);
-				var totals = new Slick.GroupTotals();
+				var totals = new GroupTotals();
 				var agg, idx = gi.aggregators.length;
 				while (idx--) {
 					agg = gi.aggregators[idx];
@@ -1629,6 +1601,7 @@
 
 			// TODO: ?
 			calculateTotals = function (groups, level) {
+				/*
 				level = level || 0;
 				var gi = self.groups[level];
 				var idx = groups.length,
@@ -1650,7 +1623,7 @@
 						gi.aggregateEmpty || g.grouprows.length || (g.groups && g.groups.length))) {
 						calculateGroupTotals(g);
 					}
-				}
+				}*/
 			};
 
 
@@ -1684,7 +1657,6 @@
 
 			// TODO: ?
 			compileAccumulatorLoop = function (aggregator) {
-				console.error('compileAccumulatorLoop TODO');
 				/*
 				var accumulatorInfo = getFunctionInfo(aggregator.accumulate);
 				var fn = new Function(
@@ -1693,7 +1665,7 @@
 					accumulatorInfo.params[0] + " = _items[_i]; " +
 					accumulatorInfo.body +
 					"}");
-				fn.displayName = fn.name = "compiledAccumulatorLoop";
+				//fn.displayName = fn.name = "compiledAccumulatorLoop";
 				return fn;
 				*/
 			};
@@ -2079,12 +2051,6 @@
 
 
 			// TODO: ?
-			this.getGrouping = function () {
-				return this.groups;
-			};
-
-
-			// TODO: ?
 			this.getItem = function (i) {
 				return cache.rows[i];
 			};
@@ -2268,6 +2234,38 @@
 			};
 
 
+			// processAggregators()
+			// Processes any aggregrators that are enabled and caches their results.
+			// Then inserts new GroupTotal rows that are needed.
+			processAggregators = function () {
+				// Collect and instantiate the aggregators
+				var i, l, aggregators = {}, column;
+				for (i = 0, l = grid.options.columns.length; i < l; i++) {
+					column = grid.options.columns[i];
+					if (!column.aggregator) continue;
+					aggregators[column.id] = new column.aggregator(column);
+				}
+
+				// If nothing to aggregate -- goodbye!
+				if (Object.keys(aggregators).length === 0) return;
+
+				var item;
+				// Loop through the data and process the aggregators
+				for (i = 0, l = self.items.length; i < l; i++) {
+					item = self.items[i];
+					for (var column_id in aggregators) {
+						aggregators[column_id].process(item);
+					}
+				}
+
+				// Insert grid totals row
+				self.items.push(new Aggregate(aggregators));
+
+				// Insert group totals rows if needed
+				// TODO: FINISH ME
+			};
+
+
 			// recalc()
 			// Given a list of rows we're viewing determines which of them need to be re-rendered
 			//
@@ -2291,7 +2289,10 @@
 				if (self.groups.length) {
 					groups = extractGroups(newRows);
 					if (groups.length) {
-						calculateTotals(groups);
+
+						// TODO: Needs to be changed to run column aggregator for the group items
+						//calculateTotals(groups);
+
 						finalizeGroups(groups);
 						newRows = flattenGroupedRows(groups);
 					}
@@ -2346,6 +2347,7 @@
 				prevRefreshHints = refreshHints;
 				refreshHints = {};
 
+				// Set data length
 				this.length = cache.rows.length;
 
 				if (totalRowsBefore != totalRows) {
@@ -2392,6 +2394,9 @@
 
 				// Load items and validate
 				this.items = filteredItems = validate(models);
+
+				// Process aggregators
+				processAggregators();
 
 				if (recache) {
 					cacheRows();
@@ -2445,11 +2450,13 @@
 					gi = this.groups[i];
 
 					// pre-compile accumulator loops
+					// TODO: Still needed?
+					/*
 					gi.compiledAccumulators = [];
 					idx = gi.aggregators.length;
 					while (idx--) {
 						gi.compiledAccumulators[idx] = compileAccumulatorLoop(gi.aggregators[idx]);
-					}
+					}*/
 
 					toggledGroupsByLevel[i] = {};
 				}
@@ -4377,7 +4384,7 @@
 			if (!column_id) return false;
 			var column = getColumnById(column_id);
 			if (!column) return false;
-			var grouping = self.collection.getGrouping(),
+			var grouping = self.collection.groups,
 				column_ids = _.pluck(grouping, 'column_id');
 			return column_ids.indexOf(column_id) >= 0 ? column_ids : false;
 		};
@@ -4511,7 +4518,7 @@
 		//
 		// @return boolean
 		this.isGrouped = function () {
-			return this.collection.getGrouping().length ? true : false;
+			return this.collection.groups.length ? true : false;
 		};
 
 
@@ -4995,6 +5002,59 @@
 
 			cache.nodes[row].cellRenderQueue.push(cell);
 			cache.nodes[row].cellColSpans[cell] = colspan;
+		};
+
+
+		// renderColumnHeaders()
+		// Creates the column header elements.
+		//
+		renderColumnHeaders = function () {
+			if (!$headers.is(':empty')) {
+				$headers.empty();
+				$headers.width(getHeadersWidth());
+			}
+
+			// Render columns
+			var column, html = [], classes, w;
+			for (var i = 0, l = self.options.columns.length; i < l; i++) {
+				column = self.options.columns[i];
+
+				// Determine classes
+				classes = [classheadercolumn, (column.headerClass || "")];
+				if (column.sortable) classes.push(classheadersortable);
+
+				// Determine width
+				w = column.width - headerColumnWidthDiff;
+
+				// Compensate for grid rendering
+				if (i + 1 == l) w = w + 2;
+
+				html.push('<div class="' + classes.join(' ') + '" style="width:' + w + 'px" ');
+				html.push('id="' + (uid + column.id) + '"');
+
+				// Tooltips
+				if (column.tooltip) {
+					if (self.options.tooltipType == 'title') {
+						html.push(' title="' + (column.tooltip || "") + '"');
+					}
+				}
+
+				html.push('>');
+				html.push('<span class="' + classcolumnname + '">' + column.name + '</span>');
+
+				if (column.sortable) {
+					html.push('<span class="' + classsortindicator + '"></span>');
+				}
+
+				html.push('</div>');
+			}
+			$headers.append(html.join(''));
+
+			// Style the column headers accordingly
+			styleSortColumns();
+
+			if (self.options.resizableColumns) setupColumnResize();
+			if (self.options.reorderable) setupColumnReorder();
 		};
 
 
@@ -5518,7 +5578,7 @@
 
 			if (initialized) {
 				invalidateAllRows();
-				createColumnHeaders();
+				renderColumnHeaders();
 				removeCssRules();
 				createCssRules();
 				resizeCanvas();
