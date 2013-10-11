@@ -460,6 +460,7 @@
 		//
 		// @return object
 		this.addGrouping = function (column_id) {
+			if (column_id === null || column_id === undefined) throw new Error("Unable to add grouping to grid because the 'column_id' value is missing.");
 			var column_ids = hasGrouping(column_id);
 			if (!column_ids) {
 				var grouping = this.collection.getGrouping();
