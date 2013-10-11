@@ -5,7 +5,7 @@
 // https://github.com/globexdesigns/doby-grid
 
 /*jslint vars: true, plusplus: true, devel: true, nomen: true, indent: 4, maxerr: 50*/
-/*global _, describe, document, expect, DobyGrid, it, setFixtures*/
+/*global _, $, describe, document, expect, DobyGrid, it, setFixtures*/
 
 describe("Methods and Data Manipulation", function () {
 	"use strict";
@@ -103,6 +103,25 @@ describe("Methods and Data Manipulation", function () {
 			grid.add(newrow);
 			var lastcell = grid.$el.find('.doby-grid-row:last-child .doby-grid-cell:last-child').text();
 			expect(lastcell).toEqual(newrow.data.category);
+		});
+
+
+		// ==========================================================================================
+
+
+		it("should enable variable row height mode when an item is add()ed with a custom height", function () {
+			// Reset
+			var grid = resetGrid({
+				data: [{data: {id: 1, name: 'test'}, id: 1}]
+			});
+
+			// Insert
+			grid.add({data: {id: 2, name: 'test'}, id: 2, height: 1500});
+
+			// Make sure row has the right height
+			grid.$el.find('.doby-grid-row:last-child').each(function () {
+				expect($(this).height()).toEqual(1500);
+			});
 		});
 	});
 
@@ -422,6 +441,30 @@ describe("Methods and Data Manipulation", function () {
 			grid = grid.remove(2);
 			expect(grid.collection.items).toEqual([newdata[0]]);
 		});
+
+
+		// ==========================================================================================
+
+
+		it("should remove the relevant row from the DOM when calling remove()", function () {
+			// Prepare the grid for testing
+			var grid = resetGrid({
+				columns: [{id: 'id', field: 'id'}],
+				data: [{data: {id: 1}, id: 1}, {data: {id: 2}, id: 2}]
+			});
+
+			// Remove the second row
+			grid.remove(2);
+
+			// Check to see if the right row was removed
+			var rows = grid.$el.find('.doby-grid-row'),
+				cell = $(rows[0]).children('.doby-grid-cell:first').first();
+
+			expect(rows.length).toEqual(1);
+
+			// Make sure the first row is left behind
+			expect(cell.text()).toEqual('1');
+		});
 	});
 
 
@@ -528,13 +571,17 @@ describe("Methods and Data Manipulation", function () {
 			var grid = resetGrid({
 				columns: [{id: 'id', field: 'id'}],
 				data: [
-					{id: 1, data: {id: 1, name: 'one'}},
-					{id: 2, data: {id: 2, name: 'two'}}
+					{id: 3, data: {id: 3, name: 'asd'}},
+					{id: 4, data: {id: 4, name: 'dsa'}}
 				]
 			});
 
 			grid.setOptions({
-				columns: [{id: 'name', field: 'name'}, {id: 'id', field: 'id'}]
+				columns: [{id: 'name', field: 'name'}, {id: 'id', field: 'id'}],
+				data: [
+					{id: 1, data: {id: 1, name: 'one'}},
+					{id: 2, data: {id: 2, name: 'two'}}
+				]
 			});
 
 			// Confirm data

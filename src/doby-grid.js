@@ -5581,12 +5581,12 @@
 			self.options = $.extend(self.options, options);
 			validateOptions();
 
-			// If setting new columns
+			// If setting new columns - it will auto-re-render
 			if (options.columns) {
 				this.setColumns(options.columns);
+			} else {
+				render();
 			}
-
-			render();
 		};
 
 
