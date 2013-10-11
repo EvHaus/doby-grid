@@ -51,7 +51,7 @@ define([], function () {
 				field: "rsvp",
 				sortable: true,
 				postprocess: function (data, callback) {
-					var icon = data.data.data.rsvp ? 'plus-circle' : 'minus-circle';
+					var icon = data.data.data.rsvp ? 'plus-small' : 'minus-small';
 					var img = new Image();
 					img.src = '../assets/img/' + icon + '.png';
 					img.onload = function () {
@@ -71,7 +71,7 @@ define([], function () {
 				field: "rsvpc",
 				sortable: true,
 				postprocess: function (data, callback) {
-					var icon = data.data.data.rsvp ? 'plus-circle' : 'minus-circle';
+					var icon = data.data.data.rsvp ? 'plus-small' : 'minus-small';
 					var img = new Image();
 					img.src = '../assets/img/' + icon + '.png';
 					img.onload = function () {
