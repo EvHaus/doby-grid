@@ -289,7 +289,7 @@ describe("Methods and Data Manipulation", function () {
 			var fixture = setFixtures('<div class="test"></div>');
 			grid.appendTo(fixture);
 			expect(grid instanceof DobyGrid).toEqual(true);
-			expect(typeof(grid)).toEqual('object');
+			expect(typeof grid).toEqual('object');
 		});
 	});
 
@@ -523,7 +523,7 @@ describe("Methods and Data Manipulation", function () {
 			grid.setColumns([
 				{id: 'id', field: 'id'},
 				{id: 'middle', field: 'middle'},
-				{id: 'name', field: 'name'},
+				{id: 'name', field: 'name'}
 			]);
 
 			// Confirm data

@@ -4,8 +4,8 @@
 // For all details and documentation:
 // https://github.com/globexdesigns/doby-grid
 
-/*jslint browser:true,expr:true,vars:true,plusplus:true,devel:true,indent:4,maxerr:50*/
-/*jshint white: true*/
+/*jslint browser:true,vars:true,plusplus:true,devel:true,indent:4,maxerr:50*/
+/*jshint expr:true,white:true*/
 /*global define*/
 
 (function (root, factory) {
@@ -216,11 +216,7 @@
 				// @param	data		object		Data object for this item
 				//
 				this.__nonDataRow = true;
-				if (data) {
-					$.extend(this, data);
-				}
-
-				this.toString = function () { return "NonDataItem"; };
+				if (data) $.extend(this, data);
 			},
 			numVisibleRows,
 			offset = 0,		// current page offset
@@ -255,7 +251,6 @@
 			serializedEditorValue,
 			setActiveCell,
 			setActiveCellInternal,
-			setClipboard,
 			setRowHeight,
 			setupColumnReorder,
 			setupColumnResize,
@@ -284,6 +279,8 @@
 			viewportHasVScroll,
 			viewportW,
 			vScrollDir = 1;
+
+		NonDataItem.prototype.toString = function () { return "NonDataItem"; };
 
 		// Default Grid Options
 		this.options = $.extend({
@@ -573,9 +570,7 @@
 					.on("mouseenter", function () {
 						// Focus on the canvas when the mouse is in it
 						var ae = document.activeElement;
-						console.log('TODO this has stopped working', ae, this)
-
-						if (ae != this && !$(this).has($(ae))) {
+						if (ae != this && !$(this).has($(ae)).length) {
 							$(this).focus();
 						}
 					});
@@ -3958,20 +3953,7 @@
 		// Class that stores information about a group of rows.
 		//
 		Group = function () {
-			this.class = function () {
-				var collapseclass = (this.collapsed ? classcollapsed : classexpanded);
-				return [classgroup, classgrouptoggle, collapseclass].join(' ');
-			};
 			this.collapsed = false;		// Whether the group is collapsed
-			this.count = 0;				// Number of rows in the group
-			this.groups = null;			// Sub-groups that are part of this group
-			this.id = null;				// A unique key used to identify the group
-			this.level = 0;				// Grouping level, starting with 0 (for nesting groups)
-			this.grouprows = [];		// Rows that are part of this group
-			this.selectable = false;	// Don't allow selecting groups
-			this.title = null;			// Formatted display value of the group
-			this.value = null;			// Grouping value
-
 			this.columns = {
 				0: {
 					colspan: "*",
@@ -3987,11 +3969,22 @@
 					}
 				}
 			};
-
-			this.toString = function () { return "Group"; };
+			this.count = 0;				// Number of rows in the group
+			this.groups = null;			// Sub-groups that are part of this group
+			this.id = null;				// A unique key used to identify the group
+			this.level = 0;				// Grouping level, starting with 0 (for nesting groups)
+			this.grouprows = [];		// Rows that are part of this group
+			this.selectable = false;	// Don't allow selecting groups
+			this.title = null;			// Formatted display value of the group
+			this.value = null;			// Grouping value
 		};
 
 		Group.prototype = new NonDataItem();
+		Group.prototype.class = function () {
+			var collapseclass = (this.collapsed ? classcollapsed : classexpanded);
+			return [classgroup, classgrouptoggle, collapseclass].join(' ');
+		};
+		Group.prototype.toString = function () { return "Group"; };
 
 
 		// handleActiveCellPositionChange()
@@ -4144,7 +4137,6 @@
 			var handled = e.isImmediatePropagationStopped();
 
 			this._event = e;
-			console.log(e)
 
 			if (!handled) {
 				if (!e.shiftKey && !e.altKey && !e.ctrlKey) {
@@ -4162,11 +4154,11 @@
 						}
 					// Page Down
 					} else if (e.which == 34) {
-						scrollPage(-1);
+						scrollPage(1);
 						handled = true;
 					// Page Up
 					} else if (e.which == 33) {
-						scrollPage(1);
+						scrollPage(-1);
 						handled = true;
 					// Left Arrow
 					} else if (e.which == 37) {
@@ -5303,8 +5295,18 @@
 		// @param	dir		integer		Direction of scroll
 		//
 		scrollPage = function (dir) {
-			var deltaRows = dir * numVisibleRows;
-			scrollTo((getRowFromPosition(scrollTop) + deltaRows) * self.options.rowHeight);
+			var deltaRows = dir * numVisibleRows,
+				targetRow = getRowFromPosition(scrollTop) + deltaRows,
+				targetY;
+
+			if (variableRowHeight) {
+				if (targetRow < 0 || !cache.rowPositions[targetRow]) return;
+				targetY = cache.rowPositions[targetRow].top;
+			} else {
+				targetY = targetRow * self.options.rowHeight;
+			}
+			scrollTo(targetY);
+
 			render();
 
 			if (self.options.keyboardNavigation && activeRow !== null) {
@@ -5532,21 +5534,9 @@
 				activeRow = activeCell = null;
 			}
 
-			// Set clipboard
-			setClipboard();
-
 			if (activeCellChanged) {
 				self.trigger('onActiveCellChanged', {}, getActiveCell());
 			}
-		};
-
-
-		// setClipboard()
-		// Sets the value of the user's clipboard based on the selection and focus of grid cells.
-		//
-		setClipboard = function () {
-			// Do we even have clipboard access?
-
 		};
 
 
