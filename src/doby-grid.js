@@ -255,6 +255,7 @@
 			serializedEditorValue,
 			setActiveCell,
 			setActiveCellInternal,
+			setClipboard,
 			setRowHeight,
 			setupColumnReorder,
 			setupColumnResize,
@@ -295,6 +296,7 @@
 			autoDestroy:			true,
 			autoEdit:				true,
 			"class":				null,
+			clipboard:				"csv",
 			columns:				[],
 			data:					[],
 			dataExtractor:			null,
@@ -571,6 +573,8 @@
 					.on("mouseenter", function () {
 						// Focus on the canvas when the mouse is in it
 						var ae = document.activeElement;
+						console.log('TODO this has stopped working', ae, this)
+
 						if (ae != this && !$(this).has($(ae))) {
 							$(this).focus();
 						}
@@ -4140,6 +4144,7 @@
 			var handled = e.isImmediatePropagationStopped();
 
 			this._event = e;
+			console.log(e)
 
 			if (!handled) {
 				if (!e.shiftKey && !e.altKey && !e.ctrlKey) {
@@ -5527,9 +5532,21 @@
 				activeRow = activeCell = null;
 			}
 
+			// Set clipboard
+			setClipboard();
+
 			if (activeCellChanged) {
 				self.trigger('onActiveCellChanged', {}, getActiveCell());
 			}
+		};
+
+
+		// setClipboard()
+		// Sets the value of the user's clipboard based on the selection and focus of grid cells.
+		//
+		setClipboard = function () {
+			// Do we even have clipboard access?
+
 		};
 
 
