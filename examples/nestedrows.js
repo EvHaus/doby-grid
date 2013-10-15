@@ -1,8 +1,8 @@
 /*jslint browser:true,expr:true,vars:true,plusplus:true,devel:true,indent:4,maxerr:50*/
 /*jshint white: true*/
-/*global _, $, define*/
+/*global _, $, define, DobyGrid */
 
-define([], function () {
+define(['dobygrid'], function (DobyGrid) {
 	"use strict";
 
 	return [function () {
@@ -29,7 +29,43 @@ define([], function () {
 							0: {
 								colspan: "*",
 								formatter: function (row, cell, value, columnDef, data) {
-									return "Here you place a detailed description of " + data.parent.data.name + ".";
+									return '<div style="text-align:center;">Loading components...</div>';
+								},
+								postprocess: function (data, callback) {
+									var subdata = [];
+
+									for (var i = 0; i < 100; i++) {
+										subdata.push({
+											id: 'component-' + i,
+											data: {
+												component: _.sample(["Bolt", "Screw", "Pipe"]),
+												price: _.sample(["$0.15", "$0.35", "$0.99"])
+											}
+										});
+									}
+
+									data.cell.empty();
+									new DobyGrid({
+										columns: [
+											{
+												id: 'id',
+												name: 'Component #',
+												field: 'id',
+												formatter: function (row, cell, value, columnDef, data) {
+													return data.id;
+												}
+											}, {
+												id: 'component',
+												name: 'Component',
+												field: 'component'
+											}, {
+												id: 'price',
+												name: 'Price',
+												field: 'price'
+											}
+										],
+										data: subdata
+									}).appendTo(data.cell);
 								}
 							}
 						}

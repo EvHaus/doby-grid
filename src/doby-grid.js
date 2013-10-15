@@ -688,11 +688,20 @@
 
 					columnIdx = columnIdx || 0;
 
-					var col = self.options.columns[columnIdx];
-					if (col.postprocess && !postProcessedRows[row][columnIdx]) {
+					var col = self.options.columns[columnIdx],
+						postprocess = col.postprocess,
+						rowdata = cache.rows[row],
+						rd_cols = rowdata.columns;
+
+					// Check to see if a row-specific column override exists
+					if (rd_cols && rd_cols[columnIdx] && rd_cols[columnIdx].postprocess) {
+						postprocess = rd_cols[columnIdx].postprocess;
+					}
+
+					if (postprocess && !postProcessedRows[row][columnIdx]) {
 						var node = cacheEntry.cellNodesByColumnIdx[columnIdx];
 						if (node) {
-							col.postprocess({
+							postprocess({
 								cell: $(node),
 								column: col,
 								data: getDataItem(row),
@@ -2241,6 +2250,15 @@
 								variableRowHeight = true;
 								break;
 							}
+
+							// Detect if nested postprocessing is needed via columns
+							if (childrow.columns && !enableAsyncPostRender) {
+								for (var childclmn in childrow.columns) {
+									if (enableAsyncPostRender) break;
+									if (childrow.columns[childclmn].postprocess) enableAsyncPostRender = true;
+								}
+							}
+
 						}
 					}
 
@@ -2250,6 +2268,14 @@
 						items[i].height !== grid.options.rowHeight
 					) {
 						variableRowHeight = true;
+					}
+
+					// Detect if nested postprocessing is needed via columns
+					if (items[i].columns && !enableAsyncPostRender) {
+						for (var clmn in items[i].columns) {
+							if (enableAsyncPostRender) break;
+							if (items[i].columns[clmn].postprocess) enableAsyncPostRender = true;
+						}
 					}
 				}
 
