@@ -161,7 +161,6 @@
 							}
 
 							var css = t.toCSS();
-							console.log(css)
 							css = css.replace(/\/\.\.\/assets/g, '../assets')
 
 							$('<style id="dobythemeless"/>').html(css).appendTo("body");

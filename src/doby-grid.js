@@ -468,6 +468,8 @@
 		//
 		// @return object
 		this.addGrouping = function (column_id) {
+			// TODO: If adding a new grouping, expanded groups should stay expanded
+
 			if (column_id === null || column_id === undefined) throw new Error("Unable to add grouping to grid because the 'column_id' value is missing.");
 			var column_ids = hasGrouping(column_id);
 			if (!column_ids) {
@@ -1942,6 +1944,12 @@
 				if (level < self.groups.length - 1) {
 					for (i = 0, l = groups.length; i < l; i++) {
 						group = groups[i];
+
+						// Do not treat aggreates as groups
+						if (group instanceof Aggregate) {
+							continue;
+						}
+
 						group.groups = extractGroups(group.grouprows, group);
 					}
 				}

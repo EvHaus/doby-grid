@@ -266,6 +266,53 @@ describe("Methods and Data Manipulation", function () {
 			// Reset
 			grid.setGrouping();
 		});
+
+
+		// ==========================================================================================
+
+
+		it("should be able to create nested groups with multiple addGrouping() calls", function () {
+			var grid = resetGrid({
+				columns: [{
+					id: 'id',
+					name: 'ID'
+				}, {
+					aggregator: function (column) {
+						this.formatter = function () { return "test"; };
+						this.process = function (item) {};
+					},
+					id: 'category',
+					name: 'Category',
+					field: 'cateogory'
+				}, {
+					aggregator: function (column) {
+						this.formatter = function () { return "test"; };
+						this.process = function (item) {};
+					},
+					id: 'subcategory',
+					name: 'SubCategory',
+					field: 'subcategory'
+				}],
+				data: [
+					{data: {category: 'A', subcategory: 'Q'}, id: 1},
+					{data: {category: 'A', subcategory: 'D'}, id: 2},
+					{data: {category: 'B', subcategory: 'A'}, id: 3}
+				]
+			});
+
+			grid.addGrouping("category");
+
+			// Make sure we're expanded
+			grid.collection.expandAllGroups();
+
+			grid.addGrouping("subcategory");
+
+			expect(grid.collection.groups[0].column_id).toEqual("category");
+			expect(grid.collection.groups[1].column_id).toEqual("subcategory");
+
+			// Reset
+			grid.setGrouping();
+		});
 	});
 
 
