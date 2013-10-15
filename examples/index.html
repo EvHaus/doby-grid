@@ -148,21 +148,31 @@
 
 				// Load new theme
 				var less_file = '../src/themes/doby-grid-'+theme+'.less';
-				$.get(less_file, function(data) {
-					data = data.replace(/\.\.\/\.\.\//g, '../')
-					less.Parser({}).parse(data, function (err, t) {
-						if (err) {
-							return console.error(err)
-						}
+				$.ajax({
+					url: less_file,
+					method: 'GET',
+					complete: function(response) {
+						var data = response.responseText;
+						data = data.replace(/\.\.\/\.\.\//g, '../');
 
-						$('<style id="dobythemeless"/>').html(t.toCSS()).appendTo("body");
-						$(document.body).attr('class', theme);
+						less.Parser({}).parse(data, function (err, t) {
+							if (err) {
+								return console.error(err)
+							}
 
-						// Load current example
-						if (document.location.hash) {
-							loadExample(document.location.hash.substring(1));
-						}
-					});
+							var css = t.toCSS();
+							console.log(css)
+							css = css.replace(/\/\.\.\/assets/g, '../assets')
+
+							$('<style id="dobythemeless"/>').html(css).appendTo("body");
+							$(document.body).attr('class', theme);
+
+							// Load current example
+							if (document.location.hash) {
+								loadExample(document.location.hash.substring(1));
+							}
+						});
+					}
 				});
 			}
 

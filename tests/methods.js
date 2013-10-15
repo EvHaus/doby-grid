@@ -471,6 +471,72 @@ describe("Methods and Data Manipulation", function () {
 	// ==========================================================================================
 
 
+	describe("selectCells()", function () {
+		it("should be able to selectCells()", function () {
+			// Prepare for test
+			var grid = resetGrid({
+				columns: [
+					{id: 'id', field: 'id', name: 'id'},
+					{id: 'id', field: 'name', name: 'name'}
+				],
+				data: [
+					{data: {id: 189, name: 'test'}, id: 189},
+					{data: {id: 289, name: 'test2'}, id: 289}
+				]
+			});
+
+			// Select all cells
+			grid.selectCells(0, 0, 1, 1);
+
+			// Expect selection to be set
+			expect(grid.selection).toBeDefined();
+			expect($.isArray(grid.selection)).toEqual(true);
+			expect(grid.selection[0].fromRow).toEqual(0);
+			expect(grid.selection[0].toRow).toEqual(1);
+			expect(grid.selection[0].fromCell).toEqual(0);
+			expect(grid.selection[0].toCell).toEqual(1);
+		});
+
+
+		// ==========================================================================================
+
+
+		it("should be able to deselect all cells with an empty selectCells() call", function () {
+			// Prepare for test
+			var grid = resetGrid({
+				columns: [
+					{id: 'id', field: 'id', name: 'id'},
+					{id: 'id', field: 'name', name: 'name'}
+				],
+				data: [
+					{data: {id: 189, name: 'test'}, id: 189},
+					{data: {id: 289, name: 'test2'}, id: 289}
+				]
+			});
+
+			// Select all cells
+			grid.selectCells(0, 0, 1, 1);
+
+			// Expect selection to be set
+			expect(grid.selection).toBeDefined();
+			expect($.isArray(grid.selection)).toEqual(true);
+			expect(grid.selection[0].fromRow).toEqual(0);
+			expect(grid.selection[0].toRow).toEqual(1);
+			expect(grid.selection[0].fromCell).toEqual(0);
+			expect(grid.selection[0].toCell).toEqual(1);
+
+			// Deselect cells
+			grid.selectCells();
+
+			// Expect selection to be empty
+			expect(grid.selection).toEqual(null);
+		});
+	});
+
+
+	// ==========================================================================================
+
+
 	describe("setColumns()", function () {
 		it("should be able to create columns using setColumns()", function () {
 			var grid = resetGrid({

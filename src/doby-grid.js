@@ -83,6 +83,7 @@
 			cj,				// "jumpiness" coefficient
 			classalert = this.NAME + '-alert',
 			classcell = this.NAME + '-cell',
+			classclipboard = this.NAME + '-clipboard',
 			classcollapsed = 'collapsed',
 			classcolumnname = this.NAME + '-column-name',
 			classcontextmenu = this.NAME + '-contextmenu',
@@ -121,6 +122,7 @@
 			columnCssRulesL,
 			columnCssRulesR,
 			commitCurrentEdit,
+			copySelected,
 			counter_rows_rendered = 0,
 			createCssRules,
 			createGrid,
@@ -228,7 +230,6 @@
 			prevScrollLeft = 0,
 			prevScrollTop = 0,
 			Range,
-			ranges,
 			removeCssRules,
 			removeInvalidRanges,
 			removeRowFromCache,
@@ -270,7 +271,6 @@
 			updateColumnCaches,
 			updateRow,
 			updateRowCount,
-			updateRowPositions,
 			validateColumns,
 			validateOptions,
 			variableRowHeight,
@@ -370,6 +370,9 @@
 
 		// Stores the current event object
 		this._event = null;
+
+		// Stores the currently selected cell range
+		this.selection = null;
 
 
 		// initialize()
@@ -1338,6 +1341,46 @@
 
 			makeActiveCellNormal();
 			return true;
+		};
+
+
+		// copySelected()
+		// Copies the selected cell(s) to the clipboard
+		//
+		copySelected = function () {
+			var result;
+
+			// Do we have a cell range selection?
+			if (self.selection) {
+				if (self.options.clipboard == 'csv') {
+					result = self.selection[0].toCSV();
+				} else if (self.options.clipboard == 'json') {
+					result = JSON.stringify(self.selection[0].toJSON());
+				}
+			}
+
+			// Do we have an active cell?
+			if (!result && activeCellNode) {
+				var row = getRowFromNode(activeCellNode.parentNode),
+					cell = getCellFromNode(activeCellNode),
+					item = cache.rows[row],
+					column = self.options.columns[cell];
+				result = item.data[column.field] !== undefined ? item.data[column.field] : "";
+			}
+
+			// Send to clipboard by creating a dummy container with the text selected
+			// and letting the browser execute the default clipboard behavior. Similar to:
+			// http://stackoverflow.com/questions/17527870/how-does-trello-access-the-users-clipboard
+			if (result) {
+				$('<textarea class="' + classclipboard + '"></textarea>')
+					.val(result)
+					.appendTo(self.$el)
+					.focus()
+					.select()
+					.on('keyup', function (e) {
+						$(this).remove();
+					});
+			}
 		};
 
 
@@ -4139,7 +4182,10 @@
 			this._event = e;
 
 			if (!handled) {
-				if (!e.shiftKey && !e.altKey && !e.ctrlKey) {
+				// Ctrl/Command + C
+				if (e.which == 67 && (e.ctrlKey || e.metaKey) && !e.altKey && !e.shiftKey) {
+					copySelected();
+				} else if (!e.shiftKey && !e.altKey && !e.ctrlKey) {
 					// Esc
 					if (e.which == 27) {
 						if (self.options.editable && currentEditor) {
@@ -4253,7 +4299,7 @@
 		// @param	e	object		Javascript event object
 		//
 		handleSelectedRangesChanged = function (e, args) {
-			ranges = args.ranges;
+			self.selection = args.ranges;
 
 			// Select currently selected
 			deselectCells();
@@ -4261,13 +4307,13 @@
 			// Select the new range
 			selectedRows = [];
 			var addHash = {};
-			for (var i = 0, l = ranges.length; i < l; i++) {
-				for (var j = ranges[i].fromRow; j <= ranges[i].toRow; j++) {
+			for (var i = 0, l = self.selection.length; i < l; i++) {
+				for (var j = self.selection[i].fromRow; j <= self.selection[i].toRow; j++) {
 					if (!addHash[j]) { // prevent duplicates
 						selectedRows.push(j);
 						addHash[j] = {};
 					}
-					for (var k = ranges[i].fromCell; k <= ranges[i].toCell; k++) {
+					for (var k = self.selection[i].fromCell; k <= self.selection[i].toCell; k++) {
 						if (canCellBeSelected(j, k)) {
 							addHash[j][self.options.columns[k].id] = self.options.selectedClass;
 						}
@@ -4279,7 +4325,8 @@
 			updateCellCssStylesOnRenderedRows(addHash);
 
 			self.trigger('onSelectedRowsChanged', e, {
-				rows: selectedRows
+				rows: selectedRows,
+				selection: self.selection
 			});
 		};
 
@@ -4572,7 +4619,6 @@
 
 		// makeActiveCellNormal()
 		// Handler for cell styling when using an editor
-		// TODO: Needs review
 		//
 		makeActiveCellNormal = function () {
 			if (!currentEditor) return;
@@ -4593,12 +4639,6 @@
 					activeCellNode.innerHTML = formatter(activeRow, activeCell, getDataItemValueForColumn(d, column), column, d);
 					invalidatePostProcessingResults(activeRow);
 				}
-			}
-
-			// if there previously was text selected on a page (such as selected text in the edit cell just removed),
-			// IE can't set focus to anything else correctly
-			if (navigator.userAgent.toLowerCase().match(/msie/)) {
-				clearTextSelection();
 			}
 		};
 
@@ -4787,6 +4827,40 @@
 			this.isSingleRow = function () {
 				return this.fromRow == this.toRow;
 			};
+
+
+			// toCSV()
+			// Converts the cell range values to CSV
+			//
+			// @return string
+			this.toCSV = function () {
+				var json = this.toJSON(),
+					csv = [];
+				for (var i = 0, l = json.length; i < l; i++) {
+					csv.push('"' + json[i].join('","') + '"');
+				}
+				return csv.join('\n');
+			};
+
+
+			// toJSON()
+			// Converts the cell range values to JSON
+			//
+			// @return string
+			this.toJSON = function () {
+				var json = [], column, row, data;
+				for (var i = this.fromRow; i <= this.toRow; i++) {
+					row = cache.rows[i];
+					data = [];
+					for (var c = this.fromCell; c <= this.toCell; c++) {
+						column = self.options.columns[c];
+						data.push(row.data[column.field] !== undefined ? row.data[column.field] : "");
+					}
+					json.push(data);
+				}
+				return json;
+			};
+
 
 			// toString()
 			// Returns a readable representation of a range
@@ -5442,6 +5516,10 @@
 			if (startRow === undefined && startCell === undefined && endRow === undefined && endCell === undefined) {
 				// If no params given - deselect
 				deselectCells();
+
+				// Remove selection store
+				self.selection = null;
+
 				return;
 			} else {
 				var args = ['startRow', 'startCell', 'endRow', 'endCell'];
@@ -6435,24 +6513,6 @@
 		};
 
 
-		// TODO: ?
-		updateCell = function (row, cell) {
-			var cellNode = getCellNode(row, cell);
-			if (!cellNode) {
-				return;
-			}
-
-			var m = self.options.columns[cell],
-				d = getDataItem(row);
-			if (currentEditor && activeRow === row && activeCell === cell) {
-				currentEditor.loadValue(d);
-			} else {
-				cellNode.innerHTML = d ? getFormatter(row, m)(row, cell, getDataItemValueForColumn(d, m), m, d) : "";
-				invalidatePostProcessingResults(row);
-			}
-		};
-
-
 		// updateCellCssStylesOnRenderedRows()
 		// Given an add and remove hash object, adds or removes CSS classes on the given nodes
 		//
@@ -6524,7 +6584,11 @@
 		};
 
 
-		// TODO: ?
+		// updateRow()
+		// Re-cache and re-render a single row
+		//
+		// @param	row		integer		Index of the row to re-render
+		//
 		updateRow = function (row) {
 			var cacheEntry = cache.nodes[row];
 			if (!cacheEntry) {
@@ -6644,27 +6708,12 @@
 		};
 
 
-		// TODO: ?
-		updateRowPositions = function () {
-			for (var row in cache.nodes) {
-				cache.nodes[row].rowNode.style.top = (cache.rowPositions[row].top + offset) + "px";
-			}
-		};
-
-
 		// validateColumns()
 		// Parses the options.columns list to ensure column data is correctly configured.
 		//
 		validateColumns = function () {
 			if (!self.options.columns && !(self.options.data instanceof Backbone.Collection)) {
 				return;
-			}
-
-			// If a Backbone Collection is given as the data set without any columns,
-			// use the known columns for that collection as the default
-			if (self.options.data instanceof Backbone.Collection) {
-				// TODO: This probably shouldn't be here. It will be in the ui.grid library
-				// buildColumnsFromCollection()
 			}
 
 			var c;
