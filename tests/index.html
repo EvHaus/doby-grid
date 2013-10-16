@@ -16,6 +16,7 @@
 		<script src="../libs/jquery.event.drag.js"></script>
 
 		<script src="../src/doby-grid.js"></script>
+		<style>#jasmine-fixtures{position:absolute;right;0;bottom:0;opacity:0}</style>
 	</head>
 	<body></body>
 	<script src="common.js"></script>
@@ -26,9 +27,6 @@
 		(function() {
 			var jasmineEnv = jasmine.getEnv();
 			jasmineEnv.updateInterval = 1000;
-
-			// jasmine-jquery configuration
-			jasmine.getFixtures().fixturesPath = '/test';
 
 			var htmlReporter = new jasmine.HtmlReporter();
 
