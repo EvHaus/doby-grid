@@ -76,14 +76,35 @@ define([], function () {
 				this.fetch = function (options, callback) {
 					// Fake AJAX delay
 					return setTimeout(function () {
-						callback(data.slice(options.offset, options.offset + options.limit));
+						var mydata = JSON.parse(JSON.stringify(data));
+
+						// Apply fake sort
+						if (options.order.length) {
+							mydata.sort(function (dataRow1, dataRow2) {
+								var result = 0, column, value1, value2, dir;
+
+								// Loops through the columns by which we are sorting
+								for (var i = 0, l = options.order.length; i < l; i++) {
+									column = options.order[i].columnId;
+									value1 = dataRow1.data[column];
+									value2 = dataRow2.data[column];
+
+									// Use natural sort by default
+									if (value1 === value2) result += 0;
+									else result += options.order[i].sortAsc ? (value1 > value2) : (value1 < value2);
+								}
+
+								return result;
+							});
+						}
+
+						callback(mydata.slice(options.offset, options.offset + options.limit));
 					}, 100);
 				};
 
 				this.fetchGroups = function (options, callback) {
 					callback([]);
 				};
-
 
 				this.onLoading = function () {
 					if (!this.grid.$el) return;

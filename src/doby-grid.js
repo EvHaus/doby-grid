@@ -138,6 +138,7 @@
 			executeSorter,
 			findFirstFocusableCell,
 			findLastFocusableCell,
+			generatePlaceholders,
 			getActiveCell,
 			getBrowserData,
 			getCanvasWidth,
@@ -233,6 +234,7 @@
 			prevScrollTop = 0,
 			Range,
 			remote = false,		// Should data be fetched remotely?
+			remoteAllLoaded,
 			remoteLoaded,
 			remoteCount,
 			remoteFetch,
@@ -1501,8 +1503,6 @@
 					return a.value - b.value;
 				},
 
-				displayTotalsRow: true,		// TODO: Was ist das?
-
 				getter: function (item) {
 					if (!item || item instanceof NonDataItem) return null;
 					return item.data[column.field];
@@ -1562,7 +1562,6 @@
 
 			// Private Methods
 
-				calculateTotals,
 				compileFilter,
 				compiledFilter,
 				compileFilterWithCaching,
@@ -1654,7 +1653,7 @@
 				if (toAdd.length) {
 					// If data used to be empty, with an alert - remove alert
 					if (grid.options.emptyNotice && this.items.length == 1 && this.items[0].__alert) {
-						this.deleteItem(this.items[0][idProperty]);
+						this.remove(this.items[0][idProperty]);
 					}
 
 					// If "addRow" is enabled, make sure we don't insert below it
@@ -1682,33 +1681,6 @@
 				}
 
 				return this;
-			};
-
-
-			// TODO: ?
-			calculateTotals = function (groups, level) {
-				/*
-				level = level || 0;
-				var gi = self.groups[level];
-				var idx = groups.length,
-					g;
-				while (idx--) {
-					g = groups[idx];
-
-					if (g.collapsed && !gi.aggregateCollapsed) {
-						continue;
-					}
-
-					// Do a depth-first aggregation so that parent setGrouping aggregators
-					// can access subgroup totals.
-					if (g.groups) {
-						calculateTotals(g.groups, level + 1);
-					}
-
-					if (gi.aggregators.length && (
-						gi.aggregateEmpty || g.grouprows.length || (g.groups && g.groups.length))) {
-					}
-				}*/
 			};
 
 
@@ -1816,37 +1788,6 @@
 				fn.displayName = fn.name = "compiledFilterWithCaching";
 				return fn;
 				*/
-			};
-
-
-			// deleteItem()
-			// Removes an item from the collection
-			//
-			// @param	id		string		ID of the row item
-			//
-			this.deleteItem = function (id) {
-				if (id === undefined || id === null) {
-					throw "Unable to delete collection item. Invalid 'id' supplied.";
-				}
-
-				var idx = cache.indexById[id];
-				if (!idx) return;
-
-				// Remove from items
-				this.items.splice(idx, 1);
-
-				// Clear cache
-				delete cache.indexById[id];
-				delete cache.rowPositions[idx];
-
-				// TODO: Update length. Still needed?
-				//if (grid.options.remote) this.length--;
-
-				// Recache positions from affected row
-				cacheRows(idx);
-
-				// Re-render grid
-				this.refresh();
 			};
 
 
@@ -2065,10 +2006,6 @@
 						for (var j = 0, m = rows.length; j < m; j++) {
 							groupedRows[gl++] = rows[j];
 						}
-					}
-
-					if (g.totals && gi.displayTotalsRow && (!g.collapsed || gi.aggregateCollapsed)) {
-						groupedRows[gl++] = g.totals;
 					}
 				}
 
@@ -2486,6 +2423,37 @@
 			};
 
 
+			// remove()
+			// Removes an item from the collection
+			//
+			// @param	id		string		ID of the row item
+			//
+			this.remove = function (id) {
+				if (id === undefined || id === null) {
+					throw "Unable to delete collection item. Invalid 'id' supplied.";
+				}
+
+				var idx = cache.indexById[id];
+				if (!idx) return;
+
+				// Remove from items
+				this.items.splice(idx, 1);
+
+				// Clear cache
+				delete cache.indexById[id];
+				delete cache.rowPositions[idx];
+
+				// TODO: Update length. Still needed?
+				//if (grid.options.remote) this.length--;
+
+				// Recache positions from affected row
+				cacheRows(idx);
+
+				// Re-render grid
+				this.refresh();
+			};
+
+
 			// reset()
 			// Given an array of items, binds those items to the data view collection, generates
 			// index caches and checks for id uniqueness.
@@ -2597,6 +2565,10 @@
 				} else {
 					cache.rows[idx] = $.extend(true, cache.rows[idx], data);
 				}
+
+				// ID may have changed for the item so update the index by id too.
+				// This is most relevant in remote grids where real IDs replace placeholder IDs
+				cache.indexById[data.id] = idx;
 
 				// Find the data item
 				for (var i = 0, l = this.items.length; i < l; i++) {
@@ -3110,16 +3082,16 @@
 			var cols = args.sortCols;
 
 			// If remote, and not all data is fetched - sort on server
-			if (self.options.remote && !self.loader.isAllDataLoaded()) {
-				// Empty the collection so that Backbone can re-fetch results in the right order
-				self.collection.reset();
+			if (remote && !remoteAllLoaded()) {
+				// Refill the collection with placeholders
+				generatePlaceholders();
 
-				// Invalidate Grid as we'll need to re-render it
-				self.invalidate();
+				// Clear the row cache to ensure when new data comes in the grid refreshes
+				cache.rows = [];
 
-				// Ask the RemoteModel to refetch the data -- this time using the new sort settings
-				// TODO: Find a better solution than touchViewport
-				//self.touchViewport()
+				// Ask the Remote fetcher to refetch the data -- this time using the new sort settings
+				var vp = getVisibleRange();
+				remoteFetch(vp.top, vp.bottom);
 				return;
 			}
 
@@ -3136,8 +3108,8 @@
 					if (dataRow1 instanceof Aggregate) return 1;
 					if (dataRow2 instanceof Aggregate) return -1;
 
-					value1 = dataRow1.get ? dataRow1.get(field) : dataRow1.data[field];
-					value2 = dataRow2.get ? dataRow2.get(field) : dataRow2.data[field];
+					value1 = dataRow1.data[field];
+					value2 = dataRow2.data[field];
 
 					// Use custom column comparer if it exists
 					if (typeof(column.comparator) === 'function') {
@@ -3275,6 +3247,24 @@
 				cell += getColspan(row, cell);
 			}
 			return lastFocusableCell;
+		};
+
+
+		// generatePlaceholders()
+		// Replaces the entire collection with Placeholder objects
+		//
+		generatePlaceholders = function () {
+			// Reset the collection
+			self.collection.items = [];
+
+			// Populate the collection with placeholders
+			var phId, ph;
+			for (var i = 0, l = self.collection.length; i < l; i++) {
+				phId = 'placeholder-' + i;
+				ph = new Placeholder({id: phId});
+				self.collection.items.push(ph);
+				cache.indexById[phId] = ph;
+			}
 		};
 
 
@@ -5093,6 +5083,20 @@
 		};
 
 
+		// remoteAllLoaded()
+		// Returns true if all remote data is loaded
+		//
+		remoteAllLoaded = function () {
+			// Do we have any placeholders?
+			for (var i = 0, l = cache.rows.length; i < l; i++) {
+				if (cache.rows[i] instanceof Placeholder) {
+					return false;
+				}
+			}
+			return true;
+		};
+
+
 		// remoteCount()
 		// Executes a remote data count fetch, savs it as the collection length
 		// then calls the callback.
@@ -5102,20 +5106,14 @@
 		remoteCount = function (callback) {
 			var options = {};
 
-			// TODO: options.filters needed here
+			// TODO: options.filters needed here... I think...
 
 			remote.count(options, function (result) {
 				// Set collection length
 				self.collection.length = result;
 
-				// Populate the collection with placeholders
-				var phId, ph;
-				for (var i = 0, l = self.collection.length; i < l; i++) {
-					phId = 'placeholder-' + i;
-					ph = new Placeholder({id: phId});
-					self.collection.items.push(ph);
-					cache.indexById[phId] = ph;
-				}
+				// Fill the collection with placeholders
+				generatePlaceholders();
 
 				// Updating the row count here will ensure the scrollbar is rendered the right size
 				updateRowCount();
@@ -5161,31 +5159,22 @@
 				return;
 			}
 
-			// Builds the options we need to give the fetcher
-			var options = {};
-
-			// An additional 5 rows are needed here to compensate for various screen sizes, etc...
-			options.limit = newTo - newFrom + 1;
-			options.offset = newFrom;
-
-			// TODO:
-			// options.order?
-
-			// TODO:
-			// options.filter
-
+			// Put the request on a timer so that when users scroll quickly they don't fire off
+			// hundreds of requests for no good reason.
 			remoteTimer = setTimeout(function () {
 				try {
 					// Fire onLoading callback
 					if (typeof remote.onLoading === 'function') remote.onLoading();
 
-					// Sorting
-//					columns = self.getColumns()
-//					sorting = self.getSorting()
-//					order = _.map(sorting, function(c) {
-//						col = _.findWhere(columns, {id: c.columnId})
-//						return [col.field, c.sortAsc ? 'asc' : 'desc']
-//					})
+					// Builds the options we need to give the fetcher
+					var options = {
+						order: sortColumns,
+						limit: newTo - newFrom + 1,
+						offset: newFrom
+					};
+
+					// TODO:
+					// options.filter
 
 					remoteRequest = remote.fetch(options, function (results) {
 						// Add items to collection
@@ -5219,7 +5208,7 @@
 				invalidateRow(i);
 			}
 
-//			// Display alert if empty
+//			// TODO: Display alert if empty
 //			if (self.options.alertOnEmpty && self.dataView.getLength() === 0) {
 //				// Need to clear cache to reset dataview lengths
 //				self.loader.clearCache()
@@ -5233,8 +5222,6 @@
 
 			updateRowCount();
 			render();
-
-			//hideLoader()
 		};
 
 
@@ -5247,7 +5234,7 @@
 		// @return object
 		this.remove = function (id) {
 			// TODO: Convert this to use a similar to input to Backbone.Collection.remove()
-			this.collection.deleteItem(id);
+			this.collection.remove(id);
 			return this;
 		};
 
