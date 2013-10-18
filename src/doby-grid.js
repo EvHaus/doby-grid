@@ -350,6 +350,7 @@
 			rowHeight:				28,
 			selectable:				true,
 			selectedClass:			"selected",
+			shiftSelect:			true,
 			tooltipType:			"popup",
 			virtualScroll:			true
 		}, options);
@@ -3132,6 +3133,7 @@
 
 		// export()
 		// Export all grid data to a format of your choice. Available formats are 'csv' and 'html'.
+		// TODO: Exporting remote grid should prompt user what to export, all data, or what's loaded.
 		//
 		// @param	format		string		Which format to export to
 		//
@@ -4274,6 +4276,12 @@
 
 			// Set clicked cells to active
 			if (canCellBeActive(cell.row, cell.cell)) {
+				// If holding down "Shift" key and another cell is already active - use this to
+				// select a cell range.
+				if (self.options.shiftSelect && e.shiftKey) {
+					self.selectCells(activeRow, activeCell, cell.row, cell.cell);
+				}
+
 				scrollRowIntoView(cell.row, false);
 				setActiveCellInternal(getCellNode(cell.row, cell.cell));
 			}
