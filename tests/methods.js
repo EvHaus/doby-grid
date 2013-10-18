@@ -428,6 +428,80 @@ describe("Methods and Data Manipulation", function () {
 	// ==========================================================================================
 
 
+	describe("export()", function () {
+		it("should only accept 'csv' and 'html' as a valid format param for export()", function () {
+			var grid = resetGrid(),
+				bad_tests = ['blah', 123, {}, 'html17', []],
+				good_tests = ['csv', 'html'];
+
+			// Invalid exports
+			_.each(bad_tests, function (format) {
+				expect(function () {
+					grid.export(format);
+				}).toThrow('Sorry, "' + format + '" is not a supported format for export.');
+			});
+
+			// Valid exports
+			_.each(good_tests, function (format) {
+				expect(function () {
+					grid.export(format);
+				}).not.toThrow();
+			});
+		});
+
+
+		// ==========================================================================================
+
+
+		it("should correctly export() to CSV", function () {
+			// Prepare for test
+			var grid = resetGrid({
+				columns: [{id: 'id', name: 'ID', field: 'id'}, {id: 'name', name: 'Name', field: 'name'}],
+				data: [{
+					id: 1,
+					data: {id: 1, name: 'one'}
+				}, {
+					id: 2,
+					data: {id: 2, name: 'two'}
+				}]
+			});
+
+			// Export
+			var result = grid.export('csv');
+
+			// Check er!
+			expect(result).toEqual('"ID","Name"\n"1","one"\n"2","two"');
+		});
+
+
+		// ==========================================================================================
+
+
+		it("should correctly export() to HTML", function () {
+			// Prepare for test
+			var grid = resetGrid({
+				columns: [{id: 'id', name: 'ID', field: 'id'}, {id: 'name', name: 'Name', field: 'name'}],
+				data: [{
+					id: 1,
+					data: {id: 1, name: 'one'}
+				}, {
+					id: 2,
+					data: {id: 2, name: 'two'}
+				}]
+			});
+
+			// Export
+			var result = grid.export('html');
+
+			// Check er!
+			expect(result).toEqual('<table><thead><tr><th>ID</th><th>Name</th></tr></thead><tbody><tr><td>1</td><td>one</td></tr><tr><td>2</td><td>two</td></tr></tbody></table>');
+		});
+	});
+
+
+	// ==========================================================================================
+
+
 	describe("get()", function () {
 		it("should be able to get() model by id", function () {
 			var item = {data: {id: 102, name: 'updated'}, id: 102};

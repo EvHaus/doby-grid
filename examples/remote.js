@@ -85,7 +85,6 @@ define([], function () {
 				};
 
 
-
 				this.onLoading = function () {
 					if (!this.grid.$el) return;
 					var loader = $('<div class="myloader" style="background:rgba(0,0,0,0.2);position:absolute;top:30px;left:0;right:0;bottom:0;text-align:center;line-height:300px">Loading...</div>')

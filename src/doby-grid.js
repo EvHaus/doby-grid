@@ -164,6 +164,7 @@
 			getRowFromNode,
 			getRowFromPosition,
 			getScrollbarSize,
+			getValueFromItem,
 			getVBoxDelta,
 			getViewportHeight,
 			getVisibleRange,
@@ -317,7 +318,6 @@
 					add_group:			'Add Grouping By "{{name}}"',
 					add_sort_asc:		'Add Sort By "{{name}}" (Ascending)',
 					add_sort_desc:		'Add Sort By "{{name}}" (Descending)',
-					auto_width:			'Automatically Resize Columns',
 					group:				'Group By "{{name}}"',
 					groups_clear:		'Clear All Grouping',
 					groups_collapse:	'Collapse All Groups',
@@ -332,6 +332,11 @@
 					"default":			'No data available',
 					remote:				'No results found',
 					filter:				'No items matching that filter'
+				},
+				global: {
+					auto_width:			'Automatically Resize Columns',
+					export_csv:			'Export Table to CSV',
+					export_html:		'Export Table to HTML'
 				}
 			},
 			multiColumnSort:		true,
@@ -502,10 +507,17 @@
 		//
 		Aggregate = function (aggregators) {
 			var self = this;
+
 			this.aggregators = aggregators;
 			this.class = classrowtotal;
 			this.columns = {};
 			this.editable = false;
+			this.exporter = function (columnDef, item) {
+				if (self.aggregators[columnDef.id] && self.aggregators[columnDef.id].exporter) {
+					return self.aggregators[columnDef.id].exporter();
+				}
+				return "";
+			};
 			this.focusable = true;
 			this.formatter = function (row, cell, value, columnDef, data) {
 				if (self.aggregators[columnDef.id] && self.aggregators[columnDef.id].formatter) {
@@ -514,7 +526,6 @@
 				return "";
 			};
 			this.selectable = false;
-
 			this.toString = function () { return "Aggregate"; };
 		};
 
@@ -1402,7 +1413,7 @@
 					cell = getCellFromNode(activeCellNode),
 					item = cache.rows[row],
 					column = self.options.columns[cell];
-				result = item.data[column.field] !== undefined ? item.data[column.field] : "";
+				result = getValueFromItem(item, column);
 			}
 
 			// Send to clipboard by creating a dummy container with the text selected
@@ -3149,6 +3160,89 @@
 		};
 
 
+		// export()
+		// Export all grid data to a format of your choice. Available formats are 'csv' and 'html'.
+		//
+		// @param	format		string		Which format to export to
+		//
+		// @return string
+		this.export = function (format) {
+			var allowed = ['csv', 'html'];
+			if (allowed.indexOf(format) < 0) throw new Error('Sorry, "' + format + '" is not a supported format for export.');
+
+			// First collect all the data as an array of arrays
+			var result = [], i, l, row, ii, ll, val;
+
+			if (format === 'html') {
+				result.push('<table><thead><tr>');
+			}
+
+			// Get header
+			var header = [];
+			for (i = 0, l = this.options.columns.length; i < l; i++) {
+				val = this.options.columns[i].name || "";
+				if (format === 'csv') {
+					// Escape quotes
+					val = val.replace(/\"/g, '\"');
+
+					header.push(['"', val, '"'].join(''));
+				} else if (format === 'html') {
+					header.push('<th>');
+					header.push(val);
+					header.push('</th>');
+				}
+			}
+
+			if (format === 'csv') {
+				result.push(header.join(','));
+			} else if (format === 'html') {
+				result.push(header.join(''));
+				result.push('</tr></thead><tbody>');
+			}
+
+			// Get data
+			for (i = 0, l = this.collection.items.length; i < l; i++) {
+				// Don't export non-data
+				if (this.collection.items[i] instanceof NonDataItem) continue;
+
+				row = [];
+				if (format === 'html') row.push('<tr>');
+				for (ii = 0, ll = this.options.columns.length; ii < ll; ii++) {
+					val = getValueFromItem(this.collection.items[i], this.options.columns[ii]);
+					if (format === 'csv') {
+						// Escape quotes
+						val = val.replace(/\"/g, '\"');
+
+						row.push(['"', val, '"'].join(''));
+					} else if (format === 'html') {
+						row.push('<td>');
+						row.push(val);
+						row.push('</td>');
+					}
+				}
+				if (format === 'csv') {
+					result.push(row.join(','));
+				} else if (format === 'html') {
+					row.push('</tr>');
+					result.push(row.join(''));
+				}
+
+			}
+
+			if (format === 'html') {
+				result.push('</tbody></table>');
+			}
+
+			if (format === 'csv') {
+				result = result.join("\n");
+			} else if (format === 'html') {
+				result = result.join("");
+			}
+
+			return result;
+		};
+
+
 		// findFirstFocusableCell()
 		// Given a row, returns the index of first focusable cell in that row
 		//
@@ -3769,6 +3863,34 @@
 				};
 			c.remove();
 			return result;
+		};
+
+
+		// getValueFromItem()
+		// Given a data item, returns the value of that cell for all export functions
+		//
+		// @param	item		object		Data item from the collection
+		// @param	column		object		Column object for the field to pull
+		//
+		// @return string
+		getValueFromItem = function (item, column) {
+			// First check for an exporter function for this specific item
+			if (item.exporter && typeof item.exporter === 'function') {
+				return item.exporter(column, item).toString();
+			}
+
+			// Second check for an exporter function for this column
+			if (column.exporter && typeof column.exporter === 'function') {
+				return column.exporter(column, item).toString();
+			}
+
+			var f = column.field;
+
+			// Then check for regular data
+			if (item.data && item.data[f] !== undefined) return item.data[f].toString();
+
+			// Sorry -- couldn't find anything useful
+			return "";
 		};
 
 
@@ -4950,10 +5072,14 @@
 				var json = [], column, row, data;
 				for (var i = this.fromRow; i <= this.toRow; i++) {
 					row = cache.rows[i];
+
+					// Skip NonData rows
+					if (row instanceof NonDataItem) continue;
+
 					data = [];
 					for (var c = this.fromCell; c <= this.toCell; c++) {
 						column = self.options.columns[c];
-						data.push(row.data[column.field] !== undefined ? row.data[column.field] : "");
+						data.push(getValueFromItem(row, column));
 					}
 					json.push(data);
 				}
@@ -6677,7 +6803,24 @@
 				enabled: column && (column.sortable || column.removable || column.groupable),
 				divider: true
 			}, {
-				name: getLocale('column.auto_width'),
+				name: getLocale('global.export_csv'),
+				fn: function () {
+					var csv = self.export('csv'),
+						uri = "data:text/csv," + encodeURIComponent(csv);
+					window.open(uri, 'Data Export');
+				}
+			}, {
+				name: getLocale('global.export_html'),
+				fn: function () {
+					var html = self.export('html'),
+						uri = "data:text/html," + encodeURIComponent(html);
+					window.open(uri, 'Data Export');
+				}
+			}, {
+				enabled: column && (column.sortable || column.removable || column.groupable),
+				divider: true
+			}, {
+				name: getLocale('global.auto_width'),
 				value: self.options.autoColumnWidth,
 				fn: function () {
 					var force = !self.options.autoColumnWidth;

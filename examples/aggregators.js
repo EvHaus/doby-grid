@@ -27,6 +27,10 @@ define([], function () {
 			columns.push({
 				aggregator: function (column) {
 					this.total = [];
+					this.exporter = function () {
+						var avg = this.total.reduce(function (a, b) { return a + b; });
+						return Math.round(avg / this.total.length);
+					};
 					this.formatter = function () {
 						var avg = this.total.reduce(function (a, b) { return a + b; });
 						return "Avg: <strong>" + Math.round(avg / this.total.length) + "</strong>";
@@ -43,6 +47,9 @@ define([], function () {
 			}, {
 				aggregator: function (column) {
 					this.total = 0;
+					this.exporter = function () {
+						return (this.total || "");
+					};
 					this.formatter = function () {
 						return "Total: <strong>" + this.total + "</strong>";
 					};
