@@ -471,18 +471,24 @@
 		// create nested groupings.
 		//
 		// @param	column_id		string		Id of the column to group by
+		// @param	options			object		(Optional) Additional grouping options.
 		//
 		// @return object
-		this.addGrouping = function (column_id) {
-			// TODO: If adding a new grouping, expanded groups should stay expanded
+		this.addGrouping = function (column_id, options) {
+			options = options || {};
 
 			if (column_id === null || column_id === undefined) throw new Error("Unable to add grouping to grid because the 'column_id' value is missing.");
-			var column_ids = hasGrouping(column_id);
-			if (!column_ids) {
-				var grouping = this.collection.groups;
-				column_ids = _.pluck(grouping, 'column_id');
-				column_ids.push(column_id);
-				this.setGrouping(column_ids);
+
+			var grouping = hasGrouping(column_id);
+			if (!grouping) {
+				// Use the column_id shortcut to extend the options
+				options.column_id = column_id;
+
+				// Add to grouping
+				this.collection.groups.push(options);
+
+				// Set new grouping
+				this.setGrouping(this.collection.groups);
 			}
 			return this;
 		};
@@ -1344,6 +1350,11 @@
 							column: column
 						});
 					} else {
+						// See if we have a cell range selected
+						if (self.selection) {
+							// TODO: Send multiple values to the editor for edit
+						}
+
 						// Execute the operation
 						currentEditor.applyValue(item, currentEditor.serializeValue());
 						updateRow(activeRow);
@@ -1459,25 +1470,35 @@
 
 
 		// createGroupingObject()
-		// Generates a SlickGrid grouping object from a column id
+		// Given a grouping object, extends it with the defaults.
 		//
-		// @param	column_id		string		ID of a column to create grouping object for
+		// @param	grouping	object		A column grouping object
 		//
 		// @return object
-		createGroupingObject = function (column_id) {
-			var column = getColumnById(column_id);
+		createGroupingObject = function (grouping) {
+			if (!grouping) throw new Error("Unable to create group because grouping object is missing.");
 
-			return {
+			if (grouping.column_id === undefined) throw new Error("Unable to create grouping object because 'column_id' is missing.");
+
+			var column = getColumnById(grouping.column_id);
+
+			var result = $.extend({
+
 				collapsed: true,	// All groups start off being collapsed
+
 				column_id: column.id,
+
 				comparer: function (a, b) {
 					return a.value - b.value;
 				},
-				displayTotalsRow: true,
+
+				displayTotalsRow: true,		// TODO: Was ist das?
+
 				getter: function (item) {
 					if (!item || item instanceof NonDataItem) return null;
 					return item.data[column.field];
 				},
+
 				formatter: function (g) {
 					var h = [
 						"<strong>" + column.name + ":</strong> ",
@@ -1487,10 +1508,13 @@
 					if (g.count !== 1) h.push("s");
 					h.push(")</span>");
 					return h.join('');
-				},
-				grouprows: {},
-				predefinedValues: []
-			};
+				}
+			}, grouping);
+
+			// Prepare counters and internal settings
+			result.grouprows = {};
+
+			return result;
 		};
 
 
@@ -1515,7 +1539,6 @@
 				filterCache = [],
 				filteredItems = [],
 				groupingDelimiter = ':|:',
-				groups = [],
 				pagenum = 0,
 				pagesize = 0,
 				prevRefreshHints = {},
@@ -1928,22 +1951,7 @@
 					gi = self.groups[level],
 					i, l, predef;
 
-				for (i = 0, l = gi.predefinedValues.length; i < l; i++) {
-					predef = gi.predefinedValues[i];
-					val = gi[predef];
-					group = groupsByVal[val];
-					if (!group) {
-						group = new Group();
-						group.value = val;
-						group.level = level;
-						group.predef = gi;
-						group.id = '__group' + (parentGroup ? parentGroup.id + groupingDelimiter : '') + val;
-						group.height = gi.grouprows[group.id] && gi.grouprows[group.id].height ? gi.grouprows[group.id].height : null;
-						groups[groups.length] = group;
-						groupsByVal[val] = group;
-					}
-				}
-
+				// Loop through the rows in the group and create group header rows as needed
 				for (i = 0, l = rows.length; i < l; i++) {
 					r = rows[i];
 
@@ -1954,9 +1962,14 @@
 					}
 
 					val = typeof gi.getter === "function" ? gi.getter(r) : r[gi.getter];
+
+					// Store groups by value if the getter
 					group = groupsByVal[val];
+
+					// Create a new group header row, if it doesn't already exist for this group
 					if (!group) {
 						group = new Group();
+						group.collapsed = gi.collapsed;
 						group.value = val;
 						group.level = level;
 						group.predef = gi;
@@ -1997,14 +2010,14 @@
 			finalizeGroups = function (groups, level) {
 				level = level || 0;
 				var gi = self.groups[level],
-					groupCollapsed = gi.collapsed,
 					toggledGroups = toggledGroupsByLevel[level],
 					idx = groups.length,
 					g;
 
 				while (idx--) {
 					g = groups[idx];
-					g.collapsed = groupCollapsed ^ toggledGroups[g.id];
+
+					g.collapsed = gi.collapsed ^ toggledGroups[g.id];
 					g.title = gi.formatter ? gi.formatter(g) : g.value;
 
 					if (g.groups) {
@@ -2376,7 +2389,7 @@
 				var newRows = filteredItems.rows;
 
 				// Insert group rows
-				groups = [];
+				var groups = [];
 				if (self.groups.length) {
 					groups = extractGroups(newRows);
 					if (groups.length) {
@@ -2533,16 +2546,23 @@
 			this.setGrouping = function (options) {
 				options = options || [];
 
-				groups = [];
-				toggledGroupsByLevel = [];
-				this.groups = (options instanceof Array) ? options : [options];
+				if (!$.isArray(options)) throw new Error('Unable to set grouping because given options is not an array. Given: ' + JSON.stringify(options));
 
-				var gi, idx;
-				for (var i = 0, l = this.groups.length; i < l; i++) {
-					gi = this.groups[i];
-					toggledGroupsByLevel[i] = {};
+				// If resetting grouping - reset toggle cache
+				if (!options.length) toggledGroupsByLevel = [];
+
+				this.groups = [];
+
+				// Reset group cache
+				var i, l, groupingObject;
+				for (i = 0, l = options.length; i < l; i++) {
+					if (!toggledGroupsByLevel[i]) toggledGroupsByLevel[i] = {};
+
+					// Extend using a default grouping object nad add to groups
+					this.groups.push(createGroupingObject(options[i]));
 				}
 
+				// Reload the grid with the new grouping
 				this.refresh();
 			};
 
@@ -3456,8 +3476,9 @@
 		//
 		// @return object
 		getColumnFromEvent = function (event) {
-			var $column = $(event.target).closest("." + classheadercolumn),
+			var $column = $(event.target).closest("." + classheadercolumn + ':not(.' + classplaceholder + ')'),
 				column_id = $column && $column.length ? $column.attr('id').replace(uid, '') : null;
+
 			return column_id ? getColumnById(column_id) : null;
 		};
 
@@ -4054,7 +4075,6 @@
 		// Class that stores information about a group of rows.
 		//
 		Group = function () {
-			this.collapsed = false;		// Whether the group is collapsed
 			this.columns = {
 				0: {
 					colspan: "*",
@@ -4466,19 +4486,24 @@
 
 
 		// hasGrouping()
-		// Returns list of column_ids that the grid has a grouping for.
-		// Otherwise returns false.
+		// Given a column's id, check to see if it is currently grouped. If it is, returns the grouping
+		// object. Otherwise returns false.
 		//
 		// @param	column_id	string		ID of the column to check grouping for
 		//
-		// @return boolean, array
+		// @return boolean, object
 		hasGrouping = function (column_id) {
 			if (!column_id) return false;
+
+			// Does this column even exist?
 			var column = getColumnById(column_id);
 			if (!column) return false;
-			var grouping = self.collection.groups,
-				column_ids = _.pluck(grouping, 'column_id');
-			return column_ids.indexOf(column_id) >= 0 ? column_ids : false;
+
+			// Try to grab the grouping object
+			var grouping = _.groupBy(self.collection.groups, function (g) { return g.column_id; });
+
+			// Return the grouping object
+			return grouping[column_id] && grouping[column_id].length ? grouping[column_id][0] : false;
 		};
 
 
@@ -5057,8 +5082,7 @@
 						if (typeof remote.onLoaded === 'function') remote.onLoaded();
 					});
 				} catch (err) {
-					// TODO: No such function
-					return showFetchError(err.message);
+					throw new Error('Doby Grid remote fetching failed due to: ' + err);
 				}
 			}, 150);
 		};
@@ -5152,13 +5176,13 @@
 			if (!column) return;
 			if (typeof column == 'object') column = column.id;
 
-			var column_ids = hasGrouping(column);
-			if (column_ids) {
-				var idx = column_ids.indexOf(column);
-				if (idx >= 0) {
-					column_ids.splice(idx, 1);
-				}
-				this.setGrouping(column_ids);
+			var columnGrouping = hasGrouping(column);
+			if (columnGrouping) {
+				// Remove that grouping from the groups
+				this.collection.groups.splice(this.collection.groups.indexOf(columnGrouping), 1);
+
+				// Update grouping
+				this.setGrouping(this.collection.groups);
 			}
 			return this;
 		};
@@ -5878,16 +5902,11 @@
 		// setGrouping()
 		// Sets the grouping for the grid data view.
 		//
-		// @param	column_ids		array		List of column ids to group by
+		// @param	options		array		List of grouping objects
 		//
 		// @return object
-		this.setGrouping = function (column_ids) {
-			var grps = [];
-			_.each(column_ids, function (cid) {
-				grps.push(createGroupingObject(cid));
-			});
-
-			this.collection.setGrouping(grps);
+		this.setGrouping = function (options) {
+			this.collection.setGrouping(options);
 			return this;
 		};
 
@@ -6617,7 +6636,9 @@
 				enabled: self.options.groupable && column && column.groupable && (!hasGrouping(column.id) || !self.isGrouped()),
 				name: column ? getLocale('column.group', {name: column.name}) : '',
 				fn: function () {
-					self.setGrouping([column.id]);
+					self.setGrouping([{
+						column_id: column.id
+					}]);
 				}
 			}, {
 				enabled: self.options.groupable && column && column.groupable && !hasGrouping(column.id) && self.isGrouped(),

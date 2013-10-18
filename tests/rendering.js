@@ -138,9 +138,12 @@ describe("Rendering", function () {
 				});
 
 				// Group
-				grid.setGrouping(['category']);
+				grid.setGrouping([{
+					column_id: 'category'
+				}]);
 
 				// Make sure row has the right height
+				console.log(grid, grid.$el.find('.doby-grid-row'))
 				grid.$el.find('.doby-grid-row:first-child').each(function () {
 					expect($(this).height()).not.toEqual(50);
 				});

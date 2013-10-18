@@ -305,9 +305,97 @@ describe("Methods and Data Manipulation", function () {
 
 			expect(grid.collection.groups[0].column_id).toEqual("category");
 			expect(grid.collection.groups[1].column_id).toEqual("subcategory");
+		});
 
-			// Reset
-			grid.setGrouping();
+
+		// ==========================================================================================
+
+
+		it("should be able to specify custom grouping options for addGrouping() item", function () {
+			var grid = resetGrid({
+				columns: [{
+					id: 'id',
+					name: 'ID'
+				}, {
+					id: 'category',
+					name: 'Category',
+					field: 'category'
+				}, {
+					id: 'subcategory',
+					name: 'SubCategory',
+					field: 'subcategory'
+				}],
+				data: [
+					{data: {category: 'A', subcategory: 'Q'}, id: 1},
+					{data: {category: 'A', subcategory: 'D'}, id: 2},
+					{data: {category: 'B', subcategory: 'A'}, id: 3}
+				]
+			});
+
+			// Group by category and make sure it's expanded
+			grid.addGrouping("category", {collapsed: false});
+
+			var rows = grid.$el.find('.doby-grid-row');
+
+			// Make sure first row is a group row
+			expect(rows.eq(0).hasClass('doby-grid-group')).toEqual(true);
+
+			// Make sure other rows are expanded
+			expect(rows.length).toBeGreaterThan(1);
+		});
+
+
+		// ==========================================================================================
+
+
+		it("should keep expanded groups expanded when adding new groupings", function () {
+			var grid = resetGrid({
+				columns: [{
+					id: 'id',
+					name: 'ID'
+				}, {
+					id: 'category',
+					name: 'Category',
+					field: 'category'
+				}, {
+					id: 'subcategory',
+					name: 'SubCategory',
+					field: 'subcategory'
+				}],
+				data: [
+					{data: {category: 'A', subcategory: 'Q'}, id: 1},
+					{data: {category: 'A', subcategory: 'D'}, id: 2},
+					{data: {category: 'B', subcategory: 'A'}, id: 3}
+				]
+			});
+
+			// Group by category and make sure it's expanded
+			grid.addGrouping("category", {collapsed: false});
+
+			// Add group by id
+			grid.addGrouping("subcategory");
+
+			var rows = grid.$el.find('.doby-grid-row');
+
+			// Sort rows by top offset
+			rows = _.sortBy(rows, function (r) {
+				return parseInt($(r).css('top'), 10);
+			});
+
+			// Make sure first row is a group row and is still expanded
+			expect($(rows[0]).hasClass('doby-grid-group')).toEqual(true);
+			expect($(rows[0]).hasClass('expanded')).toEqual(true);
+			expect($(rows[0]).text()).toEqual("Category: A (2 items)");
+
+			// Make sure the second row is a group row for the first subcategory
+			expect($(rows[1]).hasClass('doby-grid-group')).toEqual(true);
+			expect($(rows[1]).hasClass('collapsed')).toEqual(true);
+			expect($(rows[1]).text()).toEqual("SubCategory: Q (1 item)");
+
+			// Make sure the third row is a data row for the other subcategory
+			expect($(rows[2]).hasClass('doby-grid-group')).toEqual(true);
+			expect($(rows[2]).children('.doby-grid-cell').length).toBeGreaterThan(0);
+			expect($(rows[2]).text()).toEqual("SubCategory: D (1 item)");
 		});
 	});
 
@@ -507,6 +595,31 @@ describe("Methods and Data Manipulation", function () {
 
 			// Make sure the first row is left behind
 			expect(cell.text()).toEqual('1');
+		});
+	});
+
+
+	// ==========================================================================================
+
+
+	describe("removeGrouping()", function () {
+		it("should be able to removeGrouping()", function () {
+			// Prepare the grid for testing
+			var grid = resetGrid({
+				columns: [{id: 'id', field: 'id'}, {id: 'name', field: 'name'}],
+				data: [{data: {id: 1}, id: 1}, {data: {id: 2}, id: 2}]
+			});
+
+			// Group by id and name
+			grid.addGrouping('id');
+			grid.addGrouping('name');
+
+			// Remove grouping
+			grid.removeGrouping('id');
+
+			// Make sure only name grouping is left
+			expect(grid.collection.groups.length).toEqual(1);
+			expect(grid.collection.groups[0].column_id).toEqual('name');
 		});
 	});
 

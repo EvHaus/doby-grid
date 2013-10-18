@@ -69,6 +69,6 @@ define([], function () {
 			data: data
 		};
 	}, function (grid) {
-		grid.addGrouping('city1');
+		grid.addGrouping('city1', {collapsed: false});
 	}];
 });
