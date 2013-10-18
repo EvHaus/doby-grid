@@ -22,7 +22,12 @@
 				color: #DDD;
 			}
 
+			h1 {
+				font-weight: 300;
+			}
+
 			#examplemenu {
+				border-right: 1px solid #DDD;
 				bottom: 0;
 				left: 0;
 				list-style: none;
@@ -33,9 +38,16 @@
 				width: 180px
 			}
 
-			.light #examplemenu {border-right: 1px solid rgba(0,0,0,0.5)}
-			.dark #examplemenu {border-right: 1px solid rgba(255,255,255,0.5)}
+			.light #examplemenu {
+				background: linear-gradient(#FFF, #EEE 50px);
+				border-right: 1px solid rgba(0,0,0,0.5)
+			}
 
+			.dark #examplemenu {
+				border-right: 1px solid rgba(255,255,255,0.5)
+			}
+
+				#examplemenu li {border-bottom: 1px solid rgba(0,0,0,0.2)}
 				.light #examplemenu li {border-bottom: 1px solid rgba(0,0,0,0.2)}
 				.dark #examplemenu li {border-bottom: 1px solid rgba(255,255,255,0.2)}
 
@@ -69,8 +81,14 @@
 				top: 0;
 			}
 
-			.light #toolbar {border-bottom: 1px solid rgba(0,0,0,0.5);}
-			.dark #toolbar {border-bottom: 1px solid rgba(255,255,255,0.5);}
+			.light #toolbar {
+				background: linear-gradient(#FFF, #EEE);
+				border-bottom: 1px solid rgba(0,0,0,0.5);
+			}
+
+			.dark #toolbar {
+				border-bottom: 1px solid rgba(255,255,255,0.5);
+			}
 
 			#gridwrapper {
 				bottom: 10px;
@@ -199,6 +217,7 @@
 			<li><a href="#addrow">Add Row</a></li>
 			<li><a href="#nestedrows">Nested Rows</a></li>
 			<li><a href="#aggregators">Aggregators</a></li>
+			<li><a href="#remote">Remote Data</a></li>
 		</ul>
 
 		<div id="toolbar">

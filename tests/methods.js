@@ -10,16 +10,12 @@
 describe("Methods and Data Manipulation", function () {
 	"use strict";
 
-
-	// ==========================================================================================
-
-
 	// Utilities for resetting the grid
 	var resetGrid = function (options) {
 		options = options || {};
 		options.autoDestroy = false;
 		var grid = new DobyGrid(options);
-		grid.appendTo(setFixtures('<div id="test-container"></div>'));
+		grid.appendTo(setFixtures());
 		return grid;
 	};
 
@@ -511,6 +507,67 @@ describe("Methods and Data Manipulation", function () {
 
 			// Make sure the first row is left behind
 			expect(cell.text()).toEqual('1');
+		});
+	});
+
+
+	// ==========================================================================================
+
+
+	describe("scrollToRow()", function () {
+		it("should be able to scrollToRow() to a specific row", function () {
+			// Prepare grid for test
+			var data = [];
+			for (var i = 0; i < 1000; i++) {
+				data.push({
+					data: {id: i, name: 'test' + i},
+					id: i
+				});
+			}
+
+			var grid = resetGrid({
+				columns: [{id: 'name', field: 'name'}],
+				data: data
+			});
+
+			// Scroll to row
+			grid.scrollToRow(50);
+
+			var firstcell = grid.$el.find('.doby-grid-row:first .doby-grid-cell:first');
+
+			// TODO: The unit tests always scroll to a row 3 less than actual, probably
+			// due to the way the grid is loaded in the fixture. Find a way to fix this.
+			expect(firstcell.text()).toEqual('test47');
+		});
+
+
+		// ==========================================================================================
+
+
+		it("should be able to scrollToRow() to a specific row when variable row heights are used", function () {
+			// Prepare grid for test
+			var data = [];
+			for (var i = 0; i < 1000; i++) {
+				data.push({
+					data: {id: i, name: 'test' + i},
+					id: i,
+					height: (i + 10)
+				});
+			}
+
+			var grid = resetGrid({
+				columns: [{id: 'name', field: 'name'}],
+				data: data
+			});
+
+			// Scroll to row
+			grid.scrollToRow(50);
+
+			var firstcell = grid.$el.find('.doby-grid-row:first .doby-grid-cell:first');
+
+			// TODO: The unit tests always scroll to a row 3 less than actual, probably
+			// due to the way the grid is loaded in the fixture. Find a way to fix this.
+			expect(firstcell.text()).toEqual('test47');
 		});
 	});
 

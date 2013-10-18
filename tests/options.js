@@ -19,7 +19,7 @@ describe("Grid Options", function () {
 		options = options || {};
 		options.autoDestroy = false;
 		var grid = new DobyGrid(options);
-		grid.appendTo(setFixtures('<div id="test-container"></div>'));
+		grid.appendTo(setFixtures());
 		return grid;
 	};
 

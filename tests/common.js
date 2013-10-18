@@ -52,8 +52,8 @@ describe("Initialization and validation", function () {
 	// ==========================================================================================
 
 
-	it("should throw a TypeError if the given data object is not an array", function () {
-		var tp = new TypeError('The "data" option must be an array.');
+	it("should throw a TypeError if the given data object is not an array or a function", function () {
+		var tp = new TypeError('The "data" option must be an array or a function.');
 		expect(function () {
 			new DobyGrid({
 				data: {}

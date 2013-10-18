@@ -224,12 +224,19 @@
 			offset = 0,		// current page offset
 			page = 0,		// current page
 			ph,				// page height
+			Placeholder,
 			postProcessedRows = {},
 			postProcessFromRow = null,
 			postProcessToRow = null,
 			prevScrollLeft = 0,
 			prevScrollTop = 0,
 			Range,
+			remote = false,		// Should data be fetched remotely?
+			remoteLoaded,
+			remoteCount,
+			remoteFetch,
+			remoteRequest = null,
+			remoteTimer = null,
 			removeCssRules,
 			removeInvalidRanges,
 			removeRowFromCache,
@@ -245,7 +252,6 @@
 			scrollLeft = 0,
 			scrollPage,
 			scrollRowIntoView,
-			scrollRowToTop,
 			scrollTo,
 			scrollTop = 0,
 			selectedRows = [],		// Currently selected ranges of cells
@@ -539,6 +545,23 @@
 				cacheRows();
 				resizeCanvas();
 
+				// If we're using remote data, start by fetching the data set length
+				if (remote) {
+					remoteCount(function () {
+						// If we haven't scrolled anywhere yet - fetch the first page
+						if ($viewport[0].scrollTop === 0) {
+							var vp = getVisibleRange();
+							remoteFetch(vp.top, vp.bottom);
+						}
+					});
+
+					// Subscribe to scroll events
+					this.on('onViewportChanged', function (event) {
+						var vp = getVisibleRange();
+						remoteFetch(vp.top, vp.bottom);
+					});
+				}
+
 				// Assign events
 
 				this.$el
@@ -587,14 +610,6 @@
 			} catch (e) {
 				console.error(e);
 			}
-
-			// Register the remote fetching when the viewport changes
-			/*if (this.options.remote) {
-				this.grid.onViewportChanged.subscribe(function (e, args) {
-					var vp = getViewport();
-					self.loader.fetch(vp.top, vp.bottom);
-				});
-			}*/
 
 			// Enable header menu
 			if (this.options.headerMenu) {
@@ -1461,12 +1476,7 @@
 				displayTotalsRow: true,
 				getter: function (item) {
 					if (!item || item instanceof NonDataItem) return null;
-
-					if (item instanceof Backbone.Model) {
-						return item.get(column.field);
-					} else {
-						return item.data[column.field];
-					}
+					return item.data[column.field];
 				},
 				formatter: function (g) {
 					var h = [
@@ -1562,8 +1572,8 @@
 			// @return object
 			this.initialize = function () {
 
-				// Process the data
-				if (grid.options.data) {
+				// If we have normal data - set it now
+				if (!remote && grid.options.data) {
 					this.reset(grid.options.data);
 				}
 
@@ -1590,6 +1600,12 @@
 				for (var i = 0, l = models.length; i < l; i++) {
 					model = models[i];
 					existing = this.get(model);
+
+					// For remote models, check if we're inserting 'at' an index with place holders
+					if (remote && at !== undefined && this.items[at + i] instanceof Placeholder) {
+						existing = this.items[at + i];
+					}
+
 					if (existing) {
 						if (options.merge) {
 							this.setItem(existing[idProperty], model);
@@ -1628,7 +1644,10 @@
 					}
 				}
 
-				this.refresh();
+				// If not updating silently, reload grid
+				if (!options.silent) {
+					this.refresh();
+				}
 
 				return this;
 			};
@@ -2233,7 +2252,7 @@
 			//
 			// @param	item		array		List of objects
 			//
-			// @retrurn array
+			// @return array
 			parse = function (items) {
 				var i, l = items.length, id, childrow;
 				for (i = 0; i < l; i++) {
@@ -2287,9 +2306,6 @@
 			// Processes any aggregrators that are enabled and caches their results.
 			// Then inserts new Aggregate rows that are needed.
 			processAggregators = function () {
-				// If nothing to aggregate -- goodbye!
-				if (Object.keys(cache.aggregatorsByColumnId).length === 0) return;
-
 				var item, i, l;
 				// Loop through the data and process the aggregators
 				for (i = 0, l = self.items.length; i < l; i++) {
@@ -2364,7 +2380,9 @@
 				if (self.groups.length) {
 					groups = extractGroups(newRows);
 					if (groups.length) {
-						processGroupAggregators(groups);
+						if (Object.keys(cache.aggregatorsByColumnId).length) {
+							processGroupAggregators(groups);
+						}
 						finalizeGroups(groups);
 						newRows = flattenGroupedRows(groups);
 					}
@@ -2419,8 +2437,8 @@
 				prevRefreshHints = refreshHints;
 				refreshHints = {};
 
-				// Set data length
-				this.length = cache.rows.length;
+				// Set data length if this is not a remote model
+				if (!remote) this.length = cache.rows.length;
 
 				if (totalRowsBefore != totalRows) {
 					this.trigger('onPagingInfoChanged', {}, this.getPagingInfo());
@@ -2468,7 +2486,9 @@
 				this.items = filteredItems = validate(models);
 
 				// Process aggregators
-				processAggregators();
+				if (Object.keys(cache.aggregatorsByColumnId).length) {
+					processAggregators();
+				}
 
 				if (recache) {
 					cacheRows();
@@ -2528,7 +2548,8 @@
 
 
 			// setItem()
-			// Update and redraw an existing items
+			// Update and redraw an existing items. If item being replaced is a Placeholder,
+			// it is replaced entirely, otherwise object is extended.
 			//
 			// @param	id		string		The id of the item to update
 			// @param	data	object		The data to use for the item
@@ -2542,12 +2563,20 @@
 				// Update the row cache and the item
 				var idx = cache.indexById[id];
 
-				cache.rows[idx] = $.extend(true, cache.rows[idx], data);
+				if (cache.rows[idx] instanceof Placeholder) {
+					cache.rows[idx] = data;
+				} else {
+					cache.rows[idx] = $.extend(true, cache.rows[idx], data);
+				}
 
 				// Find the data item
 				for (var i = 0, l = this.items.length; i < l; i++) {
 					if (this.items[i].id == id) {
-						this.items[i] = $.extend(true, this.items[i], data);
+						if (this.items[i] instanceof Placeholder) {
+							this.items[i] = data;
+						} else {
+							this.items[i] = $.extend(true, this.items[i], data);
+						}
 						break;
 					}
 				}
@@ -3470,11 +3499,6 @@
 		getDataItemValueForColumn = function (item, columnDef) {
 			// If a custom extractor is specified -- use that
 			if (self.options.dataExtractor) return self.options.dataExtractor(item, columnDef);
-
-			// Backbone Model support
-			if (item instanceof Backbone.Model) {
-				return item.get(columnDef.field);
-			}
 
 			// Group headers
 			if (item instanceof Group) return item.value;
@@ -4815,6 +4839,22 @@
 		};
 
 
+		// Placeholder()
+		// An item object used as a placeholder for a remote item.
+		//
+		Placeholder = function (data) {
+			if (data) $.extend(this, data);
+
+			// toString()
+			// Returns a readable representation of a Placeholder object
+			//
+			// @return string
+			this.toString = function () { return "Placeholder"; };
+		};
+
+		Placeholder.prototype = new NonDataItem();
+
+
 		// Range()
 		// A structure containing a range of cells.
 		//
@@ -4894,20 +4934,166 @@
 				}
 				return json;
 			};
-
-
-			// toString()
-			// Returns a readable representation of a range
-			//
-			// @return string
-			this.toString = function () {
-				if (this.isSingleCell()) {
-					return "Range (" + this.fromRow + ":" + this.fromCell + ")";
-				} else {
-					return "Range (" + this.fromRow + ":" + this.fromCell + " - " + this.toRow + ":" + this.toCell + ")";
-				}
-			};
 		};
+
+		// toString()
+		// Returns a readable representation of a range
+		//
+		// @return string
+		Range.prototype.toString = function () {
+			if (this.isSingleCell()) {
+				return "Range (" + this.fromRow + ":" + this.fromCell + ")";
+			} else {
+				return "Range (" + this.fromRow + ":" + this.fromCell + " - " + this.toRow + ":" + this.toCell + ")";
+			}
+		};
+
+
+		// remoteCount()
+		// Executes a remote data count fetch, savs it as the collection length
+		// then calls the callback.
+		//
+		// @param	callback	function	Callback function
+		//
+		remoteCount = function (callback) {
+			var options = {};
+
+			// TODO: options.filters needed here
+
+			remote.count(options, function (result) {
+				// Set collection length
+				self.collection.length = result;
+
+				// Populate the collection with placeholders
+				var phId, ph;
+				for (var i = 0, l = self.collection.length; i < l; i++) {
+					phId = 'placeholder-' + i;
+					ph = new Placeholder({id: phId});
+					self.collection.items.push(ph);
+					cache.indexById[phId] = ph;
+				}
+
+				// Updating the row count here will ensure the scrollbar is rendered the right size
+				updateRowCount();
+
+				callback();
+			});
+		};
+
+
+		// remoteFetch()
+		// Executes a remote data fetch and re-renders the grid with the new data.
+		//
+		// @param	from	integer		Row index from which to start fetching
+		// @param	to		integer		Row index until when to fetch
+		//
+		remoteFetch = function (from, to) {
+			// If scrolling fast, abort pending requests
+			if (remoteRequest && typeof remoteRequest.abort === 'function') {
+				remoteRequest.abort();
+			}
+
+			// Also cancel previous execution entirely (if scrolling really really fast)
+			if (remoteTimer !== null) {
+				clearTimeout(remoteTimer);
+			}
+
+			// Don't attempt to fetch more results than there are
+			if (from < 0) from = 0;
+			if (self.collection.length > 0) to = Math.min(to, self.collection.length - 1);
+
+			// Strip out the range that is already loaded
+			var newFrom, newTo;
+			for (var i = from; i <= to; i++) {
+				if (!cache.rows[i] || cache.rows[i] instanceof Placeholder) {
+					if (newFrom === undefined) newFrom = i;
+					newTo = i;
+				}
+			}
+
+			// If everything is already loaded - simply process the rows via remoteLoaded()
+			if (newFrom === undefined) {
+				remoteLoaded();
+				return;
+			}
+
+			// Builds the options we need to give the fetcher
+			var options = {};
+
+			// An additional 5 rows are needed here to compensate for various screen sizes, etc...
+			options.limit = newTo - newFrom + 1;
+			options.offset = newFrom;
+
+			// TODO:
+			// options.order?
+
+			// TODO:
+			// options.filter
+
+			remoteTimer = setTimeout(function () {
+				try {
+					// Fire onLoading callback
+					if (typeof remote.onLoading === 'function') remote.onLoading();
+
+					// Sorting
+//					columns = self.getColumns()
+//					sorting = self.getSorting()
+//					order = _.map(sorting, function(c) {
+//						col = _.findWhere(columns, {id: c.columnId})
+//						return [col.field, c.sortAsc ? 'asc' : 'desc']
+//					})
+
+					remoteRequest = remote.fetch(options, function (results) {
+						// Add items to collection
+						self.collection.add(results, {at: newFrom, merge: true});
+
+						// Empty the request variable so it doesn't get aborted on scroll
+						remoteRequest = null;
+
+						// Fire loaded function to process the changes
+						remoteLoaded(newFrom, newTo);
+
+						// Fire onLoaded callback
+						if (typeof remote.onLoaded === 'function') remote.onLoaded();
+					});
+				} catch (err) {
+					// TODO: No such function
+					return showFetchError(err.message);
+				}
+			}, 150);
+		};
+
+
+		// remoteLoaded()
+		// After remote data is fetched, this function is called to refresh the grid accordingly.
+		//
+		// @param	from	integer		Row index from which to start fetching
+		// @param	to		integer		Row index until when to fetch
+		//
+		remoteLoaded = function (from, to) {
+			// Invalidate edited rows
+			for (var i = from; i <= to; i++) {
+				invalidateRow(i);
+			}
+
+//			// Display alert if empty
+//			if (self.options.alertOnEmpty && self.dataView.getLength() === 0) {
+//				// Need to clear cache to reset dataview lengths
+//				self.loader.clearCache()
+//
+//				// Insert row
+//				insertEmptyAlert()
+//
+//				// Manually tell collection it's 1 units long
+//				self.dataView.setLength(1)
+//			}
+
+			updateRowCount();
+			render();
+
+			//hideLoader()
+		};
+
 
 
 		// remove()
@@ -5061,7 +5247,7 @@
 		//
 		renderCell = function (result, row, cell, colspan, item) {
 			var m = self.options.columns[cell],
-				mColumns = item.columns || {},
+				mColumns = item && item.columns || {},
 				rowI = Math.min(self.options.columns.length - 1, cell + colspan - 1),
 
 				// Group rows do not inherit column class
@@ -5175,7 +5361,7 @@
 				top = self.options.rowHeight * row - offset;
 			}
 
-			if (d.class) rowCss += " " + (typeof d.class === 'function' ? d.class() : d.class);
+			if (d && d.class) rowCss += " " + (typeof d.class === 'function' ? d.class() : d.class);
 
 			stringArray.push("<div class='" + rowCss + "' style='top:" + top + "px");
 
@@ -5193,7 +5379,7 @@
 				colspan = 1;
 
 				// Render custom columns
-				if (d.columns) {
+				if (d && d.columns) {
 					var columnData = d.columns[m.id] || d.columns[i];
 					colspan = (columnData && columnData.colspan) || 1;
 					if (colspan === "*") {
@@ -5309,13 +5495,6 @@
 			// Resize the grid
 			resizeCanvas();
 			invalidate();
-
-			// Clear remote data and touch viewport to re-draw it
-			// TODO: Find a better solution to touchViewport
-			/*if (this.options.remote) {
-				this.touchViewport()
-			}*/
-
 			return this;
 		};
 
@@ -5487,24 +5666,6 @@
 		};
 
 
-		// scrollRowToTop()
-		// Scroll the viewport so the given row is at the top
-		//
-		// @param	row		integer		Row index
-		//
-		scrollRowToTop = function (row) {
-
-			if (!options.variableRowHeight) {
-				scrollTo(row * self.options.rowHeight);
-			} else {
-				var pos = cache.rowPositions[row];
-				scrollTo(pos.top);
-			}
-
-			render();
-		};
-
-
 		// scrollTo()
 		// Scrolls the viewport to the given position
 		//
@@ -5531,6 +5692,23 @@
 
 				self.trigger('onViewportChanged', {});
 			}
+		};
+
+
+		// scrollToRow()
+		// Scroll the viewport so the given row is at the top.
+		//
+		// @param	row		integer		Row index
+		//
+		this.scrollToRow = function (row) {
+			if (!variableRowHeight) {
+				scrollTo(row * this.options.rowHeight);
+			} else {
+				var pos = cache.rowPositions[row];
+				scrollTo(pos.top);
+			}
+			render();
+			return this;
 		};
 
 
@@ -6746,7 +6924,7 @@
 		// Parses the options.columns list to ensure column data is correctly configured.
 		//
 		validateColumns = function () {
-			if (!self.options.columns && !(self.options.data instanceof Backbone.Collection)) {
+			if (!self.options.columns) {
 				return;
 			}
 
@@ -6803,9 +6981,15 @@
 				throw new TypeError('The "columns" option must be an array.');
 			}
 
-			// Ensure "data" option is an array
-			if (!_.isArray(self.options.data)) {
-				throw new TypeError('The "data" option must be an array.');
+			// Ensure "data" option is an array or a function
+			if (!_.isArray(self.options.data) && typeof self.options.data !== 'function') {
+				throw new TypeError('The "data" option must be an array or a function.');
+			} else {
+				// If array is a function - enable remote fetching by instantiating the remote class
+				if (typeof self.options.data === 'function') {
+					remote = new self.options.data();
+					remote.grid = self;
+				}
 			}
 
 			// Warn if "addRow" is used without "editable"

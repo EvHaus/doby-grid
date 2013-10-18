@@ -63,7 +63,7 @@ define([], function () {
 								callback();
 							});
 					};
-				},
+				}
 			}, {
 				cache: true,
 				id: "rsvpc",
@@ -83,7 +83,7 @@ define([], function () {
 								callback();
 							});
 					};
-				},
+				}
 			}],
 			data: data
 		};
