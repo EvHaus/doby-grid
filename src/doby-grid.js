@@ -506,30 +506,28 @@
 		// formatters during the display.
 		//
 		Aggregate = function (aggregators) {
-			var self = this;
-
 			this.aggregators = aggregators;
 			this.class = classrowtotal;
 			this.columns = {};
 			this.editable = false;
-			this.exporter = function (columnDef, item) {
-				if (self.aggregators[columnDef.id] && self.aggregators[columnDef.id].exporter) {
-					return self.aggregators[columnDef.id].exporter();
-				}
-				return "";
-			};
 			this.focusable = true;
-			this.formatter = function (row, cell, value, columnDef, data) {
-				if (self.aggregators[columnDef.id] && self.aggregators[columnDef.id].formatter) {
-					return self.aggregators[columnDef.id].formatter();
-				}
-				return "";
-			};
 			this.selectable = false;
-			this.toString = function () { return "Aggregate"; };
 		};
 
 		Aggregate.prototype = new NonDataItem();
+		Aggregate.prototype.toString = function () { return "Aggregate"; };
+		Aggregate.prototype.exporter = function (columnDef, item) {
+			if (this.aggregators[columnDef.id] && this.aggregators[columnDef.id].exporter) {
+				return this.aggregators[columnDef.id].exporter();
+			}
+			return "";
+		};
+		Aggregate.prototype.formatter = function (row, cell, value, columnDef, data) {
+			if (this.aggregators[columnDef.id] && this.aggregators[columnDef.id].formatter) {
+				return this.aggregators[columnDef.id].formatter();
+			}
+			return "";
+		};
 
 
 		// appendTo()
@@ -3671,7 +3669,7 @@
 			var columnOverrides = item.columns && (item.columns[column.id] || item.columns[getColumnIndex(column.id)]);
 
 			// Pick formatter starting at the item formatter and working down to the default
-			return item.formatter ||
+			return item.formatter ? item.formatter.bind(item) : null ||
 				(columnOverrides && columnOverrides.formatter) ||
 				column.formatter ||
 				self.options.formatter ||
@@ -4197,21 +4195,6 @@
 		// Class that stores information about a group of rows.
 		//
 		Group = function () {
-			this.columns = {
-				0: {
-					colspan: "*",
-					formatter: function (row, cell, value, columnDef, item) {
-						var indent = item.level * 15;
-						return [(indent ? '<span style="margin-left:' + indent + 'px">' : ''),
-							'<span class="icon"></span>',
-							'<span class="' + classgrouptitle + '" level="' + item.level + '">',
-							item.title,
-							'</span>',
-							(indent ? '</span>' : '')
-						].join('');
-					}
-				}
-			};
 			this.count = 0;				// Number of rows in the group
 			this.groups = null;			// Sub-groups that are part of this group
 			this.id = null;				// A unique key used to identify the group
@@ -4226,6 +4209,21 @@
 		Group.prototype.class = function () {
 			var collapseclass = (this.collapsed ? classcollapsed : classexpanded);
 			return [classgroup, classgrouptoggle, collapseclass].join(' ');
+		};
+		Group.prototype.columns = {
+			0: {
+				colspan: "*",
+				formatter: function (row, cell, value, columnDef, item) {
+					var indent = item.level * 15;
+					return [(indent ? '<span style="margin-left:' + indent + 'px">' : ''),
+						'<span class="icon"></span>',
+						'<span class="' + classgrouptitle + '" level="' + item.level + '">',
+						item.title,
+						'</span>',
+						(indent ? '</span>' : '')
+					].join('');
+				}
+			}
 		};
 		Group.prototype.toString = function () { return "Group"; };
 
@@ -4991,15 +4989,10 @@
 		//
 		Placeholder = function (data) {
 			if (data) $.extend(this, data);
-
-			// toString()
-			// Returns a readable representation of a Placeholder object
-			//
-			// @return string
-			this.toString = function () { return "Placeholder"; };
 		};
 
 		Placeholder.prototype = new NonDataItem();
+		Placeholder.prototype.toString = function () { return "Placeholder"; };
 
 
 		// Range()

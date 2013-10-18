@@ -46,7 +46,7 @@ describe("Grid Options", function () {
 
 			// Convert selection to JSON
 			var jaysun = grid.selection[0].toJSON();
-			expect(jaysun).toEqual([[189, 'test'], [289, 'test2']]);
+			expect(jaysun).toEqual([['189', 'test'], ['289', 'test2']]);
 
 			// Convert selection to CSV
 			var csv = grid.selection[0].toCSV();
