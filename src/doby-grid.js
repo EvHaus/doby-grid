@@ -1568,7 +1568,6 @@
 				compileFilterWithCaching,
 				compiledFilterWithCaching,
 				expandCollapseGroup,
-				ensureRowsByIdCache,
 				extractGroups,
 				finalizeGroups,
 				flattenGroupedRows,
@@ -1751,7 +1750,7 @@
 			};
 
 
-			// TODO: ?
+			// TODO: Filtering?
 			compileFilterWithCaching = function () {
 				/*
 				var filterInfo = getFunctionInfo(filter);
@@ -1869,17 +1868,6 @@
 							cacheEntry.cellNodesByColumnIdx[columnIdx] = lastChild;
 							lastChild = lastChild.previousSibling;
 						}
-					}
-				}
-			};
-
-
-			// TODO: ?
-			ensureRowsByIdCache = function () {
-				if (!rowsById) {
-					rowsById = {};
-					for (var i = 0, l = cache.rows.length; i < l; i++) {
-						if (cache.rows[i]) rowsById[cache.rows[i][idProperty]] = i;
 					}
 				}
 			};
@@ -2050,7 +2038,7 @@
 			};
 
 
-			// TODO: ?
+			// TODO: Filtering ?
 			getFunctionInfo = function (fn) {
 				var fnRegex = new RegExp(/^function[^(]*\(([^)]*)\)\s*\{([\s\S]*)\}$/),
 					matches = fn.toString().match(fnRegex);
@@ -2104,13 +2092,6 @@
 					totalRows: totalRows,
 					totalPages: totalPages
 				};
-			};
-
-
-			// TODO: ?
-			this.getRowById = function (id) {
-				ensureRowsByIdCache();
-				return rowsById[id];
 			};
 
 
