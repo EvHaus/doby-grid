@@ -2,7 +2,7 @@
 /*jshint white: true*/
 /*global _, $, define*/
 
-define([], function () {
+define(['faker'], function (Faker) {
 	"use strict";
 
 	return [function () {
@@ -13,7 +13,7 @@ define([], function () {
 			data.push({
 				id: 'fancy_id_' + i,
 				data: {
-					name: "Bob Robert Jr. " + i
+					name: Faker.Name.findName()
 				}
 			});
 		}

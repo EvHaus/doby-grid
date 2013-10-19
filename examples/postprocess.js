@@ -2,7 +2,7 @@
 /*jshint white: true*/
 /*global $, _, define*/
 
-define([], function () {
+define(['faker'], function (Faker) {
 	"use strict";
 
 	return [function () {
@@ -14,9 +14,9 @@ define([], function () {
 				id: i,
 				data: {
 					id: i,
-					name: "Pope John " + i,
-					age: "100 years",
-					city: ['Venice', 'Vatican City', 'Rome'][_.random(0, 2)],
+					name: Faker.Name.findName(),
+					age: _.sample([10,20,30,40,50,60,70,80,90,100]),
+					city: Faker.Address.city(),
 					rsvp: _.random(0, 1)
 				}
 			});

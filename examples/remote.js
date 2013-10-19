@@ -2,7 +2,7 @@
 /*jshint white: true*/
 /*global $, _, define*/
 
-define([], function () {
+define(['faker'], function (Faker) {
 	"use strict";
 
 	return [function () {
@@ -13,9 +13,9 @@ define([], function () {
 				id: i,
 				data: {
 					id: i,
-					name: "Name " + i,
+					name: Faker.Name.findName(),
 					age: _.sample([18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28]),
-					city: _.sample(["Vancouver", "New York", "Chicago", "London", "Paris"])
+					city: Faker.Address.city()
 				}
 			});
 		}

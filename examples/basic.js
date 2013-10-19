@@ -2,7 +2,7 @@
 /*jshint white: true*/
 /*global _, $, define*/
 
-define([], function () {
+define(['faker'], function (Faker) {
 	"use strict";
 
 	// Generate Grid Options
@@ -15,10 +15,10 @@ define([], function () {
 				id: i,
 				data: {
 					id: i,
-					name: "Pope John " + i,
-					age: "100 years",
-					city: ['Venice', 'Vatican City', 'Rome', 'Milan', 'Constantinople'][_.random(0, 4)],
-					country: "ITA"
+					name: Faker.Name.findName(),
+					email: Faker.Internet.email(),
+					company: Faker.Company.companyName(),
+					lorem: Faker.Lorem.words(20).join(' ')
 				}
 			});
 		}
@@ -40,23 +40,23 @@ define([], function () {
 				sortable: true,
 				tooltip: "This is the name of the individual"
 			}, {
-				id: "age" + q,
-				name: "Age",
-				field: "age",
+				id: "email" + q,
+				name: "Email",
+				field: "email",
 				sortable: true,
-				tooltip: "The age of the culprit"
+				tooltip: "Their email address"
 			}, {
-				id: "city" + q,
-				name: "City",
-				field: "city",
+				id: "company" + q,
+				name: "Company",
+				field: "company",
 				sortable: true,
-				tooltip: "City of birth"
+				tooltip: "The user's company"
 			}, {
-				id: "country" + q,
-				name: "Country",
-				field: "country",
+				id: "random" + q,
+				name: "Random Words",
+				field: "lorem",
 				sortable: true,
-				tooltip: "Country of origin"
+				tooltip: "Some random words"
 			});
 		}
 
