@@ -163,6 +163,31 @@
 }
 
 
+// Header Quick Filter
+// ==================================================================================================
+
+
+.doby-grid-header-filter {
+	opacity: 0;
+	height: 0;
+	position: relative;
+	.transition(~'height 0.2s ease-in-out, opacity 0.1s ease-in-out');
+
+	&.on {
+		height: 30px;
+		opacity: 1
+	}
+}
+
+	.doby-grid-header-filter-cell {
+		bottom: 0;
+		margin: -1px 1px 0 -2px;
+		padding: 0 8px;
+		position: absolute;
+		top: 0;
+	}
+
+
 // Body
 // ==================================================================================================
 
@@ -256,7 +281,7 @@
 // ==================================================================================================
 
 
-.doby-grid-cell {
+.doby-grid {
 	// Input field
 	input.editor {
 		background: none;

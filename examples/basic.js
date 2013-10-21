@@ -8,18 +8,25 @@ define(['faker'], function (Faker) {
 	// Generate Grid Options
 	return [function () {
 
+		// Create some faker data
+		var fakedata = [];
+		for (var j = 0; j < 100; j++) {
+			fakedata.push({
+				name: Faker.Name.findName(),
+				email: Faker.Internet.email(),
+				company: Faker.Company.companyName(),
+				lorem: Faker.Lorem.words(20).join(' ')
+			});
+		}
+
 		// Generate Data
-		var data = [];
+		var data = [], fd;
 		for (var i = 0; i < 500000; i++) {
+			fd = fakedata[_.sample(_.range(0, 100))];
+			fd.id = i;
 			data.push({
 				id: i,
-				data: {
-					id: i,
-					name: Faker.Name.findName(),
-					email: Faker.Internet.email(),
-					company: Faker.Company.companyName(),
-					lorem: Faker.Lorem.words(20).join(' ')
-				}
+				data: fd
 			});
 		}
 

@@ -4,8 +4,8 @@
 // For all details and documentation:
 // https://github.com/globexdesigns/doby-grid
 
-/*jslint browser:true,vars:true,plusplus:true,devel:true,indent:4,maxerr:50*/
-/*jshint expr:true,white:true*/
+/*jslint browser: true, vars: true, plusplus: true, devel: true, indent: 4, maxerr: 50*/
+/*jshint expr: true,white: true*/
 /*global define*/
 
 (function (root, factory) {
@@ -47,6 +47,7 @@
 		var self = this,
 			$canvas,
 			$headers,
+			$headerFilter,
 			$headerScroller,
 			$style,
 			$viewport,
@@ -99,6 +100,8 @@
 			classheadercolumnactive = this.NAME + '-header-column-active',
 			classheadercolumndrag = this.NAME + '-header-column-dragging',
 			classheadercolumnsorted = this.NAME + '-header-column-sorted',
+			classheaderfilter = this.NAME + '-header-filter',
+			classheaderfiltercell = this.NAME + '-header-filter-cell',
 			classheadersortable = 'sortable',
 			classinvalid = 'invalid',
 			classplaceholder = this.NAME + '-sortable-placeholder',
@@ -265,6 +268,7 @@
 			setupColumnReorder,
 			setupColumnResize,
 			setupColumnSort,
+			showQuickFilter,
 			showTooltip,
 			sortColumns = [],
 			startPostProcessing,
@@ -320,6 +324,7 @@
 					add_group:			'Add Grouping By "{{name}}"',
 					add_sort_asc:		'Add Sort By "{{name}}" (Ascending)',
 					add_sort_desc:		'Add Sort By "{{name}}" (Descending)',
+					filter:				'Quick Filter on "{{name}}"',
 					group:				'Group By "{{name}}"',
 					groups_clear:		'Clear All Grouping',
 					groups_collapse:	'Collapse All Groups',
@@ -338,7 +343,8 @@
 				global: {
 					auto_width:			'Automatically Resize Columns',
 					export_csv:			'Export Table to CSV',
-					export_html:		'Export Table to HTML'
+					export_html:		'Export Table to HTML',
+					hide_filter:		'Hide Quick Filter'
 				}
 			},
 			multiColumnSort:		true,
@@ -1544,7 +1550,6 @@
 			// Private Variables
 
 			var self = this,
-				filter = null,		// filter function
 				filterArgs,
 				filterCache = [],
 				filteredItems = [],
@@ -1563,16 +1568,13 @@
 
 			// Private Methods
 
-				compileFilter,
 				compiledFilter,
-				compileFilterWithCaching,
 				compiledFilterWithCaching,
 				expandCollapseGroup,
 				extractGroups,
 				finalizeGroups,
 				flattenGroupedRows,
 				getFilteredAndPagedItems,
-				getFunctionInfo,
 				getRowDiffs,
 				insertEmptyAlert,
 				parse,
@@ -1589,6 +1591,9 @@
 
 			// Items by index
 			this.items = [];
+
+			// Filter function
+			this.filter = null;
 
 			// Group definitions
 			this.groups = [];
@@ -1709,85 +1714,6 @@
 				} else {
 					expandCollapseGroup(args.length - 1, args.join(groupingDelimiter), true);
 				}
-			};
-
-
-			// TODO: ?
-			compileFilter = function () {
-				console.error('compileFilter TODO');
-				/*
-				var filterInfo = getFunctionInfo(filter);
-
-				var filterBody = filterInfo.body
-					.replace(/return false\s*([;}]|$)/gi, "{ continue _coreloop; }$1")
-					.replace(/return true\s*([;}]|$)/gi, "{ _retval[_idx++] = $item$; continue _coreloop; }$1")
-					.replace(/return ([^;}]+?)\s*([;}]|$)/gi,
-					"{ if ($1) { _retval[_idx++] = $item$; }; continue _coreloop; }$2");
-
-				// This preserves the function template code after JS compression,
-				// so that replace() commands still work as expected.
-				var tpl = [
-					//"function(_items, _args) { ",
-					"var _retval = [], _idx = 0; ",
-					"var $item$, $args$ = _args; ",
-					"_coreloop: ",
-					"for (var _i = 0, _il = _items.length; _i < _il; _i++) { ",
-					"$item$ = _items[_i]; ",
-					"$filter$; ",
-					"} ",
-					"return _retval; "
-					//"}"
-				].join("");
-
-				tpl = tpl.replace(/\$filter\$/gi, filterBody);
-				tpl = tpl.replace(/\$item\$/gi, filterInfo.params[0]);
-				tpl = tpl.replace(/\$args\$/gi, filterInfo.params[1]);
-
-				var fn = new Function("_items,_args", tpl);
-				fn.displayName = fn.name = "compiledFilter";
-				return fn;
-				*/
-			};
-
-
-			// TODO: Filtering?
-			compileFilterWithCaching = function () {
-				/*
-				var filterInfo = getFunctionInfo(filter);
-
-				var filterBody = filterInfo.body
-					.replace(/return false\s*([;}]|$)/gi, "{ continue _coreloop; }$1")
-					.replace(/return true\s*([;}]|$)/gi, "{ _cache[_i] = true;_retval[_idx++] = $item$; continue _coreloop; }$1")
-					.replace(/return ([^;}]+?)\s*([;}]|$)/gi,
-					"{ if ((_cache[_i] = $1)) { _retval[_idx++] = $item$; }; continue _coreloop; }$2");
-
-				// This preserves the function template code after JS compression,
-				// so that replace() commands still work as expected.
-				var tpl = [
-					//"function(_items, _args, _cache) { ",
-					"var _retval = [], _idx = 0; ",
-					"var $item$, $args$ = _args; ",
-					"_coreloop: ",
-					"for (var _i = 0, _il = _items.length; _i < _il; _i++) { ",
-					"$item$ = _items[_i]; ",
-					"if (_cache[_i]) { ",
-					"_retval[_idx++] = $item$; ",
-					"continue _coreloop; ",
-					"} ",
-					"$filter$; ",
-					"} ",
-					"return _retval; "
-					//"}"
-				].join("");
-
-				tpl = tpl.replace(/\$filter\$/gi, filterBody);
-				tpl = tpl.replace(/\$item\$/gi, filterInfo.params[0]);
-				tpl = tpl.replace(/\$args\$/gi, filterInfo.params[1]);
-
-				var fn = new Function("_items,_args,_cache", tpl);
-				fn.displayName = fn.name = "compiledFilterWithCaching";
-				return fn;
-				*/
 			};
 
 
@@ -2002,9 +1928,9 @@
 			};
 
 			getFilteredAndPagedItems = function (items) {
-				if (filter) {
-					var batchFilter = self.options.inlineFilters ? compiledFilter : uncompiledFilter;
-					var batchFilterWithCaching = self.options.inlineFilters ? compiledFilterWithCaching : uncompiledFilterWithCaching;
+				if (self.filter) {
+					var batchFilter = uncompiledFilter;
+					var batchFilterWithCaching = uncompiledFilterWithCaching;
 
 					if (refreshHints.isFilterNarrowing) {
 						filteredItems = batchFilter(filteredItems, filterArgs);
@@ -2034,17 +1960,6 @@
 				return {
 					totalRows: filteredItems.length,
 					rows: paged
-				};
-			};
-
-
-			// TODO: Filtering ?
-			getFunctionInfo = function (fn) {
-				var fnRegex = new RegExp(/^function[^(]*\(([^)]*)\)\s*\{([\s\S]*)\}$/),
-					matches = fn.toString().match(fnRegex);
-				return {
-					params: matches[1].split(","),
-					body: matches[2]
 				};
 			};
 
@@ -2481,17 +2396,6 @@
 
 
 			// TODO: ?
-			this.setFilter = function (filterFn) {
-				filter = filterFn;
-				if (self.options.inlineFilters) {
-					compiledFilter = compileFilter();
-					compiledFilterWithCaching = compileFilterWithCaching();
-				}
-				this.refresh();
-			};
-
-
-			// TODO: ?
 			this.setFilterArgs = function (args) {
 				filterArgs = args;
 			};
@@ -2630,7 +2534,7 @@
 					idx = 0;
 
 				for (var i = 0, ii = items.length; i < ii; i++) {
-					if (filter(items[i], args)) {
+					if (self.filter(items[i], args)) {
 						retval[idx++] = items[i];
 					}
 				}
@@ -2649,7 +2553,7 @@
 					item = items[i];
 					if (cache[i]) {
 						retval[idx++] = item;
-					} else if (filter(item, args)) {
+					} else if (self.filter(item, args)) {
 						retval[idx++] = item;
 						cache[i] = true;
 					}
@@ -3193,6 +3097,23 @@
 			}
 
 			return result;
+		};
+
+
+		// filter()
+		// Filters the grid using a given function
+		//
+		// @param	filter	function		Function to use for filtering items
+		//
+		// @return object
+		this.filter = function (filter) {
+			// Set collection filter
+			this.collection.filter = filter;
+
+			// Refresh the grid with the filtered data
+			this.collection.refresh();
+
+			return this;
 		};
 
 
@@ -6495,6 +6416,84 @@
 		};
 
 
+		// showQuickFilter()
+		// Slide out a quick search header bar
+		//
+		// @param	focus		object		Column definition object for the column we want to focus.
+		//									Passing in null will toggle the quick filter.
+		//
+		showQuickFilter = function (focus) {
+			// Toggle off
+			if (focus === undefined && $headerFilter) {
+				$headerFilter.removeClass('on');
+				resizeCanvas();
+				return;
+			}
+
+			// This is called when user types into any of the input boxes
+			var onKeyUp = function (event) {
+				self.filter(function (item) {
+					// Get the values of all column fields
+					var result = true, c, c_value, i_value;
+					for (var i = 0, l = self.options.columns.length; i < l; i++) {
+						c = self.options.columns[i];
+						if (result && c.quickFilterInput) {
+							i_value = c.quickFilterInput.val();
+							c_value = item.data[c.field].toString();
+
+							result *= i_value && c_value ? c_value.toLowerCase().indexOf(i_value.toLowerCase()) >= 0 : true;
+						}
+					}
+
+					return result;
+				});
+			}
+
+			// Draw new filter bar
+			if (!$headerFilter) {
+				$headerFilter = $('<div class="' + classheaderfilter + '"></div>')
+					.appendTo($headerScroller);
+
+				// Create a cell for each column
+				var column, cell, html;
+				for (var i = 0, l = self.options.columns.length; i < l; i++) {
+					column = self.options.columns[i];
+
+					// Create cell
+					// TODO: This can't just use l and r styles because they include the scrollbar
+					// offset which isn't present on headers
+					html = ['<div class="'];
+					html.push(classheaderfiltercell);
+					html.push(' l' + i);
+					html.push(' r' + i);
+					html.push('">');
+					html.push('</div>');
+					cell = $(html.join(''));
+					cell.appendTo($headerFilter);
+
+					// Create input as a reference in the column definition
+					column.quickFilterInput = $('<input class="editor" type="text"/>')
+						.appendTo(cell)
+						.data('column_id', column.id)
+						.on('keyup', onKeyUp);
+
+					// Focus input
+					if (focus && focus.id == column.id) {
+						column.quickFilterInput.select().focus();
+					}
+				}
+			} else if (focus && focus.quickFilterInput) {
+				// Just focus
+				focus.quickFilterInput.select().focus();
+			}
+
+			// Animate in
+			$headerFilter.width()
+			$headerFilter.addClass('on')
+			resizeCanvas();
+		};
+
+
 		// showTooltip()
 		// Show a tooltip on the column header
 		//
@@ -6673,6 +6672,8 @@
 
 			var column = args.column || false;
 
+			// TODO: Disable this menu when clicking in the spaced between header quick filters
+
 			// Menu data object which will define what the menu will have
 			//
 			// @param	divider		boolean		If true, item will be a divider
@@ -6681,6 +6682,21 @@
 			// @param	fn			function	Function to execute when item clicked
 			//
 			var menuData = [{
+				enabled: column,
+				name: column ? getLocale('column.filter', {name: column.name}) : '',
+				fn: function () {
+					showQuickFilter(column);
+				}
+			}, {
+				enabled: $headerFilter !== undefined && $headerFilter.hasClass('on'),
+				name: getLocale('global.hide_filter'),
+				fn: function () {
+					showQuickFilter();
+				}
+			}, {
+				enabled: true,
+				divider: true
+			}, {
 				enabled: column && column.removable,
 				name: column ? getLocale('column.remove', {name: column.name}) : '',
 				fn: function () {
@@ -6786,7 +6802,7 @@
 					window.open(uri, 'Data Export');
 				}
 			}, {
-				enabled: column && (column.sortable || column.removable || column.groupable),
+				enabled: true,
 				divider: true
 			}, {
 				name: getLocale('global.auto_width'),
