@@ -23,7 +23,6 @@ define(['faker'], function (Faker) {
 		var data = [], fd;
 		for (var i = 0; i < 500000; i++) {
 			fd = fakedata[_.sample(_.range(0, 100))];
-			fd.id = i;
 			data.push({
 				id: i,
 				data: fd
@@ -36,7 +35,9 @@ define(['faker'], function (Faker) {
 			columns.push({
 				id: "id" + q,
 				name: "ID",
-				field: "id",
+				formatter: function (row, cell, value, columnDef, data) {
+					return data.id;
+				},
 				sortable: true,
 				tooltip: "ID of the item"
 			}, {

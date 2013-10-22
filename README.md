@@ -60,7 +60,7 @@ Default icon set used is copyright of <http://p.yusukekamiyamane.com/>.
 
 ### How To Use
 
-Download the latest version from <https://github.com/globexdesigns/doby-grid/tree/master/build>.
+Grab the latest version from <https://github.com/globexdesigns/doby-grid/tree/master/build>.
 
 Doby Grid is made up of two files (doby-grid.js and doby-grid.css) and well as a theme package. You can choose which theme to download and use. You may also want to grab <https://github.com/globexdesigns/doby-grid/tree/master/assets> for images.
 
@@ -72,7 +72,7 @@ Then simply call:
 
 ### Documentation
 
-Doby Grid has a lot of configurable options and settings. See <https://github.com/globexdesigns/doby-grid/wiki>.
+Doby Grid has a lot of configurable options. Full documentation is provided on the wiki here: <https://github.com/globexdesigns/doby-grid/wiki>.
 
 ### Examples
 

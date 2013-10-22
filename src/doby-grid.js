@@ -52,10 +52,7 @@
 			$style,
 			$viewport,
 			absoluteColumnMinWidth,
-			activeCell,
-			activeCellNode = null,
 			activePosX,
-			activeRow,
 			Aggregate,
 			applyColumnHeaderWidths,
 			applyColumnWidths,
@@ -184,7 +181,6 @@
 			h_editorLoader = null,
 			h_render = null,
 			h_postrender = null,
-			handleActiveCellPositionChange,
 			handleClick,
 			handleContextMenu,
 			handleDblClick,
@@ -390,6 +386,9 @@
 
 		// Stores the current event object
 		this._event = null;
+
+		// Stores the currently active cell
+		this.active = null;
 
 		// Stores the currently selected cell range
 		this.selection = null;
@@ -1264,7 +1263,7 @@
 				var colspan = cacheEntry.cellColSpans[i];
 				if (cache.columnPosLeft[i] > range.rightPx ||
 					cache.columnPosRight[Math.min(self.options.columns.length - 1, i + colspan - 1)] < range.leftPx) {
-					if (!(row == activeRow && i == activeCell)) {
+					if (self.active && !(row == self.active.row && i == self.active.cell)) {
 						cellsToRemove.push(i);
 					}
 				}
@@ -1289,8 +1288,9 @@
 		// @param	rangeToKeep		object		A range of top/bottom values to keep
 		//
 		cleanupRows = function (rangeToKeep) {
+			var acr = self.active && 'row' in self.active ? self.active.row : null;
 			for (var i in cache.nodes) {
-				if (((i = parseInt(i, 10)) !== activeRow) && (i < rangeToKeep.top || i > rangeToKeep.bottom)) {
+				if (((i = parseInt(i, 10)) !== acr) && (i < rangeToKeep.top || i > rangeToKeep.bottom)) {
 					removeRowFromCache(i);
 				}
 			}
@@ -1319,24 +1319,24 @@
 		// Processes edit operations using the current editor
 		//
 		commitCurrentEdit = function () {
-			var item = getDataItem(activeRow),
-				column = self.options.columns[activeCell];
+			if (!self.active || !currentEditor) return true;
 
-			if (!currentEditor) return true;
+			var item = getDataItem(self.active.row),
+				column = self.options.columns[self.active.cell];
 
 			var showInvalid = function () {
 				// Re-add the CSS class to trigger transitions, if any.
-				$(activeCellNode)
+				$(self.active.node)
 					.removeClass(classinvalid)
 					.width(); // force layout
-				$(activeCellNode).addClass(classinvalid);
+				$(self.active.node).addClass(classinvalid);
 
 				self.trigger('onValidationError', self._event, {
 					editor: currentEditor,
-					cellNode: activeCellNode,
+					cellNode: self.active.node,
 					validationResults: validationResults,
-					row: activeRow,
-					cell: activeCell,
+					row: self.active.row,
+					cell: self.active.cell,
 					column: column
 				});
 
@@ -1383,14 +1383,14 @@
 
 						// Execute the operation
 						currentEditor.applyValue(item, currentEditor.serializeValue());
-						updateRow(activeRow);
+						updateRow(self.active.row);
 
 						// Reset active cell
 						makeActiveCellNormal();
 
 						self.trigger('onCellChange', self._event, {
-							row: activeRow,
-							cell: activeCell,
+							row: self.active.row,
+							cell: self.active.cell,
 							item: item
 						});
 					}
@@ -1423,9 +1423,9 @@
 			}
 
 			// Do we have an active cell?
-			if (!result && activeCellNode) {
-				var row = getRowFromNode(activeCellNode.parentNode),
-					cell = getCellFromNode(activeCellNode),
+			if (!result && self.active && self.active.node) {
+				var row = getRowFromNode(self.active.node.parentNode),
+					cell = getCellFromNode(self.active.node),
 					item = cache.rows[row],
 					column = self.options.columns[cell];
 				result = getValueFromItem(item, column);
@@ -1558,7 +1558,6 @@
 			// Private Variables
 
 			var self = this,
-				filterArgs,
 				filterCache = [],
 				filteredItems = [],
 				groupingDelimiter = ':|:',
@@ -1941,11 +1940,11 @@
 					var batchFilterWithCaching = uncompiledFilterWithCaching;
 
 					if (refreshHints.isFilterNarrowing) {
-						filteredItems = batchFilter(filteredItems, filterArgs);
+						filteredItems = batchFilter(filteredItems);
 					} else if (refreshHints.isFilterExpanding) {
-						filteredItems = batchFilterWithCaching(items, filterArgs, filterCache);
+						filteredItems = batchFilterWithCaching(items, filterCache);
 					} else if (!refreshHints.isFilterUnchanged) {
-						filteredItems = batchFilter(items, filterArgs);
+						filteredItems = batchFilter(items);
 					}
 				} else {
 					// special case:  if not filtering and not paging, the resulting
@@ -1972,7 +1971,7 @@
 			};
 
 
-			// TODO: ?
+			// TODO: Do we still need this?
 			this.getItem = function (i) {
 				return cache.rows[i];
 			};
@@ -2000,21 +1999,9 @@
 			};
 
 
-			// TODO: ?
+			// TODO: Do we still need this?
 			this.getItemByIdx = function (i) {
 				return this.items[i];
-			};
-
-
-			// TODO: ?
-			this.getPagingInfo = function () {
-				var totalPages = pagesize ? Math.max(1, Math.ceil(totalRows / pagesize)) : 1;
-				return {
-					pageSize: pagesize,
-					pageNum: pagenum,
-					totalRows: totalRows,
-					totalPages: totalPages
-				};
 			};
 
 
@@ -2304,10 +2291,6 @@
 				// Set data length if this is not a remote model
 				if (!remote) this.length = cache.rows.length;
 
-				if (totalRowsBefore != totalRows) {
-					this.trigger('onPagingInfoChanged', {}, this.getPagingInfo());
-				}
-
 				if (countBefore != cache.rows.length) {
 					updateRowCount();
 
@@ -2395,20 +2378,6 @@
 			};
 
 
-			// TODO: ?
-			this.reSort = function () {
-				if (sortComparer) {
-					this.sort(sortComparer, sortAsc);
-				}
-			};
-
-
-			// TODO: ?
-			this.setFilterArgs = function (args) {
-				filterArgs = args;
-			};
-
-
 			// setGrouping()
 			// Sets the current grouping settings
 			//
@@ -2489,29 +2458,6 @@
 			};
 
 
-			// TODO: ?
-			this.setPagingOptions = function (args) {
-				if (args.pageSize !== undefined) {
-					pagesize = args.pageSize;
-					pagenum = pagesize ? Math.min(pagenum, Math.max(0, Math.ceil(totalRows / pagesize) - 1)) : 0;
-				}
-
-				if (args.pageNum !== undefined) {
-					pagenum = Math.min(args.pageNum, Math.max(0, Math.ceil(totalRows / pagesize) - 1));
-				}
-
-				this.trigger('onPagingInfoChanged', {}, this.getPagingInfo());
-
-				this.refresh();
-			};
-
-
-			// TODO: ?
-			this.setRefreshHints = function (hints) {
-				refreshHints = hints;
-			};
-
-
 			// sort()
 			// Performs the sort operation and refreshes the grid render
 			//
@@ -2536,13 +2482,18 @@
 			};
 
 
-			// TODO: ?
-			uncompiledFilter = function (items, args) {
+			// uncompiledFilter()
+			// Runs the given items through the active filters in the collection
+			//
+			// @param	items	array		List of items to filter
+			//
+			// @retun array
+			uncompiledFilter = function (items) {
 				var retval = [],
 					idx = 0;
 
 				for (var i = 0, ii = items.length; i < ii; i++) {
-					if (self.filter(items[i], args)) {
+					if (self.filter(items[i])) {
 						retval[idx++] = items[i];
 					}
 				}
@@ -2551,8 +2502,15 @@
 			};
 
 
-			// TODO: ?
-			uncompiledFilterWithCaching = function (items, args, cache) {
+			// uncompiledFilterWithCaching()
+			// Runs the given items through the active filters in the collection,
+			// and caches the results.
+			// TODO: Should this be the default instead of uncompiledFilter?
+			//
+			// @param	items	array		List of items to filter
+			//
+			// @retun array
+			uncompiledFilterWithCaching = function (items, cache) {
 				var retval = [],
 					idx = 0,
 					item;
@@ -2561,7 +2519,7 @@
 					item = items[i];
 					if (cache[i]) {
 						retval[idx++] = item;
-					} else if (self.filter(item, args)) {
+					} else if (self.filter(item)) {
 						retval[idx++] = item;
 						cache[i] = true;
 					}
@@ -3193,12 +3151,12 @@
 		//
 		// @return object
 		getActiveCell = function () {
-			if (!activeCellNode) {
+			if (!self.active || !self.active.node) {
 				return null;
 			} else {
 				return {
-					row: activeRow,
-					cell: activeCell
+					row: self.active.row,
+					cell: self.active.cell
 				};
 			}
 		};
@@ -3362,9 +3320,7 @@
 		// @return object
 		getCellFromEvent = function (e) {
 			var $cell = $(e.target).closest("." + classcell, $canvas);
-			if (!$cell.length) {
-				return null;
-			}
+			if (!$cell.length) return null;
 
 			var row = getRowFromNode($cell[0].parentNode);
 			var cell = getCellFromNode($cell[0]);
@@ -4130,18 +4086,6 @@
 		Group.prototype.toString = function () { return "Group"; };
 
 
-		// handleActiveCellPositionChange()
-		// Triggers the cell position change events and takes appropriate action
-		//
-		handleActiveCellPositionChange = function () {
-			if (!activeCellNode) {
-				return;
-			}
-
-			self.trigger('onActiveCellPositionChanged', {});
-		};
-
-
 		// handleClick()
 		// Handles the click events on cells
 		//
@@ -4149,7 +4093,9 @@
 		//
 		handleClick = function (e) {
 			var cell = getCellFromEvent(e);
-			if (!cell || (currentEditor !== null && activeRow == cell.row && activeCell == cell.cell)) {
+			if (!cell || (currentEditor !== null &&
+				(self.active && self.active.row == cell.row && self.active.cell == cell.cell))
+			) {
 				return;
 			}
 
@@ -4188,8 +4134,8 @@
 			if (canCellBeActive(cell.row, cell.cell)) {
 				// If holding down "Shift" key and another cell is already active - use this to
 				// select a cell range.
-				if (self.options.shiftSelect && e.shiftKey) {
-					self.selectCells(activeRow, activeCell, cell.row, cell.cell);
+				if (self.options.shiftSelect && e.shiftKey && self.active) {
+					self.selectCells(self.active.row, self.active.cell, cell.row, cell.cell);
 				}
 
 				scrollRowIntoView(cell.row, false);
@@ -4205,14 +4151,10 @@
 		//
 		handleContextMenu = function (e) {
 			var $cell = $(e.target).closest("." + classcell, $canvas);
-			if ($cell.length === 0) {
-				return;
-			}
+			if ($cell.length === 0) return;
 
-			// are we editing this cell?
-			if (activeCellNode === $cell[0] && currentEditor !== null) {
-				return;
-			}
+			// Are we editing this cell?
+			if (self.active && self.active.node === $cell[0] && currentEditor !== null) return;
 
 			self.trigger('onContextMenu', e);
 		};
@@ -4225,7 +4167,7 @@
 		//
 		handleDblClick = function (e) {
 			var cell = getCellFromEvent(e);
-			if (!cell || (currentEditor !== null && activeRow == cell.row && activeCell == cell.cell)) {
+			if (!cell || (currentEditor !== null && (self.active && self.active.row == cell.row && self.active.cell == cell.cell))) {
 				return;
 			}
 
@@ -4234,9 +4176,7 @@
 				cell: cell.cell
 			});
 
-			if (e.isImmediatePropagationStopped()) {
-				return;
-			}
+			if (e.isImmediatePropagationStopped()) return;
 
 			if (self.options.editable) {
 				gotoCell(cell.row, cell.cell, true);
@@ -4278,10 +4218,12 @@
 		// @param	e	object		Javascript event object
 		//
 		handleKeyDown = function (e) {
-			self.trigger('onKeyDown', e, {
-				row: activeRow,
-				cell: activeCell
-			});
+			if (self.active) {
+				self.trigger('onKeyDown', e, {
+					row: self.active.row,
+					cell: self.active.cell
+				});
+			}
 
 			var handled = e.isImmediatePropagationStopped();
 
@@ -4647,7 +4589,7 @@
 			vScrollDir = 0;
 
 			for (var i = 0, l = rows.length; i < l; i++) {
-				if (currentEditor && activeRow === rows[i]) {
+				if (currentEditor && self.active && self.active.row === rows[i]) {
 					makeActiveCellNormal();
 				}
 
@@ -4682,33 +4624,33 @@
 		// @param	editor		function		Editor factory to use
 		//
 		makeActiveCellEditable = function (editor) {
-			if (!activeCellNode || self.options.editable !== true) return;
+			if (!self.active || !self.active.node || self.options.editable !== true) return;
 
 			// Cancel pending async call if there is one
 			clearTimeout(h_editorLoader);
 
-			var columnDef = self.options.columns[activeCell];
-			var item = getDataItem(activeRow);
+			var columnDef = self.options.columns[self.active.cell];
+			var item = getDataItem(self.active.row);
 
 			if (self.trigger('onCellCssStylesChanged', {}, {
-				row: activeRow,
-				cell: activeCell,
+				row: self.active.row,
+				cell: self.active.cell,
 				item: item,
 				column: columnDef
 			}) === false) {
 				return;
 			}
 
-			$(activeCellNode).addClass("editable");
+			$(self.active.node).addClass("editable");
 
 			// If no editor is given, clear the cell
-			if (!editor) activeCellNode.innerHTML = "";
+			if (!editor) self.active.node.innerHTML = "";
 
-			var CellEditor = editor || getEditor(activeRow, activeCell);
+			var CellEditor = editor || getEditor(self.active.row, self.active.cell);
 
 			currentEditor = new CellEditor({
 				grid: self,
-				cell: activeCellNode,
+				cell: self.active.node,
 				column: columnDef,
 				item: item || {},
 				commitChanges: function () {
@@ -4722,8 +4664,8 @@
 
 			serializedEditorValue = currentEditor.serializeValue();
 
-			if (currentEditor.position) {
-				handleActiveCellPositionChange();
+			if (currentEditor.position && self.active && self.active.node) {
+				self.trigger('onActiveCellPositionChanged', {});
 			}
 		};
 
@@ -4741,14 +4683,14 @@
 			currentEditor.destroy();
 			currentEditor = null;
 
-			if (activeCellNode) {
-				var d = getDataItem(activeRow);
-				$(activeCellNode).removeClass("editable invalid");
+			if (self.active && self.active.node) {
+				var d = getDataItem(self.active.row);
+				$(self.active.node).removeClass("editable invalid");
 				if (d) {
-					var column = self.options.columns[activeCell];
-					var formatter = getFormatter(activeRow, column);
-					activeCellNode.innerHTML = formatter(activeRow, activeCell, getDataItemValueForColumn(d, column), column, d);
-					invalidatePostProcessingResults(activeRow);
+					var column = self.options.columns[self.active.cell];
+					var formatter = getFormatter(self.active.row, column);
+					self.active.node.innerHTML = formatter(self.active.row, self.active.cell, getDataItemValueForColumn(d, column), column, d);
+					invalidatePostProcessingResults(self.active.row);
 				}
 			}
 		};
@@ -4855,7 +4797,7 @@
 				return false;
 			}
 
-			if (!activeCellNode && dir != "prev" && dir != "next") {
+			if ((!self.active || !self.active.node) && dir != "prev" && dir != "next") {
 				return false;
 			}
 
@@ -4878,7 +4820,7 @@
 				"next": gotoNext
 			};
 			var stepFn = stepFunctions[dir];
-			var pos = stepFn(activeRow, activeCell, activePosX);
+			var pos = stepFn(self.active ? self.active.row : null, self.active ? self.active.cell : null, activePosX);
 			if (pos) {
 				var isAddNewRow = (pos.row == getDataLength());
 				scrollCellIntoView(pos.row, pos.cell, !isAddNewRow);
@@ -4886,7 +4828,7 @@
 				activePosX = pos.posX;
 				return true;
 			} else {
-				setActiveCellInternal(getCellNode(activeRow, activeCell));
+				setActiveCellInternal(getCellNode(self.active ? self.active.row : null, self.active ? self.active.cell : null));
 				return false;
 			}
 		};
@@ -5091,7 +5033,7 @@
 						offset: newFrom
 					};
 
-					// TODO:
+					// TODO: Enable remote filtering here
 					// options.filter
 
 					remoteRequest = remote.fetch(options, function (results) {
@@ -5317,7 +5259,7 @@
 				cellCss = [classcell, "l" + cell, " r" + rowI];
 
 			if (mClass) cellCss.push(mClass);
-			if (row === activeRow && cell === activeCell) cellCss.push("active");
+			if (self.active && row === self.active.row && cell === self.active.cell) cellCss.push("active");
 			if (mColumns[cell] && mColumns[cell].class) cellCss.push(mColumns[cell].class);
 
 			result.push("<div class='" + cellCss.join(" ") + "'");
@@ -5410,7 +5352,7 @@
 		renderRow = function (stringArray, row, range) {
 			var d = getDataItem(row),
 				rowCss = classrow +
-					(row === activeRow ? " active" : "") +
+					(self.active && row === self.active.row ? " active" : "") +
 					(row % 2 === 1 ? " odd" : ""),
 				data = self.collection,
 				top, pos = {};
@@ -5509,7 +5451,7 @@
 				};
 
 				renderRow(stringArray, i, range);
-				if (activeCellNode && activeRow === i) {
+				if (self.active && self.active.node && self.active.row === i) {
 					needToReselectCell = true;
 				}
 				counter_rows_rendered++;
@@ -5526,7 +5468,7 @@
 			}
 
 			if (needToReselectCell) {
-				activeCellNode = getCellNode(activeRow, activeCell);
+				self.active.node = getCellNode(self.active.row, self.active.cell);
 			}
 		};
 
@@ -5615,7 +5557,7 @@
 		//
 		// @param	row			integer		Row index
 		// @param	cell		integer		Cell index
-		// @param	doPaging	boolean		TODO: ??
+		// @param	doPaging	boolean		If true, will ensure the cell appears at the top of the page
 		//
 		scrollCellIntoView = function (row, cell, doPaging) {
 			scrollRowIntoView(row, doPaging);
@@ -5653,12 +5595,14 @@
 			} else {
 				targetY = targetRow * self.options.rowHeight;
 			}
-			scrollTo(targetY);
 
+			scrollTo(targetY);
 			render();
 
-			if (self.options.keyboardNavigation && activeRow !== null) {
-				var row = activeRow + deltaRows,
+			/* TODO: This changes the active cell to the one on the next page. Seems like strange
+			behavior to me, but maybe someone wants this. Enable it via an option.
+			if (self.options.keyboardNavigation && self.active && self.active.row !== null) {
+				var row = self.active.row + deltaRows,
 					dataLength = getDataLength();
 				if (row >= dataLength) {
 					row = dataLength - 1;
@@ -5683,7 +5627,7 @@
 				} else {
 					resetActiveCell();
 				}
-			}
+			}*/
 		};
 
 
@@ -5691,9 +5635,13 @@
 		// Scroll viewport until the given row is in view
 		//
 		// @param	row			integer		Index of row
-		// @param	doPaging	boolean		TODO: ??
+		// @param	doPaging	boolean		If true, will ensure row is at top of page,
+		//									otherwise use direction of scroll to determine where
 		//
 		scrollRowIntoView = function (row, doPaging) {
+			var vr = getVisibleRange();
+
+			// Determine where the row's page is
 			var rowAtTop, rowAtBottom, pos;
 			if (variableRowHeight) {
 				pos = cache.rowPositions[row];
@@ -5701,13 +5649,12 @@
 				rowAtBottom = pos.bottom - viewportH + (viewportHasHScroll ? window.scrollbarDimensions.height : 0);
 			} else {
 				rowAtTop = row * self.options.rowHeight;
-				rowAtBottom = (row + 1) * self.options.rowHeight - viewportH + (viewportHasHScroll ? window.scrollbarDimensions.height : 0);
+				rowAtBottom = ((row + 1) * self.options.rowHeight) - viewportH + (viewportHasHScroll ? window.scrollbarDimensions.height : 0);
 			}
 
-			// Need to page down?
-			var pgdwn,
-				pgup;
-			if (!options.variableRowHeight) {
+			// Determine which direction we need to scroll
+			var pgdwn, pgup;
+			if (!variableRowHeight) {
 				pgdwn = (row + 1) * self.options.rowHeight > scrollTop + viewportH + offset;
 				pgup = row * self.options.rowHeight < scrollTop + offset;
 			} else {
@@ -5715,6 +5662,7 @@
 				pgup = pos.top < scrollTop + offset;
 			}
 
+			// Need to page down?
 			if (pgdwn) {
 				scrollTo(doPaging ? rowAtTop : rowAtBottom);
 				render();
@@ -5847,30 +5795,40 @@
 		// @param	setEdit			boolean		If true, will force cell to editable immediately
 		//
 		setActiveCellInternal = function (newCell, setEdit) {
-			if (activeCellNode !== null) {
+			if (self.active && self.active.node !== null) {
 				makeActiveCellNormal();
-				$(activeCellNode).removeClass("active");
-				if (cache.nodes[activeRow]) {
-					$(cache.nodes[activeRow].rowNode).removeClass("active");
+				$(self.active.node).removeClass("active");
+				if (cache.nodes[self.active.row]) {
+					$(cache.nodes[self.active.row].rowNode).removeClass("active");
 				}
 			}
 
-			var activeCellChanged = (activeCellNode !== newCell);
-			activeCellNode = newCell;
+			// Create new active object
+			if (!self.active) {
+				self.active = {
+					cell: null,
+					node: null,
+					row: null
+				};
+			}
 
-			if (activeCellNode !== null) {
-				activeRow = getRowFromNode(activeCellNode.parentNode);
-				activeCell = activePosX = getCellFromNode(activeCellNode);
+			var activeCellChanged = self.active.node !== newCell;
+
+			if (newCell !== null) {
+				self.active.node = newCell;
+				self.active.row = getRowFromNode(self.active.node.parentNode);
+				self.active.cell = activePosX = getCellFromNode(self.active.node);
 
 				// If 'setEdit' is not defined, determine if cell is in autoEdit
 				if (setEdit === null || setEdit === undefined) {
-					setEdit = (activeRow == getDataLength()) || self.options.autoEdit;
+					setEdit = (self.active.row == getDataLength()) || self.options.autoEdit;
 				}
 
-				$(activeCellNode).addClass("active");
-				$(cache.nodes[activeRow].rowNode).addClass("active");
+				$(self.active.node).addClass("active");
+				$(cache.nodes[self.active.row].rowNode).addClass("active");
 
-				if (self.options.editable && setEdit && isCellPotentiallyEditable(activeRow, activeCell)) {
+				// Make active cell editable
+				if (self.options.editable && setEdit && isCellPotentiallyEditable(self.active.row, self.active.cell)) {
 					clearTimeout(h_editorLoader);
 
 					if (self.options.asyncEditorLoading) {
@@ -5882,7 +5840,7 @@
 					}
 				}
 			} else {
-				activeRow = activeCell = null;
+				self.active.row = self.active.cell = null;
 			}
 
 			if (activeCellChanged) {
@@ -6998,7 +6956,7 @@
 				var m = self.options.columns[columnIdx],
 					node = cacheEntry.cellNodesByColumnIdx[columnIdx];
 
-				if (row === activeRow && columnIdx === activeCell && currentEditor) {
+				if (self.active && row === self.active.row && columnIdx === self.active.cell && currentEditor) {
 					currentEditor.loadValue(d);
 				} else if (d) {
 					node.innerHTML = getFormatter(row, m)(row, columnIdx, getDataItemValueForColumn(d, m), m, d);
@@ -7041,7 +6999,7 @@
 				}
 			}
 
-			if (activeCellNode && activeRow > dataLength) {
+			if (self.active && self.active.node && self.active.row > dataLength) {
 				resetActiveCell();
 			}
 

@@ -43,7 +43,5 @@ define(['faker'], function(Faker) {
 			data: data,
 			resizableRows: true
 		};
-	}, function (grid) {
-		//grid.setGrouping(['category']);
 	}];
 });

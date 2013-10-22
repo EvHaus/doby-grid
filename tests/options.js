@@ -15,13 +15,101 @@ describe("Grid Options", function () {
 
 
 	// Utilities for resetting the grid
+	var defaultData = function () {
+		return JSON.parse(JSON.stringify({
+			columns: [
+				{id: 'id', field: 'id', name: 'id'},
+				{id: 'id', field: 'name', name: 'name'}
+			],
+			data: [
+				{data: {id: 189, name: 'test'}, id: 189},
+				{data: {id: 289, name: 'test2'}, id: 289}
+			]
+		}));
+	};
+
 	var resetGrid = function (options) {
 		options = options || {};
 		options.autoDestroy = false;
-		var grid = new DobyGrid(options);
-		grid.appendTo(setFixtures());
+		var grid = new DobyGrid(options),
+			fixture = setFixtures();
+		grid.appendTo(fixture);
 		return grid;
 	};
+
+
+	// ==========================================================================================
+
+
+	describe("options.activateSelection", function () {
+		it("should be enabled by default", function () {
+			// Prepare for test
+			var grid = resetGrid(defaultData());
+
+			expect(grid.options.activateSelection).toEqual(true);
+		});
+
+
+		// ==========================================================================================
+
+
+		it("should set an active cell with options.activateSelection enabled", function () {
+			// Prepare for test
+			var grid = resetGrid(defaultData());
+
+			// Find the first and last cells
+			var firstcell = grid.$el.find('.doby-grid-row:first .doby-grid-cell:first'),
+				lastcell = grid.$el.find('.doby-grid-row:last .doby-grid-cell:first');
+
+			// Get the drag delta from the first cell
+			var dy = lastcell.position().top - lastcell.position().top + lastcell.height();
+
+			// Simulate a click and drag on the cell ranges
+			firstcell.simulate('drag', {dx: 0, dy: dy});
+
+			// Expect the first and last cells to be selected
+			expect(grid.selection.length).toBeGreaterThan(0);
+			expect(grid.selection[0].fromCell).toEqual(0);
+			expect(grid.selection[0].fromRow).toEqual(0);
+			expect(grid.selection[0].toCell).toEqual(0);
+			expect(grid.selection[0].toRow).toEqual(1);
+
+			// Expect active cell to be selected
+			expect(grid.active.row).toEqual(1);
+			expect(grid.active.cell).toEqual(0);
+		});
+
+
+		// ==========================================================================================
+
+
+		it("should not set an active cell with options.activateSelection disabled", function () {
+			// Prepare for test
+			var grid = resetGrid($.extend(defaultData(), {
+				activateSelection: false
+			}));
+
+			// Find the first and last cells
+			var firstcell = grid.$el.find('.doby-grid-row:first .doby-grid-cell:first'),
+				lastcell = grid.$el.find('.doby-grid-row:last .doby-grid-cell:first');
+
+			// Get the drag delta from the first cell
+			var dy = lastcell.position().top - lastcell.position().top + lastcell.height();
+
+			// Simulate a click and drag on the cell ranges
+			firstcell.simulate('drag', {dx: 0, dy: dy});
+
+			// Expect the first and last cells to be selected
+			expect(grid.selection.length).toBeGreaterThan(0);
+			expect(grid.selection[0].fromCell).toEqual(0);
+			expect(grid.selection[0].fromRow).toEqual(0);
+			expect(grid.selection[0].toCell).toEqual(0);
+			expect(grid.selection[0].toRow).toEqual(1);
+
+			// Expect no active cell be selected
+			expect(grid.active).toEqual(null);
+		});
+	});
 
 
 	// ==========================================================================================
@@ -30,16 +118,7 @@ describe("Grid Options", function () {
 	describe("options.clipboard", function () {
 		it("should be able to convert selected data to CSV and JSON", function () {
 			// Prepare for test
-			var grid = resetGrid({
-				columns: [
-					{id: 'id', field: 'id', name: 'id'},
-					{id: 'id', field: 'name', name: 'name'}
-				],
-				data: [
-					{data: {id: 189, name: 'test'}, id: 189},
-					{data: {id: 289, name: 'test2'}, id: 289}
-				]
-			});
+			var grid = resetGrid(defaultData());
 
 			// Select some cells
 			grid.selectCells(0, 0, 1, 1);
@@ -59,16 +138,7 @@ describe("Grid Options", function () {
 
 		it("should save data to user's clipboard on Ctrl + C", function () {
 			// Prepare for test
-			var grid = resetGrid({
-				columns: [
-					{id: 'id', field: 'id', name: 'id'},
-					{id: 'id', field: 'name', name: 'name'}
-				],
-				data: [
-					{data: {id: 189, name: 'test'}, id: 189},
-					{data: {id: 289, name: 'test2'}, id: 289}
-				]
-			});
+			var grid = resetGrid(defaultData());
 
 			// Select some cells
 			grid.selectCells(0, 0, 1, 1);

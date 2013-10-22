@@ -377,9 +377,11 @@ describe("Methods and Data Manipulation", function () {
 
 			var rows = grid.$el.find('.doby-grid-row');
 
-			// Sort rows by top offset
-			rows = _.sortBy(rows, function (r) {
-				return parseInt($(r).css('top'), 10);
+			// Make sure rows are sorted by their top offset
+			rows = _.sortBy(rows, function (row) {
+				// For some reason jasmine-grunt doesn't like .css('top') here, which returns NaN
+				// But attr('style') seems to return the right thing. Wat?
+				return parseInt($(row).attr('style').replace('top:',''), 10);
 			});
 
 			// Make sure first row is a group row and is still expanded

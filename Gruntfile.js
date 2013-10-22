@@ -20,6 +20,7 @@ module.exports = function (grunt) {
 				vendor: [
 					'libs/jquery.js',
 					'libs/jquery-ui.js',
+					'libs/jquery.simulate.js',
 					'libs/jquery.event.drag.js',
 					'libs/underscore.js',
                     'libs/backbone.js',
@@ -58,13 +59,15 @@ module.exports = function (grunt) {
 
 		uglify: {
 			options: {
-				banner: '// <%= pkg.name %>.js <%= pkg.version %>\n\
-// (c) 2013 Evgueni Naverniouk, Globex Designs, Inc.\n\
-// Doby may be freely distributed under the MIT license.\n\
-// For all details and documentation:\n\
-// https://github.com/globexdesigns/doby-grid\n',
+				banner: [
+					'// <%= pkg.name %>.js <%= pkg.version %>',
+					'// (c) 2013 Evgueni Naverniouk, Globex Designs, Inc.',
+					'// Doby may be freely distributed under the MIT license.',
+					'// For all details and documentation:',
+					'// https://github.com/globexdesigns/doby-grid\n'
+				].join('\n'),
 				mangle: {
-					except: ['jQuery', 'Backbone', '_']
+					except: ['jQuery', 'Backbone', '_', '$']
 				}
 			},
 
@@ -82,8 +85,6 @@ module.exports = function (grunt) {
 	grunt.loadNpmTasks('grunt-contrib-less');
 	grunt.loadNpmTasks('grunt-contrib-uglify');
 
-	// Run tasks.
-	// TODO: jasmine is temporarily disabled because it doesn't behave
-	// as expected when testing the rendering of elements
-	grunt.registerTask('default', ['jshint', 'uglify', 'less', 'copy']);
+	// Run tasks
+	grunt.registerTask('default', ['jshint', 'jasmine', 'uglify', 'less', 'copy']);
 };
