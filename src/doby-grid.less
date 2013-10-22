@@ -168,23 +168,19 @@
 
 
 .doby-grid-header-filter {
-	opacity: 0;
-	height: 0;
-	position: relative;
-	.transition(~'height 0.2s ease-in-out, opacity 0.1s ease-in-out');
-
-	&.on {
-		height: 30px;
-		opacity: 1
-	}
+	height: 30px;
+	overflow: hidden;
 }
 
 	.doby-grid-header-filter-cell {
-		bottom: 0;
-		margin: -1px 1px 0 -2px;
-		padding: 0 8px;
-		position: absolute;
-		top: 0;
+		border: 1px solid transparent;
+		border-bottom: 0;
+		border-top: 0;
+		display: inline-block;
+		float: left;
+		height: 30px;
+		margin: -1px 2px 0 -3px;
+		padding: 0 4px;
 	}
 
 

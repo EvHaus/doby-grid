@@ -657,14 +657,22 @@
 			if (!initialized) return;
 			if (!headers) headers = $headers.children();
 
-			var i, l, w;
+			// Auto-sizes the quick search headers too
+			var qHeaders = null;
+			if ($headerFilter !== undefined) {
+				qHeaders = $headerFilter.children();
+			}
+
+			var i, l, w, styl;
 			for (i = 0, l = headers.length; i < l; i++) {
 				w = self.options.columns[i].width - headerColumnWidthDiff;
 
 				// Compensate for grid rendering
 				if (i + 1 == l) w = w + 2;
 
-				$(headers[i]).attr('style', 'width:' + w + 'px');
+				styl = ['width:', w, 'px'].join('');
+				$(headers[i]).attr('style', styl);
+				if (qHeaders && qHeaders[i]) $(qHeaders[i]).attr('style', styl);
 			}
 
 			updateColumnCaches();
@@ -5159,7 +5167,9 @@
 			if (!column) return this;
 			if (typeof column == 'object') column = column.id;
 
+			var colDef;
 			var newcolumns = this.options.columns.filter(function (c) {
+				if (c.id == column) colDef = c;
 				return c.id != column;
 			});
 
@@ -5168,7 +5178,18 @@
 				this.removeGrouping(column);
 			}
 
+			// If column has a Quick Filter element - remove it
+			var qf;
+			if (colDef && colDef.quickFilterInput) {
+				colDef.quickFilterInput.parent().remove();
+				qf = true;
+			}
+
 			self.setColumns(newcolumns);
+
+			// If Quick Filter was on, we need to resize column headers here to get rid of some artifacts
+			if (qf) applyColumnHeaderWidths();
+
 			return this;
 		};
 
@@ -6095,7 +6116,7 @@
 			// If resizable columns are disabled -- return
 			if (!self.options.resizableColumns) return;
 
-			var $col, j, c, pageX, columnElements, minPageX, maxPageX, firstResizable, lastResizable;
+			var $col, j, c, l, pageX, columnElements, minPageX, maxPageX, firstResizable, lastResizable;
 
 			columnElements = $headers.children();
 			columnElements.find("." + classhandle).remove();
@@ -6111,6 +6132,9 @@
 			var lockColumnWidths = function () {
 				columnElements.each(function (i, e) {
 					self.options.columns[i].previousWidth = $(e).outerWidth();
+
+					// Compensate for grid rendering
+					if (i + 1 == columnElements.length) self.options.columns[i].previousWidth -= 2;
 				});
 			};
 
@@ -6163,7 +6187,7 @@
 
 					if (self.options.autoColumnWidth) {
 						x = -d;
-						for (j = i + 1; j < columnElements.length; j++) {
+						for (j = i + 1, l = columnElements.length; j < l; j++) {
 							c = self.options.columns[j];
 							if (c.resizable) {
 								actualMinWidth = Math.max(c.minWidth || 0, absoluteColumnMinWidth);
@@ -6234,12 +6258,9 @@
 				minPageX = pageX - Math.min(shrinkLeewayOnLeft, stretchLeewayOnRight);
 			};
 
-			var headers = $headers.children();
 			var applyColWidths = function () {
-				applyColumnHeaderWidths(headers);
-				if (self.options.resizeCells) {
-					applyColumnWidths();
-				}
+				applyColumnHeaderWidths();
+				if (self.options.resizeCells) applyColumnWidths();
 			};
 
 			var submitColResize = function () {
@@ -6422,32 +6443,42 @@
 		// @param	focus		object		Column definition object for the column we want to focus.
 		//									Passing in null will toggle the quick filter.
 		//
+		// TODO: Many optimizations can be done here.
 		showQuickFilter = function (focus) {
 			// Toggle off
 			if (focus === undefined && $headerFilter) {
-				$headerFilter.removeClass('on');
-				resizeCanvas();
+				$headerFilter.remove();
+				$headerFilter = undefined;
+
+				// Update viewport
+				viewportH = getViewportHeight();
+				$viewport.height(viewportH);
 				return;
 			}
 
-			// This is called when user types into any of the input boxes
+			// This is called when user types into any of the input boxes.
+			// It's on a 150ms timeout so that fast typing doesn't search really large grid immediately
+			var keyTimer;
 			var onKeyUp = function (event) {
-				self.filter(function (item) {
-					// Get the values of all column fields
-					var result = true, c, c_value, i_value;
-					for (var i = 0, l = self.options.columns.length; i < l; i++) {
-						c = self.options.columns[i];
-						if (result && c.quickFilterInput) {
-							i_value = c.quickFilterInput.val();
-							c_value = item.data[c.field].toString();
+				if (keyTimer) clearTimeout(keyTimer);
+				keyTimer = setTimeout(function () {
+					self.filter(function (item) {
+						// Get the values of all column fields
+						var result = true, c, c_value, i_value;
+						for (var i = 0, l = self.options.columns.length; i < l; i++) {
+							c = self.options.columns[i];
+							if (result && c.quickFilterInput) {
+								i_value = c.quickFilterInput.val();
+								c_value = item.data[c.field].toString();
 
-							result *= i_value && c_value ? c_value.toLowerCase().indexOf(i_value.toLowerCase()) >= 0 : true;
+								result *= i_value && c_value ? c_value.toLowerCase().indexOf(i_value.toLowerCase()) >= 0 : true;
+							}
 						}
-					}
 
-					return result;
-				});
-			}
+						return result;
+					});
+				}, 150);
+			};
 
 			// Draw new filter bar
 			if (!$headerFilter) {
@@ -6460,12 +6491,8 @@
 					column = self.options.columns[i];
 
 					// Create cell
-					// TODO: This can't just use l and r styles because they include the scrollbar
-					// offset which isn't present on headers
 					html = ['<div class="'];
 					html.push(classheaderfiltercell);
-					html.push(' l' + i);
-					html.push(' r' + i);
 					html.push('">');
 					html.push('</div>');
 					cell = $(html.join(''));
@@ -6487,10 +6514,12 @@
 				focus.quickFilterInput.select().focus();
 			}
 
-			// Animate in
-			$headerFilter.width()
-			$headerFilter.addClass('on')
-			resizeCanvas();
+			// Set column widths
+			applyColumnHeaderWidths();
+
+			// Update viewport
+			viewportH = getViewportHeight();
+			$viewport.height(viewportH);
 		};
 
 
@@ -6688,7 +6717,7 @@
 					showQuickFilter(column);
 				}
 			}, {
-				enabled: $headerFilter !== undefined && $headerFilter.hasClass('on'),
+				enabled: $headerFilter !== undefined,
 				name: getLocale('global.hide_filter'),
 				fn: function () {
 					showQuickFilter();
@@ -6863,7 +6892,7 @@
 				// The extra pixel here is to compensate for the grid cell layering
 				$canvas.width(canvasWidth - 1);
 
-				// And 2 pixels in the header for the same reason
+				// And 2 pixels in the header for border compensation
 				$headers.width(getHeadersWidth() + 2);
 				viewportHasHScroll = (canvasWidth > viewportW - window.scrollbarDimensions.width);
 			}
