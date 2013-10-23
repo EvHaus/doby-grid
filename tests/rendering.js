@@ -41,8 +41,13 @@ describe("Rendering", function () {
 
 		// Create a new grid inside a fixture
 		options = $.extend(options, opts);
-		var grid = new DobyGrid(options);
-		var fixture = setFixtures();
+		var grid = new DobyGrid(options),
+			fixture = setFixtures();
+
+		// This is needed for grunt-jasmine tests which doesn't read the CSS
+		// from the HTML version of jasmine.
+		fixture.attr('style', 'position:absolute;top:0;left:0');
+
 		grid.appendTo(fixture);
 
 		// Make sure grid is big enough to render the columns we need

@@ -33,6 +33,11 @@ describe("Grid Options", function () {
 		options.autoDestroy = false;
 		var grid = new DobyGrid(options),
 			fixture = setFixtures();
+
+		// This is needed for grunt-jasmine tests which doesn't read the CSS
+		// from the HTML version of jasmine.
+		fixture.attr('style', 'position:absolute;top:0;left:0');
+
 		grid.appendTo(fixture);
 		return grid;
 	};
