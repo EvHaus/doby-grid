@@ -84,26 +84,6 @@ describe("Rendering", function () {
 		// ==========================================================================================
 
 
-		describe("Empty Notice", function () {
-			it("should render an empty notice when there is no data", function () {
-				// Ensure empty notice is on
-				var grid = resetGrid({emptyNotice: true});
-
-				// Empty the grid
-				grid.reset();
-
-				// Check to see if alert was rendered
-				expect(grid.$el).toContain('.doby-grid-alert');
-
-				// Disable empty notice
-				grid.setOptions({emptyNotice: false});
-			});
-		});
-
-
-		// ==========================================================================================
-
-
 		describe("Variable Row Heights", function () {
 			it("should correctly handle the row metadata processing for group rows when in variable height mode", function () {
 				// Reset

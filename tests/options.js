@@ -5,7 +5,7 @@
 // https://github.com/globexdesigns/doby-grid
 
 /*jslint vars: true, plusplus: true, devel: true, nomen: true, indent: 4, maxerr: 50*/
-/*global _, $, describe, document, expect, DobyGrid, Image, it, runs, setFixtures, waitsFor*/
+/*global _, $, describe, document, expect, DobyGrid, Image, it, runs, setFixtures, waitsFor, window*/
 
 describe("Grid Options", function () {
 	"use strict";
@@ -634,5 +634,120 @@ describe("Grid Options", function () {
 			// Nothing should happen immediately
 			expect(firstCell.find('input').length).toEqual(0);
 		});
+
+
+		// ==========================================================================================
+
+
+		it("should create an editor on double click when enabled", function () {
+			// Prepare for test
+			var grid = resetGrid($.extend(defaultData(), {editable: true}));
+
+			// Find the first cell
+			var firstCell = grid.$el.find('.doby-grid-cell:first').first(),
+				originalValue = firstCell.html();
+
+			// Double-click a cell to enable editor
+			firstCell.simulate('dblclick');
+
+			// Nothing should happen immediately
+			expect(firstCell.find('input').length).toEqual(1);
+		});
 	});
+
+
+	// ==========================================================================================
+
+
+	describe("options.emptyNotice", function () {
+		it("should be enabled by default", function () {
+			// Prepare for test
+			var grid = resetGrid(defaultData());
+
+			expect(grid.options.emptyNotice).toEqual(true);
+		});
+
+
+		// ==========================================================================================
+
+
+		it("should render an empty notice when there is no data", function () {
+			// Ensure empty notice is on
+			var grid = resetGrid({emptyNotice: true});
+
+			// Empty the grid
+			grid.reset();
+
+			// Check to see if alert was rendered
+			expect(grid.$el).toContain('.doby-grid-alert');
+		});
+	});
+
+
+	// ==========================================================================================
+
+
+	describe("options.formatter", function () {
+		it("should correctly formater the cell values", function () {
+			// Prepare for test
+			var grid = resetGrid($.extend(defaultData(), {
+				formatter: function (row, cell, value, columnDef, data) {
+					return [row, cell, value].join('-');
+				}
+			}));
+
+			// Make sure cells have the right values
+			var value;
+			grid.$el.find('.doby-grid-row').each(function(row) {
+				$(this).find('.doby-grid-cell').each(function(cell) {
+					value = grid.options.data[row].data[grid.options.columns[cell].id];
+					expect($(this).text()).toEqual([row, cell, value].join('-'));
+				});
+			});
+		});
+	});
+
+
+	// ==========================================================================================
+
+
+	describe("options.fullWidthRows", function () {
+		it("should be enabled by default", function () {
+			// Prepare for test
+			var grid = resetGrid(defaultData());
+
+			expect(grid.options.fullWidthRows).toEqual(true);
+		});
+
+
+		// ==========================================================================================
+
+
+		it("should be correctly extend the rows to the full width", function () {
+			// Prepare for test
+			var grid = resetGrid($.extend(defaultData(), {fullWidthRows: true}));
+			var viewport = grid.$el.find('.doby-grid-viewport:first').first(),
+				viewportW = viewport.width() - window.scrollbarDimensions.width;
+
+			grid.$el.find('.doby-grid-row').each(function () {
+				expect($(this).width()).toEqual(viewportW);
+			});
+		});
+
+
+		// ==========================================================================================
+
+
+		it("should be correctly set the width to the cell widths when disabled", function () {
+			// Prepare for test
+			var grid = resetGrid($.extend(defaultData(), {fullWidthRows: false})),
+				cellWidths = (grid.options.columns.length * grid.options.columnWidth) + 2;
+
+			grid.$el.find('.doby-grid-row').each(function () {
+				expect($(this).width()).toEqual(cellWidths);
+			});
+		});
+	});
+
+
 });

@@ -3221,12 +3221,13 @@
 				rowWidth = 0, i, l;
 
 			for (i = 0, l = self.options.columns.length; i < l; i++) {
-				// TODO: The 1 here is for the spacer between columns. Move this to a variable instead
-				// in case users want to modify this spacing.
+				// The 1 here is to compensate for the spacer between columns.
+				// TODO: Move this to a variable instead in case users want to modify this spacing.
 				rowWidth += self.options.columns[i].width - 1;
 			}
 
-			return self.options.fullWidthRows ? Math.max(rowWidth, availableWidth) : rowWidth;
+			// When fullWidthRows disable - keep canvas as big as the dat only
+			return self.options.fullWidthRows ? Math.max(rowWidth, availableWidth) : (rowWidth + l * 2);
 		};
 
 
