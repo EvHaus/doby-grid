@@ -1,3 +1,5 @@
+<div style="float:right">[![Build Status](https://travis-ci.org/globexdesigns/doby-grid.png)](https://travis-ci.org/globexdesigns/doby-grid)</div>
+
 Doby Grid
 =========
 
