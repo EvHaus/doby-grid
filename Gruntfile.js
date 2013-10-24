@@ -17,6 +17,7 @@ module.exports = function (grunt) {
 			src: 'src/<%= pkg.name %>.js',
 			options: {
 				specs: 'tests/*.js',
+				styles: 'build/<%= pkg.version %>/<%= pkg.name %>.min.css',
 				vendor: [
 					'libs/jquery.js',
 					'libs/jquery-ui.js',
@@ -86,5 +87,5 @@ module.exports = function (grunt) {
 	grunt.loadNpmTasks('grunt-contrib-uglify');
 
 	// Run tasks
-	grunt.registerTask('default', ['jshint', 'jasmine', 'uglify', 'less', 'copy']);
+	grunt.registerTask('default', ['jshint', 'less', 'jasmine', 'uglify', 'copy']);
 };

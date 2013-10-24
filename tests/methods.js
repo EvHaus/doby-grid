@@ -19,7 +19,7 @@ describe("Methods and Data Manipulation", function () {
 
 		// This is needed for grunt-jasmine tests which doesn't read the CSS
 		// from the HTML version of jasmine.
-		fixture.attr('style', 'position:absolute;top:0;left:0');
+		fixture.attr('style', 'position:absolute;top:0;left:0;opacity:0;width:500px');
 
 		grid.appendTo(fixture);
 		return grid;

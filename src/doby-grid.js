@@ -71,6 +71,7 @@
 				rows: []
 			},
 			cacheRows,
+			calculateVisibleRows,
 			canCellBeActive,
 			canCellBeSelected,
 			canvasWidth,
@@ -1045,6 +1046,7 @@
 						top: (cache.rowPositions[i - 1]) ? (cache.rowPositions[i - 1].bottom - offset) : 0
 					};
 
+					// The extra 1 is here to compesate for the 1px space between rows
 					data.top += (i === 0 ? 0 : 1);
 
 					if (item.height && item.height != self.options.rowHeight) {
@@ -1052,8 +1054,30 @@
 					}
 
 					data.bottom = data.top + (data.height || self.options.rowHeight);
+
 					cache.rowPositions[i] = data;
 				}
+			}
+		};
+
+
+		// calculateVisibleRows()
+		// Calculates the number of currently visible rows in the viewport. Partially visible rows are
+		// included in the calculation.
+		//
+		// @return integer
+		calculateVisibleRows = function () {
+			// When in variable row height mode we need to find which actual rows are at the
+			// top and bottom of the viewport
+			if (variableRowHeight) {
+				var scrollTop = $viewport[0].scrollTop,
+					bottomRow = getRowFromPosition(viewportH + scrollTop),
+					topRow = getRowFromPosition(scrollTop);
+				numVisibleRows = bottomRow - getRowFromPosition(scrollTop);
+
+			// When in fixed right height mode - we can make a much faster calculation
+			} else {
+				numVisibleRows = Math.floor(viewportH / (self.options.rowHeight + 1));
 			}
 		};
 
@@ -3388,15 +3412,14 @@
 
 
 		// getColumnCssRules()
-		// Gets the css rules for the given columns
+		// Gets the CSS rules for the given columns
 		//
 		// @param	idx		integer		Index of the column to get rules for
 		//
 		// @return object
 		getColumnCssRules = function (idx) {
 			if (!stylesheet) {
-				var sheets = document.styleSheets,
-					i, l;
+				var sheets = document.styleSheets, i, l;
 				for (i = 0, l = sheets.length; i < l; i++) {
 					if ((sheets[i].ownerNode || sheets[i].owningElement) == $style[0]) {
 						stylesheet = sheets[i];
@@ -3404,9 +3427,7 @@
 					}
 				}
 
-				if (!stylesheet) {
-					throw new Error("Cannot find stylesheet.");
-				}
+				if (!stylesheet) throw new Error("Cannot find stylesheet.");
 
 				// find and cache column CSS rules
 				columnCssRulesL = [];
@@ -3690,13 +3711,13 @@
 		//
 		// @return integer
 		getRowFromPosition = function (maxPosition) {
-			var row = 0,
-				rowLength = cache.rows.length,
-				pos, lastpos, i;
-
 			if (!variableRowHeight) {
 				return Math.floor((maxPosition + offset) / (self.options.rowHeight + 1));
-			} else if (rowLength) {
+			}
+
+			var row = 0, rowLength = cache.rows.length,	pos, lastpos, i;
+
+			if (rowLength) {
 				// Loop through the row position cache and break when the row is found
 				for (i = 0; i < rowLength; i++) {
 					pos = cache.rowPositions[i];
@@ -3706,13 +3727,13 @@
 					}
 				}
 
+				// If we've gone past the bottom
 				// Return the last row in the grid
 				lastpos = cache.rowPositions[rowLength - 1];
-
 				if (maxPosition > lastpos.bottom) row = rowLength - 1;
-			}
 
-			return row;
+				return row;
+			}
 		};
 
 
@@ -5233,10 +5254,12 @@
 			}
 
 			// If there is no vertical scroll and we're auto-sized. Remove the right column.
-			if (!viewportHasVScroll && self.options.autoColumnWidth) {
-				self.$el.addClass(classnoright);
-			} else {
-				self.$el.removeClass(classnoright);
+			if (self.$el) {
+				if (!viewportHasVScroll && self.options.autoColumnWidth) {
+					self.$el.addClass(classnoright);
+				} else {
+					self.$el.removeClass(classnoright);
+				}
 			}
 
 			// Render missing rows
@@ -5521,11 +5544,8 @@
 
 			viewportH = getViewportHeight();
 
-			if (!variableRowHeight) {
-				numVisibleRows = Math.ceil(viewportH / self.options.rowHeight);
-			} else {
-				numVisibleRows = Math.ceil(getRowFromPosition(viewportH));
-			}
+			// Save the currently visible number of rows
+			calculateVisibleRows();
 
 			viewportW = parseFloat($.css(self.$el[0], "width", true));
 			$viewport.height(viewportH);
@@ -5594,16 +5614,18 @@
 		// @param	dir		integer		Direction of scroll
 		//
 		scrollPage = function (dir) {
-			// TODO: Fix me. This is now jumping too much because of the row spacing.
 			var deltaRows = dir * numVisibleRows,
 				targetRow = getRowFromPosition(scrollTop) + deltaRows,
 				targetY;
 
+			targetRow = targetRow < 0 ? 0 : targetRow;
+
 			if (variableRowHeight) {
-				if (targetRow < 0 || !cache.rowPositions[targetRow]) return;
+				if (!cache.rowPositions[targetRow]) return;
 				targetY = cache.rowPositions[targetRow].top;
 			} else {
-				targetY = targetRow * self.options.rowHeight;
+				// The extra +1 here is to compensate for the 1 pixel spacing between rows
+				targetY = targetRow * (self.options.rowHeight + 1);
 			}
 
 			scrollTo(targetY);
@@ -5701,6 +5723,10 @@
 
 			var newScrollTop = y - offset;
 
+			// If we're in variable height mode, reset the number of visible rows here because when
+			// rows are varied this number will change on every scroll
+			if (variableRowHeight) calculateVisibleRows();
+
 			if (offset != oldOffset) {
 				var range = getVisibleRange(newScrollTop);
 				cleanupRows(range);
@@ -5722,7 +5748,8 @@
 		//
 		this.scrollToRow = function (row) {
 			if (!variableRowHeight) {
-				scrollTo(row * this.options.rowHeight);
+				// The extra +1 here is to compensate for the spacing between rows
+				scrollTo(row * (this.options.rowHeight + 1));
 			} else {
 				var pos = cache.rowPositions[row];
 				scrollTo(pos.top);

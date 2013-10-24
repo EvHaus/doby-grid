@@ -332,11 +332,11 @@ describe("Grid Options", function () {
 			cellsW = cellsW.reduce(function (a, b) { return a + b; });
 
 			// Account for cell spacing
+			headerW += grid.options.columns.length;
 			columnsW += grid.options.columns.length;
 			cellsW -= grid.options.columns.length;
 
 			// Expect widths to be correct for headers and cells
-			console.log(grid.$el, columnsW, headerW, cellsW, canvasW)
 			expect(columnsW).toEqual(canvasW);
 			expect(headerW).toEqual(canvasW);
 			expect(cellsW).toEqual(canvasW);
@@ -543,6 +543,7 @@ describe("Grid Options", function () {
 
 			// Prepare for test
 			var grid = resetGrid($.extend(defaultData(), {
+				autoColumnWidth: false,
 				columns: cols,
 				columnWidth: 100,
 				forceFitColumns: false
@@ -552,21 +553,23 @@ describe("Grid Options", function () {
 			grid.$el.find('.doby-grid-header-column').each(function(i) {
 				if (i === 0) {
 					expect(grid.options.columns[i].width).toEqual(100);
-					expect($(this).width()).toEqual(100);
+					expect($(this).outerWidth()).toEqual(100);
 				} else if (i === 1) {
 					expect(grid.options.columns[i].width).toEqual(250);
-					expect($(this).width()).toEqual(250);
+					expect($(this).outerWidth()).toEqual(250);
 				}
 			});
 
 			// Ensure correct values are set for cells
+			var w;
 			grid.$el.find('.doby-grid-row').each(function() {
 				$(this).children('.doby-grid-cell').each(function(i) {
-					console.log($(this))
+					w = $(this).outerWidth() - parseInt($(this).css('borderLeftWidth'), 10) - parseInt($(this).css('borderRightWidth'), 10);
+
 					if (i === 0) {
-						expect($(this).width()).toEqual(100);
+						expect(w).toEqual(100);
 					} else if (i === 1) {
-						expect($(this).width()).toEqual(250);
+						expect(w).toEqual(250);
 					}
 				});
 			});
