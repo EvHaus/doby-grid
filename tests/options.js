@@ -453,7 +453,7 @@ describe("Grid Options", function () {
 
 			// Convert selection to JSON
 			var jaysun = grid.selection[0].toJSON();
-			expect(jaysun).toEqual([['189', 'test'], ['289', 'test2']]);
+			expect(jaysun).toEqual([[189, 'test'], [289, 'test2']]);
 
 			// Convert selection to CSV
 			var csv = grid.selection[0].toCSV();
@@ -572,6 +572,34 @@ describe("Grid Options", function () {
 						expect(w).toEqual(250);
 					}
 				});
+			});
+		});
+	});
+
+
+	// ==========================================================================================
+
+
+	describe("options.dataExtractor", function () {
+		it("should correct affect all places where data values are pulled", function () {
+			var value = "TEST-123";
+
+			// Prepare for test
+			var grid = resetGrid($.extend(defaultData(), {
+				dataExtractor: function (item, columnDef) {
+					return value;
+				}
+			}));
+
+			// Make sure all cells are using the right value
+			grid.$el.find('.doby-grid-cell').each(function () {
+				expect($(this).text()).toEqual(value);
+			});
+
+			// Group rows and make sure headers have the right value
+			grid.addGrouping(grid.options.columns[0].id);
+			grid.$el.find('.doby-grid-group-title').each(function () {
+				expect($(this).text()).toContain(value);
 			});
 		});
 	});

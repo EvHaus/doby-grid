@@ -637,7 +637,7 @@
 				}
 
 			} catch (e) {
-				console.error(e);
+				if (console) console.error(e);
 			}
 
 			// Enable header menu
@@ -1560,8 +1560,7 @@
 				},
 
 				getter: function (item) {
-					if (!item || item instanceof NonDataItem) return null;
-					return item.data[column.field];
+					return getDataItemValueForColumn(item, column);
 				},
 
 				formatter: function (g) {
@@ -3075,7 +3074,7 @@
 					val = getValueFromItem(this.collection.items[i], this.options.columns[ii]);
 					if (format === 'csv') {
 						// Escape quotes
-						val = val.replace(/\"/g, '\"');
+						val = val.toString().replace(/\"/g, '\"');
 
 						row.push(['"', val, '"'].join(''));
 					} else if (format === 'html') {
@@ -3774,13 +3773,8 @@
 				return column.exporter(column, item).toString();
 			}
 
-			var f = column.field;
-
 			// Then check for regular data
-			if (item.data && item.data[f] !== undefined) return item.data[f].toString();
-
-			// Sorry -- couldn't find anything useful
-			return "";
+			return getDataItemValueForColumn(item, column);
 		};
 
 
@@ -5315,7 +5309,7 @@
 					result.push(getFormatter(row, m)(row, cell, value, m, item));
 				} catch (e) {
 					result.push('');
-					console.error("Cell failed to render due to failed column formatter. Error: " + e.message, e);
+					if (console) console.error("Cell failed to render due to failed column formatter. Error: " + e.message, e);
 				}
 			}
 
