@@ -750,4 +750,84 @@ describe("Grid Options", function () {
 	});
 
 
+	// ==========================================================================================
+
+
+	describe("options.groupable", function () {
+		it("should be enabled by default", function () {
+			// Prepare for test
+			var grid = resetGrid(defaultData());
+
+			expect(grid.options.groupable).toEqual(true);
+		});
+
+
+		// ==========================================================================================
+
+
+		it("should throw an exception if attempting to use grouping functions with options.groupable disabled", function () {
+			// Prepare for test
+			var grid = resetGrid($.extend(defaultData(), {groupable: false}));
+
+			expect(function () {
+				grid.addGrouping(grid.options.columns[0].id);
+			}).toThrow('Cannot execute "addGrouping" because "options.groupable: is disabled.');
+
+			expect(function () {
+				grid.setGrouping(grid.options.columns[0].id);
+			}).toThrow('Cannot execute "setGrouping" because "options.groupable: is disabled.');
+		});
+	});
+
+
+	// ==========================================================================================
+
+
+	describe("options.headerMenu", function () {
+		it("should be enabled by default", function () {
+			// Prepare for test
+			var grid = resetGrid(defaultData());
+
+			expect(grid.options.headerMenu).toEqual(true);
+		});
+
+
+		// ==========================================================================================
+
+
+		it("should display a dropdown menu on header right-click", function () {
+			// Prepare for test
+			var grid = resetGrid($.extend(defaultData(), {headerMenu: true}));
+
+			// Right-click on every columns and make sure the menu comes up
+			grid.$el.find('.doby-grid-header-column').each(function (i) {
+				$(this).simulate('contextmenu');
+
+				// jquery.simulate doesn't actually propagate click events up the DOM
+				// so dropdowns will accumulate. But that's okey for this test.
+				expect(grid.$el.find('.doby-grid-dropdown').length).toEqual(i + 1);
+			});
+		});
+
+
+		// ==========================================================================================
+
+
+		it("should not display a dropdown menu header right-click if disabled", function () {
+			// Prepare for test
+			var grid = resetGrid($.extend(defaultData(), {headerMenu: false}));
+
+			// Right-click on every columns and make sure the menu comes up
+			grid.$el.find('.doby-grid-header-column').each(function (i) {
+				$(this).simulate('contextmenu');
+
+				// Should be no dropdowns
+				expect(grid.$el.find('.doby-grid-dropdown').length).toEqual(0);
+			});
+		});
+	});
+
+
+	// ==========================================================================================
+
 });

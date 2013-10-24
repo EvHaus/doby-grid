@@ -152,6 +152,7 @@
 			getCellNodeBox,
 			getColumnById,
 			getColumnCssRules,
+			getColumnContentWidth,
 			getColumnFromEvent,
 			getColumnIndex,
 			getColspan,
@@ -494,6 +495,9 @@
 		//
 		// @return object
 		this.addGrouping = function (column_id, options) {
+			// Is grouping enabled
+			if (!self.options.groupable) throw new Error('Cannot execute "addGrouping" because "options.groupable: is disabled.');
+
 			options = options || {};
 
 			if (column_id === null || column_id === undefined) throw new Error("Unable to add grouping to grid because the 'column_id' value is missing.");
@@ -2424,6 +2428,9 @@
 			// @param	options		array		List of grouping objects
 			//
 			this.setGrouping = function (options) {
+				// Is grouping enabled
+				if (!grid.options.groupable) throw new Error('Cannot execute "setGrouping" because "options.groupable: is disabled.');
+
 				options = options || [];
 
 				if (!$.isArray(options)) throw new Error('Unable to set grouping because given options is not an array. Given: ' + JSON.stringify(options));
@@ -3454,6 +3461,43 @@
 				"left": columnCssRulesL[idx],
 				"right": columnCssRulesR[idx]
 			};
+		};
+
+
+		// getColumnContentWidth()
+		// Returns the width of the content in the given column. Used for auto resizing columns to their
+		// content via double-click on the resize handle.
+		//
+		// @param	column_index	integer		Index of the column to calculate data for
+		//
+		// @return integer
+		getColumnContentWidth = function (column_index) {
+			var columnElements = $headers.children(),
+				$column = $(columnElements[column_index]),
+				currentWidth = $column.width(),
+				headerPadding = parseInt($column.css('paddingLeft'), 10) + parseInt($column.css('paddingRight'), 10),
+				cellWidths = [];
+
+			// Determine the width of the column name text
+			var name = $column.children('.' + classcolumnname + ':first');
+			name.css('overflow', 'visible');
+			$column.width('auto');
+			var headerWidth = $column.outerWidth();
+			name.css('overflow', '');
+			$column.width(currentWidth);
+			cellWidths.push(headerWidth);
+
+			// Determine the width of the widest visible value
+			$canvas.find('.l' + column_index + ':visible')
+				.removeClass('r' + column_index)
+				.each(function () {
+					var w = $(this).width() + parseInt($(this).css('paddingLeft'), 10) + parseInt($(this).css('paddingRight'), 10);
+					cellWidths.push(w);
+				})
+				.addClass('r' + column_index);
+
+			// If new width is smaller than min width - use min width
+			return Math.max.apply(null, cellWidths);
 		};
 
 
@@ -6282,49 +6326,24 @@
 				// Make sure we're clicking on a handle
 				if (!$(event.target).closest('.' + classhandle).length) return;
 
-				var columndef = getColumnFromEvent(event);
-				if (!columndef) return;
+				var column = getColumnFromEvent(event);
+				if (!column) return;
+				var column_index = cache.columnsById[column.id],
+					// Either use the width of the column's content or the min column width
+					currentWidth = column.width,
+					newWidth = Math.max(getColumnContentWidth(column_index), column.minWidth);
 
-				var column_index = cache.columnsById[columndef.id],
-					$column = $(columnElements[column_index]),
-					currentWidth = $column.width(),
-					headerPadding = $column.outerWidth() - currentWidth;
+				// Do nothing if width isn't changed
+				if (currentWidth == newWidth) return;
 
-				// Determine the width of the column name text
-				var name = $column.children('.' + classcolumnname + ':first');
-				name.css('overflow', 'visible');
-				$column.width('auto');
-				var headerWidth = $column.outerWidth();
-				name.css('overflow', '');
-				$column.width(currentWidth);
+				var diff = newWidth - currentWidth;
 
-				// Determine the width of the widest visible value
-				var cellWidths = [headerWidth];
-				$canvas.find('.l' + column_index + ':visible')
-					.removeClass('r' + column_index)
-					.each(function () {
-						var w = $(this).width() + headerPadding;
-						if (cellWidths.indexOf(w) < 0) cellWidths.push(w);
-					})
-					.addClass('r' + column_index);
-
-				var newWidth = Math.max.apply(null, cellWidths);
-
-				// If new width is smaller than min width - leave
-				if (typeof columndef.minWidth !== undefined && typeof columndef.minWidth !== null && newWidth < columndef.minWidth) {
-					return;
-				}
-
-				if (currentWidth != newWidth) {
-					var diff = newWidth - currentWidth;
-
-					// Duplicate the drag functionality
-					lockColumnWidths(column_index);
-					prepareLeeway(column_index, pageX);
-					resizeColumn(column_index, diff);
-					applyColWidths();
-					submitColResize();
-				}
+				// Duplicate the drag functionality
+				lockColumnWidths(column_index);
+				prepareLeeway(column_index, pageX);
+				resizeColumn(column_index, diff);
+				applyColWidths();
+				submitColResize();
 			});
 
 			// Create drag handles

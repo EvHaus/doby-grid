@@ -107,6 +107,7 @@
 				'jquery': 'libs/jquery',
 				'jquery-ui': 'libs/jquery-ui',
 				'jquery.event.drag': 'libs/jquery.event.drag',
+				'jquery.simulate': 'libs/jquery.simulate',
 				'dobygrid': 'src/doby-grid',
 				'faker': 'libs/faker',
 				'less': 'libs/less',
@@ -125,6 +126,9 @@
 				},
 				'jquery.event.drag': {
 					deps: ['jquery']
+				},
+				'jquery.simulate': {
+					deps: ['jquery']
 				}
 			}
 		});
@@ -135,7 +139,7 @@
 		};
 
 		// Initialize doby
-		require(['less', 'dobygrid', 'jquery-ui' ,'jquery.event.drag'], function(less, DobyGrid) {
+		require(['less', 'dobygrid', 'jquery-ui' ,'jquery.event.drag','jquery.simulate'], function(less, DobyGrid) {
 
 			// or "profile"
 			var profiler = 'time';
