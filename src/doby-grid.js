@@ -1120,15 +1120,19 @@
 						.appendTo($canvas);
 				}
 
-				var from = getCellNodeBox(range.fromRow, range.fromCell);
-				var to = getCellNodeBox(range.toRow, range.toCell);
+				var from = getCellNodeBox(range.fromRow, range.fromCell),
+					to = getCellNodeBox(range.toRow, range.toCell),
+					borderBottom = parseInt(this.$el.css('borderBottomWidth'), 10),
+					borderLeft = parseInt(this.$el.css('borderLeftWidth'), 10),
+					borderRight = parseInt(this.$el.css('borderRightWidth'), 10),
+					borderTop = parseInt(this.$el.css('borderTopWidth'), 10);
 
 				if (from && to) {
 					this.$el.css({
-						top: from.top - 2,
-						left: from.left - 2,
-						height: to.bottom - from.top - 2,
-						width: to.right - from.left - 3
+						top: from.top,
+						left: from.left,
+						height: to.bottom - from.top - borderBottom - borderTop,
+						width: to.right - from.left - borderLeft - borderRight
 					});
 				}
 
@@ -3274,26 +3278,24 @@
 		//
 		// @return DOM object
 		getCellNodeBox = function (row, cell) {
-			if (!cellExists(row, cell)) {
-				return null;
-			}
+			if (!cellExists(row, cell)) return null;
 
 			var y1, y2;
 			if (variableRowHeight) {
 				var pos = cache.rowPositions[row];
-				y1 = pos.top;
-				y2 = y1 + (pos.height || self.options.rowHeight) - 1;
+				y1 = pos.top - 1;
+				y2 = y1 + (pos.height || self.options.rowHeight) + 2;
 			} else {
-				y1 = self.options.rowHeight * row - offset;
-				y2 = y1 + self.options.rowHeight - 1;
+				y1 = self.options.rowHeight * row - offset + row - 1;
+				y2 = y1 + self.options.rowHeight + 2;
 			}
-			var x1 = 0;
+			var x1 = -1;
 
 			for (var i = 0; i < cell; i++) {
-				x1 += self.options.columns[i].width;
+				x1 += self.options.columns[i].width + 1;
 			}
 
-			var x2 = x1 + self.options.columns[cell].width;
+			var x2 = x1 + self.options.columns[cell].width + 2;
 
 			return {
 				bottom: y2,
