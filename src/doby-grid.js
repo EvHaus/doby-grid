@@ -101,6 +101,7 @@
 			classheaderfiltercell = this.NAME + '-header-filter-cell',
 			classheadersortable = 'sortable',
 			classinvalid = 'invalid',
+			classnoright = this.NAME + '-no-right',
 			classplaceholder = this.NAME + '-sortable-placeholder',
 			classrangedecorator = this.NAME + '-range-decorator',
 			classrow = this.NAME + '-row',
@@ -206,6 +207,10 @@
 			isCellPotentiallyEditable,
 			lastRenderedScrollLeft = 0,
 			lastRenderedScrollTop = 0,
+
+			// How much to offset the line-height from the height.
+			lineHeightOffset = navigator.appVersion.indexOf('Win') >= 0 ? 1 : 0,
+
 			makeActiveCellEditable,
 			makeActiveCellNormal,
 			measureCellPadding,
@@ -656,7 +661,7 @@
 			if (!initialized) return;
 			if (!headers) headers = $headers.children();
 
-			// Auto-sizes the quick search headers too
+			// Auto-sizes the quick filter headers too
 			var qHeaders = null;
 			if ($headerFilter !== undefined) {
 				qHeaders = $headerFilter.children();
@@ -665,8 +670,13 @@
 			var i, l, w, styl;
 			for (i = 0, l = headers.length; i < l; i++) {
 				w = self.options.columns[i].width - headerColumnWidthDiff;
+
 				styl = ['width:', w, 'px'].join('');
+
+				// Style the header
 				$(headers[i]).attr('style', styl);
+
+				// Style the quick filter
 				if (qHeaders && qHeaders[i]) $(qHeaders[i]).attr('style', styl);
 			}
 
@@ -678,6 +688,7 @@
 		// Sets the widths of the columns to what they should be
 		//
 		applyColumnWidths = function () {
+			// The -1 here is to compensate for the border spacing between cells
 			var x = -1, c, w, rule, i, l, r;
 
 			for (i = 0, l = self.options.columns.length; i < l; i++) {
@@ -689,9 +700,11 @@
 				rule.left.style.left = x + "px";
 
 				// Right
+				// The -2 here is to compensate for the border spacing between cells
 				r = canvasWidth - x - w - 2;
 				rule.right.style.right = r + "px";
 
+				// The +1 here is to compensate for the border spacing between cells
 				x += c.width + 1;
 			}
 		};
@@ -776,7 +789,6 @@
 
 			// Compensate for the separators between columns
 			availWidth -= self.options.columns.length;
-			if (!viewportHasVScroll) availWidth += 1;
 
 			// Calculate the current total width of columns
 			for (i = 0; i < self.options.columns.length; i++) {
@@ -838,24 +850,15 @@
 			}
 
 			// Set new values
-			var reRender = false,
-				col;
+			var reRender = false, col;
 			for (i = 0; i < self.options.columns.length; i++) {
 				col = self.options.columns[i];
 				if (!reRender && col.rerenderOnResize && col.width != widths[i]) reRender = true;
 				self.options.columns[i].width = widths[i];
 			}
 
-			console.log('canvaswidth before', $canvas.width())
-
 			applyColumnHeaderWidths();
 			updateCanvasWidth(true);
-
-			// TODO: Fix Me
-			console.log('availWidth', availWidth)
-			console.log('total', total)
-			console.log('widths', widths, widths.reduce(function(a,b){return a+b}))
-			console.log('canvaswidth', $canvas.width())
 
 			if (reRender) {
 				invalidateAllRows();
@@ -987,7 +990,7 @@
 
 					// Apply height and line-height
 					$(node).height(dd._height);
-					$(node).css('line-height', (dd._height - 1) + 'px');
+					$(node).css('line-height', (dd._height - lineHeightOffset) + 'px');
 
 					// Drag and container of rows below
 					dd._container.css({marginTop: (dd._height - height) + 'px'});
@@ -1468,7 +1471,7 @@
 			$style = $('<style type="text/css" rel="stylesheet"></style>').appendTo($("head"));
 			var rowHeight = self.options.rowHeight - cellHeightDiff;
 			var rules = [
-				"#" + uid + " ." + classrow + "{height:" + rowHeight + "px;line-height:" + (rowHeight - 1) + "px}"
+				"#" + uid + " ." + classrow + "{height:" + rowHeight + "px;line-height:" + (rowHeight - lineHeightOffset) + "px}"
 			];
 
 			for (var i = 0, l = self.options.columns.length; i < l; i++) {
@@ -3195,7 +3198,9 @@
 				rowWidth = 0, i, l;
 
 			for (i = 0, l = self.options.columns.length; i < l; i++) {
-				rowWidth += self.options.columns[i].width + i - 1;
+				// TODO: The 1 here is for the spacer between columns. Move this to a variable instead
+				// in case users want to modify this spacing.
+				rowWidth += self.options.columns[i].width - 1;
 			}
 
 			return self.options.fullWidthRows ? Math.max(rowWidth, availableWidth) : rowWidth;
@@ -3556,7 +3561,8 @@
 
 			// For each column - get its width
 			for (var i = 0, l = self.options.columns.length; i < l; i++) {
-				headersWidth += self.options.columns[i].width + i - 1;
+				// The extra one here is to compensate for the column spacing created with a border
+				headersWidth += self.options.columns[i].width + 1;
 			}
 
 			// Include the width of the scrollbar
@@ -3796,24 +3802,22 @@
 			if (viewportTop === undefined || viewportTop === null) viewportTop = scrollTop;
 			if (viewportLeft === undefined || viewportLeft === null) viewportLeft = scrollLeft;
 
-			if (!variableRowHeight) {
-				return {
-					top: getRowFromPosition(viewportTop),
-					bottom: getRowFromPosition(viewportTop + viewportH) + 1,
-					leftPx: viewportLeft,
-					rightPx: viewportLeft + viewportW
-				};
-			} else {
-				var rowTop = Math.floor(getRowFromPosition(viewportTop + offset));
-				var rowBottom = Math.ceil(getRowFromPosition(viewportTop + offset + viewportH));
+			var rowTop, rowBottom;
 
-				return {
-					top: rowTop,
-					bottom: rowBottom,
-					leftPx: viewportLeft,
-					rightPx: viewportLeft + viewportW
-				};
+			if (!variableRowHeight) {
+				rowTop = getRowFromPosition(viewportTop);
+				rowBottom = getRowFromPosition(viewportTop + viewportH) + 1;
+			} else {
+				rowTop = Math.floor(getRowFromPosition(viewportTop + offset));
+				rowBottom = Math.ceil(getRowFromPosition(viewportTop + offset + viewportH));
 			}
+
+			return {
+				top: rowTop,
+				bottom: rowBottom,
+				leftPx: viewportLeft,
+				rightPx: viewportLeft + viewportW
+			};
 		};
 
 
@@ -3825,12 +3829,8 @@
 		// @param	forceEdit	boolean		TODO: ???
 		//
 		gotoCell = function (row, cell, forceEdit) {
-			if (!initialized) {
-				return;
-			}
-			if (!canCellBeActive(row, cell)) {
-				return;
-			}
+			if (!initialized) return;
+			if (!canCellBeActive(row, cell)) return;
 
 			scrollCellIntoView(row, cell, false);
 
@@ -5232,13 +5232,22 @@
 				cleanUpAndRenderCells(rendered);
 			}
 
+			// If there is no vertical scroll and we're auto-sized. Remove the right column.
+			if (!viewportHasVScroll && self.options.autoColumnWidth) {
+				self.$el.addClass(classnoright);
+			} else {
+				self.$el.removeClass(classnoright);
+			}
+
 			// Render missing rows
 			renderRows(rendered);
 
+			// Post process rows
 			postProcessFromRow = visible.top;
 			postProcessToRow = Math.min(getDataLength() - 1, visible.bottom);
 			startPostProcessing();
 
+			// Save scroll positions
 			lastRenderedScrollTop = scrollTop;
 			lastRenderedScrollLeft = scrollLeft;
 		};
@@ -5373,7 +5382,7 @@
 			// In variable row height mode we need some fancy ways to determine height
 			if (variableRowHeight && pos.height) {
 				var rowheight = pos.height - cellHeightDiff;
-				stringArray.push(';height:' + rowheight + 'px;line-height:' + (rowheight - 1) + 'px');
+				stringArray.push(';height:' + rowheight + 'px;line-height:' + (rowheight - lineHeightOffset) + 'px');
 			}
 
 			stringArray.push("'>");
@@ -5585,6 +5594,7 @@
 		// @param	dir		integer		Direction of scroll
 		//
 		scrollPage = function (dir) {
+			// TODO: Fix me. This is now jumping too much because of the row spacing.
 			var deltaRows = dir * numVisibleRows,
 				targetRow = getRowFromPosition(scrollTop) + deltaRows,
 				targetY;
@@ -5948,6 +5958,14 @@
 				this.setColumns(options.columns);
 			} else {
 				render();
+			}
+
+			// If toggling auto column width - resize
+			if ('autoColumnWidth' in options) {
+				// Also make sure that the right resize handles are drawn
+				setupColumnResize();
+
+				autosizeColumns();
 			}
 		};
 
@@ -6331,7 +6349,7 @@
 				if (handle.length) return;
 
 				var column = getColumnFromEvent(e);
-				if (!column.sortable) return;
+				if (!column || !column.sortable) return;
 
 				var sortOpts = null;
 				for (var i = 0, l = sortColumns.length; i < l; i++) {
@@ -6792,11 +6810,9 @@
 				name: getLocale('global.auto_width'),
 				value: self.options.autoColumnWidth,
 				fn: function () {
-					var force = !self.options.autoColumnWidth;
 					self.setOptions({
-						autoColumnWidth: force
+						autoColumnWidth: !self.options.autoColumnWidth
 					});
-					if (force) autosizeColumns();
 				}
 			}];
 

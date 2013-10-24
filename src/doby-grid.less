@@ -71,6 +71,9 @@
 			}
 		}
 
+		// When columns are auto-sized, remove right border on the last item for a cleaner edge
+		.doby-grid-no-right .doby-grid-header-column:last-child {border-right: 0}
+
 			.doby-grid-column-name {
 				display: block;
 				overflow: hidden;
@@ -235,6 +238,9 @@
 			z-index: 3;
 		}
 	}
+
+	// When columns are auto-sized, remove right border on the last item for a cleaner edge
+	.doby-grid-no-right .doby-grid-cell:last-child {border-right: 0}
 
 	// Row resize handle
 	.doby-grid-row-handle {
