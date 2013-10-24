@@ -104,33 +104,6 @@ describe("Rendering", function () {
 		// ==========================================================================================
 
 
-		describe("Add Row", function () {
-			it("should render a special row at the end of the grid when using 'addRow'", function () {
-				// Prepare data for test
-				var grid = resetGrid({
-					addRow: true,
-					data: [{data: {id: 1, name: "one"}, id: 1}, {data: {id: 2, name: "two", category: "asd"}, id: 2}],
-					editable: true
-				});
-
-				grid.$el.find('.doby-grid-row:last-child .doby-grid-cell').each(function () {
-					expect(this).toBeEmpty();
-				});
-
-				// Disable to prevent conflict with other tests
-				grid.setOptions({addRow: false, editable: false});
-
-				// Make sure row is removed
-				grid.$el.find('.doby-grid-row:last-child .doby-grid-cell').each(function () {
-					expect(this).not.toBeEmpty();
-				});
-			});
-		});
-
-
-		// ==========================================================================================
-
-
 		describe("Variable Row Heights", function () {
 			it("should correctly handle the row metadata processing for group rows when in variable height mode", function () {
 				// Reset

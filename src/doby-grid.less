@@ -45,7 +45,7 @@
 		cursor: default;
 		font-size: 14px;
 		height: 29px;
-		left: -1002px;
+		left: -1000px;
 		overflow: hidden;
 		position: relative;
 		white-space: nowrap;
@@ -133,7 +133,7 @@
 	padding: 5px 0;
 	position: absolute;
 	top: 0;
-	z-index: 2;
+	z-index: 5;
 
 	&.off {opacity: 0}
 
@@ -206,25 +206,33 @@
 
 
 .doby-grid-row {
+	border-bottom: 1px solid #DDD;
 	position: absolute;
 	width: 100%;
 }
 
 	.doby-grid-cell {
-		border: 1px solid transparent;
+		border: 1px solid #DDD;
 		bottom: -1px;
 		cursor: default;
-		margin: -1px 0 0 -2px;
 		overflow: hidden;
 		padding: 0 8px;
 		position: absolute;
 		text-overflow: ellipsis;
-		top: 0;
+		top: -1px;
 		white-space: nowrap;
 		z-index: 1;
 
 		&.nopad {
-			padding: 0 1px
+			padding: 0
+		}
+
+		&.selected {
+			z-index: 2;
+		}
+
+		&.active {
+			z-index: 3;
 		}
 	}
 

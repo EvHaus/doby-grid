@@ -208,7 +208,7 @@
 			lastRenderedScrollTop = 0,
 			makeActiveCellEditable,
 			makeActiveCellNormal,
-			measureCellPaddingAndBorder,
+			measureCellPadding,
 			n,				// number of pages
 			naturalSort,
 			navigate,
@@ -560,7 +560,7 @@
 				viewportW = parseFloat($.css(this.$el[0], "width", true));
 
 				// Calculate caches, dimensions and prepare layout
-				measureCellPaddingAndBorder();
+				measureCellPadding();
 				disableSelection($headers);
 				renderColumnHeaders();
 				setupColumnSort();
@@ -665,10 +665,6 @@
 			var i, l, w, styl;
 			for (i = 0, l = headers.length; i < l; i++) {
 				w = self.options.columns[i].width - headerColumnWidthDiff;
-
-				// Compensate for grid rendering
-				if (i + 1 == l) w = w + 2;
-
 				styl = ['width:', w, 'px'].join('');
 				$(headers[i]).attr('style', styl);
 				if (qHeaders && qHeaders[i]) $(qHeaders[i]).attr('style', styl);
@@ -682,22 +678,21 @@
 		// Sets the widths of the columns to what they should be
 		//
 		applyColumnWidths = function () {
-			var x = 0, c, w, rule, i, l, r;
+			var x = -1, c, w, rule, i, l, r;
 
 			for (i = 0, l = self.options.columns.length; i < l; i++) {
 				c = self.options.columns[i];
-				w = c.width - 2;
+				w = c.width;
 
+				// Left
 				rule = getColumnCssRules(i);
-				rule.left.style.left = (x - 1) + "px";
-				r = (canvasWidth - (x + 1) - w);
+				rule.left.style.left = x + "px";
 
-				// If this is the last column, compensate for grid positioning
-				if (i + 1 == l) r = r - 2;
-
+				// Right
+				r = canvasWidth - x - w - 2;
 				rule.right.style.right = r + "px";
 
-				x += c.width;
+				x += c.width + 1;
 			}
 		};
 
@@ -778,16 +773,19 @@
 				prevTotal,
 				availWidth = viewportHasVScroll ? viewportW - window.scrollbarDimensions.width : viewportW;
 
+			// Calculate total width of columns
 			for (i = 0; i < self.options.columns.length; i++) {
 				c = self.options.columns[i];
+
 				widths.push(c.width);
-				total += c.width;
+				total += c.width + (i - 1);
+
 				if (c.resizable) {
 					shrinkLeeway += c.width - Math.max((c.minWidth || 0), absoluteColumnMinWidth);
 				}
 			}
 
-			// shrink
+			// Shrink
 			prevTotal = total;
 			while (total > availWidth && shrinkLeeway) {
 				var shrinkProportion = (total - availWidth) / shrinkLeeway;
@@ -810,7 +808,7 @@
 				prevTotal = total;
 			}
 
-			// grow
+			// Grow
 			prevTotal = total;
 			while (total < availWidth) {
 				var growProportion = availWidth / total;
@@ -969,17 +967,9 @@
 					// Do not allow invisible heights
 					if (dd._height < 5) dd._height = 5;
 
+					// Apply height and line-height
 					$(node).height(dd._height);
-
-					// If cells have height set - resize them too
-					$(node).children('.' + classcell).each(function () {
-						if ($(this).css('height')) {
-							$(this).css({
-								height: dd._height + 'px',
-								lineHeight: dd._height + 'px'
-							});
-						}
-					});
+					$(node).css('line-height', (dd._height - 1) + 'px');
 
 					// Drag and container of rows below
 					dd._container.css({marginTop: (dd._height - height) + 'px'});
@@ -1033,6 +1023,8 @@
 					data = {
 						top: (cache.rowPositions[i - 1]) ? (cache.rowPositions[i - 1].bottom - offset) : 0
 					};
+
+					data.top += (i === 0 ? 0 : 1);
 
 					if (item.height && item.height != self.options.rowHeight) {
 						data.height = item.height;
@@ -1452,9 +1444,9 @@
 		//
 		createCssRules = function () {
 			$style = $('<style type="text/css" rel="stylesheet"></style>').appendTo($("head"));
-			var rowHeight = (self.options.rowHeight - cellHeightDiff) + 1;
+			var rowHeight = self.options.rowHeight - cellHeightDiff;
 			var rules = [
-				"#" + uid + " ." + classrow + "{height:" + rowHeight + "px;line-height:" + (rowHeight + 1) + "px}"
+				"#" + uid + " ." + classrow + "{height:" + rowHeight + "px;line-height:" + (rowHeight - 1) + "px}"
 			];
 
 			for (var i = 0, l = self.options.columns.length; i < l; i++) {
@@ -3177,11 +3169,11 @@
 		//
 		// @return integer
 		getCanvasWidth = function () {
-			var availableWidth = viewportHasVScroll ? viewportW - window.scrollbarDimensions.width : viewportW;
-			var rowWidth = 0;
-			var i = self.options.columns.length;
-			while (i--) {
-				rowWidth += self.options.columns[i].width;
+			var availableWidth = viewportW - (viewportHasVScroll ? window.scrollbarDimensions.width : 0),
+				rowWidth = 0, i, l;
+
+			for (i = 0, l = self.options.columns.length; i < l; i++) {
+				rowWidth += self.options.columns[i].width + i - 1;
 			}
 
 			return self.options.fullWidthRows ? Math.max(rowWidth, availableWidth) : rowWidth;
@@ -3544,7 +3536,7 @@
 
 			// For each column - get its width
 			for (var i = 0, l = self.options.columns.length; i < l; i++) {
-				headersWidth += self.options.columns[i].width;
+				headersWidth += self.options.columns[i].width + i - 1;
 			}
 
 			// Include the width of the scrollbar
@@ -4390,11 +4382,13 @@
 			var vScrollDist = Math.abs(scrollTop - prevScrollTop);
 			var hScrollDist = Math.abs(scrollLeft - prevScrollLeft);
 
+			// Horizontal Scroll
 			if (hScrollDist) {
 				prevScrollLeft = scrollLeft;
 				$headerScroller[0].scrollLeft = scrollLeft;
 			}
 
+			// Vertical Scroll
 			if (vScrollDist) {
 				vScrollDir = prevScrollTop < scrollTop ? 1 : -1;
 				prevScrollTop = scrollTop;
@@ -4416,6 +4410,7 @@
 				}
 			}
 
+			// Any Scroll
 			if (hScrollDist || vScrollDist) {
 				if (h_render) {
 					clearTimeout(h_render);
@@ -4696,13 +4691,13 @@
 		};
 
 
-		// measureCellPaddingAndBorder()
-		// Header columns and cells may have different padding/border skewing width
+		// measureCellPadding()
+		// Header columns and cells may have different padding skewing width
 		// calculations (box-sizing, hello?) calculate the diff so we can set consistent sizes
 		//
-		measureCellPaddingAndBorder = function () {
-			var h = ["borderLeftWidth", "borderRightWidth", "paddingLeft", "paddingRight"],
-				v = ["borderTopWidth", "borderBottomWidth", "paddingTop", "paddingBottom"];
+		measureCellPadding = function () {
+			var h = ["paddingLeft", "paddingRight"],
+				v = ["paddingTop", "paddingBottom"];
 
 			var el = $('<div class="' + classheadercolumn + '" style="visibility:hidden">-</div>')
 				.appendTo($headers);
@@ -5310,9 +5305,6 @@
 				// Determine width
 				w = column.width - headerColumnWidthDiff;
 
-				// Compensate for grid rendering
-				if (i + 1 == l) w = w + 2;
-
 				html.push('<div class="' + classes.join(' ') + '" style="width:' + w + 'px" ');
 				html.push('id="' + (uid + column.id) + '"');
 
@@ -5361,7 +5353,7 @@
 				pos = cache.rowPositions[row];
 				top = (pos.top - offset);
 			} else {
-				top = self.options.rowHeight * row - offset;
+				top = self.options.rowHeight * row - offset + (row * 1);
 			}
 
 			if (d && d.class) rowCss += " " + (typeof d.class === 'function' ? d.class() : d.class);
@@ -5371,7 +5363,7 @@
 			// In variable row height mode we need some fancy ways to determine height
 			if (variableRowHeight && pos.height) {
 				var rowheight = pos.height - cellHeightDiff;
-				stringArray.push(';height:' + rowheight + 'px;line-height:' + rowheight + 'px');
+				stringArray.push(';height:' + rowheight + 'px;line-height:' + (rowheight - 1) + 'px');
 			}
 
 			stringArray.push("'>");
@@ -5519,9 +5511,7 @@
 			viewportW = parseFloat($.css(self.$el[0], "width", true));
 			$viewport.height(viewportH);
 
-			if (self.options.autoColumnWidth) {
-				autosizeColumns();
-			}
+			if (self.options.autoColumnWidth) autosizeColumns();
 
 			updateRowCount();
 			// TODO: This was in SlickGrid, but it's probably there to catch active cells being
@@ -6089,10 +6079,8 @@
 
 			var lockColumnWidths = function () {
 				columnElements.each(function (i, e) {
-					self.options.columns[i].previousWidth = $(e).outerWidth();
-
-					// Compensate for grid rendering
-					if (i + 1 == columnElements.length) self.options.columns[i].previousWidth -= 2;
+					// The extra 1 here is to compensate for the border separator
+					self.options.columns[i].previousWidth = $(e).outerWidth() - 1;
 				});
 			};
 
@@ -6291,9 +6279,7 @@
 			// Create drag handles
 			// This has to be done for each drag handle to not conflict with drag reordering
 			$.each(columnElements, function (i, columnEl) {
-				if (i < firstResizable || (self.options.autoColumnWidth && i >= lastResizable)) {
-					return;
-				}
+				if (i < firstResizable || (self.options.autoColumnWidth && i >= lastResizable)) return;
 
 				$('<div class="' + classhandle + '"><span></span></div>')
 					.appendTo(columnEl)
@@ -6800,10 +6786,6 @@
 						autoColumnWidth: force
 					});
 					if (force) autosizeColumns();
-
-					// Re-render columns
-					// Pending https://github.com/mleibman/SlickGrid/issues/686
-					self.setColumns(self.options.columns);
 				}
 			}];
 
@@ -6847,11 +6829,8 @@
 			canvasWidth = getCanvasWidth();
 
 			if (canvasWidth != oldCanvasWidth) {
-				// The extra pixel here is to compensate for the grid cell layering
-				$canvas.width(canvasWidth - 1);
-
-				// And 2 pixels in the header for border compensation
-				$headers.width(getHeadersWidth() + 2);
+				$canvas.width(canvasWidth);
+				$headers.width(getHeadersWidth());
 				viewportHasHScroll = (canvasWidth > viewportW - window.scrollbarDimensions.width);
 			}
 
@@ -7049,9 +7028,11 @@
 				scrollTo(th - viewportH);
 			}
 
+			// If autoColumnWidth is enabled and the scrollbar has disappeared - we need to resize
 			if (self.options.autoColumnWidth && oldViewportHasVScroll != viewportHasVScroll) {
 				autosizeColumns();
 			}
+
 			updateCanvasWidth(false);
 		};
 
@@ -7091,8 +7072,8 @@
 				if (c.width === undefined || c.width === null) c.width = self.options.columnWidth;
 
 				// If min/max width is set -- use it to reset given width
-				if (c.minWidth && c.width < c.minWidth) c.width = c.minWidth;
-				if (c.maxWidth && c.width > c.maxWidth)	c.width = c.maxWidth;
+				if (c.minWidth !== undefined && c.minWidth !== null && c.width < c.minWidth) c.width = c.minWidth;
+				if (c.maxWidth !== undefined && c.maxWidth !== null && c.width > c.maxWidth) c.width = c.maxWidth;
 
 				// Build column id cache
 				cache.columnsById[c.id] = i;

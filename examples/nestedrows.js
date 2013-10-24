@@ -27,6 +27,7 @@ define(['dobygrid'], function (DobyGrid) {
 						height: 250,
 						columns: {
 							0: {
+								class: "nopad",
 								colspan: "*",
 								formatter: function (row, cell, value, columnDef, data) {
 									return '<div style="text-align:center;">Loading components...</div>';
@@ -75,12 +76,13 @@ define(['dobygrid'], function (DobyGrid) {
 		}
 
 		return {
+			autoColumnWidth: true,
 			columns: [{
 				id: "picture",
 				name: "Picture",
 				field: "picture",
 				formatter: function (row, cell, value, columnDef, data) {
-					return '<div style="border:2px solid rgba(0,0,0,0.4);background:rgba(0,0,0,0.05);height:94px;width:94px"></div>';
+					return '<div style="background:rgba(255,0,0,0.1);box-shadow:red 0 0 0 2px inset;height:100px;width:100px"></div>';
 				},
 				focusable: false,
 				selectable: false,
