@@ -66,7 +66,8 @@ describe("Grid Options", function () {
 				lastcell = grid.$el.find('.doby-grid-row:last .doby-grid-cell:first');
 
 			// Get the drag delta from the first cell
-			var dy = lastcell.position().top - lastcell.position().top + lastcell.height();
+			var a = grid.$el.find('.doby-grid-cell:first');
+			var dy = firstcell.position().top - lastcell.position().top + lastcell.height();
 
 			// Simulate a click and drag on the cell ranges
 			firstcell.simulate('drag', {dx: 0, dy: dy});
@@ -333,8 +334,6 @@ describe("Grid Options", function () {
 			// Account for cell spacing
 			columnsW += grid.options.columns.length;
 			cellsW -= grid.options.columns.length;
-
-			console.log(_.pluck(grid.options.columns, 'width'));
 
 			// Expect widths to be correct for headers and cells
 			console.log(grid.$el, columnsW, headerW, cellsW, canvasW)

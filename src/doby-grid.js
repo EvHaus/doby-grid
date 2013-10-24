@@ -771,14 +771,19 @@
 				shrinkLeeway = 0,
 				total = 0,
 				prevTotal,
+				growProportion, max, growSize,
 				availWidth = viewportHasVScroll ? viewportW - window.scrollbarDimensions.width : viewportW;
 
-			// Calculate total width of columns
+			// Compensate for the separators between columns
+			availWidth -= self.options.columns.length;
+			if (!viewportHasVScroll) availWidth += 1;
+
+			// Calculate the current total width of columns
 			for (i = 0; i < self.options.columns.length; i++) {
 				c = self.options.columns[i];
 
 				widths.push(c.width);
-				total += c.width + (i - 1);
+				total += c.width;
 
 				if (c.resizable) {
 					shrinkLeeway += c.width - Math.max((c.minWidth || 0), absoluteColumnMinWidth);
@@ -811,34 +816,47 @@
 			// Grow
 			prevTotal = total;
 			while (total < availWidth) {
-				var growProportion = availWidth / total;
+				growProportion = availWidth / total;
 				for (i = 0; i < self.options.columns.length && total < availWidth; i++) {
 					c = self.options.columns[i];
-					if (!c.resizable || (c.maxWidth && c.maxWidth <= c.width)) {
-						continue;
-					}
-					var max = 1000000;
+					if (!c.resizable || (c.maxWidth && c.maxWidth <= c.width)) continue;
+
+					// Make sure we don't get bigger than the max width
+					max = 1000000;
 					if (c.maxWidth && (c.maxWidth - c.width)) max = (c.maxWidth - c.width);
-					var growSize = Math.min(Math.floor(growProportion * c.width) - c.width, max) || 1;
+
+					growSize = Math.min(Math.floor(growProportion * c.width) - c.width, max) || 1;
+
 					total += growSize;
 					widths[i] += growSize;
 				}
+
 				if (prevTotal == total) { // avoid infinite loop
 					break;
 				}
 				prevTotal = total;
 			}
 
-			var reRender = false;
+			// Set new values
+			var reRender = false,
+				col;
 			for (i = 0; i < self.options.columns.length; i++) {
-				if (self.options.columns[i].rerenderOnResize && self.options.columns[i].width != widths[i]) {
-					reRender = true;
-				}
+				col = self.options.columns[i];
+				if (!reRender && col.rerenderOnResize && col.width != widths[i]) reRender = true;
 				self.options.columns[i].width = widths[i];
 			}
 
+			console.log('canvaswidth before', $canvas.width())
+
 			applyColumnHeaderWidths();
 			updateCanvasWidth(true);
+
+			// TODO: Fix Me
+			console.log('availWidth', availWidth)
+			console.log('total', total)
+			console.log('widths', widths, widths.reduce(function(a,b){return a+b}))
+			console.log('canvaswidth', $canvas.width())
+
 			if (reRender) {
 				invalidateAllRows();
 				render();
@@ -3660,18 +3678,18 @@
 
 
 		// getRowFromPosition()
-		// ??
+		// Given a pixel position, returns the row index for that position.
 		//
-		// @param	maxPosition		integer		??
+		// @param	maxPosition		integer		Top scroll position
 		//
 		// @return integer
 		getRowFromPosition = function (maxPosition) {
 			var row = 0,
-				rowLength = getDataLength(),
+				rowLength = cache.rows.length,
 				pos, lastpos, i;
 
 			if (!variableRowHeight) {
-				return Math.floor((maxPosition + offset) / self.options.rowHeight);
+				return Math.floor((maxPosition + offset) / (self.options.rowHeight + 1));
 			} else if (rowLength) {
 				// Loop through the row position cache and break when the row is found
 				for (i = 0; i < rowLength; i++) {
@@ -3684,13 +3702,8 @@
 
 				// Return the last row in the grid
 				lastpos = cache.rowPositions[rowLength - 1];
-				if (maxPosition > lastpos.bottom) {
-					row = rowLength - 1;
-				}
-			} else {
-				// TODO: This was a hack to get remote+variableRowHeight working. I'm not sure
-				// why this works as. Investigate later.
-				row = Math.floor((maxPosition + offset) / self.options.rowHeight);
+
+				if (maxPosition > lastpos.bottom) row = rowLength - 1;
 			}
 
 			return row;
@@ -3780,12 +3793,8 @@
 		//
 		// @return object
 		getVisibleRange = function (viewportTop, viewportLeft) {
-			if (viewportTop === undefined || viewportTop === null) {
-				viewportTop = scrollTop;
-			}
-			if (viewportLeft === undefined || viewportLeft === null) {
-				viewportLeft = scrollLeft;
-			}
+			if (viewportTop === undefined || viewportTop === null) viewportTop = scrollTop;
+			if (viewportLeft === undefined || viewportLeft === null) viewportLeft = scrollLeft;
 
 			if (!variableRowHeight) {
 				return {
@@ -4381,8 +4390,9 @@
 		handleScroll = function (event) {
 			scrollTop = $viewport[0].scrollTop;
 			scrollLeft = $viewport[0].scrollLeft;
-			var vScrollDist = Math.abs(scrollTop - prevScrollTop);
-			var hScrollDist = Math.abs(scrollLeft - prevScrollLeft);
+
+			var vScrollDist = Math.abs(scrollTop - prevScrollTop),
+				hScrollDist = Math.abs(scrollLeft - prevScrollLeft);
 
 			// Horizontal Scroll
 			if (hScrollDist) {
@@ -4414,9 +4424,7 @@
 
 			// Any Scroll
 			if (hScrollDist || vScrollDist) {
-				if (h_render) {
-					clearTimeout(h_render);
-				}
+				if (h_render) clearTimeout(h_render);
 
 				if (Math.abs(lastRenderedScrollTop - scrollTop) > 20 ||
 					Math.abs(lastRenderedScrollLeft - scrollLeft) > 20) {
@@ -5680,6 +5688,7 @@
 
 			page = Math.min(n - 1, Math.floor(y / ph));
 			offset = Math.round(page * cj);
+
 			var newScrollTop = y - offset;
 
 			if (offset != oldOffset) {
@@ -6956,9 +6965,8 @@
 		updateRowCount = function () {
 			if (!initialized) return;
 
-			var dataLength = getDataLength();
-
-			var oldViewportHasVScroll = viewportHasVScroll;
+			var dataLength = cache.rows.length,
+				oldViewportHasVScroll = viewportHasVScroll;
 
 			if (dataLength === 0) {
 				viewportHasVScroll = false;
@@ -6990,7 +6998,7 @@
 			} else {
 				var rowMax;
 				if (!variableRowHeight) {
-					rowMax = self.options.rowHeight * dataLength;
+					rowMax = self.options.rowHeight * dataLength + dataLength;
 				} else {
 					var pos = dataLength - 1,
 						rps = cache.rowPositions[pos];

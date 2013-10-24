@@ -76,7 +76,7 @@ define(['dobygrid'], function (DobyGrid) {
 		}
 
 		return {
-			autoColumnWidth: true,
+			//autoColumnWidth: true,
 			columns: [{
 				id: "picture",
 				name: "Picture",
