@@ -103,12 +103,10 @@ Doby Grid was indeed started as a fork of SlickGrid <https://github.com/mleibman
 Additionally, there are several other key differences. Doby Grid:
 
 - supports variable (and re-sizable) row heights
-- has more useful and consistent event triggers
-- provides a way to interact with cell and row DOM elements without compromising on performance
 - provide easy access to common functionality such as cell range selection, grouping or editing without the need to write "plugins"
 - integrates with Backbone Models and Collections
-- does *not* support jQuery UI Themes
 - comes in a single AMD-supported library, instead of various pieces that need to be compiled together
+- does *not* support jQuery UI Themes
 
 Doby Grid tries to find a balance between performance and usability while offering developers ways to control which features they want to enable at a potential performance cost.
 

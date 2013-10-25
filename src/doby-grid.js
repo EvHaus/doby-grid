@@ -3508,7 +3508,7 @@
 			cellWidths.push(headerWidth);
 
 			// Determine the width of the widest visible value
-			$canvas.find('.l' + column_index + ':visible')
+			$canvas.find('.l' + column_index + '.r' + column_index + ':visible')
 				.removeClass('r' + column_index)
 				.each(function () {
 					var w = $(this).width() + parseInt($(this).css('paddingLeft'), 10) + parseInt($(this).css('paddingRight'), 10);
@@ -5350,15 +5350,13 @@
 				// Group rows do not inherit column class
 				mClass = item instanceof Group ? "" : (m.class ? typeof m.class === "function" ? m.class() : m.class : null),
 
-				cellCss = [classcell, "l" + cell, " r" + rowI];
+				cellCss = [classcell, "l" + cell, "r" + rowI];
 
 			if (mClass) cellCss.push(mClass);
 			if (self.active && row === self.active.row && cell === self.active.cell) cellCss.push("active");
 			if (mColumns[cell] && mColumns[cell].class) cellCss.push(mColumns[cell].class);
 
-			result.push("<div class='" + cellCss.join(" ") + "'");
-
-			result.push(">");
+			result.push('<div class="' + cellCss.join(" ") + '">');
 
 			// If this is a cached, postprocessed row -- use the cache
 			if (m.cache && m.postprocess && postProcessedRows[row] && postProcessedRows[row][cell]) {
@@ -6370,7 +6368,7 @@
 						prepareLeeway(i, pageX);
 					})
 					.on('drag', function (event) {
-						var delta = Math.min(maxPageX, Math.max(minPageX, event.pageX)) - pageX;
+						var delta = Math.min(maxPageX, Math.max(minPageX, event.pageX)) - pageX + 1;
 
 						// Sets the new column widths
 						resizeColumn(i, delta);

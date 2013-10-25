@@ -1191,4 +1191,161 @@ describe("Grid Options", function () {
 		});
 	});
 
+
+	// ==========================================================================================
+
+
+	describe("options.resizeCells", function () {
+		it("should be disabled by default", function () {
+			// Prepare for test
+			var grid = resetGrid(defaultData());
+
+			expect(grid.options.resizeCells).toEqual(false);
+		});
+
+
+		// ==========================================================================================
+
+
+		it("should only resize headers during drag when disabled", function () {
+			// Prepare for test
+			var grid = resetGrid($.extend(defaultData(), {
+				autoColumnWidth: false,
+				resizableColumns: true,
+				resizeCells: false
+			}));
+
+			// Find columns and their cells
+			var columnData = [];
+			grid.$el.find('.doby-grid-header-column').each(function() {
+				columnData.push({
+					header: $(this),
+					cells: []
+				});
+			});
+			grid.$el.find('.doby-grid-row').each(function () {
+				$(this).find('.doby-grid-cell').each(function (i) {
+					columnData[i].cells.push($(this));
+				});
+			});
+
+			// How much should we drag
+			var drag_distance = 100;
+
+			// Simulate a drag
+			var handle, widths_before, widths_during, widths_after;
+			_.each(columnData, function(cd) {
+				// Grab the handle
+				handle = cd.header.find('.doby-grid-resizable-handle');
+
+				// Calculate widths before drag
+				widths_before = [cd.header.width()];
+				_.each(cd.cells, function(cell, i) {
+					widths_before.push(cell.width());
+				});
+
+				// Start dragging
+				handle.trigger({type: 'dragstart', pageX: 0});
+				handle.trigger({type: 'drag', pageX: drag_distance});
+
+				// Calculate widths during drag
+				widths_during = [cd.header.width()];
+				_.each(cd.cells, function(cell, i) {
+					widths_during.push(cell.width());
+				});
+
+				// Stop dragging
+				handle.trigger('dragend');
+
+				// Calculate widths after drag
+				widths_after = [cd.header.width()];
+				_.each(cd.cells, function(cell, i) {
+					widths_after.push(cell.width());
+				});
+
+				// Expect headers to drag
+				expect(widths_during[0]).toEqual(widths_before[0] + drag_distance);
+				expect(widths_after[0]).toEqual(widths_before[0] + drag_distance);
+
+				// Expect cells to stand still
+				for (var i = 1, l = widths_during; i < l; i++) {
+					expect(widths_during[i]).toEqual(widths_before[i]);
+					expect(widths_after[i]).toEqual(widths_before[i] + drag_distance);
+				}
+			});
+		});
+
+
+		// ==========================================================================================
+
+
+		it("should resize headers and cells during drag when enabled", function () {
+			// Prepare for test
+			var grid = resetGrid($.extend(defaultData(), {
+				autoColumnWidth: false,
+				resizableColumns: true,
+				resizeCells: true
+			}));
+
+			// Find columns and their cells
+			var columnData = [];
+			grid.$el.find('.doby-grid-header-column').each(function() {
+				columnData.push({
+					header: $(this),
+					cells: []
+				});
+			});
+			grid.$el.find('.doby-grid-row').each(function () {
+				$(this).find('.doby-grid-cell').each(function (i) {
+					columnData[i].cells.push($(this));
+				});
+			});
+
+			// How much should we drag
+			var drag_distance = 100;
+
+			// Simulate a drag
+			var handle, widths_before, widths_during, widths_after;
+			_.each(columnData, function(cd) {
+				// Grab the handle
+				handle = cd.header.find('.doby-grid-resizable-handle');
+
+				// Calculate widths before drag
+				widths_before = [cd.header.width()];
+				_.each(cd.cells, function(cell, i) {
+					widths_before.push(cell.width());
+				});
+
+				// Start dragging
+				handle.trigger({type: 'dragstart', pageX: 0});
+				handle.trigger({type: 'drag', pageX: drag_distance});
+
+				// Calculate widths during drag
+				widths_during = [cd.header.width()];
+				_.each(cd.cells, function(cell, i) {
+					widths_during.push(cell.width());
+				});
+
+				// Stop dragging
+				handle.trigger('dragend');
+
+				// Calculate widths after drag
+				widths_after = [cd.header.width()];
+				_.each(cd.cells, function(cell, i) {
+					widths_after.push(cell.width());
+				});
+
+				// Expect headers to drag
+				expect(widths_during[0]).toEqual(widths_before[0] + drag_distance);
+				expect(widths_after[0]).toEqual(widths_before[0] + drag_distance);
+
+				// Expect cells to stand still
+				for (var i = 1, l = widths_during; i < l; i++) {
+					expect(widths_during[i]).toEqual(widths_before[i] + drag_distance);
+					expect(widths_after[i]).toEqual(widths_before[i] + drag_distance);
+				}
+			});
+		});
+	});
+
 });
