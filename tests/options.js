@@ -830,4 +830,365 @@ describe("Grid Options", function () {
 
 	// ==========================================================================================
 
+
+	describe("options.keyboardNavigation", function () {
+		it("should be enabled by default", function () {
+			// Prepare for test
+			var grid = resetGrid(defaultData());
+
+			expect(grid.options.keyboardNavigation).toEqual(true);
+		});
+
+
+		// ==========================================================================================
+
+
+		it("should activate cell on the right on 'right' click", function () {
+			// Prepare for test
+			var grid = resetGrid($.extend(defaultData(), {keyboardNavigation: true}));
+
+			// Activate the first cell
+			grid.activate(0, 0);
+
+			// Go right
+			grid.$el.find('.doby-grid-canvas').simulate('keydown', {keyCode: 39});
+
+			expect(grid.active).toBeDefined();
+			expect(grid.active.row).toEqual(0);
+			expect(grid.active.cell).toEqual(1);
+		});
+
+
+		// ==========================================================================================
+
+
+		it("should activate cell on the left on 'left' click", function () {
+			// Prepare for test
+			var grid = resetGrid($.extend(defaultData(), {keyboardNavigation: true}));
+
+			// Activate the first cell
+			grid.activate(0, 1);
+
+			// Go right
+			grid.$el.find('.doby-grid-canvas').simulate('keydown', {keyCode: 37});
+
+			expect(grid.active).toBeDefined();
+			expect(grid.active.row).toEqual(0);
+			expect(grid.active.cell).toEqual(0);
+		});
+
+
+		// ==========================================================================================
+
+
+		it("should activate cell on the bottom on 'down' click", function () {
+			// Prepare for test
+			var grid = resetGrid($.extend(defaultData(), {keyboardNavigation: true}));
+
+			// Activate the first cell
+			grid.activate(0, 0);
+
+			// Go right
+			grid.$el.find('.doby-grid-canvas').simulate('keydown', {keyCode: 40});
+
+			expect(grid.active).toBeDefined();
+			expect(grid.active.row).toEqual(1);
+			expect(grid.active.cell).toEqual(0);
+		});
+
+
+		// ==========================================================================================
+
+
+		it("should activate cell on the top on 'up' click", function () {
+			// Prepare for test
+			var grid = resetGrid($.extend(defaultData(), {keyboardNavigation: true}));
+
+			// Activate the first cell
+			grid.activate(1, 0);
+
+			// Go right
+			grid.$el.find('.doby-grid-canvas').simulate('keydown', {keyCode: 38});
+
+			expect(grid.active).toBeDefined();
+			expect(grid.active.row).toEqual(0);
+			expect(grid.active.cell).toEqual(0);
+		});
+
+
+		// ==========================================================================================
+
+
+		it("should activate cell on the right on 'tab' click", function () {
+			// Prepare for test
+			var grid = resetGrid($.extend(defaultData(), {keyboardNavigation: true}));
+
+			// Activate the first cell
+			grid.activate(0, 0);
+
+			// Go right
+			grid.$el.find('.doby-grid-canvas').simulate('keydown', {keyCode: 9});
+
+			expect(grid.active).toBeDefined();
+			expect(grid.active.row).toEqual(0);
+			expect(grid.active.cell).toEqual(1);
+		});
+
+
+		// ==========================================================================================
+
+
+		it("should activate cell on the left on 'shift + tab' click", function () {
+			// Prepare for test
+			var grid = resetGrid($.extend(defaultData(), {keyboardNavigation: true}));
+
+			// Activate the first cell
+			grid.activate(0, 1);
+
+			// Go right
+			grid.$el.find('.doby-grid-canvas').simulate('keydown', {shiftKey: true, keyCode: 9});
+
+			expect(grid.active).toBeDefined();
+			expect(grid.active.row).toEqual(0);
+			expect(grid.active.cell).toEqual(0);
+		});
+	});
+
+
+	// ==========================================================================================
+
+
+	describe("options.locale", function () {
+		it("should be defined", function () {
+			// Prepare for test
+			var grid = resetGrid(defaultData());
+			expect(grid.options.locale).toBeDefined();
+		});
+	});
+
+
+	// ==========================================================================================
+
+
+	describe("options.multiColumnSort", function () {
+		it("should be enabled by default", function () {
+			// Prepare for test
+			var grid = resetGrid(defaultData());
+
+			expect(grid.options.multiColumnSort).toEqual(true);
+		});
+
+
+		// ==========================================================================================
+
+
+		it("should allow multi column selection via setSorting() when enabled", function () {
+			// Prepare for test
+			var grid = resetGrid($.extend(defaultData(), {multiColumnSort: true}));
+
+			var sort = [];
+			_.each(grid.options.columns, function (col) {
+				sort.push({
+					columnId: col.id,
+					sortAsc: true
+				});
+			});
+
+			// Make sure we have multiple sort items
+			expect(sort.length).toBeGreaterThan(1);
+
+			// Apply sort
+			grid.setSorting(sort);
+
+			// Check sorting
+			expect(grid.sorting).toEqual(sort);
+		});
+
+
+		// ==========================================================================================
+
+
+		it("should not allow multi column selection via setSorting() when disabled", function () {
+			// Prepare for test
+			var grid = resetGrid($.extend(defaultData(), {multiColumnSort: false}));
+
+			var sort = [];
+			_.each(grid.options.columns, function (col) {
+				sort.push({
+					columnId: col.id,
+					sortAsc: true
+				});
+			});
+
+			// Make sure we have multiple sort items
+			expect(sort.length).toBeGreaterThan(1);
+
+			// Apply sort
+			expect(function () {
+				grid.setSorting(sort);
+			}).toThrow('Doby Grid cannot set the sorting given because "multiColumnSort" is disabled and the given sorting options contain multiple columns.');
+
+			// Make sure sort isn't set
+			expect(grid.sorting).not.toEqual(sort);
+		});
+	});
+
+
+	// ==========================================================================================
+
+
+	describe("options.resizableColumns", function () {
+		it("should be enabled by default", function () {
+			// Prepare for test
+			var grid = resetGrid(defaultData());
+
+			expect(grid.options.resizableColumns).toEqual(true);
+		});
+
+
+		// ==========================================================================================
+
+
+		it("should draw resize handles for every column when enabled", function () {
+			// Prepare for test
+			var grid = resetGrid($.extend(defaultData(), {resizableColumns: true}));
+
+			// Check to make sure all columns have handles
+			grid.$el.find('.doby-grid-header-column').each(function () {
+				expect($(this).children('.doby-grid-resizable-handle').length).toEqual(1);
+			});
+		});
+
+
+		// ==========================================================================================
+
+
+		it("should draw resize handles for every column (execept the last) when enabled with options.autoColumnWidth enabled", function () {
+			// Prepare for test
+			var grid = resetGrid($.extend(defaultData(), {
+				autoColumnWidth: true,
+				resizableColumns: true
+			}));
+
+			// Check to make sure all columns have handles
+			grid.$el.find('.doby-grid-header-column').each(function (i) {
+				if (i < grid.options.columns.length - 1) {
+					expect($(this).children('.doby-grid-resizable-handle').length).toEqual(1);
+				} else {
+					expect($(this).children('.doby-grid-resizable-handle').length).toEqual(0);
+				}
+			});
+		});
+
+
+		// ==========================================================================================
+
+
+		it("should not draw resize handles when disabled", function () {
+			// Prepare for test
+			var grid = resetGrid($.extend(defaultData(), {
+				resizableColumns: false
+			}));
+
+			// Check to make sure all columns have handles
+			grid.$el.find('.doby-grid-header-column').each(function (i) {
+				expect($(this).children('.doby-grid-resizable-handle').length).toEqual(0);
+			});
+		});
+
+
+		// ==========================================================================================
+
+
+		it("should not draw resize handles on columns which have resizing disabled", function () {
+			// Prepare for test
+			var grid = resetGrid($.extend(defaultData(), {
+				columns: [
+					{id: 'id', field: 'id'},
+					{id: 'id2', resizable: false, field: 'id2'},
+					{id: 'id3', field: 'id3'},
+					{id: 'id4', resizable: false, field: 'id4'}
+				],
+				resizableColumns: true
+			}));
+
+			// Check to make sure all the right columns have handles
+			grid.$el.find('.doby-grid-header-column').each(function (i) {
+				if (i % 2) {
+					expect($(this).children('.doby-grid-resizable-handle').length).toEqual(0);
+				} else{
+					expect($(this).children('.doby-grid-resizable-handle').length).toEqual(1);
+				}
+			});
+		});
+	});
+
+
+	// ==========================================================================================
+
+
+	describe("options.resizableRows", function () {
+		it("should be disabled by default", function () {
+			// Prepare for test
+			var grid = resetGrid(defaultData());
+
+			expect(grid.options.resizableRows).toEqual(false);
+		});
+
+
+		// ==========================================================================================
+
+
+		it("should draw resize handles for every row when enabled", function () {
+			// Prepare for test
+			var grid = resetGrid($.extend(defaultData(), {resizableRows: true}));
+
+			// Check to make sure all columns have handles
+			grid.$el.find('.doby-grid-row').each(function (i) {
+				expect($(this).children('.doby-grid-row-handle').length).toEqual(1);
+			});
+		});
+
+
+		// ==========================================================================================
+
+
+		it("should not draw resize handles when disabled", function () {
+			// Prepare for test
+			var grid = resetGrid($.extend(defaultData(), {resizableRows: false}));
+
+			// Check to make sure all columns have handles
+			grid.$el.find('.doby-grid-row').each(function (i) {
+				expect($(this).children('.doby-grid-row-handle').length).toEqual(0);
+			});
+		});
+
+
+		// ==========================================================================================
+
+
+		it("should not draw resize handles when specific rows override the default setting", function () {
+			// Prepare for test
+			var grid = resetGrid($.extend(defaultData(), {
+				data: [
+					{data: {id: 189, name: 'test'}, id: 189},
+					{data: {id: 289, name: 'test2'}, id: 289, resizable: false},
+					{data: {id: 389, name: 'test3'}, id: 389},
+					{data: {id: 489, name: 'test4'}, id: 489, resizable: false}
+				],
+				resizableRows: true
+			}));
+
+
+			// Check to make sure all columns have handles
+			grid.$el.find('.doby-grid-row').each(function (i) {
+				if (i % 2) {
+					expect($(this).children('.doby-grid-row-handle').length).toEqual(0);
+				} else{
+					expect($(this).children('.doby-grid-row-handle').length).toEqual(1);
+				}
+			});
+		});
+	});
+
 });

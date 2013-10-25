@@ -4,9 +4,9 @@
 // For all details and documentation:
 // https://github.com/globexdesigns/doby-grid
 
-/*jslint browser: true, vars: true, plusplus: true, devel: true, indent: 4, maxerr: 50*/
-/*jshint expr: true,white: true*/
-/*global define*/
+/*jslint browser: true, vars: true, plusplus: true, devel: false, indent: 4, maxerr: 50*/
+/*jshint expr: true, white: true*/
+/*global console, define*/
 
 (function (root, factory) {
 	"use strict";
@@ -42,6 +42,9 @@
 		if (typeof options !== "object" || _.isArray(options)) {
 			throw new TypeError('The "options" param must be an object.');
 		}
+
+		// Handle console logs if they aren't enabled
+		if (typeof window.console !== "object") window.console = {};
 
 		// Private
 		var self = this,
@@ -273,7 +276,6 @@
 			setupColumnSort,
 			showQuickFilter,
 			showTooltip,
-			sortColumns = [],
 			startPostProcessing,
 			stylesheet,
 			styleSortColumns,
@@ -400,6 +402,9 @@
 		// Stores the currently selected cell range
 		this.selection = null;
 
+		// Stores the current sorting objects
+		this.sorting = [];
+
 
 		// initialize()
 		// Creates a new DobyGrid instance
@@ -425,11 +430,24 @@
 			// Create the grid
 			createGrid();
 
-			if (self.options.selectable) {
-				bindCellRangeSelect();
-			}
+			if (self.options.selectable) bindCellRangeSelect();
 
 			return self;
+		};
+
+
+		// activate()
+		// Given a row and cell index, will set that cell as the active in the grid
+		//
+		// @param	row		integer		Row index
+		// @param	cell	integer		Cell index
+		//
+		this.activate = function (row, cell) {
+			if (!initialized) return;
+			if (row > getDataLength() || row < 0 || cell >= this.options.columns.length || cell < 0) return;
+			scrollCellIntoView(row, cell, false);
+			setActiveCellInternal(getCellNode(row, cell), false);
+			return this;
 		};
 
 
@@ -641,7 +659,7 @@
 				}
 
 			} catch (e) {
-				if (console) console.error(e);
+				if (console.error) console.error(e);
 			}
 
 			// Enable header menu
@@ -2936,22 +2954,24 @@
 			// Hides the dropdown
 			//
 			this.hide = function () {
-				if (!this.open) return;
+				if (!this.open || !this.$parent) return;
 
-				var store = this.$parent.data(classdropdown).filter(function (i) {
-					return i != self;
-				});
+				if (this.$parent.data(classdropdown)) {
+					var store = this.$parent.data(classdropdown).filter(function (i) {
+						return i != self;
+					});
 
-				this.$parent.data(classdropdown, store);
+					this.$parent.data(classdropdown, store);
 
-				this.$el.addClass('off');
+					this.$el.addClass('off');
 
-				// Animate fade out
-				setTimeout(function () {
-					self.$el.remove();
-				}, 150);
+					// Animate fade out
+					setTimeout(function () {
+						self.$el.remove();
+					}, 150);
 
-				this.open = false;
+					this.open = false;
+				}
 			};
 
 
@@ -4550,7 +4570,7 @@
 		// @return boolean
 		hasSorting = function (column_id) {
 			if (!column_id) return false;
-			var column_ids = _.pluck(sortColumns, 'columnId');
+			var column_ids = _.pluck(self.sorting, 'columnId');
 			return column_ids.indexOf(column_id) >= 0;
 		};
 
@@ -4679,7 +4699,7 @@
 		//
 		// @return boolean
 		this.isSorted = function () {
-			return sortColumns.length ? true : false;
+			return this.sorting.length ? true : false;
 		};
 
 
@@ -4858,9 +4878,7 @@
 		//
 		// @return boolean
 		navigate = function (dir) {
-			if (!self.options.keyboardNavigation) {
-				return false;
-			}
+			if (!self.options.keyboardNavigation) return false;
 
 			if ((!self.active || !self.active.node) && dir != "prev" && dir != "next") {
 				return false;
@@ -5093,7 +5111,7 @@
 
 					// Builds the options we need to give the fetcher
 					var options = {
-						order: sortColumns,
+						order: self.sorting,
 						limit: newTo - newFrom + 1,
 						offset: newFrom
 					};
@@ -5354,7 +5372,7 @@
 					result.push(getFormatter(row, m)(row, cell, value, m, item));
 				} catch (e) {
 					result.push('');
-					if (console) console.error("Cell failed to render due to failed column formatter. Error: " + e.message, e);
+					if (console.error) console.error("Cell failed to render due to failed column formatter. Error: " + e.message, e);
 				}
 			}
 
@@ -5479,8 +5497,10 @@
 			}
 
 			// Add row resizing handle
-			if (self.options.resizableRows) {
-				stringArray.push('<div class="' + classrowhandle + '"></div>');
+			if (self.options.resizableRows && d.resizable !== false) {
+				stringArray.push('<div class="');
+				stringArray.push(classrowhandle);
+				stringArray.push('"></div>');
 			}
 
 			stringArray.push("</div>");
@@ -5843,28 +5863,6 @@
 		};
 
 
-		// setActiveCell()
-		// Given a row and cell index, will set that cell as the active in the grid
-		//
-		// @param	row		integer		Row index
-		// @param	cell	integer		Cell index
-		//
-		setActiveCell = function (row, cell) {
-			if (!initialized) return;
-
-			if (row > getDataLength() || row < 0 || cell >= self.options.columns.length || cell < 0) {
-				return;
-			}
-
-			if (!self.options.keyboardNavigation) {
-				return;
-			}
-
-			scrollCellIntoView(row, cell, false);
-			setActiveCellInternal(getCellNode(row, cell), false);
-		};
-
-
 		// setActiveCellInternal()
 		// Internal method for setting the active cell that bypasses any option restrictions
 		//
@@ -6084,8 +6082,12 @@
 				throw new Error('Doby Grid cannot set the sorting because the "options" parameter must be an array of objects.');
 			}
 
+			if (!this.options.multiColumnSort && options.length > 1) {
+				throw new Error('Doby Grid cannot set the sorting given because "multiColumnSort" is disabled and the given sorting options contain multiple columns.');
+			}
+
 			// Updating the sorting dictionary
-			sortColumns = options;
+			this.sorting = options;
 
 			// Update the sorting data
 			styleSortColumns();
@@ -6349,7 +6351,11 @@
 			// Create drag handles
 			// This has to be done for each drag handle to not conflict with drag reordering
 			$.each(columnElements, function (i, columnEl) {
-				if (i < firstResizable || (self.options.autoColumnWidth && i >= lastResizable)) return;
+				if (
+					i < firstResizable ||
+					(self.options.autoColumnWidth && i >= lastResizable) ||
+					self.options.columns[i].resizable === false
+				) return;
 
 				$('<div class="' + classhandle + '"><span></span></div>')
 					.appendTo(columnEl)
@@ -6393,9 +6399,9 @@
 				if (!column || !column.sortable) return;
 
 				var sortOpts = null;
-				for (var i = 0, l = sortColumns.length; i < l; i++) {
-					if (sortColumns[i].columnId == column.id) {
-						sortOpts = sortColumns[i];
+				for (var i = 0, l = self.sorting.length; i < l; i++) {
+					if (self.sorting[i].columnId == column.id) {
+						sortOpts = self.sorting[i];
 						sortOpts.sortAsc = !sortOpts.sortAsc;
 						break;
 					}
@@ -6403,11 +6409,11 @@
 
 				if (e.metaKey && self.options.multiColumnSort) {
 					if (sortOpts) {
-						sortColumns.splice(i, 1);
+						self.sorting.splice(i, 1);
 					}
 				} else {
 					if ((!e.shiftKey && !e.metaKey) || !self.options.multiColumnSort) {
-						sortColumns = [];
+						self.sorting = [];
 					}
 
 					if (!sortOpts) {
@@ -6415,13 +6421,13 @@
 							columnId: column.id,
 							sortAsc: column.sortAsc
 						};
-						sortColumns.push(sortOpts);
-					} else if (sortColumns.length === 0) {
-						sortColumns.push(sortOpts);
+						self.sorting.push(sortOpts);
+					} else if (self.sorting.length === 0) {
+						self.sorting.push(sortOpts);
 					}
 				}
 
-				styleSortColumns(sortColumns);
+				styleSortColumns(self.sorting);
 
 				var args;
 				if (!self.options.multiColumnSort) {
@@ -6433,7 +6439,7 @@
 				} else {
 					args = {
 						multiColumnSort: true,
-						sortCols: $.map(sortColumns, function (col) {
+						sortCols: $.map(self.sorting, function (col) {
 							return {
 								sortCol: self.options.columns[getColumnIndex(col.columnId)],
 								sortAsc: col.sortAsc
@@ -6681,7 +6687,7 @@
 				.find("." + classsortindicator)
 				.removeClass(classsortindicatorasc + " " + classsortindicatordesc);
 
-			$.each(sortColumns, function (i, col) {
+			$.each(self.sorting, function (i, col) {
 				if (col.sortAsc === null) {
 					col.sortAsc = true;
 				}
@@ -6764,24 +6770,24 @@
 				enabled: column && column.sortable && self.isSorted() && !hasSorting(column.id),
 				name: column ? getLocale('column.add_sort_asc', {name: column.name}) : '',
 				fn: function () {
-					sortColumns.push({columnId: column.id, sortAsc: true});
-					self.setSorting(sortColumns);
+					self.sorting.push({columnId: column.id, sortAsc: true});
+					self.setSorting(self.sorting);
 				}
 			}, {
 				enabled: column && column.sortable && self.isSorted() && !hasSorting(column.id),
 				name: column ? getLocale('column.add_sort_desc', {name: column.name}) : '',
 				fn: function () {
-					sortColumns.push({columnId: column.id, sortAsc: false});
-					self.setSorting(sortColumns);
+					self.sorting.push({columnId: column.id, sortAsc: false});
+					self.setSorting(self.sorting);
 				}
 			}, {
 				enabled: column && column.sortable && hasSorting(column.id),
 				name: column ? getLocale('column.remove_sort', {name: column.name}) : '',
 				fn: function () {
-					sortColumns = _.filter(sortColumns, function (s) {
+					self.sorting = _.filter(self.sorting, function (s) {
 						return s.columnId != column.id;
 					});
-					self.setSorting(sortColumns);
+					self.setSorting(self.sorting);
 				}
 			}, {
 				enabled: self.options.groupable && column && column.groupable,
@@ -7178,7 +7184,7 @@
 
 			// Warn if "addRow" is used without "editable"
 			if (self.options.addRow && !self.options.editable) {
-				console.warn('In order to use "addRow", you must enable the "editable" parameter. The "addRow" option has been disabled.');
+				if (console.warn) console.warn('In order to use "addRow", you must enable the "editable" parameter. The "addRow" option has been disabled.');
 				self.options.addRow = false;
 			}
 

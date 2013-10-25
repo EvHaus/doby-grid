@@ -29,6 +29,41 @@ describe("Methods and Data Manipulation", function () {
 	// ==========================================================================================
 
 
+	describe("activate()", function () {
+		it("should be able to activate a cell given cell and row indexes", function () {
+			// Prepare grid
+			var grid = resetGrid({
+				columns: [
+					{id: 'id', field: 'id'},
+					{id: 'name', field: 'name'},
+				],
+				data: [
+					{id: 1, data: {id: 1, name: 'asd1'}},
+					{id: 2, data: {id: 2, name: 'asd2'}},
+					{id: 3, data: {id: 3, name: 'asd3'}}
+				]
+			});
+
+			// Activate first cell
+			grid.activate(0, 0);
+
+			// Ensure cell is selected
+			expect(grid.active).toBeDefined();
+			expect(grid.active.cell).toEqual(0);
+			expect(grid.active.row).toEqual(0);
+
+			// Ensure cell and row is rendered with the right class
+			var $row = grid.$el.find('.doby-grid-row:first');
+			var $cell = grid.$el.find('.doby-grid-cell:first');
+			expect($row.hasClass('active')).toEqual(true);
+			expect($cell.hasClass('active')).toEqual(true);
+		});
+	});
+
+
+	// ==========================================================================================
+
+
 	describe("add()", function () {
 		it("should be able to insert a new data item via add()", function () {
 			var grid = resetGrid();
