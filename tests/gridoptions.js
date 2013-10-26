@@ -4,7 +4,7 @@
 // For all details and documentation:
 // https://github.com/globexdesigns/doby-grid
 
-/*jslint vars: true, plusplus: true, devel: true, nomen: true, indent: 4, maxerr: 50*/
+/*jslint vars: true, plusplus: true, devel: false, nomen: true, indent: 4, maxerr: 50*/
 /*global _, $, describe, document, expect, DobyGrid, Image, it, runs, setFixtures, waitsFor, window*/
 
 describe("Grid Options", function () {
