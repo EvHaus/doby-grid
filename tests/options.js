@@ -59,7 +59,10 @@ describe("Grid Options", function () {
 
 		it("should set an active cell with options.activateSelection enabled", function () {
 			// Prepare for test
-			var grid = resetGrid(defaultData());
+			var grid = resetGrid($.extend(defaultData(), {
+				activateSelection: true,
+				selectable: true
+			}));
 
 			// Find the first and last cells
 			var firstcell = grid.$el.find('.doby-grid-row:first .doby-grid-cell:first'),
@@ -122,9 +125,7 @@ describe("Grid Options", function () {
 
 	describe("options.addRow", function () {
 		it("should be disabled by default", function () {
-			// Prepare for test
 			var grid = resetGrid(defaultData());
-
 			expect(grid.options.addRow).toEqual(false);
 		});
 
@@ -160,9 +161,7 @@ describe("Grid Options", function () {
 
 	describe("options.asyncEditorLoadDelay and options.asyncEditorLoading", function () {
 		it("options.asyncEditorLoadDelay should be 100 by default", function () {
-			// Prepare for test
 			var grid = resetGrid(defaultData());
-
 			expect(grid.options.asyncEditorLoadDelay).toEqual(100);
 		});
 
@@ -171,9 +170,7 @@ describe("Grid Options", function () {
 
 
 		it("options.asyncEditorLoading should be false by default", function () {
-			// Prepare for test
 			var grid = resetGrid(defaultData());
-
 			expect(grid.options.asyncEditorLoading).toEqual(false);
 		});
 
@@ -239,9 +236,7 @@ describe("Grid Options", function () {
 
 	describe("options.asyncPostRenderDelay", function () {
 		it("should be 25 by default", function () {
-			// Prepare for test
 			var grid = resetGrid(defaultData());
-
 			expect(grid.options.asyncPostRenderDelay).toEqual(25);
 		});
 
@@ -295,9 +290,7 @@ describe("Grid Options", function () {
 
 	describe("options.autoColumnWidth", function () {
 		it("should be disabled by default", function () {
-			// Prepare for test
 			var grid = resetGrid(defaultData());
-
 			expect(grid.options.autoColumnWidth).toEqual(false);
 		});
 
@@ -349,9 +342,7 @@ describe("Grid Options", function () {
 
 	describe("options.autoDestroy", function () {
 		it("should be enabled by default", function () {
-			// Prepare for test
 			var grid = resetGrid(defaultData());
-
 			expect(grid.options.autoDestroy).toEqual(true);
 		});
 
@@ -398,9 +389,7 @@ describe("Grid Options", function () {
 
 	describe("options.autoEdit", function () {
 		it("should be enabled by default", function () {
-			// Prepare for test
 			var grid = resetGrid(defaultData());
-
 			expect(grid.options.autoEdit).toEqual(true);
 		});
 
@@ -521,9 +510,7 @@ describe("Grid Options", function () {
 
 	describe("options.columnWidth", function () {
 		it("should be 80 by default", function () {
-			// Prepare for test
 			var grid = resetGrid(defaultData());
-
 			expect(grid.options.columnWidth).toEqual(80);
 		});
 
@@ -610,9 +597,7 @@ describe("Grid Options", function () {
 
 	describe("options.editable", function () {
 		it("should be disabled by default", function () {
-			// Prepare for test
 			var grid = resetGrid(defaultData());
-
 			expect(grid.options.editable).toEqual(false);
 		});
 
@@ -661,9 +646,7 @@ describe("Grid Options", function () {
 
 	describe("options.emptyNotice", function () {
 		it("should be enabled by default", function () {
-			// Prepare for test
 			var grid = resetGrid(defaultData());
-
 			expect(grid.options.emptyNotice).toEqual(true);
 		});
 
@@ -713,9 +696,7 @@ describe("Grid Options", function () {
 
 	describe("options.fullWidthRows", function () {
 		it("should be enabled by default", function () {
-			// Prepare for test
 			var grid = resetGrid(defaultData());
-
 			expect(grid.options.fullWidthRows).toEqual(true);
 		});
 
@@ -755,9 +736,7 @@ describe("Grid Options", function () {
 
 	describe("options.groupable", function () {
 		it("should be enabled by default", function () {
-			// Prepare for test
 			var grid = resetGrid(defaultData());
-
 			expect(grid.options.groupable).toEqual(true);
 		});
 
@@ -785,9 +764,7 @@ describe("Grid Options", function () {
 
 	describe("options.headerMenu", function () {
 		it("should be enabled by default", function () {
-			// Prepare for test
 			var grid = resetGrid(defaultData());
-
 			expect(grid.options.headerMenu).toEqual(true);
 		});
 
@@ -833,9 +810,7 @@ describe("Grid Options", function () {
 
 	describe("options.keyboardNavigation", function () {
 		it("should be enabled by default", function () {
-			// Prepare for test
 			var grid = resetGrid(defaultData());
-
 			expect(grid.options.keyboardNavigation).toEqual(true);
 		});
 
@@ -960,7 +935,6 @@ describe("Grid Options", function () {
 
 	describe("options.locale", function () {
 		it("should be defined", function () {
-			// Prepare for test
 			var grid = resetGrid(defaultData());
 			expect(grid.options.locale).toBeDefined();
 		});
@@ -972,9 +946,7 @@ describe("Grid Options", function () {
 
 	describe("options.multiColumnSort", function () {
 		it("should be enabled by default", function () {
-			// Prepare for test
 			var grid = resetGrid(defaultData());
-
 			expect(grid.options.multiColumnSort).toEqual(true);
 		});
 
@@ -1039,9 +1011,7 @@ describe("Grid Options", function () {
 
 	describe("options.resizableColumns", function () {
 		it("should be enabled by default", function () {
-			// Prepare for test
 			var grid = resetGrid(defaultData());
-
 			expect(grid.options.resizableColumns).toEqual(true);
 		});
 
@@ -1129,9 +1099,7 @@ describe("Grid Options", function () {
 
 	describe("options.resizableRows", function () {
 		it("should be disabled by default", function () {
-			// Prepare for test
 			var grid = resetGrid(defaultData());
-
 			expect(grid.options.resizableRows).toEqual(false);
 		});
 
@@ -1197,9 +1165,7 @@ describe("Grid Options", function () {
 
 	describe("options.resizeCells", function () {
 		it("should be disabled by default", function () {
-			// Prepare for test
 			var grid = resetGrid(defaultData());
-
 			expect(grid.options.resizeCells).toEqual(false);
 		});
 
@@ -1354,9 +1320,7 @@ describe("Grid Options", function () {
 
 	describe("options.reorderable", function () {
 		it("should be enabled by default", function () {
-			// Prepare for test
 			var grid = resetGrid(defaultData());
-
 			expect(grid.options.reorderable).toEqual(true);
 		});
 
@@ -1402,6 +1366,106 @@ describe("Grid Options", function () {
 
 			// Confirm that column options got reversed
 			expect(orderBefore).toEqual(grid.options.columns.reverse());
+		});
+	});
+
+
+	// ==========================================================================================
+
+
+	describe("options.rowHeight", function () {
+		it("should be 28 by default", function () {
+			var grid = resetGrid(defaultData());
+			expect(grid.options.rowHeight).toEqual(28);
+		});
+
+
+		// ==========================================================================================
+
+
+		it("should correctly affect the height of rows in the grid", function () {
+			var testheight = 100;
+
+			// Prepare for test
+			var grid = resetGrid($.extend(defaultData(), {rowHeight: testheight}));
+
+			// Make sure we've got actual rows to test on
+			expect(grid.$el.find('.doby-grid-row').length).toBeGreaterThan(0);
+
+			grid.$el.find('.doby-grid-row').each(function () {
+				// Make sure row is the correct height
+				expect($(this).height()).toEqual(testheight);
+
+				// Make sure every cell is the correct height
+				$(this).find('.doby-grid-cell').each(function () {
+					expect($(this).height()).toEqual(testheight);
+				});
+			});
+		});
+	});
+
+
+	// ==========================================================================================
+
+
+	describe("options.selectable", function () {
+		it("should be enabled by default", function () {
+			var grid = resetGrid(defaultData());
+			expect(grid.options.selectable).toEqual(true);
+		});
+
+
+		// ==========================================================================================
+
+
+		it("should allow cell range selection when enabled", function () {
+			// Prepare for test
+			var grid = resetGrid($.extend(defaultData(), {
+				selectable: true
+			}));
+
+			// Find the first and last cells
+			var firstcell = grid.$el.find('.doby-grid-row:first .doby-grid-cell:first'),
+				lastcell = grid.$el.find('.doby-grid-row:last .doby-grid-cell:first');
+
+			// Get the drag delta from the first cell
+			var a = grid.$el.find('.doby-grid-cell:first');
+			var dy = firstcell.position().top - lastcell.position().top + lastcell.height();
+
+			// Simulate a click and drag on the cell ranges
+			firstcell.simulate('drag', {dx: 0, dy: dy});
+
+			// Expect the first and last cells to be selected
+			expect(grid.selection.length).toBeGreaterThan(0);
+			expect(grid.selection[0].fromCell).toEqual(0);
+			expect(grid.selection[0].fromRow).toEqual(0);
+			expect(grid.selection[0].toCell).toEqual(0);
+			expect(grid.selection[0].toRow).toEqual(1);
+		});
+
+
+		// ==========================================================================================
+
+
+		it("should not allow cell range selection when disabled", function () {
+			// Prepare for test
+			var grid = resetGrid($.extend(defaultData(), {
+				selectable: false
+			}));
+
+			// Find the first and last cells
+			var firstcell = grid.$el.find('.doby-grid-row:first .doby-grid-cell:first'),
+				lastcell = grid.$el.find('.doby-grid-row:last .doby-grid-cell:first');
+
+			// Get the drag delta from the first cell
+			var a = grid.$el.find('.doby-grid-cell:first');
+			var dy = firstcell.position().top - lastcell.position().top + lastcell.height();
+
+			// Simulate a click and drag on the cell ranges
+			firstcell.simulate('drag', {dx: 0, dy: dy});
+
+			// Expect the first and last cells to be selected
+			expect(grid.selection).toEqual(null);
 		});
 	});
 
