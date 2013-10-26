@@ -5405,10 +5405,8 @@
 				html.push('id="' + (uid + column.id) + '"');
 
 				// Tooltips
-				if (column.tooltip) {
-					if (self.options.tooltipType == 'title') {
-						html.push(' title="' + (column.tooltip || "") + '"');
-					}
+				if (column.tooltip !== undefined && column.tooltip !== null && self.options.tooltipType == 'title') {
+					html.push(' title="' + column.tooltip + '"');
 				}
 
 				html.push('>');
@@ -7182,6 +7180,11 @@
 					remote = new self.options.data();
 					remote.grid = self;
 				}
+			}
+
+			// Ensure "tooltipType" is one of the allowed values
+			if (['title', 'popup'].indexOf(self.options.tooltipType) < 0) {
+				throw 'The "tooltipType" option be either "title" or "popup", not "' + self.options.tooltipType + '".';
 			}
 
 			// Warn if "addRow" is used without "editable"

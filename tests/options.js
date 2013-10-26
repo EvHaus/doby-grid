@@ -1469,4 +1469,137 @@ describe("Grid Options", function () {
 		});
 	});
 
+
+	// ==========================================================================================
+
+
+	describe("options.selectedClass", function () {
+		it("should be 'selected' by default", function () {
+			var grid = resetGrid(defaultData());
+			expect(grid.options.selectedClass).toEqual('selected');
+		});
+
+
+		// ==========================================================================================
+
+
+		it("should apply the given class to all selected cells", function () {
+			var cls = 'testing123';
+			var grid = resetGrid($.extend(defaultData(), {selectedClass: cls}));
+
+			// Get the number of columns and rows we have
+			var cols = grid.options.columns.length,
+				rows = grid.options.data.length;
+
+			// Select everything
+			grid.selectCells(0, 0, rows - 1, cols - 1);
+
+			// Make sure the right class was applied to all cells
+			grid.$el.find('.doby-grid-cell').each(function () {
+				expect($(this).hasClass(cls)).toEqual(true);
+			});
+		});
+	});
+
+
+	// ==========================================================================================
+
+
+	describe("options.shiftSelect", function () {
+		it("should be enabled by default", function () {
+			var grid = resetGrid(defaultData());
+			expect(grid.options.shiftSelect).toEqual(true);
+		});
+
+
+		// ==========================================================================================
+
+
+		it("should allow shift selection when enabled", function () {
+			var grid = resetGrid($.extend(defaultData(), {shiftSelect: true}));
+
+			// Get the number of columns and rows we have
+			var cols = grid.options.columns.length,
+				rows = grid.options.data.length;
+
+			// Activate the first cell
+			grid.activate(0, 0);
+
+			// Shift-click on the last cell
+			grid.$el.find('.doby-grid-cell').last().simulate("click", {shiftKey: true});
+
+			// Expect all cells to be selected
+			expect(grid.selection.length).toBeGreaterThan(0);
+			expect(grid.selection[0].fromCell).toEqual(0);
+			expect(grid.selection[0].fromRow).toEqual(0);
+			expect(grid.selection[0].toCell).toEqual(cols - 1);
+			expect(grid.selection[0].toRow).toEqual(rows - 1);
+		});
+
+
+		// ==========================================================================================
+
+
+		it("should not allow shift selection when disabled", function () {
+			var grid = resetGrid($.extend(defaultData(), {shiftSelect: false}));
+
+			// Get the number of columns and rows we have
+			var cols = grid.options.columns.length,
+				rows = grid.options.data.length;
+
+			// Activate the first cell
+			grid.activate(0, 0);
+
+			// Shift-click on the last cell
+			grid.$el.find('.doby-grid-cell').last().simulate("click", {shiftKey: true});
+
+			// Expect all cells to be selected
+			expect(grid.selection).toEqual(null);
+		});
+	});
+
+
+	// ==========================================================================================
+
+
+	describe("options.tooltipType", function () {
+		it("should be 'popup' by default", function () {
+			var grid = resetGrid(defaultData());
+			expect(grid.options.tooltipType).toEqual('popup');
+		});
+
+
+		// ==========================================================================================
+
+
+		it("should correctly add 'title' tags if using 'title' tooltips", function () {
+			var columns = [
+				{id: 'zero', tooltip: 0, name: "Zero"},
+				{id: 'one', tooltip: 1, name: "One"}
+			];
+			var grid = resetGrid($.extend(defaultData(), {
+				columns: columns,
+				tooltipType: 'title'
+			}));
+
+			var $columns = grid.$el.find('.doby-grid-header-column');
+			_.each(columns, function (col, i) {
+				expect($($columns[i]).attr('title')).toEqual(i.toString());
+			});
+
+		});
+
+
+		// ==========================================================================================
+
+
+		it("should throw an error if specifying an invalid type", function () {
+			_.each(['a', 1, [], {}, true, false, -1], function (test) {
+				expect(function () {
+					resetGrid($.extend(defaultData(), {tooltipType: test}));
+				}).toThrow('The "tooltipType" option be either "title" or "popup", not "' + test + '".');
+			});
+		});
+	});
+
 });
