@@ -4,7 +4,7 @@
 // For all details and documentation:
 // https://github.com/globexdesigns/doby-grid
 
-/*jslint browser: true, vars: true, plusplus: true, devel: false, indent: 4, maxerr: 50*/
+/*jslint browser: true, vars: true, plusplus: true, indent: 4, maxerr: 50*/
 /*jshint expr: true, white: true*/
 /*global console, define*/
 
@@ -70,6 +70,7 @@
 				columnsById: {},
 				indexById: {},
 				nodes: {},
+				postprocess: {},
 				rowPositions: {},
 				rows: []
 			},
@@ -236,7 +237,6 @@
 			page = 0,		// current page
 			ph,				// page height
 			Placeholder,
-			postProcessedRows = {},
 			postProcessFromRow = null,
 			postProcessToRow = null,
 			prevScrollLeft = 0,
@@ -737,10 +737,12 @@
 		// Processing the post-render action on all cells that need it
 		//
 		asyncPostProcessRows = function () {
+			//console.log('posting')
 			var dataLength = getDataLength(),
 				cb = function () {
-					if (col.cache) {
-						postProcessedRows[row][columnIdx] = $(node).html();
+					var columnIdx = getColumnIndex(this.id);
+					if (this.cache) {
+						cache.postprocess[row][columnIdx] = $(node).html();
 					}
 				};
 
@@ -753,9 +755,7 @@
 					continue;
 				}
 
-				if (!postProcessedRows[row]) {
-					postProcessedRows[row] = {};
-				}
+				if (!cache.postprocess[row]) cache.postprocess[row] = {};
 
 				ensureCellNodesInRowsCache(row);
 				for (columnIdx in cacheEntry.cellNodesByColumnIdx) {
@@ -775,7 +775,8 @@
 						postprocess = rd_cols[columnIdx].postprocess;
 					}
 
-					if (postprocess && !postProcessedRows[row][columnIdx]) {
+					// If row has no caching set -- run the postprocessing
+					if (postprocess && !cache.postprocess[row][columnIdx]) {
 						var node = cacheEntry.cellNodesByColumnIdx[columnIdx];
 						if (node) {
 							postprocess({
@@ -783,11 +784,7 @@
 								column: col,
 								data: getDataItem(row),
 								rowIndex: row
-							}, cb);
-						}
-
-						if (!col.cache && postProcessedRows[row]) {
-							postProcessedRows[row][columnIdx] = true;
+							}, cb.bind(col));
 						}
 					}
 				}
@@ -1337,8 +1334,8 @@
 				cacheEntry.rowNode.removeChild(cacheEntry.cellNodesByColumnIdx[cellToRemove]);
 				delete cacheEntry.cellColSpans[cellToRemove];
 				delete cacheEntry.cellNodesByColumnIdx[cellToRemove];
-				if (postProcessedRows[row]) {
-					delete postProcessedRows[row][cellToRemove];
+				if (cache.postprocess[row]) {
+					delete cache.postprocess[row][cellToRemove];
 				}
 				totalCellsRemoved++;
 			}
@@ -4646,7 +4643,7 @@
 		// @param	row		integer		Row index
 		//
 		invalidatePostProcessingResults = function (row) {
-			delete postProcessedRows[row];
+			delete cache.postprocess[row];
 			postProcessFromRow = Math.min(postProcessFromRow, row);
 			postProcessToRow = Math.max(postProcessToRow, row);
 			startPostProcessing();
@@ -5283,10 +5280,12 @@
 			delete cache.nodes[row];
 
 			// Clear postprocessing cache (only for non-cached columns)
-			if (postProcessedRows[row]) {
-				for (var i in postProcessedRows[row]) {
+			if (cache.postprocess[row]) {
+				for (var i in cache.postprocess[row]) {
 					col = self.options.columns[i];
-					if (!col.cache) delete postProcessedRows[row][i];
+					if (!col.cache) {
+						delete cache.postprocess[row][i];
+					}
 				}
 			}
 		};
@@ -5359,8 +5358,8 @@
 			result.push('<div class="' + cellCss.join(" ") + '">');
 
 			// If this is a cached, postprocessed row -- use the cache
-			if (m.cache && m.postprocess && postProcessedRows[row] && postProcessedRows[row][cell]) {
-				result.push(postProcessedRows[row][cell]);
+			if (m.cache && m.postprocess && cache.postprocess[row] && cache.postprocess[row][cell]) {
+				result.push(cache.postprocess[row][cell]);
 			} else if (item) {
 				// if there is a corresponding row (if not, this is the Add New row or
 				// this data hasn't been loaded yet)
@@ -6114,7 +6113,7 @@
 		// Allows columns to be re-orderable.
 		//
 		setupColumnReorder = function () {
-			$headers.filter(":ui-sortable").sortable("destroy");
+			if ($headers.filter(":ui-sortable").length) return;
 			$headers.sortable({
 				axis: "x",
 				containment: "parent",
@@ -6130,7 +6129,7 @@
 				beforeStop: function (e, ui) {
 					$(ui.helper).removeClass(classheadercolumnactive);
 				},
-				stop: function (e) {
+				update: function (e) {
 					e.stopPropagation();
 
 					var reorderedIds = $headers.sortable("toArray"),
@@ -6142,9 +6141,14 @@
 						reorderedColumns.push(self.options.columns[cindex]);
 					}
 
+					// Re-run postprocessing cache - it's no longer valie
+					cache.postprocess = {};
+					startPostProcessing();
+
 					self.setColumns(reorderedColumns);
-					self.trigger('onColumnsReordered', e);
 					setupColumnResize();
+
+					self.trigger('onColumnsReordered', e);
 				}
 			});
 		};

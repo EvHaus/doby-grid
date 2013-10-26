@@ -1,4 +1,4 @@
-/*jslint browser:true,expr:true,vars:true,plusplus:true,devel:true,indent:4,maxerr:50*/
+/*jslint browser:true,expr:true,vars:true,plusplus:true,indent:4,maxerr:50*/
 /*jshint white: true*/
 /*global $, _, define*/
 
@@ -15,7 +15,7 @@ define(['faker'], function (Faker) {
 				data: {
 					id: i,
 					name: Faker.Name.findName(),
-					age: _.sample([10,20,30,40,50,60,70,80,90,100]),
+					age: _.sample([10, 20, 30, 40, 50, 60, 70, 80, 90, 100]),
 					city: Faker.Address.city(),
 					rsvp: _.random(0, 1)
 				}

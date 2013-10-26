@@ -1348,4 +1348,61 @@ describe("Grid Options", function () {
 		});
 	});
 
+
+	// ==========================================================================================
+
+
+	describe("options.reorderable", function () {
+		it("should be enabled by default", function () {
+			// Prepare for test
+			var grid = resetGrid(defaultData());
+
+			expect(grid.options.reorderable).toEqual(true);
+		});
+
+
+		// ==========================================================================================
+
+
+		it("should correctly re-arrange columns via drag and drop when enabled", function () {
+			// Prepare for test
+			var grid = resetGrid($.extend(defaultData(), {
+				columns: [
+					{id: 'id', field: 'id', name: 'id', class: 'one'},
+					{id: 'name', field: 'name', name: 'name', class: 'two'}
+				]
+			}));
+
+			// Capture the order before the move
+			var orderBefore = JSON.parse(JSON.stringify(grid.options.columns));
+
+			// Grab the columns
+			var cols = grid.$el.find('.doby-grid-header-column');
+
+			// Programmatically move the column 0 after column 1
+			cols.eq(0).simulate('drag', {dx: cols.eq(0).width() * 2});
+
+			// Grab the columns again
+			var colsAfter = grid.$el.find('.doby-grid-header-column');
+
+			// Confirm that the elements moved correctly
+			expect(cols[0].id).toEqual(colsAfter[1].id);
+			expect(cols[1].id).toEqual(colsAfter[0].id);
+
+			// Confirm that classes are changed (ie. rows re-rendered)
+			grid.$el.find('.doby-grid-row').each(function () {
+				$(this).find('.doby-grid-cell').each(function (i) {
+					if (i === 0) {
+						expect($(this).hasClass('two')).toEqual(true);
+					} else {
+						expect($(this).hasClass('one')).toEqual(true);
+					}
+				});
+			});
+
+			// Confirm that column options got reversed
+			expect(orderBefore).toEqual(grid.options.columns.reverse());
+		});
+	});
+
 });
