@@ -3116,7 +3116,13 @@
 				row = [];
 				if (format === 'html') row.push('<tr>');
 				for (ii = 0, ll = this.options.columns.length; ii < ll; ii++) {
-					val = getValueFromItem(this.collection.items[i], this.options.columns[ii]);
+
+					if (this.collection.items instanceof Backbone.Collection) {
+						val = getValueFromItem(this.collection.items.get(i), this.options.columns[ii]);
+					} else {
+						val = getValueFromItem(this.collection.items[i], this.options.columns[ii]);
+					}
+
 					if (format === 'csv') {
 						// Escape quotes
 						val = val.toString().replace(/\"/g, '\"');
@@ -3850,7 +3856,7 @@
 		// @return string
 		getValueFromItem = function (item, column) {
 			// First check for an exporter function for this specific item
-			if (item.exporter && typeof item.exporter === 'function') {
+			if (typeof item.exporter === 'function') {
 				return item.exporter(column, item).toString();
 			}
 
@@ -6502,7 +6508,7 @@
 							c = self.options.columns[i];
 							if (result && c.quickFilterInput) {
 								i_value = c.quickFilterInput.val();
-								c_value = item.data[c.field].toString();
+								c_value = getDataItemValueForColumn(item, c);
 
 								result *= i_value && c_value ? c_value.toLowerCase().indexOf(i_value.toLowerCase()) >= 0 : true;
 							}
