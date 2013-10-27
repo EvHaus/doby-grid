@@ -2545,7 +2545,15 @@
 				if (ascending === false) {
 					this.items.reverse();
 				}
-				this.items.sort(comparer);
+
+				// Backbone Collection sorting is done through a defined comparator
+				if (this.items instanceof Backbone.Collection) {
+					this.items.comparator = comparer;
+					this.items.sort();
+				} else {
+					this.items.sort(comparer);
+				}
+
 				if (ascending === false) {
 					this.items.reverse();
 				}
@@ -3037,8 +3045,8 @@
 					if (dataRow1 instanceof Aggregate) return 1;
 					if (dataRow2 instanceof Aggregate) return -1;
 
-					value1 = dataRow1.data[field];
-					value2 = dataRow2.data[field];
+					value1 = getDataItemValueForColumn(dataRow1, column);
+					value2 = getDataItemValueForColumn(dataRow2, column);
 
 					// Use custom column comparer if it exists
 					if (typeof(column.comparator) === 'function') {

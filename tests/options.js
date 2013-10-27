@@ -1283,8 +1283,6 @@ describe("Grid Options", function () {
 					widths_after.push(cell.width());
 				});
 
-				console.log(widths_before, widths_during, widths_after)
-
 				// Expect headers to drag
 				expect(widths_during[0]).toEqual(widths_before[0] + drag_distance);
 				expect(widths_after[0]).toEqual(widths_before[0] + drag_distance);
