@@ -14,7 +14,8 @@ define(['backbone', 'faker'], function (Backbone, Faker) {
 			collection.add({
 				id: i,
 				name: Faker.Name.findName(),
-				city: Faker.Address.city()
+				city: Faker.Address.city(),
+				rating: _.sample([1, 2, 3, 4, 5, 6, 7, 8, 9])
 			});
 		}
 
@@ -32,6 +33,25 @@ define(['backbone', 'faker'], function (Backbone, Faker) {
 				id: "city",
 				name: "City",
 				field: "city"
+			}, {
+				id: "rating",
+				name: "Rating",
+				field: "rating",
+				aggregator: function (column) {
+					this.total = [];
+					this.exporter = function () {
+						var avg = this.total.reduce(function (a, b) { return a + b; });
+						return Math.round(avg / this.total.length);
+					};
+					this.formatter = function () {
+						var avg = this.total.reduce(function (a, b) { return a + b; });
+						return "Avg: <strong>" + Math.round(avg / this.total.length) + "</strong>";
+					};
+					this.process = function (item) {
+						this.total.push(item.get('rating'));
+					};
+					return this;
+				},
 			}],
 			data: collection
 		};

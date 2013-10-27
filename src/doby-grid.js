@@ -2232,7 +2232,12 @@
 				var item, i, l;
 				// Loop through the data and process the aggregators
 				for (i = 0, l = self.items.length; i < l; i++) {
-					item = self.items[i];
+					if (self.items instanceof Backbone.Collection) {
+						item = self.items.get(i);
+					} else {
+						item = self.items[i];
+					}
+
 					for (var column_id in cache.aggregatorsByColumnId) {
 						cache.aggregatorsByColumnId[column_id].process(item);
 					}
@@ -2240,9 +2245,15 @@
 
 				// Insert grid totals row
 				var gridAggregate = new Aggregate(cache.aggregatorsByColumnId);
+
 				// Mark this is the grid-level aggregate
 				gridAggregate.__gridAggregate = true;
-				self.items.push(gridAggregate);
+
+				if (self.items instanceof Backbone.Collection) {
+					self.items.models.push(gridAggregate);
+				} else {
+					self.items.push(gridAggregate);
+				}
 			};
 
 
@@ -6509,6 +6520,8 @@
 							if (result && c.quickFilterInput) {
 								i_value = c.quickFilterInput.val();
 								c_value = getDataItemValueForColumn(item, c);
+
+								if (c_value !== undefined && c_value !== null) c_value = c_value.toString();
 
 								result *= i_value && c_value ? c_value.toLowerCase().indexOf(i_value.toLowerCase()) >= 0 : true;
 							}
