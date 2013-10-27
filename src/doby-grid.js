@@ -1993,7 +1993,16 @@
 				return groupedRows;
 			};
 
+
+			// getFilteredAndPagedItems()
+			// Runs the data through the filters (if any).
+			//
+			// @param	items		array		List of items to filter through
+			//
+			// @return object
 			getFilteredAndPagedItems = function (items) {
+				items = items instanceof Backbone.Collection ? items.models : items;
+
 				if (self.filter) {
 					var batchFilter = uncompiledFilter;
 					var batchFilterWithCaching = uncompiledFilterWithCaching;
@@ -2164,17 +2173,21 @@
 			//
 			// @return array
 			parse = function (items) {
-				var i, l = items.length, id, childrow;
+				items = items instanceof Backbone.Collection ? items.models : items;
+
+				var i, l = items.length, id, childrow, item;
 				for (i = 0; i < l; i++) {
-					// Validate that 'id' exists
-					if (!(idProperty in items[i])) {
-						throw "Each data item must have a unique 'id' key. The following item is missing an 'id': " + JSON.stringify(items[i]);
+					item = items[i];
+
+					// Validate that idProperty exists
+					if (!(idProperty in item)) {
+						throw "Each data item must have a unique 'id' key. The following item is missing an 'id': " + JSON.stringify(item);
 					}
 
 					// Check for children columns
-					if (items[i].rows) {
-						for (var rowIdx in items[i].rows) {
-							childrow = items[i].rows[rowIdx];
+					if (item.rows) {
+						for (var rowIdx in item.rows) {
+							childrow = item.rows[rowIdx];
 							if (!variableRowHeight && 'height' in childrow && childrow.height != grid.options.rowHeight) {
 								variableRowHeight = true;
 								break;
@@ -2193,17 +2206,17 @@
 
 					// Detect if variable row heights are used
 					if (
-						!variableRowHeight && 'height' in items[i] &&
-						items[i].height !== grid.options.rowHeight
+						!variableRowHeight && 'height' in item &&
+						item.height !== grid.options.rowHeight
 					) {
 						variableRowHeight = true;
 					}
 
 					// Detect if nested postprocessing is needed via columns
-					if (items[i].columns && !enableAsyncPostRender) {
-						for (var clmn in items[i].columns) {
+					if (item.columns && !enableAsyncPostRender) {
+						for (var clmn in item.columns) {
 							if (enableAsyncPostRender) break;
-							if (items[i].columns[clmn].postprocess) enableAsyncPostRender = true;
+							if (item.columns[clmn].postprocess) enableAsyncPostRender = true;
 						}
 					}
 				}
@@ -3569,6 +3582,9 @@
 		getDataItemValueForColumn = function (item, columnDef) {
 			// If a custom extractor is specified -- use that
 			if (self.options.dataExtractor) return self.options.dataExtractor(item, columnDef);
+
+			// Backbone Model
+			if (item instanceof Backbone.Model) return item.get(columnDef.field);
 
 			// Group headers
 			if (item instanceof Group) return item.value;
@@ -6177,7 +6193,7 @@
 			var lockColumnWidths = function () {
 				columnElements.each(function (i, e) {
 					// The extra 1 here is to compensate for the border separator
-					self.options.columns[i].previousWidth = $(e).outerWidth() - 1;
+					self.options.columns[i].previousWidth = self.options.columns[i].width;
 				});
 			};
 
@@ -6187,15 +6203,14 @@
 				if (d < 0) { // shrink column
 					for (j = i; j >= 0; j--) {
 						c = self.options.columns[j];
-						if (c.resizable) {
-							actualMinWidth = Math.max(c.minWidth || 0, absoluteColumnMinWidth);
-							if (x && c.previousWidth + x < actualMinWidth) {
-								x += c.previousWidth - actualMinWidth;
-								c.width = actualMinWidth;
-							} else {
-								c.width = c.previousWidth + x;
-								x = 0;
-							}
+						if (!c.resizable) continue;
+						actualMinWidth = Math.max(c.minWidth || 0, absoluteColumnMinWidth);
+						if (x && c.previousWidth + x < actualMinWidth) {
+							x += c.previousWidth - actualMinWidth;
+							c.width = actualMinWidth;
+						} else {
+							c.width = c.previousWidth + x;
+							x = 0;
 						}
 					}
 
@@ -6203,21 +6218,7 @@
 						x = -d;
 						for (j = i + 1; j < columnElements.length; j++) {
 							c = self.options.columns[j];
-							if (c.resizable) {
-								if (x && c.maxWidth && (c.maxWidth - c.previousWidth < x)) {
-									x -= c.maxWidth - c.previousWidth;
-									c.width = c.maxWidth;
-								} else {
-									c.width = c.previousWidth + x;
-									x = 0;
-								}
-							}
-						}
-					}
-				} else { // stretch column
-					for (j = i; j >= 0; j--) {
-						c = self.options.columns[j];
-						if (c.resizable) {
+							if (!c.resizable) continue;
 							if (x && c.maxWidth && (c.maxWidth - c.previousWidth < x)) {
 								x -= c.maxWidth - c.previousWidth;
 								c.width = c.maxWidth;
@@ -6227,20 +6228,32 @@
 							}
 						}
 					}
+				} else { // stretch column
+					for (j = i; j >= 0; j--) {
+						c = self.options.columns[j];
+						if (!c.resizable) continue;
+						if (x && c.maxWidth && (c.maxWidth - c.previousWidth < x)) {
+							x -= c.maxWidth - c.previousWidth;
+							c.width = c.maxWidth;
+						} else {
+							c.width = c.previousWidth + x;
+							x = 0;
+						}
+					}
 
 					if (self.options.autoColumnWidth) {
 						x = -d;
 						for (j = i + 1, l = columnElements.length; j < l; j++) {
 							c = self.options.columns[j];
-							if (c.resizable) {
-								actualMinWidth = Math.max(c.minWidth || 0, absoluteColumnMinWidth);
-								if (x && c.previousWidth + x < actualMinWidth) {
-									x += c.previousWidth - actualMinWidth;
-									c.width = actualMinWidth;
-								} else {
-									c.width = c.previousWidth + x;
-									x = 0;
-								}
+							if (!c.resizable) continue;
+							actualMinWidth = Math.max(c.minWidth || 0, absoluteColumnMinWidth);
+							if (x && c.previousWidth + x < actualMinWidth) {
+								x += c.previousWidth - actualMinWidth;
+
+								c.width = actualMinWidth;
+							} else {
+								c.width = c.previousWidth + x;
+								x = 0;
 							}
 						}
 					}
@@ -6257,16 +6270,15 @@
 					// colums on right affect maxPageX/minPageX
 					for (j = i + 1; j < columnElements.length; j++) {
 						c = self.options.columns[j];
-						if (c.resizable) {
-							if (stretchLeewayOnRight !== null) {
-								if (c.maxWidth) {
-									stretchLeewayOnRight += c.maxWidth - c.previousWidth;
-								} else {
-									stretchLeewayOnRight = null;
-								}
+						if (!c.resizable) continue;
+						if (stretchLeewayOnRight !== null) {
+							if (c.maxWidth) {
+								stretchLeewayOnRight += c.maxWidth - c.previousWidth;
+							} else {
+								stretchLeewayOnRight = null;
 							}
-							shrinkLeewayOnRight += c.previousWidth - Math.max(c.minWidth || 0, absoluteColumnMinWidth);
 						}
+						shrinkLeewayOnRight += c.previousWidth - Math.max(c.minWidth || 0, absoluteColumnMinWidth);
 					}
 				}
 				var shrinkLeewayOnLeft = 0,
@@ -6274,29 +6286,22 @@
 				for (j = 0; j <= i; j++) {
 					// columns on left only affect minPageX
 					c = self.options.columns[j];
-					if (c.resizable) {
-						if (stretchLeewayOnLeft !== null) {
-							if (c.maxWidth) {
-								stretchLeewayOnLeft += c.maxWidth - c.previousWidth;
-							} else {
-								stretchLeewayOnLeft = null;
-							}
+					if (!c.resizable) continue;
+					if (stretchLeewayOnLeft !== null) {
+						if (c.maxWidth) {
+							stretchLeewayOnLeft += c.maxWidth - c.previousWidth;
+						} else {
+							stretchLeewayOnLeft = null;
 						}
-						shrinkLeewayOnLeft += c.previousWidth - Math.max(c.minWidth || 0, absoluteColumnMinWidth);
 					}
+					shrinkLeewayOnLeft += c.previousWidth - Math.max(c.minWidth || 0, absoluteColumnMinWidth);
 				}
-				if (shrinkLeewayOnRight === null) {
-					shrinkLeewayOnRight = 100000;
-				}
-				if (shrinkLeewayOnLeft === null) {
-					shrinkLeewayOnLeft = 100000;
-				}
-				if (stretchLeewayOnRight === null) {
-					stretchLeewayOnRight = 100000;
-				}
-				if (stretchLeewayOnLeft === null) {
-					stretchLeewayOnLeft = 100000;
-				}
+
+				if (shrinkLeewayOnRight === null) shrinkLeewayOnRight = 100000;
+				if (shrinkLeewayOnLeft === null) shrinkLeewayOnLeft = 100000;
+				if (stretchLeewayOnRight === null) stretchLeewayOnRight = 100000;
+				if (stretchLeewayOnLeft === null) stretchLeewayOnLeft = 100000;
+
 				maxPageX = pageX + Math.min(shrinkLeewayOnRight, stretchLeewayOnLeft);
 				minPageX = pageX - Math.min(shrinkLeewayOnLeft, stretchLeewayOnRight);
 			};
@@ -6370,7 +6375,7 @@
 						prepareLeeway(i, pageX);
 					})
 					.on('drag', function (event) {
-						var delta = Math.min(maxPageX, Math.max(minPageX, event.pageX)) - pageX + 1;
+						var delta = Math.min(maxPageX, Math.max(minPageX, event.pageX)) - pageX;
 
 						// Sets the new column widths
 						resizeColumn(i, delta);
@@ -7172,8 +7177,12 @@
 			}
 
 			// Ensure "data" option is an array or a function
-			if (!_.isArray(self.options.data) && typeof self.options.data !== 'function') {
-				throw new TypeError('The "data" option must be an array or a function.');
+			if (
+				!_.isArray(self.options.data) &&
+				typeof self.options.data !== 'function' &&
+				!(self.options.data instanceof Backbone.Collection)
+			) {
+				throw new TypeError('The "data" option must be an array, a function or a Backbone.Collection.');
 			} else {
 				// If array is a function - enable remote fetching by instantiating the remote class
 				if (typeof self.options.data === 'function') {

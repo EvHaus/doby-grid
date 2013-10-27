@@ -4,8 +4,8 @@
 // For all details and documentation:
 // https://github.com/globexdesigns/doby-grid
 
-/*jslint vars: true, plusplus: true, devel: true, nomen: true, indent: 4, maxerr: 50*/
-/*global _, $, describe, document, expect, DobyGrid, Image, it, runs, setFixtures, waitsFor, window*/
+/*jslint vars: true, plusplus: true, nomen: true, indent: 4, maxerr: 50*/
+/*global _, $, Backbone, describe, document, expect, DobyGrid, Image, it, runs, setFixtures, waitsFor, window*/
 
 describe("Grid Options", function () {
 	"use strict";
@@ -483,6 +483,19 @@ describe("Grid Options", function () {
 
 
 	describe("options.columns", function () {
+		it("should throw a TypeError if the given columns object is not an array", function () {
+			var tp = new TypeError('The "columns" option must be an array.');
+			expect(function () {
+				new DobyGrid({
+					columns: {}
+				});
+			}).toThrow(tp);
+		});
+
+
+		// ==========================================================================================
+
+
 		it("should set the columns based given values", function () {
 			var cols = [{
 				id: 'one',
@@ -560,6 +573,47 @@ describe("Grid Options", function () {
 					}
 				});
 			});
+		});
+	});
+
+
+	// ==========================================================================================
+
+
+	describe("options.data", function () {
+		it("should throw a TypeError if the given data object is not an array or a function", function () {
+			var tp = new TypeError('The "data" option must be an array, a function or a Backbone.Collection.');
+			expect(function () {
+				new DobyGrid({
+					data: {}
+				});
+			}).toThrow(tp);
+		});
+
+
+		// ==========================================================================================
+
+
+		it("should throw a TypeError if the given data object has items with missing 'id's", function () {
+			var tp = new TypeError("Each data item must have a unique 'id' key. The following item is missing an 'id': {\"test\":2}");
+			expect(function () {
+				new DobyGrid({
+					data: [
+						{test: 1, id: 'asd'},
+						{test: 2}
+					]
+				});
+			}).toThrow(tp);
+		});
+
+
+		// ==========================================================================================
+
+
+		it("should be able to initialize grid with a Backbone.Collection data set", function () {
+			var grid = resetGrid($.extend(defaultData(), {
+				data: new Backbone.Collection()
+			}));
 		});
 	});
 
@@ -1228,6 +1282,8 @@ describe("Grid Options", function () {
 				_.each(cd.cells, function(cell, i) {
 					widths_after.push(cell.width());
 				});
+
+				console.log(widths_before, widths_during, widths_after)
 
 				// Expect headers to drag
 				expect(widths_during[0]).toEqual(widths_before[0] + drag_distance);
