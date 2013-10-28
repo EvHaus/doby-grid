@@ -129,7 +129,7 @@ describe("Rendering", function () {
 
 			// Use the largest padding
 			var padding = Math.max(headerpadding, cellpadding),
-				weirdoffset = 10,		// FIXME: Tests seem to have this extra offset for some reason.
+				weirdoffset = 12,		// FIXME: Tests seem to have this extra offset for some reason.
 				marginoferror = 5;		// FIXME: Can't find a way to reliable test pixel-perfect resizing
 										// here, so check to see that things at least get resized in the
 										// a relative margin of error.
