@@ -377,7 +377,7 @@
 			headerClass:		null,
 			id:					null,
 			maxWidth:			null,
-			minWidth:			38,
+			minWidth:			42,
 			name:				"",
 			postprocess:		null,
 			removable:			true,
@@ -3537,7 +3537,7 @@
 			var name = $column.children('.' + classcolumnname + ':first');
 			name.css('overflow', 'visible');
 			$column.width('auto');
-			var headerWidth = $column.outerWidth();
+			var headerWidth = $column.width() + headerPadding;
 			name.css('overflow', '');
 			$column.width(currentWidth);
 			cellWidths.push(headerWidth);
@@ -5970,19 +5970,13 @@
 			this.options.columns = columns;
 
 			cache.columnsById = {};
-			var m;
+			var c;
 			for (var i = 0, l = this.options.columns.length; i < l; i++) {
-				// TODO: This is ugly. Can anything be done?
-				m = self.options.columns[i];
-				m = self.options.columns[i] = $.extend(JSON.parse(JSON.stringify(columnDefaults)), m);
+				c = self.options.columns[i] = $.extend(JSON.parse(JSON.stringify(columnDefaults)), self.options.columns[i]);
 
-				cache.columnsById[m.id] = i;
-				if (m.minWidth && m.width < m.minWidth) {
-					m.width = m.minWidth;
-				}
-				if (m.maxWidth && m.width > m.maxWidth) {
-					m.width = m.maxWidth;
-				}
+				cache.columnsById[c.id] = i;
+				if (c.minWidth && c.width < c.minWidth) c.width = c.minWidth;
+				if (c.maxWidth && c.width > c.maxWidth) c.width = c.maxWidth;
 			}
 
 			validateColumns();
@@ -7153,15 +7147,10 @@
 			var c;
 			for (var i = 0, l = self.options.columns.length; i < l; i++) {
 				// Set defaults
-				// TODO: This is ugly. Can anything be done?
-				c = self.options.columns[i];
-				c = self.options.columns[i] = $.extend(JSON.parse(JSON.stringify(columnDefaults)), c);
+				c = self.options.columns[i] = $.extend(JSON.parse(JSON.stringify(columnDefaults)), self.options.columns[i]);
 
 				// An "id" is required. If it's missing, auto-generate one
 				if (!c.id) c.id = c.field + '_' + i || c.name + '_' + i;
-
-				// TODO: This is temporarily here until grouping via remote data can be enabled
-				if (self.options.remote) c.groupable = false;
 
 				// Convert "tooltip" param to a Cumul8-friendly tooltip
 				if (c.tooltip) {
