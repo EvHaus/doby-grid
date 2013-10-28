@@ -353,6 +353,7 @@
 				}
 			},
 			multiColumnSort:		true,
+			quickFilter:			false,
 			remote:					false,
 			resizableColumns:		true,
 			resizableRows:			false,
@@ -6752,7 +6753,7 @@
 			// @param	fn			function	Function to execute when item clicked
 			//
 			var menuData = [{
-				enabled: column,
+				enabled: column && self.options.quickFilter,
 				name: column ? getLocale('column.filter', {name: column.name}) : '',
 				fn: function () {
 					showQuickFilter(column);
@@ -6764,7 +6765,7 @@
 					showQuickFilter();
 				}
 			}, {
-				enabled: true,
+				enabled: self.options.quickFilter || $headerFilter !== undefined,
 				divider: true
 			}, {
 				enabled: column && column.removable,

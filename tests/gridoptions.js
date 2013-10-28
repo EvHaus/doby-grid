@@ -1063,6 +1063,17 @@ describe("Grid Options", function () {
 	// ==========================================================================================
 
 
+	describe("options.quickFilter", function () {
+		it("should be disabled by default", function () {
+			var grid = resetGrid(defaultData());
+			expect(grid.options.quickFilter).toEqual(false);
+		});
+	});
+
+
+	// ==========================================================================================
+
+
 	describe("options.resizableColumns", function () {
 		it("should be enabled by default", function () {
 			var grid = resetGrid(defaultData());

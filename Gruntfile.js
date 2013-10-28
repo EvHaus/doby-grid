@@ -68,7 +68,7 @@ module.exports = function (grunt) {
 					'// https://github.com/globexdesigns/doby-grid\n'
 				].join('\n'),
 				mangle: {
-					except: ['jQuery', 'Backbone', '_', '$']
+					except: ['jQuery', 'Backbone']
 				}
 			},
 
