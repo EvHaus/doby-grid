@@ -378,7 +378,7 @@
 			minWidth:			42,
 			name:				"",
 			postprocess:		null,
-			removable:			true,
+			removable:			false,
 			rerenderOnResize:	false,
 			resizable:			true,
 			selectable:			true,
@@ -512,7 +512,7 @@
 		// @return object
 		this.addGrouping = function (column_id, options) {
 			// Is grouping enabled
-			if (!self.options.groupable) throw new Error('Cannot execute "addGrouping" because "options.groupable: is disabled.');
+			if (!self.options.groupable) throw new Error('Cannot execute "addGrouping" because "options.groupable" is disabled.');
 
 			options = options || {};
 
@@ -735,7 +735,6 @@
 		// Processing the post-render action on all cells that need it
 		//
 		asyncPostProcessRows = function () {
-			//console.log('posting')
 			var dataLength = getDataLength(),
 				cb = function () {
 					var columnIdx = getColumnIndex(this.id);
@@ -2234,7 +2233,9 @@
 					}
 
 					for (var column_id in cache.aggregatorsByColumnId) {
-						cache.aggregatorsByColumnId[column_id].process(item);
+						if (typeof cache.aggregatorsByColumnId[column_id].process === 'function') {
+							cache.aggregatorsByColumnId[column_id].process(item);
+						}
 					}
 				}
 
@@ -2460,7 +2461,7 @@
 			//
 			this.setGrouping = function (options) {
 				// Is grouping enabled
-				if (!grid.options.groupable) throw new Error('Cannot execute "setGrouping" because "options.groupable: is disabled.');
+				if (!grid.options.groupable) throw new Error('Cannot execute "setGrouping" because "options.groupable" is disabled.');
 
 				options = options || [];
 
@@ -2469,16 +2470,23 @@
 				// If resetting grouping - reset toggle cache
 				if (!options.length) toggledGroupsByLevel = [];
 
-				this.groups = [];
-
 				// Reset group cache
-				var i, l, groupingObject;
+				var i, l, groupingObject, groups = [], col;
 				for (i = 0, l = options.length; i < l; i++) {
+					col = getColumnById(options[i].column_id);
+
+					if (col.groupable === false) {
+						throw new Error('Cannot add grouping for column "' + col.id + '" because "options.groupable" is disabled for that column.');
+					}
+
 					if (!toggledGroupsByLevel[i]) toggledGroupsByLevel[i] = {};
 
 					// Extend using a default grouping object nad add to groups
-					this.groups.push(createGroupingObject(options[i]));
+					groups.push(createGroupingObject(options[i]));
 				}
+
+				// Set groups
+				this.groups = groups;
 
 				// Reload the grid with the new grouping
 				this.refresh();
@@ -5225,9 +5233,16 @@
 
 			var colDef;
 			var newcolumns = this.options.columns.filter(function (c) {
-				if (c.id == column) colDef = c;
+				if (c.id == column) {
+					colDef = c;
+					if (c.removable !== true) {
+						throw new Error('Cannot remove column "' + c.id + '" because it is not removable.');
+					}
+				}
 				return c.id != column;
 			});
+
+			if (!colDef) throw new Error('Cannot remove column "' + column + '" because no such column exists.');
 
 			// If column had a grouping - remove that grouping
 			if (hasGrouping(column)) {
@@ -6109,6 +6124,20 @@
 				throw new Error('Doby Grid cannot set the sorting given because "multiColumnSort" is disabled and the given sorting options contain multiple columns.');
 			}
 
+			// Make sure all selected column are sortable
+			// NOTE: This can be optimized
+			var colDef = null;
+			_.each(options, function (opt) {
+				_.each(this.options.columns, function (col) {
+					if (opt.columnId === col.id) {
+						colDef = col;
+						if (col.sortable === false) {
+							throw new Error('Doby Grid cannot sort by "' + col.id + '" because that column is not sortable.');
+						}
+					}
+				});
+			}.bind(this));
+
 			// Updating the sorting dictionary
 			this.sorting = options;
 
@@ -6124,7 +6153,7 @@
 			_.each(options, function (col) {
 				args.sortCols.push({
 					sortCol: getColumnById(col.columnId),
-					sortAsc: col.sortAsc
+					sortAsc: col.sortAsc !== null && col.sortAsc !== undefined ? col.sortAsc : colDef.sortAsc
 				});
 			});
 
@@ -6676,7 +6705,6 @@
 		//
 		// @return object
 		this.sortBy = function (column_id, ascending) {
-			if (ascending === undefined) ascending = true;
 			if (!column_id)	throw new Error('Grid cannot sort by blank value. Column Id must be specified.');
 			return this.setSorting([{
 				columnId: column_id,
@@ -7133,9 +7161,7 @@
 		// Parses the options.columns list to ensure column data is correctly configured.
 		//
 		validateColumns = function () {
-			if (!self.options.columns) {
-				return;
-			}
+			if (!self.options.columns) return;
 
 			var c;
 			for (var i = 0, l = self.options.columns.length; i < l; i++) {
@@ -7143,7 +7169,7 @@
 				c = self.options.columns[i] = $.extend(JSON.parse(JSON.stringify(columnDefaults)), self.options.columns[i]);
 
 				// An "id" is required. If it's missing, auto-generate one
-				if (!c.id) c.id = c.field + '_' + i || c.name + '_' + i;
+				if (c.id === undefined || c.id === null) c.id = c.field ? c.field + '_' + i : c.name ? c.name + '_' + i : null;
 
 				// Convert "tooltip" param to a Cumul8-friendly tooltip
 				if (c.tooltip) {
@@ -7161,6 +7187,19 @@
 				// If min/max width is set -- use it to reset given width
 				if (c.minWidth !== undefined && c.minWidth !== null && c.width < c.minWidth) c.width = c.minWidth;
 				if (c.maxWidth !== undefined && c.maxWidth !== null && c.width > c.maxWidth) c.width = c.maxWidth;
+
+				// Aggregators and editors must be functions
+				var fn_attrs = ['aggregator', 'editor', 'exporter', 'formatter'], attr;
+				for (var j = 0, k = fn_attrs.length; j < k; j++) {
+					attr = fn_attrs[j];
+					if (c[attr] !== undefined && c[attr] !== null && typeof c[attr] !== 'function') {
+						throw [
+							"Column ", attr, "s must be functions. ",
+							"Invalid ", attr, " given for column \"",
+							(c.name || c.id), '"'
+						].join("");
+					}
+				}
 
 				// Build column id cache
 				cache.columnsById[c.id] = i;

@@ -804,11 +804,11 @@ describe("Grid Options", function () {
 
 			expect(function () {
 				grid.addGrouping(grid.options.columns[0].id);
-			}).toThrow('Cannot execute "addGrouping" because "options.groupable: is disabled.');
+			}).toThrow('Cannot execute "addGrouping" because "options.groupable" is disabled.');
 
 			expect(function () {
 				grid.setGrouping(grid.options.columns[0].id);
-			}).toThrow('Cannot execute "setGrouping" because "options.groupable: is disabled.');
+			}).toThrow('Cannot execute "setGrouping" because "options.groupable" is disabled.');
 		});
 	});
 
@@ -1139,32 +1139,6 @@ describe("Grid Options", function () {
 			// Check to make sure all columns have handles
 			grid.$el.find('.doby-grid-header-column').each(function (i) {
 				expect($(this).children('.doby-grid-resizable-handle').length).toEqual(0);
-			});
-		});
-
-
-		// ==========================================================================================
-
-
-		it("should not draw resize handles on columns which have resizing disabled", function () {
-			// Prepare for test
-			var grid = resetGrid($.extend(defaultData(), {
-				columns: [
-					{id: 'id', field: 'id'},
-					{id: 'id2', resizable: false, field: 'id2'},
-					{id: 'id3', field: 'id3'},
-					{id: 'id4', resizable: false, field: 'id4'}
-				],
-				resizableColumns: true
-			}));
-
-			// Check to make sure all the right columns have handles
-			grid.$el.find('.doby-grid-header-column').each(function (i) {
-				if (i % 2) {
-					expect($(this).children('.doby-grid-resizable-handle').length).toEqual(0);
-				} else{
-					expect($(this).children('.doby-grid-resizable-handle').length).toEqual(1);
-				}
 			});
 		});
 	});
@@ -1505,7 +1479,6 @@ describe("Grid Options", function () {
 				lastcell = grid.$el.find('.doby-grid-row:last .doby-grid-cell:first');
 
 			// Get the drag delta from the first cell
-			var a = grid.$el.find('.doby-grid-cell:first');
 			var dy = firstcell.position().top - lastcell.position().top + lastcell.height();
 
 			// Simulate a click and drag on the cell ranges
@@ -1534,7 +1507,6 @@ describe("Grid Options", function () {
 				lastcell = grid.$el.find('.doby-grid-row:last .doby-grid-cell:first');
 
 			// Get the drag delta from the first cell
-			var a = grid.$el.find('.doby-grid-cell:first');
 			var dy = firstcell.position().top - lastcell.position().top + lastcell.height();
 
 			// Simulate a click and drag on the cell ranges

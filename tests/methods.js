@@ -719,6 +719,47 @@ describe("Methods and Data Manipulation", function () {
 	// ==========================================================================================
 
 
+	describe("removeColumn()", function () {
+		it("should be able to removeColumn() by id", function () {
+			var grid = resetGrid({
+				columns: [{
+					id: 1,
+					removable: true
+				}, {
+					id: 2
+				}]
+			});
+
+			grid.removeColumn(1);
+
+			expect(grid.options.columns.length).toEqual(1);
+			expect(grid.options.columns[0].id).toEqual(2);
+		});
+
+
+		// ==========================================================================================
+
+
+		it("should not be able to remove columns that don't exist", function () {
+			var grid = resetGrid({
+				columns: [{
+					id: 1,
+					removable: true
+				}, {
+					id: 2
+				}]
+			});
+
+			expect(function () {
+				grid.removeColumn(3);
+			}).toThrow('Cannot remove column "3" because no such column exists.');
+		});
+	});
+
+
+	// ==========================================================================================
+
+
 	describe("removeGrouping()", function () {
 		it("should be able to removeGrouping()", function () {
 			// Prepare the grid for testing
