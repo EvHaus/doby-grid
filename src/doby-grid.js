@@ -1035,7 +1035,6 @@
 		//
 		cacheRows = function (from, indexOnly) {
 			from = from || 0;
-			var items = cache.rows;
 
 			// Start cache object
 			if (from === 0) {
@@ -1052,11 +1051,12 @@
 			}
 
 			var item, data, childrowheight;
-			for (var i = from, l = items.length; i < l; i++) {
-				item = items[i];
+			for (var i = from, l = cache.rows.length; i < l; i++) {
+				item = cache.rows[i];
 
 				// Cache by item id
-
+				// NOTE: This is currently the slowest part of grid initialization. Can it be done
+				// lazily since this is only used for get/add/remove.
 				cache.indexById[item[idProperty]] = i;
 
 				// Cache row position
@@ -2175,12 +2175,12 @@
 			parse = function (items) {
 				items = items instanceof Backbone.Collection ? items.models : items;
 
-				var i, l = items.length, id, childrow, item;
-				for (i = 0; i < l; i++) {
+				var i, l, id, childrow, item;
+				for (i = 0, l = items.length; i < l; i++) {
 					item = items[i];
 
 					// Validate that idProperty exists
-					if (!(idProperty in item)) {
+					if (item[idProperty] === undefined || item[idProperty] === null) {
 						throw "Each data item must have a unique 'id' key. The following item is missing an 'id': " + JSON.stringify(item);
 					}
 
@@ -2188,7 +2188,7 @@
 					if (item.rows) {
 						for (var rowIdx in item.rows) {
 							childrow = item.rows[rowIdx];
-							if (!variableRowHeight && 'height' in childrow && childrow.height != grid.options.rowHeight) {
+							if (!variableRowHeight && childrow.height && childrow.height != grid.options.rowHeight) {
 								variableRowHeight = true;
 								break;
 							}
@@ -2205,10 +2205,7 @@
 					}
 
 					// Detect if variable row heights are used
-					if (
-						!variableRowHeight && 'height' in item &&
-						item.height !== grid.options.rowHeight
-					) {
+					if (!variableRowHeight && item.height && item.height !== grid.options.rowHeight) {
 						variableRowHeight = true;
 					}
 
@@ -2413,9 +2410,6 @@
 				// Clear cache
 				delete cache.indexById[id];
 				delete cache.rowPositions[idx];
-
-				// TODO: Update length. Still needed?
-				//if (grid.options.remote) this.length--;
 
 				// Recache positions from affected row
 				cacheRows(idx);
@@ -3530,6 +3524,7 @@
 			var columnElements = $headers.children(),
 				$column = $(columnElements[column_index]),
 				currentWidth = $column.width(),
+				// TODO: Consider using CSS box-sizing: border-box to ensure widths are always the right size
 				headerPadding = parseInt($column.css('paddingLeft'), 10) + parseInt($column.css('paddingRight'), 10),
 				cellWidths = [];
 
