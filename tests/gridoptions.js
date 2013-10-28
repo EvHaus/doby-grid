@@ -987,6 +987,17 @@ describe("Grid Options", function () {
 	// ==========================================================================================
 
 
+	describe("options.lineHeightOffset", function () {
+		it("should be -1 by default", function () {
+			var grid = resetGrid(defaultData());
+			expect(grid.options.lineHeightOffset).toEqual(-1);
+		});
+	});
+
+
+	// ==========================================================================================
+
+
 	describe("options.locale", function () {
 		it("should be defined", function () {
 			var grid = resetGrid(defaultData());

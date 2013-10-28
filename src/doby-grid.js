@@ -213,10 +213,6 @@
 			isCellPotentiallyEditable,
 			lastRenderedScrollLeft = 0,
 			lastRenderedScrollTop = 0,
-
-			// How much to offset the line-height from the height.
-			lineHeightOffset = navigator.appVersion.indexOf('Win') >= 0 ? 1 : 0,
-
 			makeActiveCellEditable,
 			makeActiveCellNormal,
 			measureCellPadding,
@@ -324,6 +320,7 @@
 			groupable:				true,
 			headerMenu:				true,
 			keyboardNavigation:		true,
+			lineHeightOffset:		-1,
 			locale: {
 				column: {
 					add_group:			'Add Grouping By "{{name}}"',
@@ -1011,7 +1008,7 @@
 
 					// Apply height and line-height
 					$(node).height(dd._height);
-					$(node).css('line-height', (dd._height - lineHeightOffset) + 'px');
+					$(node).css('line-height', (dd._height + self.options.lineHeightOffset) + 'px');
 
 					// Drag and container of rows below
 					dd._container.css({marginTop: (dd._height - height) + 'px'});
@@ -1515,7 +1512,7 @@
 			$style = $('<style type="text/css" rel="stylesheet"></style>').appendTo($("head"));
 			var rowHeight = self.options.rowHeight - cellHeightDiff;
 			var rules = [
-				"#" + uid + " ." + classrow + "{height:" + rowHeight + "px;line-height:" + (rowHeight - lineHeightOffset) + "px}"
+				"#" + uid + " ." + classrow + "{height:" + rowHeight + "px;line-height:" + (rowHeight + self.options.lineHeightOffset) + "px}"
 			];
 
 			for (var i = 0, l = self.options.columns.length; i < l; i++) {
@@ -5494,7 +5491,7 @@
 			// In variable row height mode we need some fancy ways to determine height
 			if (variableRowHeight && pos.height) {
 				var rowheight = pos.height - cellHeightDiff;
-				stringArray.push(';height:' + rowheight + 'px;line-height:' + (rowheight - lineHeightOffset) + 'px');
+				stringArray.push(';height:' + rowheight + 'px;line-height:' + (rowheight + self.options.lineHeightOffset) + 'px');
 			}
 
 			stringArray.push("'>");
