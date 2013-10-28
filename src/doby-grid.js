@@ -3530,7 +3530,6 @@
 			var columnElements = $headers.children(),
 				$column = $(columnElements[column_index]),
 				currentWidth = $column.width(),
-				// TODO: Consider using CSS box-sizing: border-box to ensure widths are always the right size
 				headerPadding = parseInt($column.css('paddingLeft'), 10) + parseInt($column.css('paddingRight'), 10),
 				cellWidths = [];
 
@@ -3538,7 +3537,9 @@
 			var name = $column.children('.' + classcolumnname + ':first');
 			name.css('overflow', 'visible');
 			$column.width('auto');
-			var headerWidth = $column.width() + headerPadding;
+			// The extra 1 is needed here because text-overflow: ellipsis
+			// seems to kick in 1 pixel too early.
+			var headerWidth = $column.width() + headerPadding + 1;
 			name.css('overflow', '');
 			$column.width(currentWidth);
 			cellWidths.push(headerWidth);
@@ -3547,8 +3548,8 @@
 			$canvas.find('.l' + column_index + '.r' + column_index + ':visible')
 				.removeClass('r' + column_index)
 				.each(function () {
-					var w = $(this).width() + parseInt($(this).css('paddingLeft'), 10) + parseInt($(this).css('paddingRight'), 10);
-					cellWidths.push(w);
+					var w = $(this).outerWidth();
+					if (cellWidths.indexOf(w) < 0) cellWidths.push(w);
 				})
 				.addClass('r' + column_index);
 
