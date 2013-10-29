@@ -969,6 +969,43 @@ describe("Column Options", function () {
 	// ==========================================================================================
 
 
+	describe("options.visible", function () {
+		it("should be true by default", function () {
+			var grid = resetGrid(defaultData());
+			_.each(grid.options.columns, function (col) {
+				expect(col.visible).toEqual(true);
+			});
+		});
+
+
+		// ==========================================================================================
+
+
+		it("should not render invisible columns", function () {
+			var grid = resetGrid($.extend(defaultData(), {
+				columns: [
+					{id: 'id', name: 'One', field: 'id'},
+					{id: 'id2', name: 'Two', visible: false, field: 'id'},
+					{id: 'id3', name: 'Three', field: 'id'},
+					{id: 'id4', name: 'Four', visible: false, field: 'id'}
+				]
+			}));
+
+			// Check what was rendered
+			grid.$el.find('.doby-grid-header-column').each(function (i) {
+				if (i === 0) {
+					expect($(this).text()).toContain('One');
+				} else {
+					expect($(this).text()).toContain('Three');
+				}
+			});
+		});
+	});
+
+
+	// ==========================================================================================
+
+
 	describe("options.width", function () {
 		it("should inherit from the 'columnWidth' Grid Option by default", function () {
 			var grid = resetGrid(defaultData());

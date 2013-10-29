@@ -56,6 +56,7 @@
 			$viewport,
 			absoluteColumnMinWidth,
 			activePosX,
+			activeColumns,	// Stores the list of columns that are active
 			Aggregate,
 			applyColumnHeaderWidths,
 			applyColumnWidths,
@@ -385,6 +386,7 @@
 			sortable:			true,
 			sortAsc:			true,
 			tooltip:			null,
+			visible:			true,
 			width:				null
 		};
 
@@ -442,6 +444,7 @@
 		//
 		this.activate = function (row, cell) {
 			if (!initialized) return;
+			// FIXME: This is no longer a reliable way to validate cell value since that column could be hidden.
 			if (row > getDataLength() || row < 0 || cell >= this.options.columns.length || cell < 0) return;
 			scrollCellIntoView(row, cell, false);
 			setActiveCellInternal(getCellNode(row, cell), false);
@@ -678,6 +681,7 @@
 		//
 		// @param	headers		array		(Optional) Header column DOM elements to resize
 		//
+		// NOTE: This runs twice on initialization. Find out why.
 		applyColumnHeaderWidths = function (headers) {
 			if (!initialized) return;
 			if (!headers) headers = $headers.children();
@@ -690,6 +694,9 @@
 
 			var i, l, w, styl;
 			for (i = 0, l = headers.length; i < l; i++) {
+				console.log(headers[i])
+
+				// FIXME: This is no longer a reliable way to get the column definition since the column could be hidden
 				w = self.options.columns[i].width - headerColumnWidthDiff;
 
 				styl = ['width:', w, 'px'].join('');
@@ -713,6 +720,7 @@
 			var x = -1, c, w, rule, i, l, r;
 
 			for (i = 0, l = self.options.columns.length; i < l; i++) {
+				// FIXME: This is no longer a reliable way to get the column definition since the column could be hidden
 				c = self.options.columns[i];
 				w = c.width;
 
@@ -811,6 +819,9 @@
 			for (i = 0; i < self.options.columns.length; i++) {
 				c = self.options.columns[i];
 
+				// Skip invisible columns
+				if (c.visible === false) continue;
+
 				widths.push(c.width);
 				total += c.width;
 
@@ -826,7 +837,7 @@
 				for (i = 0; i < self.options.columns.length && total > availWidth; i++) {
 					c = self.options.columns[i];
 					var width = widths[i];
-					if (!c.resizable || width <= (c.minWidth || 0) || width <= absoluteColumnMinWidth) {
+					if (c.visible === false || !c.resizable || width <= (c.minWidth || 0) || width <= absoluteColumnMinWidth) {
 						continue;
 					}
 					var absMinWidth = Math.max(c.minWidth, absoluteColumnMinWidth);
@@ -848,7 +859,7 @@
 				growProportion = availWidth / total;
 				for (i = 0; i < self.options.columns.length && total < availWidth; i++) {
 					c = self.options.columns[i];
-					if (!c.resizable || (c.maxWidth && c.maxWidth <= c.width)) continue;
+					if (c.visible === false || !c.resizable || (c.maxWidth && c.maxWidth <= c.width)) continue;
 
 					// Make sure we don't get bigger than the max width
 					max = 1000000;
@@ -870,6 +881,10 @@
 			var reRender = false, col;
 			for (i = 0; i < self.options.columns.length; i++) {
 				col = self.options.columns[i];
+
+				// Skip invisible columns
+				if (col.visible === false) continue;
+
 				if (!reRender && col.rerenderOnResize && col.width != widths[i]) reRender = true;
 				self.options.columns[i].width = widths[i];
 			}
@@ -1107,6 +1122,7 @@
 		// @return boolean
 		canCellBeActive = function (row, cell) {
 			if (!self.options.keyboardNavigation || row >= getDataLength() ||
+				// FIXME: This is no longer a reliable way to validate if cell is active because column could be invisible
 				row < 0 || cell >= self.options.columns.length || cell < 0) {
 				return false;
 			}
@@ -1138,6 +1154,7 @@
 		//
 		// @return boolean
 		canCellBeSelected = function (row, cell) {
+			// FIXME: This is no longer a reliable way to validate if cell is valid because column could be invisible
 			var c = self.options.columns;
 			if (row >= getDataLength() || row < 0 || cell >= c.length || cell < 0) {
 				return false;
@@ -1165,6 +1182,7 @@
 		//
 		// @return bolean
 		cellExists = function (row, cell) {
+			// FIXME: This is no longer a reliable way to validate if cell is valid because column could be invisible
 			return !(row < 0 || row >= getDataLength() || cell < 0 || cell >= self.options.columns.length);
 		};
 
@@ -1241,6 +1259,8 @@
 					d = getDataItem(row);
 
 				for (var i = 0, ii = self.options.columns.length; i < ii; i++) {
+					// FIXME: This is no longer a reliable way to get the column definition since the column could be hidden
+
 					// Cells to the right are outside the range.
 					if (cache.columnPosLeft[i] > range.rightPx) {
 						break;
@@ -1514,6 +1534,7 @@
 				"#" + uid + " ." + classrow + "{height:" + rowHeight + "px;line-height:" + (rowHeight + self.options.lineHeightOffset) + "px}"
 			];
 
+			// FIXME: Needs to use visible columns only
 			for (var i = 0, l = self.options.columns.length; i < l; i++) {
 				rules.push("#" + uid + " .l" + i + "{}");
 				rules.push("#" + uid + " .r" + i + "{}");
@@ -2840,6 +2861,7 @@
 			var removeHash = {};
 			if (selectedRows) {
 				var clearAllColumns = {};
+				// FIXME: Needs to use visible columns only??
 				for (var ic = 0, lc = self.options.columns.length; ic < lc; ic++) {
 					clearAllColumns[self.options.columns[ic].id] = self.options.selectedClass;
 				}
@@ -3098,6 +3120,7 @@
 
 			// Get header
 			var header = [];
+			// FIXME: Needs to use visible columns only
 			for (i = 0, l = this.options.columns.length; i < l; i++) {
 				val = this.options.columns[i].name || "";
 				if (format === 'csv') {
@@ -3126,6 +3149,7 @@
 
 				row = [];
 				if (format === 'html') row.push('<tr>');
+				// FIXME: Needs to use visible columns only
 				for (ii = 0, ll = this.options.columns.length; ii < ll; ii++) {
 
 					if (this.collection.items instanceof Backbone.Collection) {
@@ -3193,6 +3217,7 @@
 		// return integer
 		findFirstFocusableCell = function (row) {
 			var cell = 0;
+			// FIXME: Needs to use visible columns only
 			while (cell < self.options.columns.length) {
 				if (canCellBeActive(row, cell)) {
 					return cell;
@@ -3212,6 +3237,7 @@
 		findLastFocusableCell = function (row) {
 			var cell = 0;
 			var lastFocusableCell = null;
+			// FIXME: Needs to use visible columns only
 			while (cell < self.options.columns.length) {
 				if (canCellBeActive(row, cell)) {
 					lastFocusableCell = cell;
@@ -3282,6 +3308,7 @@
 			var availableWidth = viewportW - (viewportHasVScroll ? window.scrollbarDimensions.width : 0),
 				rowWidth = 0, i, l;
 
+			// FIXME: Needs to use visible columns only
 			for (i = 0, l = self.options.columns.length; i < l; i++) {
 				// The 1 here is to compensate for the spacer between columns.
 				// TODO: Move this to a variable instead in case users want to modify this spacing.
@@ -3349,6 +3376,7 @@
 				cell = 0,
 				w = 0;
 
+			// FIXME: Needs to use visible columns only
 			for (var i = 0, l = self.options.columns.length; i < l && w < x; i++) {
 				w += self.options.columns[i].width;
 				cell++;
@@ -3400,6 +3428,7 @@
 			}
 			var x1 = -1;
 
+			// FIXME: Needs to use visible columns only
 			for (var i = 0; i < cell; i++) {
 				x1 += self.options.columns[i].width + 1;
 			}
@@ -3450,6 +3479,7 @@
 			var item = self.collection.getItem(row);
 			if (!item.columns) return 1;
 
+			// FIXME: Needs to use visible columns only
 			var columnData = item.columns[self.options.columns[cell].id] || item.columns[cell];
 			var colspan = (columnData && columnData.colspan);
 			if (colspan === "*") {
@@ -3638,6 +3668,7 @@
 		//
 		// @return function
 		getEditor = function (row, cell) {
+			// FIXME: Needs to use visible columns only
 			var column = self.options.columns[cell],
 				item = self.collection.getItem(row),
 				columnMetadata = item.columns;
@@ -3685,6 +3716,7 @@
 			var headersWidth = 0;
 
 			// For each column - get its width
+			// FIXME: Needs to use visible columns only
 			for (var i = 0, l = self.options.columns.length; i < l; i++) {
 				// The extra one here is to compensate for the column spacing created with a border
 				headersWidth += self.options.columns[i].width + 1;
@@ -4079,6 +4111,7 @@
 		gotoPrev = function (row, cell, posX) {
 			if (row === null && cell === null) {
 				row = getDataLength() - 1;
+				// FIXME: Needs to use visible columns only
 				cell = posX = self.options.columns.length - 1;
 				if (canCellBeActive(row, cell)) {
 					return {
@@ -4121,15 +4154,15 @@
 		// @param	cell		integer		Index of the cell
 		//
 		gotoRight = function (row, cell) {
-			if (cell >= self.options.columns.length) {
-				return null;
-			}
+			// FIXME: Needs to use visible columns only
+			if (cell >= self.options.columns.length) return null;
 
 			do {
 				cell += getColspan(row, cell);
 			}
 			while (cell < self.options.columns.length && !canCellBeActive(row, cell));
 
+			// FIXME: Needs to use visible columns only
 			if (cell < self.options.columns.length) {
 				return {
 					"row": row,
@@ -4486,6 +4519,7 @@
 					}
 					for (var k = self.selection[i].fromCell; k <= self.selection[i].toCell; k++) {
 						if (canCellBeSelected(j, k)) {
+							// FIXME: Needs to use visible columns only???
 							addHash[j][self.options.columns[k].id] = self.options.selectedClass;
 						}
 					}
@@ -4645,6 +4679,7 @@
 			var dataLength = getDataLength();
 
 			// Is this column editable?
+			// FIXME: Needs to use visible columns only
 			if (self.options.columns[cell].editable === false) return false;
 
 			// Is the data for this row loaded?
@@ -4754,6 +4789,7 @@
 			// Cancel pending async call if there is one
 			clearTimeout(h_editorLoader);
 
+			// FIXME: Needs to use visible columns only
 			var columnDef = self.options.columns[self.active.cell];
 			var item = getDataItem(self.active.row);
 
@@ -4812,6 +4848,7 @@
 				var d = getDataItem(self.active.row);
 				$(self.active.node).removeClass("editable invalid");
 				if (d) {
+					// FIXME: Needs to use visible columns only
 					var column = self.options.columns[self.active.cell];
 					var formatter = getFormatter(self.active.row, column);
 					self.active.node.innerHTML = formatter(self.active.row, self.active.cell, getDataItemValueForColumn(d, column), column, d);
@@ -5044,6 +5081,7 @@
 
 					data = [];
 					for (var c = this.fromCell; c <= this.toCell; c++) {
+						// FIXME: Needs to use visible columns only
 						column = self.options.columns[c];
 						data.push(getValueFromItem(row, column));
 					}
@@ -5332,6 +5370,7 @@
 			// Clear postprocessing cache (only for non-cached columns)
 			if (cache.postprocess[row]) {
 				for (var i in cache.postprocess[row]) {
+					// FIXME: Needs to use visible columns only
 					col = self.options.columns[i];
 					if (!col.cache) {
 						delete cache.postprocess[row][i];
@@ -5394,6 +5433,7 @@
 		renderCell = function (result, row, cell, colspan, item) {
 			var m = self.options.columns[cell],
 				mColumns = item && item.columns || {},
+				// FIXME: Needs to use visible columns only
 				rowI = Math.min(self.options.columns.length - 1, cell + colspan - 1),
 
 				// Group rows do not inherit column class
@@ -5441,6 +5481,7 @@
 
 			// Render columns
 			var column, html = [], classes, w;
+			// FIXME: Needs to use visible columns only
 			for (var i = 0, l = self.options.columns.length; i < l; i++) {
 				column = self.options.columns[i];
 
@@ -5513,8 +5554,10 @@
 			stringArray.push("'>");
 
 			var colspan, m, i, l;
+			// FIXME: Needs to use visible columns only
 			for (i = 0, l = self.options.columns.length; i < l; i++) {
 				m = self.options.columns[i];
+
 				colspan = 1;
 
 				// Render custom columns
@@ -6125,7 +6168,7 @@
 				throw new Error('Doby Grid cannot set the sorting given because "multiColumnSort" is disabled and the given sorting options contain multiple columns.');
 			}
 
-			// Make sure all selected column are sortable
+			// Make sure all selected columns are sortable
 			// NOTE: This can be optimized
 			var colDef = null;
 			_.each(options, function (opt) {
@@ -6194,6 +6237,7 @@
 
 					for (var i = 0, l = reorderedIds.length; i < l; i++) {
 						cindex = getColumnIndex(reorderedIds[i].replace(uid, ""));
+						// FIXME: Needs to use visible columns only??
 						reorderedColumns.push(self.options.columns[cindex]);
 					}
 
@@ -6224,6 +6268,7 @@
 			columnElements = $headers.children();
 			columnElements.find("." + classhandle).remove();
 			columnElements.each(function (i) {
+				// FIXME: This is no longer a reliable way to get the column definition since the column could be hidden
 				if (!self.options.columns[i].resizable) return;
 				if (firstResizable === undefined) firstResizable = i;
 				lastResizable = i;
@@ -6234,6 +6279,8 @@
 
 			var lockColumnWidths = function () {
 				columnElements.each(function (i, e) {
+					// FIXME: This is no longer a reliable way to get the column definition since the column could be hidden
+
 					// The extra 1 here is to compensate for the border separator
 					self.options.columns[i].previousWidth = self.options.columns[i].width;
 				});
@@ -6244,6 +6291,7 @@
 				x = d;
 				if (d < 0) { // shrink column
 					for (j = i; j >= 0; j--) {
+						// FIXME: Needs to use visible columns only
 						c = self.options.columns[j];
 						if (!c.resizable) continue;
 						actualMinWidth = Math.max(c.minWidth || 0, absoluteColumnMinWidth);
@@ -6259,6 +6307,7 @@
 					if (self.options.autoColumnWidth) {
 						x = -d;
 						for (j = i + 1; j < columnElements.length; j++) {
+							// FIXME: Needs to use visible columns only
 							c = self.options.columns[j];
 							if (!c.resizable) continue;
 							if (x && c.maxWidth && (c.maxWidth - c.previousWidth < x)) {
@@ -6272,6 +6321,7 @@
 					}
 				} else { // stretch column
 					for (j = i; j >= 0; j--) {
+						// FIXME: Needs to use visible columns only
 						c = self.options.columns[j];
 						if (!c.resizable) continue;
 						if (x && c.maxWidth && (c.maxWidth - c.previousWidth < x)) {
@@ -6286,6 +6336,7 @@
 					if (self.options.autoColumnWidth) {
 						x = -d;
 						for (j = i + 1, l = columnElements.length; j < l; j++) {
+							// FIXME: Needs to use visible columns only
 							c = self.options.columns[j];
 							if (!c.resizable) continue;
 							actualMinWidth = Math.max(c.minWidth || 0, absoluteColumnMinWidth);
@@ -6311,6 +6362,7 @@
 					stretchLeewayOnRight = 0;
 					// colums on right affect maxPageX/minPageX
 					for (j = i + 1; j < columnElements.length; j++) {
+						// FIXME: Needs to use visible columns only
 						c = self.options.columns[j];
 						if (!c.resizable) continue;
 						if (stretchLeewayOnRight !== null) {
@@ -6327,6 +6379,7 @@
 					stretchLeewayOnLeft = 0;
 				for (j = 0; j <= i; j++) {
 					// columns on left only affect minPageX
+					// FIXME: Needs to use visible columns only
 					c = self.options.columns[j];
 					if (!c.resizable) continue;
 					if (stretchLeewayOnLeft !== null) {
@@ -6356,6 +6409,7 @@
 			var submitColResize = function () {
 				var newWidth;
 				for (j = 0; j < columnElements.length; j++) {
+					// FIXME: Needs to use visible columns only
 					c = self.options.columns[j];
 					newWidth = $(columnElements[j]).outerWidth();
 
@@ -6398,6 +6452,7 @@
 			// Create drag handles
 			// This has to be done for each drag handle to not conflict with drag reordering
 			$.each(columnElements, function (i, columnEl) {
+				// FIXME: Needs to use visible columns only
 				if (
 					i < firstResizable ||
 					(self.options.autoColumnWidth && i >= lastResizable) ||
@@ -6488,6 +6543,7 @@
 						multiColumnSort: true,
 						sortCols: $.map(self.sorting, function (col) {
 							return {
+								// FIXME: Needs to use visible columns only
 								sortCol: self.options.columns[getColumnIndex(col.columnId)],
 								sortAsc: col.sortAsc
 							};
@@ -6532,6 +6588,7 @@
 					self.filter(function (item) {
 						// Get the values of all column fields
 						var result = true, c, c_value, i_value;
+						// FIXME: Needs to use visible columns only
 						for (var i = 0, l = self.options.columns.length; i < l; i++) {
 							c = self.options.columns[i];
 							if (result && c.quickFilterInput) {
@@ -6556,6 +6613,7 @@
 
 				// Create a cell for each column
 				var column, cell, html;
+				// FIXME: Needs to use visible columns only
 				for (var i = 0, l = self.options.columns.length; i < l; i++) {
 					column = self.options.columns[i];
 
@@ -6800,7 +6858,7 @@
 					self.removeColumn(column.id);
 				}
 			}, {
-				enabled: column && column.sortable,
+				enabled: column && column.removable,
 				divider: true
 			}, {
 				enabled: column && column.sortable && !hasSorting(column.id),
@@ -7012,6 +7070,7 @@
 		// updateColumnCaches()
 		// Recalculates the widths of columns.
 		//
+		// FIXME: Now that we're hiding columns -- this needs to be run everytime a column is toggled?
 		updateColumnCaches = function () {
 			// Pre-calculate cell boundaries.
 			cache.columnPosLeft = [];
@@ -7019,8 +7078,10 @@
 			cache.aggregatorsByColumnId = {};
 
 			var x = 0, column;
+			// FIXME: Needs to use visible columns only
 			for (var i = 0, l = self.options.columns.length; i < l; i++) {
 				column = self.options.columns[i];
+
 				cache.columnPosLeft[i] = x;
 				cache.columnPosRight[i] = x + column.width;
 				x += column.width;
@@ -7054,6 +7115,7 @@
 				}
 
 				columnIdx = columnIdx | 0;
+				// FIXME: Needs to use visible columns only
 				var m = self.options.columns[columnIdx],
 					node = cacheEntry.cellNodesByColumnIdx[columnIdx];
 

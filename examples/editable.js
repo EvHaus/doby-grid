@@ -45,7 +45,8 @@ define(['faker'], function (Faker) {
 				id: "city",
 				name: "City",
 				field: "city",
-				sortable: true
+				sortable: true,
+				visible: false
 			}, {
 				id: "country",
 				name: "Country",
