@@ -298,6 +298,7 @@
 
 		// Default Grid Options
 		this.options = $.extend({
+			activeFollowsPage:		false,
 			activateSelection:		true,
 			addRow:					false,
 			asyncEditorLoadDelay:	100,
@@ -709,7 +710,6 @@
 		// applyColumnWidths()
 		// Sets the widths of the columns to what they should be
 		//
-		// FIXME: This is called twice on initialization.
 		applyColumnWidths = function () {
 			// The -1 here is to compensate for the border spacing between cells
 			var x = -1, c, w, rule, i, l, r;
@@ -2673,9 +2673,9 @@
 				this.$input = $('<input type="text" class="editor" value="' + value + '"/>')
 					.appendTo(options.cell)
 					.on("keydown", function (event) {
-						// Escape out of here for 'Tab' and 'Enter' so that
-						// the grid can capture that event
-						if (event.which == 9 || event.which == 13) {
+						// Escape out of here on 'Tab', 'Enter', 'Home, 'End', 'Page Up' and 'Page Down'
+						// so that the grid can capture that event
+						if ([9, 13, 33, 34, 35, 36].indexOf(event.which) >= 0) {
 							event.preventDefault();
 							return;
 						}
@@ -4374,6 +4374,14 @@
 					} else if (e.which == 33) {
 						scrollPage(-1);
 						handled = true;
+					// Home
+					} else if (e.which == 36) {
+						self.scrollToRow(0);
+						handled = true;
+					// End
+					} else if (e.which == 35) {
+						self.scrollToRow(self.collection.items.length - 1);
+						handled = true;
 					// Left Arrow
 					} else if (e.which == 37) {
 						if (self.options.editable && currentEditor) {
@@ -5734,9 +5742,7 @@
 			scrollTo(targetY);
 			render();
 
-			/* TODO: This changes the active cell to the one on the next page. Seems like strange
-			behavior to me, but maybe someone wants this. Enable it via an option.
-			if (self.options.keyboardNavigation && self.active && self.active.row !== null) {
+			if (self.options.activeFollowsPage && self.active && self.active.row !== null) {
 				var row = self.active.row + deltaRows,
 					dataLength = getDataLength();
 				if (row >= dataLength) {
@@ -5762,7 +5768,7 @@
 				} else {
 					resetActiveCell();
 				}
-			}*/
+			}
 		};
 
 
@@ -6212,8 +6218,8 @@
 
 		// setupColumnResize()
 		// Enables the resizing of columns.
-		// TODO: Optimize me. I'm slow.
-		// TODO: Perhaps assign the handle events on the whole header instead of on each element
+		// NOTE: Optimize me. I'm slow.
+		// NOTE: Perhaps assign the handle events on the whole header instead of on each element
 		//
 		setupColumnResize = function () {
 			// If resizable columns are disabled -- return
@@ -6510,7 +6516,7 @@
 		// @param	focus		object		Column definition object for the column we want to focus.
 		//									Passing in null will toggle the quick filter.
 		//
-		// TODO: Many optimizations can be done here.
+		// NOTE: Many optimizations can be done here.
 		showQuickFilter = function (focus) {
 			// Toggle off
 			if (focus === undefined && $headerFilter) {
@@ -7010,7 +7016,6 @@
 		// updateColumnCaches()
 		// Recalculates the widths of columns.
 		//
-		// FIXME: Now that we're hiding columns -- this needs to be run everytime a column is toggled?
 		updateColumnCaches = function () {
 			// Pre-calculate cell boundaries.
 			cache.columnPosLeft = [];

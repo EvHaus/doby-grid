@@ -35,11 +35,84 @@ describe("Grid Options", function () {
 
 		// This is needed for grunt-jasmine tests which doesn't read the CSS
 		// from the HTML version of jasmine.
-		fixture.attr('style', 'position:absolute;top:0;left:0;opacity:0;width:500px');
+		fixture.attr('style', 'position:absolute;top:0;left:0;opacity:0;height:500px;width:500px');
 
 		grid.appendTo(fixture);
 		return grid;
 	};
+
+
+	// ==========================================================================================
+
+
+	describe("options.activeFollowsPage", function () {
+		it("should be disabled by default", function () {
+			// Prepare for test
+			var grid = resetGrid(defaultData());
+
+			expect(grid.options.activeFollowsPage).toEqual(false);
+		});
+
+
+		// ==========================================================================================
+
+
+		it("should change the active cell when page jumped when enabled", function () {
+			// Prepare for test
+			var data = [];
+			for (var i = 0; i < 100; i++) {
+				data.push({data: {id: i, name: 'test'}, id: 189});
+			}
+			var grid = resetGrid($.extend(defaultData(), {
+				activeFollowsPage: true,
+				data: data
+			}));
+
+			// Activate a cell
+			grid.$el.find('.doby-grid-cell:first').first().click();
+
+			// Grab the active cell
+			var prevActive = JSON.parse(JSON.stringify(grid.active));
+			expect(prevActive.cell).toEqual(0);
+			expect(prevActive.row).toEqual(0);
+
+			// Scroll page down
+			grid.$el.find('.doby-grid-canvas').simulate('keydown', {keyCode: 34});
+
+			// Expect active cell to change
+			expect(grid.active.row).not.toEqual(prevActive.row);
+		});
+
+
+		// ==========================================================================================
+
+
+		it("should not change the active cell when page jumped when disabled", function () {
+			// Prepare for test
+			var data = [];
+			for (var i = 0; i < 100; i++) {
+				data.push({data: {id: i, name: 'test'}, id: 189});
+			}
+			var grid = resetGrid($.extend(defaultData(), {
+				activeFollowsPage: true,
+				data: data
+			}));
+
+			// Activate a cell
+			grid.$el.find('.doby-grid-cell:first').first().click();
+
+			// Grab the active cell
+			var prevActive = JSON.parse(JSON.stringify(grid.active));
+			expect(prevActive.cell).toEqual(0);
+			expect(prevActive.row).toEqual(0);
+
+			// Scroll page down
+			grid.$el.find('.doby-grid-canvas').simulate('keydown', {which: 34});
+
+			// Expect active cell to change
+			expect(grid.active.row).toEqual(prevActive.row);
+		});
+	});
 
 
 	// ==========================================================================================
@@ -762,7 +835,7 @@ describe("Grid Options", function () {
 			// Prepare for test
 			var grid = resetGrid($.extend(defaultData(), {fullWidthRows: true}));
 			var viewport = grid.$el.find('.doby-grid-viewport:first').first(),
-				viewportW = viewport.width() - window.scrollbarDimensions.width;
+				viewportW = viewport.width();
 
 			grid.$el.find('.doby-grid-row').each(function () {
 				expect($(this).width()).toEqual(viewportW);
