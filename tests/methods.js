@@ -58,6 +58,36 @@ describe("Methods and Data Manipulation", function () {
 			expect($row.hasClass('active')).toEqual(true);
 			expect($cell.hasClass('active')).toEqual(true);
 		});
+
+
+		// ==========================================================================================
+
+
+		it("should be able to deactivate cells via blank arguments", function () {
+			// Prepare grid
+			var grid = resetGrid({
+				columns: [
+					{id: 'id', field: 'id'},
+					{id: 'name', field: 'name'},
+				],
+				data: [
+					{id: 1, data: {id: 1, name: 'asd1'}},
+					{id: 2, data: {id: 2, name: 'asd2'}},
+					{id: 3, data: {id: 3, name: 'asd3'}}
+				]
+			});
+
+			// Activate first cell
+			grid.activate(0, 0);
+
+			// Ensure cell is selected
+			expect(grid.active).toBeDefined();
+			expect(grid.active.cell).toEqual(0);
+			expect(grid.active.row).toEqual(0);
+
+			// Deactivate cell
+			grid.activate();
+		});
 	});
 
 

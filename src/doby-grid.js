@@ -452,6 +452,10 @@
 		//
 		this.activate = function (row, cell) {
 			if (!initialized) return;
+			if (row === undefined || cell === undefined) {
+				resetActiveCell();
+				return
+			}
 			if (row > getDataLength() || row < 0 || cell >= cache.activeColumns.length || cell < 0) return;
 			scrollCellIntoView(row, cell, false);
 			setActiveCellInternal(getCellNode(row, cell), false);
@@ -2865,7 +2869,7 @@
 				}
 			}
 
-			// Decelect cells
+			// Deselect cells
 			updateCellCssStylesOnRenderedRows(null, removeHash);
 		};
 
@@ -4370,9 +4374,13 @@
 							// Return focus back to the canvas
 							$canvas.focus();
 							handled = true;
-						} else {
+						} else if (self.selection) {
 							// If something is selected remove the selection range
 							deselectCells();
+							self.selection = null;
+						} else if (self.active) {
+							// If something is active - remove the active state
+							self.activate();
 						}
 					// Page Down
 					} else if (e.which == 34) {
