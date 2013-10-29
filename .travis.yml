@@ -6,3 +6,5 @@ before_script:
   - npm install -g jasmine-node
 script:
   - grunt
+notifications:
+  email: false
