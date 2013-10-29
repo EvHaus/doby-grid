@@ -133,12 +133,16 @@
 .doby-grid-dropdown {
 	left: 0;
 	opacity: 1;
-	padding: 5px 0;
 	position: absolute;
 	top: 0;
 	z-index: 5;
 
 	&.off {opacity: 0}
+
+	.menu {
+		padding: 5px 0;
+		position: relative;
+	}
 
 	.item {
 		cursor: pointer;
@@ -153,10 +157,35 @@
 			top: 4px;
 		}
 
+		.arrow {
+			border: 5px solid transparent;
+			height: 0;
+			position: absolute;
+			right: 0;
+			top: 8px;
+			width: 0;
+		}
+
 		&.on .icon {
 			display: block;
 			height: 16px;
 			width: 16px;
+		}
+
+		& > .menu {
+			opacity: 0;
+			left: 100%;
+			position: absolute;
+			top: -5px;
+			.transition(~'0.5s opacity ease-in-out');
+			visibility: hidden;
+			z-index: 1;
+		}
+
+		&:hover > .menu {
+			opacity: 1;
+			visibility: visible;
+			z-index: 6
 		}
 	}
 

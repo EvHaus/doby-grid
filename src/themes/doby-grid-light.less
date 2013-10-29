@@ -95,15 +95,19 @@
 
 
 .doby-grid-dropdown {
-	background: rgba(255,255,255,0.95);
-	border: 1px solid;
-	border-color: #D2D2D2 #CCC #888;
-	border-radius: 5px;
-	box-shadow: #999 0 4px 4px;
-	.transition(~"opacity 0.15s ease-in-out");
+	.menu {
+		background: rgba(255,255,255,0.95);
+		border: 1px solid;
+		border-color: #D2D2D2 #CCC #888;
+		border-radius: 5px;
+		box-shadow: #999 0 4px 4px;
+		.transition(~"opacity 0.15s ease-in-out");
+	}
 
 	.item {
 		.transition(~"background 0.3s ease-in-out");
+
+		.arrow {border-left-color: #333}
 
 		&:hover {
 			background: rgba(0,0,0,0.1);
@@ -111,6 +115,10 @@
 
 		&.on .icon {
 			background: url("/@{url}tick.png") no-repeat;
+		}
+
+		& > .menu {
+			border-radius: 0 5px 5px 5px;
 		}
 	}
 

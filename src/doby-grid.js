@@ -251,6 +251,7 @@
 			render,
 			renderCell,
 			renderColumnHeaders,
+			renderMenu,
 			renderRow,
 			renderRows,
 			resetActiveCell,
@@ -345,6 +346,8 @@
 				},
 				global: {
 					auto_width:			'Automatically Resize Columns',
+					columns:			'Columns',
+					export:				'Export',
 					export_csv:			'Export Table to CSV',
 					export_html:		'Export Table to HTML',
 					hide_filter:		'Hide Quick Filter'
@@ -5483,6 +5486,47 @@
 		};
 
 
+		// renderMenu()
+		// Function for recursively rendering menu components for a Dropdown menu
+		//
+		// @param	menu		object		A menu data object to render
+		// @param	$parent		object		DOM object into which to insert the rendered HTML
+		//
+		renderMenu = function (menu, $parent) {
+			var $menu = $('<div class="menu"></div>');
+			_.each(menu, function (item) {
+				if (item.enabled !== undefined && !item.enabled) return;
+				if (item.divider) {
+					$menu.append('<div class="divider"></div>');
+				} else {
+					var label = (item.name || ""),
+						cls = "";
+					if (item.value !== undefined) {
+						if (item.value) cls = " on";
+						label += '<span class="icon"></span>';
+					}
+
+					var html = ['<div class="item', cls, '">', label, '</div>'].join(''),
+						$el = $(html).appendTo($menu);
+
+					// Submenus
+					if (item.menu) {
+						$el.append('<span class="arrow"></span>');
+						renderMenu(item.menu, $el);
+					}
+
+					// Click function
+					if (typeof item.fn === 'function') {
+						$el.click(function (event) {
+							item.fn.bind(this)(event);
+						});
+					}
+				}
+			});
+			$menu.appendTo($parent);
+		};
+
+
 		// renderRow()
 		// Generates the HTML content for a given cell and adds it to the output cache
 		//
@@ -6775,6 +6819,36 @@
 
 			var column = args.column || false;
 
+			// When a column is chosen from the menu
+			var cFn = function (column) {
+				return function (event) {
+					event.stopPropagation();
+
+					// Flip column value
+					var c = getColumnById(column.id);
+					c.visible = !c.visible;
+
+					// Toggle menu
+					if (c.visible) $(this).addClass('on');
+					else $(this).removeClass('on');
+
+					// Update grid
+					self.setColumns(self.options.columns);
+				};
+			};
+
+			// Builds a list of all available columns for the user to choose from
+			var columns_menu = [],
+				sorted = _.sortBy(self.options.columns, function (c) { return c.name; });
+
+			_.each(sorted, function (c) {
+				columns_menu.push({
+					name: c.name !== undefined && c.name !== null ? c.name : c.id,
+					fn: cFn(c),
+					value: c.visible
+				});
+			});
+
 			// Menu data object which will define what the menu will have
 			//
 			// @param	divider		boolean		If true, item will be a divider
@@ -6889,21 +6963,28 @@
 				enabled: column && (column.sortable || column.removable || column.groupable),
 				divider: true
 			}, {
-				name: getLocale('global.export_csv'),
-				fn: function () {
-					var csv = self.export('csv'),
-						uri = "data:text/csv," + encodeURIComponent(csv);
-					window.open(uri, 'Data Export');
-				}
+				name: getLocale('global.columns'),
+				menu: columns_menu
 			}, {
-				name: getLocale('global.export_html'),
-				fn: function () {
-					var html = self.export('html'),
-						uri = "data:text/html," + encodeURIComponent(html);
-					window.open(uri, 'Data Export');
-				}
+				divider: true
 			}, {
-				enabled: true,
+				name: getLocale('global.export'),
+				menu: [{
+					name: getLocale('global.export_csv'),
+					fn: function () {
+						var csv = self.export('csv'),
+							uri = "data:text/csv," + encodeURIComponent(csv);
+						window.open(uri, 'Data Export');
+					}
+				}, {
+					name: getLocale('global.export_html'),
+					fn: function () {
+						var html = self.export('html'),
+							uri = "data:text/html," + encodeURIComponent(html);
+						window.open(uri, 'Data Export');
+					}
+				}]
+			}, {
 				divider: true
 			}, {
 				name: getLocale('global.auto_width'),
@@ -6917,24 +6998,7 @@
 
 			// Render Menu
 			var $menu = $('<div class="' + classcontextmenu + '"></div>');
-			_.each(menuData, function (item) {
-				if (item.enabled !== undefined && !item.enabled) return;
-				if (item.divider) {
-					$('<div class="divider"></div>').appendTo($menu);
-				} else {
-					var label = (item.name || ""),
-						cls = "";
-					if (item.value !== undefined) {
-						if (item.value) cls = " on";
-						label += '<span class="icon"></span>';
-					}
-					$('<div class="item' + cls + '">' + label + '</div>')
-						.appendTo($menu)
-						.click(function (event) {
-							if (item.fn) item.fn(event);
-						});
-				}
-			});
+			renderMenu(menuData, $menu);
 
 			// Create dropdown
 			new Dropdown(event, {

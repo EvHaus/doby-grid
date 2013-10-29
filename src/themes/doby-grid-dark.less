@@ -96,15 +96,19 @@
 
 
 .doby-grid-dropdown {
-	background: rgba(0,0,0,0.95);
-	border: 1px solid;
-	border-color: rgba(255,255,255,0.3) rgba(80,80,80,0.5) rgba(80,80,80,0.4);
-	border-radius: 5px;
-	box-shadow: #000 0 4px 4px;
-	.transition(~"opacity 0.15s ease-in-out");
+	.menu {
+		background: rgba(0,0,0,0.95);
+		border: 1px solid;
+		border-color: rgba(255,255,255,0.3) rgba(80,80,80,0.5) rgba(80,80,80,0.4);
+		border-radius: 5px;
+		box-shadow: #000 0 4px 4px;
+		.transition(~"opacity 0.15s ease-in-out");
+	}
 
 	.item {
 		.transition(~"background 0.3s ease-in-out");
+
+		.arrow {border-left-color: #EEE}
 
 		&:hover {
 			background: rgba(255,255,255,0.15);
@@ -112,6 +116,10 @@
 
 		&.on .icon {
 			background: url("/@{url}tick.png") no-repeat;
+		}
+
+		& > .menu {
+			border-radius: 0 5px 5px 5px;
 		}
 	}
 
