@@ -6704,7 +6704,7 @@
 			// and for better UX
 			setTimeout(function () {
 				// Make sure tooltip is still needed
-				if (el.attr('aria-describedby') === undefined) return;
+				if (el.attr('aria-describedby') === undefined || !el.is(':visible')) return;
 
 				// Height of the tooltip arrow
 				var arrowheight = 10;
