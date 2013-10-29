@@ -72,15 +72,15 @@ describe("Grid Options", function () {
 			grid.$el.find('.doby-grid-cell:first').first().click();
 
 			// Grab the active cell
-			var prevActive = JSON.parse(JSON.stringify(grid.active));
-			expect(prevActive.cell).toEqual(0);
-			expect(prevActive.row).toEqual(0);
+			var prevActive = grid.active.row;
+			expect(grid.active.cell).toEqual(0);
+			expect(grid.active.row).toEqual(0);
 
 			// Scroll page down
 			grid.$el.find('.doby-grid-canvas').simulate('keydown', {keyCode: 34});
 
 			// Expect active cell to change
-			expect(grid.active.row).not.toEqual(prevActive.row);
+			expect(grid.active.row).not.toEqual(prevActive);
 		});
 
 
@@ -102,15 +102,15 @@ describe("Grid Options", function () {
 			grid.$el.find('.doby-grid-cell:first').first().click();
 
 			// Grab the active cell
-			var prevActive = JSON.parse(JSON.stringify(grid.active));
-			expect(prevActive.cell).toEqual(0);
-			expect(prevActive.row).toEqual(0);
+			var prevActive = grid.active.row;
+			expect(grid.active.cell).toEqual(0);
+			expect(grid.active.row).toEqual(0);
 
 			// Scroll page down
 			grid.$el.find('.doby-grid-canvas').simulate('keydown', {which: 34});
 
 			// Expect active cell to change
-			expect(grid.active.row).toEqual(prevActive.row);
+			expect(grid.active.row).toEqual(prevActive);
 		});
 	});
 
