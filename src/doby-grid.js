@@ -454,7 +454,7 @@
 			if (!initialized) return;
 			if (row === undefined || cell === undefined) {
 				resetActiveCell();
-				return
+				return;
 			}
 			if (row > getDataLength() || row < 0 || cell >= cache.activeColumns.length || cell < 0) return;
 			scrollCellIntoView(row, cell, false);
