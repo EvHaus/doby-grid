@@ -56,7 +56,6 @@
 			$viewport,
 			absoluteColumnMinWidth,
 			activePosX,
-			activeColumns,	// Stores the list of columns that are active
 			Aggregate,
 			applyColumnHeaderWidths,
 			applyColumnWidths,
@@ -65,6 +64,7 @@
 			bindCellRangeSelect,
 			bindRowResize,
 			cache = {
+				activeColumns: [],	// Stores the list of columns that are active
 				aggregatorsByColumnId: {},
 				columnPosLeft: [],
 				columnPosRight: [],
@@ -159,7 +159,6 @@
 			getColumnCssRules,
 			getColumnContentWidth,
 			getColumnFromEvent,
-			getColumnIndex,
 			getColspan,
 			getDataItem,
 			getDataItemValueForColumn,
@@ -444,8 +443,7 @@
 		//
 		this.activate = function (row, cell) {
 			if (!initialized) return;
-			// FIXME: This is no longer a reliable way to validate cell value since that column could be hidden.
-			if (row > getDataLength() || row < 0 || cell >= this.options.columns.length || cell < 0) return;
+			if (row > getDataLength() || row < 0 || cell >= cache.activeColumns.length || cell < 0) return;
 			scrollCellIntoView(row, cell, false);
 			setActiveCellInternal(getCellNode(row, cell), false);
 			return this;
@@ -681,7 +679,6 @@
 		//
 		// @param	headers		array		(Optional) Header column DOM elements to resize
 		//
-		// NOTE: This runs twice on initialization. Find out why.
 		applyColumnHeaderWidths = function (headers) {
 			if (!initialized) return;
 			if (!headers) headers = $headers.children();
@@ -694,10 +691,7 @@
 
 			var i, l, w, styl;
 			for (i = 0, l = headers.length; i < l; i++) {
-				console.log(headers[i])
-
-				// FIXME: This is no longer a reliable way to get the column definition since the column could be hidden
-				w = self.options.columns[i].width - headerColumnWidthDiff;
+				w = cache.activeColumns[i].width - headerColumnWidthDiff;
 
 				styl = ['width:', w, 'px'].join('');
 
@@ -715,13 +709,13 @@
 		// applyColumnWidths()
 		// Sets the widths of the columns to what they should be
 		//
+		// FIXME: This is called twice on initialization.
 		applyColumnWidths = function () {
 			// The -1 here is to compensate for the border spacing between cells
 			var x = -1, c, w, rule, i, l, r;
 
-			for (i = 0, l = self.options.columns.length; i < l; i++) {
-				// FIXME: This is no longer a reliable way to get the column definition since the column could be hidden
-				c = self.options.columns[i];
+			for (i = 0, l = cache.activeColumns.length; i < l; i++) {
+				c = cache.activeColumns[i];
 				w = c.width;
 
 				// Left
@@ -745,7 +739,7 @@
 		asyncPostProcessRows = function () {
 			var dataLength = getDataLength(),
 				cb = function () {
-					var columnIdx = getColumnIndex(this.id);
+					var columnIdx = cache.columnsById[this.id];
 					if (this.cache) {
 						cache.postprocess[row][columnIdx] = $(node).html();
 					}
@@ -770,7 +764,7 @@
 
 					columnIdx = columnIdx || 0;
 
-					var col = self.options.columns[columnIdx],
+					var col = cache.activeColumns[columnIdx],
 						postprocess = col.postprocess,
 						rowdata = cache.rows[row],
 						rd_cols = rowdata.columns;
@@ -813,11 +807,11 @@
 				availWidth = viewportHasVScroll ? viewportW - window.scrollbarDimensions.width : viewportW;
 
 			// Compensate for the separators between columns
-			availWidth -= self.options.columns.length;
+			availWidth -= cache.activeColumns.length;
 
 			// Calculate the current total width of columns
-			for (i = 0; i < self.options.columns.length; i++) {
-				c = self.options.columns[i];
+			for (i = 0; i < cache.activeColumns.length; i++) {
+				c = cache.activeColumns[i];
 
 				// Skip invisible columns
 				if (c.visible === false) continue;
@@ -834,8 +828,8 @@
 			prevTotal = total;
 			while (total > availWidth && shrinkLeeway) {
 				var shrinkProportion = (total - availWidth) / shrinkLeeway;
-				for (i = 0; i < self.options.columns.length && total > availWidth; i++) {
-					c = self.options.columns[i];
+				for (i = 0; i < cache.activeColumns.length && total > availWidth; i++) {
+					c = cache.activeColumns[i];
 					var width = widths[i];
 					if (c.visible === false || !c.resizable || width <= (c.minWidth || 0) || width <= absoluteColumnMinWidth) {
 						continue;
@@ -857,8 +851,8 @@
 			prevTotal = total;
 			while (total < availWidth) {
 				growProportion = availWidth / total;
-				for (i = 0; i < self.options.columns.length && total < availWidth; i++) {
-					c = self.options.columns[i];
+				for (i = 0; i < cache.activeColumns.length && total < availWidth; i++) {
+					c = cache.activeColumns[i];
 					if (c.visible === false || !c.resizable || (c.maxWidth && c.maxWidth <= c.width)) continue;
 
 					// Make sure we don't get bigger than the max width
@@ -879,14 +873,14 @@
 
 			// Set new values
 			var reRender = false, col;
-			for (i = 0; i < self.options.columns.length; i++) {
-				col = self.options.columns[i];
+			for (i = 0; i < cache.activeColumns.length; i++) {
+				col = cache.activeColumns[i];
 
 				// Skip invisible columns
 				if (col.visible === false) continue;
 
 				if (!reRender && col.rerenderOnResize && col.width != widths[i]) reRender = true;
-				self.options.columns[i].width = widths[i];
+				cache.activeColumns[i].width = widths[i];
 			}
 
 			applyColumnHeaderWidths();
@@ -1122,8 +1116,7 @@
 		// @return boolean
 		canCellBeActive = function (row, cell) {
 			if (!self.options.keyboardNavigation || row >= getDataLength() ||
-				// FIXME: This is no longer a reliable way to validate if cell is active because column could be invisible
-				row < 0 || cell >= self.options.columns.length || cell < 0) {
+				row < 0 || cell >= cache.activeColumns.length || cell < 0) {
 				return false;
 			}
 
@@ -1133,16 +1126,16 @@
 			var columnMetadata = item.columns;
 			if (
 				columnMetadata &&
-				columnMetadata[self.options.columns[cell].id] &&
-				typeof columnMetadata[self.options.columns[cell].id].focusable === "boolean"
+				columnMetadata[cache.activeColumns[cell].id] &&
+				typeof columnMetadata[cache.activeColumns[cell].id].focusable === "boolean"
 			) {
-				return columnMetadata[self.options.columns[cell].id].focusable;
+				return columnMetadata[cache.activeColumns[cell].id].focusable;
 			}
 			if (columnMetadata && columnMetadata[cell] && typeof columnMetadata[cell].focusable === "boolean") {
 				return columnMetadata[cell].focusable;
 			}
 
-			return self.options.columns[cell].focusable;
+			return cache.activeColumns[cell].focusable;
 		};
 
 
@@ -1154,9 +1147,7 @@
 		//
 		// @return boolean
 		canCellBeSelected = function (row, cell) {
-			// FIXME: This is no longer a reliable way to validate if cell is valid because column could be invisible
-			var c = self.options.columns;
-			if (row >= getDataLength() || row < 0 || cell >= c.length || cell < 0) {
+			if (row >= getDataLength() || row < 0 || cell >= cache.activeColumns.length || cell < 0) {
 				return false;
 			}
 
@@ -1165,12 +1156,12 @@
 				return item.selectable;
 			}
 
-			var columnMetadata = item.columns && (item.columns[c[cell].id] || item.columns[cell]);
+			var columnMetadata = item.columns && (item.columns[cache.activeColumns[cell].id] || item.columns[cell]);
 			if (columnMetadata && typeof columnMetadata.selectable === "boolean") {
 				return columnMetadata.selectable;
 			}
 
-			return c[cell].selectable;
+			return cache.activeColumns[cell].selectable;
 		};
 
 
@@ -1182,8 +1173,7 @@
 		//
 		// @return bolean
 		cellExists = function (row, cell) {
-			// FIXME: This is no longer a reliable way to validate if cell is valid because column could be invisible
-			return !(row < 0 || row >= getDataLength() || cell < 0 || cell >= self.options.columns.length);
+			return !(row < 0 || row >= getDataLength() || cell < 0 || cell >= cache.activeColumns.length);
 		};
 
 
@@ -1258,9 +1248,7 @@
 					metadata = item.columns,
 					d = getDataItem(row);
 
-				for (var i = 0, ii = self.options.columns.length; i < ii; i++) {
-					// FIXME: This is no longer a reliable way to get the column definition since the column could be hidden
-
+				for (var i = 0, ii = cache.activeColumns.length; i < ii; i++) {
 					// Cells to the right are outside the range.
 					if (cache.columnPosLeft[i] > range.rightPx) {
 						break;
@@ -1274,7 +1262,7 @@
 
 					colspan = 1;
 					if (metadata) {
-						var columnData = metadata[self.options.columns[i].id] || metadata[i];
+						var columnData = metadata[cache.activeColumns[i].id] || metadata[i];
 						colspan = (columnData && columnData.colspan) || 1;
 						if (colspan === "*") {
 							colspan = ii - i;
@@ -1339,7 +1327,7 @@
 
 				var colspan = cacheEntry.cellColSpans[i];
 				if (cache.columnPosLeft[i] > range.rightPx ||
-					cache.columnPosRight[Math.min(self.options.columns.length - 1, i + colspan - 1)] < range.leftPx) {
+					cache.columnPosRight[Math.min(cache.activeColumns.length - 1, i + colspan - 1)] < range.leftPx) {
 					if (self.active && !(row == self.active.row && i == self.active.cell)) {
 						cellsToRemove.push(i);
 					}
@@ -1399,7 +1387,7 @@
 			if (!self.active || !currentEditor) return true;
 
 			var item = getDataItem(self.active.row),
-				column = self.options.columns[self.active.cell];
+				column = cache.activeColumns[self.active.cell];
 
 			var showInvalid = function () {
 				// Re-add the CSS class to trigger transitions, if any.
@@ -1504,7 +1492,7 @@
 				var row = getRowFromNode(self.active.node.parentNode),
 					cell = getCellFromNode(self.active.node),
 					item = cache.rows[row],
-					column = self.options.columns[cell];
+					column = cache.activeColumns[cell];
 				result = getValueFromItem(item, column);
 			}
 
@@ -1534,8 +1522,7 @@
 				"#" + uid + " ." + classrow + "{height:" + rowHeight + "px;line-height:" + (rowHeight + self.options.lineHeightOffset) + "px}"
 			];
 
-			// FIXME: Needs to use visible columns only
-			for (var i = 0, l = self.options.columns.length; i < l; i++) {
+			for (var i = 0, l = cache.activeColumns.length; i < l; i++) {
 				rules.push("#" + uid + " .l" + i + "{}");
 				rules.push("#" + uid + " .r" + i + "{}");
 			}
@@ -2861,9 +2848,8 @@
 			var removeHash = {};
 			if (selectedRows) {
 				var clearAllColumns = {};
-				// FIXME: Needs to use visible columns only??
-				for (var ic = 0, lc = self.options.columns.length; ic < lc; ic++) {
-					clearAllColumns[self.options.columns[ic].id] = self.options.selectedClass;
+				for (var ic = 0, lc = cache.activeColumns.length; ic < lc; ic++) {
+					clearAllColumns[cache.activeColumns[ic].id] = self.options.selectedClass;
 				}
 
 				for (var iw = 0, lw = selectedRows.length; iw < lw; iw++) {
@@ -2970,9 +2956,11 @@
 					if (e.target == event.target) return;
 					self.hide();
 					$(document).off('click', bodyEscape);
+					$(document).off('context', bodyEscape);
 				};
 
 				$(document).on('click', bodyEscape);
+				$(document).on('contextmenu', bodyEscape);
 
 				return this;
 			};
@@ -3120,9 +3108,8 @@
 
 			// Get header
 			var header = [];
-			// FIXME: Needs to use visible columns only
-			for (i = 0, l = this.options.columns.length; i < l; i++) {
-				val = this.options.columns[i].name || "";
+			for (i = 0, l = cache.activeColumns.length; i < l; i++) {
+				val = cache.activeColumns[i].name || "";
 				if (format === 'csv') {
 					// Escape quotes
 					val = val.replace(/\"/g, '\"');
@@ -3149,13 +3136,12 @@
 
 				row = [];
 				if (format === 'html') row.push('<tr>');
-				// FIXME: Needs to use visible columns only
-				for (ii = 0, ll = this.options.columns.length; ii < ll; ii++) {
+				for (ii = 0, ll = cache.activeColumns.length; ii < ll; ii++) {
 
 					if (this.collection.items instanceof Backbone.Collection) {
-						val = getValueFromItem(this.collection.items.get(i), this.options.columns[ii]);
+						val = getValueFromItem(this.collection.items.get(i), cache.activeColumns[ii]);
 					} else {
-						val = getValueFromItem(this.collection.items[i], this.options.columns[ii]);
+						val = getValueFromItem(this.collection.items[i], cache.activeColumns[ii]);
 					}
 
 					if (format === 'csv') {
@@ -3217,8 +3203,7 @@
 		// return integer
 		findFirstFocusableCell = function (row) {
 			var cell = 0;
-			// FIXME: Needs to use visible columns only
-			while (cell < self.options.columns.length) {
+			while (cell < cache.activeColumns.length) {
 				if (canCellBeActive(row, cell)) {
 					return cell;
 				}
@@ -3237,8 +3222,7 @@
 		findLastFocusableCell = function (row) {
 			var cell = 0;
 			var lastFocusableCell = null;
-			// FIXME: Needs to use visible columns only
-			while (cell < self.options.columns.length) {
+			while (cell < cache.activeColumns.length) {
 				if (canCellBeActive(row, cell)) {
 					lastFocusableCell = cell;
 				}
@@ -3308,11 +3292,10 @@
 			var availableWidth = viewportW - (viewportHasVScroll ? window.scrollbarDimensions.width : 0),
 				rowWidth = 0, i, l;
 
-			// FIXME: Needs to use visible columns only
-			for (i = 0, l = self.options.columns.length; i < l; i++) {
+			for (i = 0, l = cache.activeColumns.length; i < l; i++) {
 				// The 1 here is to compensate for the spacer between columns.
 				// TODO: Move this to a variable instead in case users want to modify this spacing.
-				rowWidth += self.options.columns[i].width - 1;
+				rowWidth += cache.activeColumns[i].width - 1;
 			}
 
 			// When fullWidthRows disable - keep canvas as big as the dat only
@@ -3376,9 +3359,8 @@
 				cell = 0,
 				w = 0;
 
-			// FIXME: Needs to use visible columns only
-			for (var i = 0, l = self.options.columns.length; i < l && w < x; i++) {
-				w += self.options.columns[i].width;
+			for (var i = 0, l = cache.activeColumns.length; i < l && w < x; i++) {
+				w += cache.activeColumns[i].width;
 				cell++;
 			}
 
@@ -3428,12 +3410,11 @@
 			}
 			var x1 = -1;
 
-			// FIXME: Needs to use visible columns only
 			for (var i = 0; i < cell; i++) {
-				x1 += self.options.columns[i].width + 1;
+				x1 += cache.activeColumns[i].width + 1;
 			}
 
-			var x2 = x1 + self.options.columns[cell].width + 2;
+			var x2 = x1 + cache.activeColumns[cell].width + 2;
 
 			return {
 				bottom: y2,
@@ -3479,11 +3460,10 @@
 			var item = self.collection.getItem(row);
 			if (!item.columns) return 1;
 
-			// FIXME: Needs to use visible columns only
-			var columnData = item.columns[self.options.columns[cell].id] || item.columns[cell];
+			var columnData = item.columns[cache.activeColumns[cell].id] || item.columns[cell];
 			var colspan = (columnData && columnData.colspan);
 			if (colspan === "*") {
-				colspan = self.options.columns.length - cell;
+				colspan = cache.activeColumns.length - cell;
 			} else {
 				colspan = colspan || 1;
 			}
@@ -3602,17 +3582,6 @@
 		};
 
 
-		// getColumnIndex()
-		// Given a column's ID, returns the index of that column
-		//
-		// @param	id		string		ID of the column
-		//
-		// @return integer
-		getColumnIndex = function (id) {
-			return cache.columnsById[id];
-		};
-
-
 		// getDataItem()
 		// Given an item's index returns its data object
 		//
@@ -3668,8 +3637,7 @@
 		//
 		// @return function
 		getEditor = function (row, cell) {
-			// FIXME: Needs to use visible columns only
-			var column = self.options.columns[cell],
+			var column = cache.activeColumns[cell],
 				item = self.collection.getItem(row),
 				columnMetadata = item.columns;
 
@@ -3697,7 +3665,7 @@
 			var item = self.collection.getItem(row);
 
 			// Check if item has column overrides
-			var columnOverrides = item.columns && (item.columns[column.id] || item.columns[getColumnIndex(column.id)]);
+			var columnOverrides = item.columns && (item.columns[column.id] || item.columns[cache.columnsById[column.id]]);
 
 			// Pick formatter starting at the item formatter and working down to the default
 			return item.formatter ? item.formatter.bind(item) : null ||
@@ -3716,10 +3684,9 @@
 			var headersWidth = 0;
 
 			// For each column - get its width
-			// FIXME: Needs to use visible columns only
-			for (var i = 0, l = self.options.columns.length; i < l; i++) {
+			for (var i = 0, l = cache.activeColumns.length; i < l; i++) {
 				// The extra one here is to compensate for the column spacing created with a border
-				headersWidth += self.options.columns[i].width + 1;
+				headersWidth += cache.activeColumns[i].width + 1;
 			}
 
 			// Include the width of the scrollbar
@@ -4111,8 +4078,7 @@
 		gotoPrev = function (row, cell, posX) {
 			if (row === null && cell === null) {
 				row = getDataLength() - 1;
-				// FIXME: Needs to use visible columns only
-				cell = posX = self.options.columns.length - 1;
+				cell = posX = cache.activeColumns.length - 1;
 				if (canCellBeActive(row, cell)) {
 					return {
 						"row": row,
@@ -4154,16 +4120,14 @@
 		// @param	cell		integer		Index of the cell
 		//
 		gotoRight = function (row, cell) {
-			// FIXME: Needs to use visible columns only
-			if (cell >= self.options.columns.length) return null;
+			if (cell >= cache.activeColumns.length) return null;
 
 			do {
 				cell += getColspan(row, cell);
 			}
-			while (cell < self.options.columns.length && !canCellBeActive(row, cell));
+			while (cell < cache.activeColumns.length && !canCellBeActive(row, cell));
 
-			// FIXME: Needs to use visible columns only
-			if (cell < self.options.columns.length) {
+			if (cell < cache.activeColumns.length) {
 				return {
 					"row": row,
 					"cell": cell,
@@ -4519,8 +4483,7 @@
 					}
 					for (var k = self.selection[i].fromCell; k <= self.selection[i].toCell; k++) {
 						if (canCellBeSelected(j, k)) {
-							// FIXME: Needs to use visible columns only???
-							addHash[j][self.options.columns[k].id] = self.options.selectedClass;
+							addHash[j][cache.activeColumns[k].id] = self.options.selectedClass;
 						}
 					}
 				}
@@ -4679,8 +4642,7 @@
 			var dataLength = getDataLength();
 
 			// Is this column editable?
-			// FIXME: Needs to use visible columns only
-			if (self.options.columns[cell].editable === false) return false;
+			if (cache.activeColumns[cell].editable === false) return false;
 
 			// Is the data for this row loaded?
 			if (row < dataLength && !getDataItem(row)) return false;
@@ -4789,8 +4751,7 @@
 			// Cancel pending async call if there is one
 			clearTimeout(h_editorLoader);
 
-			// FIXME: Needs to use visible columns only
-			var columnDef = self.options.columns[self.active.cell];
+			var columnDef = cache.activeColumns[self.active.cell];
 			var item = getDataItem(self.active.row);
 
 			if (self.trigger('onCellCssStylesChanged', {}, {
@@ -4848,8 +4809,7 @@
 				var d = getDataItem(self.active.row);
 				$(self.active.node).removeClass("editable invalid");
 				if (d) {
-					// FIXME: Needs to use visible columns only
-					var column = self.options.columns[self.active.cell];
+					var column = cache.activeColumns[self.active.cell];
 					var formatter = getFormatter(self.active.row, column);
 					self.active.node.innerHTML = formatter(self.active.row, self.active.cell, getDataItemValueForColumn(d, column), column, d);
 					invalidatePostProcessingResults(self.active.row);
@@ -5081,8 +5041,7 @@
 
 					data = [];
 					for (var c = this.fromCell; c <= this.toCell; c++) {
-						// FIXME: Needs to use visible columns only
-						column = self.options.columns[c];
+						column = cache.activeColumns[c];
 						data.push(getValueFromItem(row, column));
 					}
 					json.push(data);
@@ -5370,8 +5329,7 @@
 			// Clear postprocessing cache (only for non-cached columns)
 			if (cache.postprocess[row]) {
 				for (var i in cache.postprocess[row]) {
-					// FIXME: Needs to use visible columns only
-					col = self.options.columns[i];
+					col = cache.activeColumns[i];
 					if (!col.cache) {
 						delete cache.postprocess[row][i];
 					}
@@ -5431,10 +5389,9 @@
 		// @param	item		object		Data object for this cell
 		//
 		renderCell = function (result, row, cell, colspan, item) {
-			var m = self.options.columns[cell],
+			var m = cache.activeColumns[cell],
 				mColumns = item && item.columns || {},
-				// FIXME: Needs to use visible columns only
-				rowI = Math.min(self.options.columns.length - 1, cell + colspan - 1),
+				rowI = Math.min(cache.activeColumns.length - 1, cell + colspan - 1),
 
 				// Group rows do not inherit column class
 				mClass = item instanceof Group ? "" : (m.class ? typeof m.class === "function" ? m.class() : m.class : null),
@@ -5481,9 +5438,8 @@
 
 			// Render columns
 			var column, html = [], classes, w;
-			// FIXME: Needs to use visible columns only
-			for (var i = 0, l = self.options.columns.length; i < l; i++) {
-				column = self.options.columns[i];
+			for (var i = 0, l = cache.activeColumns.length; i < l; i++) {
+				column = cache.activeColumns[i];
 
 				// Determine classes
 				classes = [classheadercolumn, (column.headerClass || "")];
@@ -5554,9 +5510,8 @@
 			stringArray.push("'>");
 
 			var colspan, m, i, l;
-			// FIXME: Needs to use visible columns only
-			for (i = 0, l = self.options.columns.length; i < l; i++) {
-				m = self.options.columns[i];
+			for (i = 0, l = cache.activeColumns.length; i < l; i++) {
+				m = cache.activeColumns[i];
 
 				colspan = 1;
 
@@ -5697,9 +5652,10 @@
 			viewportW = parseFloat($.css(self.$el[0], "width", true));
 			$viewport.height(viewportH);
 
+			updateRowCount();
+
 			if (self.options.autoColumnWidth) autosizeColumns();
 
-			updateRowCount();
 			// TODO: This was in SlickGrid, but it's probably there to catch active cells being
 			// out of bounds after a resize. There's got to be a better way to catch that
 			// instead of calling handleScroll() which is pretty slow
@@ -5718,7 +5674,7 @@
 		// @return array
 		rowsToRanges = function (rows) {
 			var ranges = [],
-				lastCell = self.options.columns.length - 1;
+				lastCell = cache.activeColumns.length - 1;
 
 			for (var i = 0; i < rows.length; i++) {
 				ranges.push(new Range(rows[i], 0, rows[i], lastCell));
@@ -6022,6 +5978,7 @@
 			this.options.columns = columns;
 
 			cache.columnsById = {};
+
 			var c;
 			for (var i = 0, l = this.options.columns.length; i < l; i++) {
 				c = self.options.columns[i] = $.extend(JSON.parse(JSON.stringify(columnDefaults)), self.options.columns[i]);
@@ -6172,7 +6129,7 @@
 			// NOTE: This can be optimized
 			var colDef = null;
 			_.each(options, function (opt) {
-				_.each(this.options.columns, function (col) {
+				_.each(cache.activeColumns, function (col) {
 					if (opt.columnId === col.id) {
 						colDef = col;
 						if (col.sortable === false) {
@@ -6236,9 +6193,8 @@
 						cindex;
 
 					for (var i = 0, l = reorderedIds.length; i < l; i++) {
-						cindex = getColumnIndex(reorderedIds[i].replace(uid, ""));
-						// FIXME: Needs to use visible columns only??
-						reorderedColumns.push(self.options.columns[cindex]);
+						cindex = cache.columnsById[reorderedIds[i].replace(uid, "")];
+						reorderedColumns.push(cache.activeColumns[cindex]);
 					}
 
 					// Re-run postprocessing cache - it's no longer valie
@@ -6268,8 +6224,7 @@
 			columnElements = $headers.children();
 			columnElements.find("." + classhandle).remove();
 			columnElements.each(function (i) {
-				// FIXME: This is no longer a reliable way to get the column definition since the column could be hidden
-				if (!self.options.columns[i].resizable) return;
+				if (!cache.activeColumns[i].resizable) return;
 				if (firstResizable === undefined) firstResizable = i;
 				lastResizable = i;
 			});
@@ -6279,10 +6234,8 @@
 
 			var lockColumnWidths = function () {
 				columnElements.each(function (i, e) {
-					// FIXME: This is no longer a reliable way to get the column definition since the column could be hidden
-
 					// The extra 1 here is to compensate for the border separator
-					self.options.columns[i].previousWidth = self.options.columns[i].width;
+					cache.activeColumns[i].previousWidth = cache.activeColumns[i].width;
 				});
 			};
 
@@ -6291,8 +6244,7 @@
 				x = d;
 				if (d < 0) { // shrink column
 					for (j = i; j >= 0; j--) {
-						// FIXME: Needs to use visible columns only
-						c = self.options.columns[j];
+						c = cache.activeColumns[j];
 						if (!c.resizable) continue;
 						actualMinWidth = Math.max(c.minWidth || 0, absoluteColumnMinWidth);
 						if (x && c.previousWidth + x < actualMinWidth) {
@@ -6307,8 +6259,7 @@
 					if (self.options.autoColumnWidth) {
 						x = -d;
 						for (j = i + 1; j < columnElements.length; j++) {
-							// FIXME: Needs to use visible columns only
-							c = self.options.columns[j];
+							c = cache.activeColumns[j];
 							if (!c.resizable) continue;
 							if (x && c.maxWidth && (c.maxWidth - c.previousWidth < x)) {
 								x -= c.maxWidth - c.previousWidth;
@@ -6321,8 +6272,7 @@
 					}
 				} else { // stretch column
 					for (j = i; j >= 0; j--) {
-						// FIXME: Needs to use visible columns only
-						c = self.options.columns[j];
+						c = cache.activeColumns[j];
 						if (!c.resizable) continue;
 						if (x && c.maxWidth && (c.maxWidth - c.previousWidth < x)) {
 							x -= c.maxWidth - c.previousWidth;
@@ -6336,8 +6286,7 @@
 					if (self.options.autoColumnWidth) {
 						x = -d;
 						for (j = i + 1, l = columnElements.length; j < l; j++) {
-							// FIXME: Needs to use visible columns only
-							c = self.options.columns[j];
+							c = cache.activeColumns[j];
 							if (!c.resizable) continue;
 							actualMinWidth = Math.max(c.minWidth || 0, absoluteColumnMinWidth);
 							if (x && c.previousWidth + x < actualMinWidth) {
@@ -6362,8 +6311,7 @@
 					stretchLeewayOnRight = 0;
 					// colums on right affect maxPageX/minPageX
 					for (j = i + 1; j < columnElements.length; j++) {
-						// FIXME: Needs to use visible columns only
-						c = self.options.columns[j];
+						c = cache.activeColumns[j];
 						if (!c.resizable) continue;
 						if (stretchLeewayOnRight !== null) {
 							if (c.maxWidth) {
@@ -6379,8 +6327,7 @@
 					stretchLeewayOnLeft = 0;
 				for (j = 0; j <= i; j++) {
 					// columns on left only affect minPageX
-					// FIXME: Needs to use visible columns only
-					c = self.options.columns[j];
+					c = cache.activeColumns[j];
 					if (!c.resizable) continue;
 					if (stretchLeewayOnLeft !== null) {
 						if (c.maxWidth) {
@@ -6409,8 +6356,7 @@
 			var submitColResize = function () {
 				var newWidth;
 				for (j = 0; j < columnElements.length; j++) {
-					// FIXME: Needs to use visible columns only
-					c = self.options.columns[j];
+					c = cache.activeColumns[j];
 					newWidth = $(columnElements[j]).outerWidth();
 
 					if (c.previousWidth !== newWidth && c.rerenderOnResize) {
@@ -6452,11 +6398,10 @@
 			// Create drag handles
 			// This has to be done for each drag handle to not conflict with drag reordering
 			$.each(columnElements, function (i, columnEl) {
-				// FIXME: Needs to use visible columns only
 				if (
 					i < firstResizable ||
 					(self.options.autoColumnWidth && i >= lastResizable) ||
-					self.options.columns[i].resizable === false
+					cache.activeColumns[i].resizable === false
 				) return;
 
 				$('<div class="' + classhandle + '"><span></span></div>')
@@ -6543,8 +6488,7 @@
 						multiColumnSort: true,
 						sortCols: $.map(self.sorting, function (col) {
 							return {
-								// FIXME: Needs to use visible columns only
-								sortCol: self.options.columns[getColumnIndex(col.columnId)],
+								sortCol: cache.activeColumns[cache.columnsById[col.columnId]],
 								sortAsc: col.sortAsc
 							};
 						})
@@ -6588,9 +6532,8 @@
 					self.filter(function (item) {
 						// Get the values of all column fields
 						var result = true, c, c_value, i_value;
-						// FIXME: Needs to use visible columns only
-						for (var i = 0, l = self.options.columns.length; i < l; i++) {
-							c = self.options.columns[i];
+						for (var i = 0, l = cache.activeColumns.length; i < l; i++) {
+							c = cache.activeColumns[i];
 							if (result && c.quickFilterInput) {
 								i_value = c.quickFilterInput.val();
 								c_value = getDataItemValueForColumn(item, c);
@@ -6613,9 +6556,8 @@
 
 				// Create a cell for each column
 				var column, cell, html;
-				// FIXME: Needs to use visible columns only
-				for (var i = 0, l = self.options.columns.length; i < l; i++) {
-					column = self.options.columns[i];
+				for (var i = 0, l = cache.activeColumns.length; i < l; i++) {
+					column = cache.activeColumns[i];
 
 					// Create cell
 					html = ['<div class="'];
@@ -6797,7 +6739,7 @@
 				if (col.sortAsc === null) {
 					col.sortAsc = true;
 				}
-				var columnIndex = getColumnIndex(col.columnId);
+				var columnIndex = cache.columnsById[col.columnId];
 				if (columnIndex !== null) {
 					headerColumnEls.eq(columnIndex)
 						.addClass(classheadercolumnsorted)
@@ -6826,8 +6768,6 @@
 			event.preventDefault();
 
 			var column = args.column || false;
-
-			// TODO: Disable this menu when clicking in the spaced between header quick filters
 
 			// Menu data object which will define what the menu will have
 			//
@@ -7045,7 +6985,7 @@
 				if (removedRowHash) {
 					for (columnId in removedRowHash) {
 						if (!addedRowHash || removedRowHash[columnId] != addedRowHash[columnId]) {
-							node = getCellNode(row, getColumnIndex(columnId));
+							node = getCellNode(row, cache.columnsById[columnId]);
 							if (node) {
 								$(node).removeClass(removedRowHash[columnId]);
 							}
@@ -7056,7 +6996,7 @@
 				if (addedRowHash) {
 					for (columnId in addedRowHash) {
 						if (!removedRowHash || removedRowHash[columnId] != addedRowHash[columnId]) {
-							node = getCellNode(row, getColumnIndex(columnId));
+							node = getCellNode(row, cache.columnsById[columnId]);
 							if (node) {
 								$(node).addClass(addedRowHash[columnId]);
 							}
@@ -7078,9 +7018,8 @@
 			cache.aggregatorsByColumnId = {};
 
 			var x = 0, column;
-			// FIXME: Needs to use visible columns only
-			for (var i = 0, l = self.options.columns.length; i < l; i++) {
-				column = self.options.columns[i];
+			for (var i = 0, l = cache.activeColumns.length; i < l; i++) {
+				column = cache.activeColumns[i];
 
 				cache.columnPosLeft[i] = x;
 				cache.columnPosRight[i] = x + column.width;
@@ -7101,9 +7040,7 @@
 		//
 		updateRow = function (row) {
 			var cacheEntry = cache.nodes[row];
-			if (!cacheEntry) {
-				return;
-			}
+			if (!cacheEntry) return;
 
 			ensureCellNodesInRowsCache(row);
 
@@ -7115,8 +7052,7 @@
 				}
 
 				columnIdx = columnIdx | 0;
-				// FIXME: Needs to use visible columns only
-				var m = self.options.columns[columnIdx],
+				var m = cache.activeColumns[columnIdx],
 					node = cacheEntry.cellNodesByColumnIdx[columnIdx];
 
 				if (self.active && row === self.active.row && columnIdx === self.active.cell && currentEditor) {
@@ -7212,7 +7148,7 @@
 			}
 
 			// If autoColumnWidth is enabled and the scrollbar has disappeared - we need to resize
-			if (self.options.autoColumnWidth && oldViewportHasVScroll != viewportHasVScroll) {
+			if (self.options.autoColumnWidth && oldViewportHasVScroll !== undefined && oldViewportHasVScroll != viewportHasVScroll) {
 				autosizeColumns();
 			}
 
@@ -7226,18 +7162,22 @@
 		validateColumns = function () {
 			if (!self.options.columns) return;
 
+			cache.activeColumns = [];
+
 			var c;
 			for (var i = 0, l = self.options.columns.length; i < l; i++) {
 				// Set defaults
 				c = self.options.columns[i] = $.extend(JSON.parse(JSON.stringify(columnDefaults)), self.options.columns[i]);
 
 				// An "id" is required. If it's missing, auto-generate one
-				if (c.id === undefined || c.id === null) c.id = c.field ? c.field + '_' + i : c.name ? c.name + '_' + i : null;
+				if (c.id === undefined || c.id === null) {
+					c.id = c.field ? c.field + '_' + i : c.name ? c.name + '_' + i : null;
+				}
 
 				// Convert "tooltip" param to a Cumul8-friendly tooltip
 				if (c.tooltip) {
 					var cssClass = c.headerClass ? c.headerClass + " tooltip" : "tooltip";
-					c.headeClass = cssClass;
+					c.headerClass = cssClass;
 					c.toolTip = c.tooltip;
 				}
 
@@ -7264,8 +7204,13 @@
 					}
 				}
 
-				// Build column id cache
-				cache.columnsById[c.id] = i;
+				// Build active column cache
+				if (c.visible !== false) {
+					cache.activeColumns.push(c);
+
+					// Build column id cache
+					cache.columnsById[c.id] = i;
+				}
 			}
 		},
 
