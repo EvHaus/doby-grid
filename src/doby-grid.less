@@ -139,25 +139,25 @@
 
 	&.off {opacity: 0}
 
-	.menu {
+	.doby-grid-dropdown-menu {
 		padding: 5px 0;
 		position: relative;
 	}
 
-	.item {
+	.doby-grid-dropdown-item {
 		cursor: pointer;
 		padding: 6px 14px 6px 30px;
 		position: relative;
 		white-space: nowrap;
 
-		.icon {
+		.doby-grid-dropdown-icon {
 			display: none;
 			position: absolute;
 			left: 9px;
 			top: 4px;
 		}
 
-		.arrow {
+		.doby-grid-dropdown-arrow {
 			border: 5px solid transparent;
 			height: 0;
 			position: absolute;
@@ -166,13 +166,13 @@
 			width: 0;
 		}
 
-		&.on .icon {
+		&.on .doby-grid-dropdown-icon {
 			display: block;
 			height: 16px;
 			width: 16px;
 		}
 
-		& > .menu {
+		& > .doby-grid-dropdown-menu {
 			opacity: 0;
 			left: 100%;
 			position: absolute;
@@ -182,14 +182,14 @@
 			z-index: 1;
 		}
 
-		&:hover > .menu {
+		&:hover > .doby-grid-dropdown-menu {
 			opacity: 1;
 			visibility: visible;
 			z-index: 6
 		}
 	}
 
-	.divider {
+	.doby-grid-dropdown-divider {
 		margin: 2px 0;
 	}
 }

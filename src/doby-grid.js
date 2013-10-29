@@ -92,6 +92,11 @@
 			classcolumnname = this.NAME + '-column-name',
 			classcontextmenu = this.NAME + '-contextmenu',
 			classdropdown = this.NAME + '-dropdown',
+			classdropdownmenu = classdropdown + '-menu',
+			classdropdownitem = classdropdown + '-item',
+			classdropdowndivider = classdropdown + '-divider',
+			classdropdownarrow = classdropdown + '-arrow',
+			classdropdownicon = classdropdown + '-icon',
 			classexpanded = 'expanded',
 			classgroup = this.NAME + '-group',
 			classgrouptitle = this.NAME + '-group-title',
@@ -5493,25 +5498,25 @@
 		// @param	$parent		object		DOM object into which to insert the rendered HTML
 		//
 		renderMenu = function (menu, $parent) {
-			var $menu = $('<div class="menu"></div>');
+			var $menu = $(['<div class="', classdropdownmenu, '"></div>'].join(''));
 			_.each(menu, function (item) {
 				if (item.enabled !== undefined && !item.enabled) return;
 				if (item.divider) {
-					$menu.append('<div class="divider"></div>');
+					$menu.append(['<div class="', classdropdowndivider, '"></div>'].join(''));
 				} else {
 					var label = (item.name || ""),
 						cls = "";
 					if (item.value !== undefined) {
 						if (item.value) cls = " on";
-						label += '<span class="icon"></span>';
+						label += ['<span class="', classdropdownicon, '"></span>'].join('');
 					}
 
-					var html = ['<div class="item', cls, '">', label, '</div>'].join(''),
+					var html = ['<div class="', classdropdownitem, ' ', cls, '">', label, '</div>'].join(''),
 						$el = $(html).appendTo($menu);
 
 					// Submenus
 					if (item.menu) {
-						$el.append('<span class="arrow"></span>');
+						$el.append(['<span class="', classdropdownarrow, '"></span>'].join(''));
 						renderMenu(item.menu, $el);
 					}
 
@@ -6027,13 +6032,10 @@
 
 			this.options.columns = columns;
 
-			cache.columnsById = {};
-
 			var c;
 			for (var i = 0, l = this.options.columns.length; i < l; i++) {
 				c = self.options.columns[i] = $.extend(JSON.parse(JSON.stringify(columnDefaults)), self.options.columns[i]);
 
-				cache.columnsById[c.id] = i;
 				if (c.minWidth && c.width < c.minWidth) c.width = c.minWidth;
 				if (c.maxWidth && c.width > c.maxWidth) c.width = c.maxWidth;
 			}
@@ -6842,6 +6844,9 @@
 				sorted = _.sortBy(self.options.columns, function (c) { return c.name; });
 
 			_.each(sorted, function (c) {
+				// Non-removable columns do not appear in the list
+				if (!c.removable) return;
+
 				columns_menu.push({
 					name: c.name !== undefined && c.name !== null ? c.name : c.id,
 					fn: cFn(c),
@@ -6963,9 +6968,11 @@
 				enabled: column && (column.sortable || column.removable || column.groupable),
 				divider: true
 			}, {
+				enabled: columns_menu.length > 0,
 				name: getLocale('global.columns'),
 				menu: columns_menu
 			}, {
+				enabled: columns_menu.length > 0,
 				divider: true
 			}, {
 				name: getLocale('global.export'),
@@ -7232,6 +7239,7 @@
 			if (!self.options.columns) return;
 
 			cache.activeColumns = [];
+			cache.columnsById = {};
 
 			var c;
 			for (var i = 0, l = self.options.columns.length; i < l; i++) {
@@ -7278,7 +7286,7 @@
 					cache.activeColumns.push(c);
 
 					// Build column id cache
-					cache.columnsById[c.id] = i;
+					cache.columnsById[c.id] = cache.activeColumns.length - 1;
 				}
 			}
 		},

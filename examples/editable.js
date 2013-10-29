@@ -29,29 +29,34 @@ define(['faker'], function (Faker) {
 				id: "id",
 				name: "ID",
 				field: "id",
-				sortable: true
+				sortable: true,
+				removable: true
 			}, {
 				id: "name",
 				name: "Name",
 				field: "name",
 				minWidth: 100,
-				sortable: true
+				sortable: true,
+				removable: true
 			}, {
 				id: "age",
 				name: "Age",
 				field: "age",
-				sortable: true
+				sortable: true,
+				removable: true
 			}, {
 				id: "city",
 				name: "City",
 				field: "city",
 				sortable: true,
-				visible: false
+				visible: false,
+				removable: true
 			}, {
 				id: "country",
 				name: "Country",
 				field: "country",
-				sortable: true
+				sortable: true,
+				removable: true
 			}],
 			data: data,
 			editable: true
