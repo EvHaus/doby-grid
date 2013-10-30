@@ -23,6 +23,7 @@ module.exports = function (grunt) {
 					'libs/jquery-ui.js',
 					'libs/jquery.simulate.js',
 					'libs/jquery.event.drag.js',
+					'libs/FileSaver.js',
 					'libs/underscore.js',
                     'libs/backbone.js',
 					'libs/less.js',
@@ -68,7 +69,7 @@ module.exports = function (grunt) {
 					'// https://github.com/globexdesigns/doby-grid\n'
 				].join('\n'),
 				mangle: {
-					except: ['jQuery', 'Backbone']
+					except: ['jQuery', 'Backbone', 'FileSaver']
 				}
 			},
 

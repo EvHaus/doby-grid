@@ -48,6 +48,7 @@ At this time we're looking for early testers who are interested in [contributing
 
 - jQuery.ui.sortable <http://jqueryui.com/> (for column re-ordering)
 - jquery.event.drag <http://threedubmedia.com/code/event/drag> (for column and row re-sizing and cell range selection)
+- FileSaver <https://github.com/eligrey/FileSaver.js> (for CSV/HTML export functionality)
 
 ### Other Dependencies
 

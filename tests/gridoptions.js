@@ -797,6 +797,17 @@ describe("Grid Options", function () {
 	// ==========================================================================================
 
 
+	describe("options.exportFileName", function () {
+		it("should be 'doby-grid-export' by default", function () {
+			var grid = resetGrid(defaultData());
+			expect(grid.options.exportFileName).toEqual('doby-grid-export');
+		});
+	});
+
+
+	// ==========================================================================================
+
+
 	describe("options.formatter", function () {
 		it("should correctly formater the cell values", function () {
 			// Prepare for test

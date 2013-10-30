@@ -110,6 +110,7 @@
 				'jquery.simulate': 'libs/jquery.simulate',
 				'dobygrid': 'src/doby-grid',
 				'faker': 'libs/faker',
+				'filesaver': 'libs/FileSaver',
 				'less': 'libs/less',
 				'underscore': 'libs/underscore'
 			},
@@ -139,7 +140,14 @@
 		};
 
 		// Initialize doby
-		require(['less', 'dobygrid', 'jquery-ui' ,'jquery.event.drag','jquery.simulate'], function(less, DobyGrid) {
+		require([
+			'less',
+			'dobygrid',
+			'jquery-ui',
+			'jquery.event.drag',
+			'jquery.simulate',
+			'filesaver'
+		], function(less, DobyGrid) {
 
 			// or "profile"
 			var profiler = 'time';

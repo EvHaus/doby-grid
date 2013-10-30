@@ -6,7 +6,7 @@
 
 /*jslint browser: true, vars: true, plusplus: true, indent: 4, maxerr: 50*/
 /*jshint expr: true, white: true*/
-/*global console, define*/
+/*global console, define, saveAs*/
 
 (function (root, factory) {
 	"use strict";
@@ -207,6 +207,7 @@
 			headerColumnWidthDiff = 0,
 			headerColumnHeightDiff = 0, // border+padding
 			idProperty = "id",	// property holding a unique row id
+			isFileSaverSupported = typeof window.Blob === "function",
 			initialize,
 			initialized = false,
 			insertAddRow,
@@ -322,6 +323,7 @@
 			editable:				false,
 			editor:					null,
 			emptyNotice:			true,
+			exportFileName:			"doby-grid-export",
 			formatter:				null,
 			fullWidthRows:			true,
 			groupable:				true,
@@ -3158,7 +3160,7 @@
 
 					if (format === 'csv') {
 						// Escape quotes
-						val = val.toString().replace(/\"/g, '\"');
+						val = val ? val.toString().replace(/\"/g, '\"') : '';
 
 						row.push(['"', val, '"'].join(''));
 					} else if (format === 'html') {
@@ -6983,20 +6985,25 @@
 				enabled: columns_menu.length > 0,
 				divider: true
 			}, {
+				enabled: isFileSaverSupported,
 				name: getLocale('global.export'),
 				menu: [{
 					name: getLocale('global.export_csv'),
 					fn: function () {
-						var csv = self.export('csv'),
-							uri = "data:text/csv," + encodeURIComponent(csv);
-						window.open(uri, 'Data Export');
+						var csv = self.export('csv');
+
+						// Save to file
+						var blob = new Blob([csv], {type: "text/csv;charset=utf-8"});
+						saveAs(blob, [self.options.exportFileName, ".csv"].join(''));
 					}
 				}, {
 					name: getLocale('global.export_html'),
 					fn: function () {
-						var html = self.export('html'),
-							uri = "data:text/html," + encodeURIComponent(html);
-						window.open(uri, 'Data Export');
+						var html = self.export('html');
+
+						// Save to file
+						var blob = new Blob([html], {type: "text/html;charset=utf-8"});
+						saveAs(blob, [self.options.exportFileName, ".html"].join(''));
 					}
 				}]
 			}, {
