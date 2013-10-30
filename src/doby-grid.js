@@ -200,7 +200,6 @@
 			handleHeaderClick,
 			handleKeyDown,
 			handleScroll,
-			handleSelectedRangesChanged,
 			handleWindowResize,
 			hasGrouping,
 			hasSorting,
@@ -217,6 +216,7 @@
 			invalidateRow,
 			invalidateRows,
 			isCellPotentiallyEditable,
+			isCellSelected,
 			lastRenderedScrollLeft = 0,
 			lastRenderedScrollTop = 0,
 			makeActiveCellEditable,
@@ -269,7 +269,6 @@
 			scrollRowIntoView,
 			scrollTo,
 			scrollTop = 0,
-			selectedRows = [],		// Currently selected ranges of cells
 			serializedEditorValue,
 			setActiveCell,
 			setActiveCellInternal,
@@ -317,6 +316,7 @@
 			"class":				null,
 			clipboard:				"csv",
 			columns:				[],
+			ctrlSelect:				true,
 			data:					[],
 			dataExtractor:			null,
 			columnWidth:			80,
@@ -975,6 +975,10 @@
 					decorator.hide();
 
 					self._event = event;
+
+					// Dragging always selects a new range
+					// TODO: Good candidate for a Grid Option toggle
+					deselectCells();
 
 					self.selectCells(
 						dd._range.start.row,
@@ -2855,24 +2859,47 @@
 
 
 		// deselectCells()
-		// Deselects any selected cell ranges
+		// Deselects all selected cell ranges, or a specific cell specified.
 		//
-		deselectCells = function () {
-			// Deselect the previous range
-			var removeHash = {};
-			if (selectedRows) {
-				var clearAllColumns = {};
-				for (var ic = 0, lc = cache.activeColumns.length; ic < lc; ic++) {
-					clearAllColumns[cache.activeColumns[ic].id] = self.options.selectedClass;
-				}
+		// @param	row		integer		(Optional) Row index for cell to deselect
+		// @param	cell	integer		(Optional) Cell index to deselect in the given row
+		//
+		deselectCells = function (row, cell) {
+			// Nothing to deselect
+			if (!self.selection) return;
 
-				for (var iw = 0, lw = selectedRows.length; iw < lw; iw++) {
-					removeHash[selectedRows[iw]] = clearAllColumns;
+			var specific = row !== undefined && row !== null && cell !== undefined && cell !== null;
+
+			// Go through the selection ranges and deselect as needed
+			for (var i = 0, l = self.selection.length; i < l; i++) {
+				// To deselect a specific cell we first need to make sure its in the selection Range
+				if (specific) {
+					if (self.selection[i].contains(row, cell)) {
+						self.selection[i].deselect(row, cell);
+					}
+				} else {
+					self.selection[i].deselect();
 				}
 			}
 
-			// Deselect cells
-			updateCellCssStylesOnRenderedRows(null, removeHash);
+			// If deselecting everything - remove selection store
+			if (!specific) self.selection = null;
+
+			// Did the user exclude all values of any ranges? If so - destroy that range.
+			if (self.selection) {
+				var cleanranges = [];
+				for (i = 0, l = self.selection.length; i < l; i++) {
+					if (!self.selection[i].fullyExcluded()) {
+						cleanranges.push(self.selection[i]);
+					}
+				}
+
+				if (cleanranges.length === 0) {
+					self.selection = null;
+				} else {
+					self.selection = cleanranges;
+				}
+			}
 		};
 
 
@@ -4260,16 +4287,36 @@
 				item: item
 			});
 
-			if (e.isImmediatePropagationStopped()) {
-				return;
-			}
+			if (e.isImmediatePropagationStopped()) return;
 
 			// Set clicked cells to active
 			if (canCellBeActive(cell.row, cell.cell)) {
 				// If holding down "Shift" key and another cell is already active - use this to
 				// select a cell range.
 				if (self.options.shiftSelect && e.shiftKey && self.active) {
+					// Deselect anything we had selected before
+					deselectCells();
+
 					self.selectCells(self.active.row, self.active.cell, cell.row, cell.cell);
+				}
+
+				// Support for "Ctrl" / "Command" clicks
+				if (self.options.ctrlSelect && (e.ctrlKey || e.metaKey) && self.active) {
+
+					// Is the cell already selected? If so - deselect it
+					if (isCellSelected(cell.row, cell.cell)) {
+						deselectCells(cell.row, cell.cell);
+						return;
+					}
+
+					// Select the currently active cell
+					if (!self.selection) {
+						self.selectCells(self.active.row, self.active.cell, self.active.row, self.active.cell, true);
+					}
+
+					// Select the cell the user chose
+					self.selectCells(cell.row, cell.cell, cell.row, cell.cell, true);
+					return;
 				}
 
 				scrollRowIntoView(cell.row, false);
@@ -4379,7 +4426,6 @@
 						} else if (self.selection) {
 							// If something is selected remove the selection range
 							deselectCells();
-							self.selection = null;
 						} else if (self.active) {
 							// If something is active - remove the active state
 							self.activate();
@@ -4484,44 +4530,6 @@
 				// nothing else), "Shift" (maybe others)
 				catch (error) {}
 			}
-		};
-
-
-		// handleSelectedRangesChanges()
-		// Handles the event for when selection range is changed
-		//
-		// @param	e	object		Javascript event object
-		//
-		handleSelectedRangesChanged = function (e, args) {
-			self.selection = args.ranges;
-
-			// Select currently selected
-			deselectCells();
-
-			// Select the new range
-			selectedRows = [];
-			var addHash = {};
-			for (var i = 0, l = self.selection.length; i < l; i++) {
-				for (var j = self.selection[i].fromRow; j <= self.selection[i].toRow; j++) {
-					if (!addHash[j]) { // prevent duplicates
-						selectedRows.push(j);
-						addHash[j] = {};
-					}
-					for (var k = self.selection[i].fromCell; k <= self.selection[i].toCell; k++) {
-						if (canCellBeSelected(j, k)) {
-							addHash[j][cache.activeColumns[k].id] = self.options.selectedClass;
-						}
-					}
-				}
-			}
-
-			// Select cells
-			updateCellCssStylesOnRenderedRows(addHash);
-
-			self.trigger('onSelectedRowsChanged', e, {
-				rows: selectedRows,
-				selection: self.selection
-			});
 		};
 
 
@@ -4677,6 +4685,24 @@
 			if (!getEditor(row, cell)) return false;
 
 			return true;
+		};
+
+
+		// isCellSelected()
+		// Returns true if the given row/cell index combination yields a selected cell
+		//
+		// @param	row		integer		Index of row of the cell
+		// @param	cell	integer		Index of the cell in the row
+		//
+		// @return boolean
+		isCellSelected = function (row, cell) {
+			if (!self.selection) return false;
+			var s;
+			for (var i = 0, l = self.selection.length; i < l; i++) {
+				s = self.selection[i];
+				if (s.contains(row, cell)) return true;
+			}
+			return false;
 		};
 
 
@@ -5003,78 +5029,172 @@
 			toRow = toRow === undefined ? fromRow : toRow;
 			toCell = toCell === undefined ? fromCell : toCell;
 
+			// The index of the rows and cells that define the range
 			this.fromRow = Math.min(fromRow, toRow);
 			this.fromCell = Math.min(fromCell, toCell);
 			this.toRow = Math.max(fromRow, toRow);
 			this.toCell = Math.max(fromCell, toCell);
 
-			// contains()
-			// Returns whether a range contains a given cell
-			//
-			// @param	row		integer		Row index
-			// @param	cell	integer		Cell index
-			//
-			// @return boolean
-			this.contains = function (row, cell) {
-				return row >= this.fromRow && row <= this.toRow &&
-					cell >= this.fromCell && cell <= this.toCell;
-			};
+			// Cell exclusions
+			this.exclusions = [];
+		};
 
 
-			// isSingleCell()
-			// Returns whether a range represents a single cell
-			//
-			// @return boolean
-			this.isSingleCell = function () {
-				return this.fromRow == this.toRow && this.fromCell == this.toCell;
-			};
+		// contains()
+		// Returns whether a range contains a given cell
+		//
+		// @param	row		integer		Row index
+		// @param	cell	integer		Cell index
+		//
+		// @return boolean
+		Range.prototype.contains = function (row, cell) {
+			return row >= this.fromRow &&
+				row <= this.toRow &&
+				cell >= this.fromCell &&
+				cell <= this.toCell &&
+				!this.inExclusion(row, cell);
+		};
 
 
-			// isSingleRow()
-			// Returns whether a range represents a single row.
-			//
-			// @return boolean
-			this.isSingleRow = function () {
-				return this.fromRow == this.toRow;
-			};
+		// deselect()
+		// Deselects the range, or a specific cell in the range. Returns the Range object.
+		//
+		// @param	row		integer		(Optional) Row index for cell to deselect
+		// @param	cell	integer		(Optional) Cell index to deselect in the given row
+		//
+		// @return object
+		Range.prototype.deselect = function (row, cell) {
+			var specific = row !== undefined && row !== null && cell !== undefined && cell !== null;
 
+			// Make sure cell is part of range
+			if (specific && !this.contains(row, cell)) {
+				throw new Error('Unable to deselect cell (' + row + ', ' + cell + ') because it is not part of this Range.');
+			}
 
-			// toCSV()
-			// Converts the cell range values to CSV
-			//
-			// @return string
-			this.toCSV = function () {
-				var json = this.toJSON(),
-					csv = [];
-				for (var i = 0, l = json.length; i < l; i++) {
-					csv.push('"' + json[i].join('","') + '"');
+			// If deselecting a specific cell -- add it to the exclusion list
+			if (specific) this.exclusions.push([row, cell]);
+
+			// Get rows we want to deselect items
+			var selectedRows = [];
+			if (!row) {
+				for (var j = this.fromRow; j <= this.toRow; j++) {
+					if (selectedRows.indexOf(j) < 0) selectedRows.push(j);
 				}
-				return csv.join('\n');
-			};
+			} else {
+				selectedRows.push(row);
+			}
+
+			// Build key/value object for classes we want to clear
+			var clear = {}, removeHash = {};
+
+			// If we have a specific cell to deselect, just do that one
+			if (cell) {
+				clear[cache.activeColumns[cell].id] = self.options.selectedClass;
+			} else {
+				for (var ic = 0, lc = cache.activeColumns.length; ic < lc; ic++) {
+					clear[cache.activeColumns[ic].id] = self.options.selectedClass;
+				}
+			}
+
+			// Do the same for every row that we're clearing
+			for (var iw = 0, lw = selectedRows.length; iw < lw; iw++) {
+				removeHash[selectedRows[iw]] = clear;
+			}
+
+			// Update cell node styling
+			updateCellCssStylesOnRenderedRows(null, removeHash);
+
+			return this;
+		};
 
 
-			// toJSON()
-			// Converts the cell range values to JSON
-			//
-			// @return string
-			this.toJSON = function () {
-				var json = [], column, row, data;
-				for (var i = this.fromRow; i <= this.toRow; i++) {
-					row = cache.rows[i];
+		// fullyExcluded()
+		// Returns whether the range is fully excluded
+		//
+		// @return boolean
+		Range.prototype.fullyExcluded = function () {
+			for (var row = this.fromRow; row <= this.toRow; row++) {
+				for (var cell = this.fromCell; cell <= this.toCell; cell++) {
+					if (!this.inExclusion(row, cell)) return false;
+				}
+			}
+			return true;
+		};
 
-					// Skip NonData rows
-					if (row instanceof NonDataItem) continue;
 
-					data = [];
-					for (var c = this.fromCell; c <= this.toCell; c++) {
+		// inExclusion()
+		// Returns whether a cell is excluded in this range
+		//
+		// @param	row		integer		Row index for cell to check
+		// @param	cell	integer		Cell index to check in the given row
+		//
+		Range.prototype.inExclusion = function (row, cell) {
+			if (this.exclusions.length === 0) return false;
+			for (var i = 0, l = this.exclusions.length; i < l; i++) {
+				if (this.exclusions[i][0] === row && this.exclusions[i][1] === cell) return true;
+			}
+		};
+
+
+		// isSingleCell()
+		// Returns whether a range represents a single cell
+		//
+		// @return boolean
+		Range.prototype.isSingleCell = function () {
+			return this.fromRow == this.toRow && this.fromCell == this.toCell;
+		};
+
+
+		// isSingleRow()
+		// Returns whether a range represents a single row.
+		//
+		// @return boolean
+		Range.prototype.isSingleRow = function () {
+			return this.fromRow == this.toRow;
+		};
+
+
+		// toCSV()
+		// Converts the cell range values to CSV
+		//
+		// @return string
+		Range.prototype.toCSV = function () {
+			var json = this.toJSON(),
+				csv = [];
+			for (var i = 0, l = json.length; i < l; i++) {
+				csv.push('"' + json[i].join('","') + '"');
+			}
+			return csv.join('\n');
+		};
+
+
+		// toJSON()
+		// Converts the cell range values to JSON
+		//
+		// @return string
+		Range.prototype.toJSON = function () {
+			var json = [], column, row, data;
+			for (var i = this.fromRow; i <= this.toRow; i++) {
+				row = cache.rows[i];
+
+				// Skip NonData rows
+				if (row instanceof NonDataItem) continue;
+
+				data = [];
+				for (var c = this.fromCell; c <= this.toCell; c++) {
+					// Replace excluded items with blanks
+					if (this.inExclusion(row, c)) {
+						data.push(null);
+					} else {
 						column = cache.activeColumns[c];
 						data.push(getValueFromItem(row, column));
 					}
-					json.push(data);
 				}
-				return json;
-			};
+				json.push(data);
+			}
+			return json;
 		};
+
 
 		// toString()
 		// Returns a readable representation of a range
@@ -5934,18 +6054,16 @@
 		// @param	startCell	integer		Cell on which to start selection
 		// @param	endRow		integer		Row on which to end selection
 		// @param	endCell		integer		Cell on which to end selection
+		// @param	add			boolean		If true, will add selection as a new range
 		//
 		// @return array
-		this.selectCells = function (startRow, startCell, endRow, endCell) {
+		this.selectCells = function (startRow, startCell, endRow, endCell, add) {
 			if (!this.options.selectable) return;
 
 			// Validate params
 			if (startRow === undefined && startCell === undefined && endRow === undefined && endCell === undefined) {
 				// If no params given - deselect
 				deselectCells();
-
-				// Remove selection store
-				self.selection = null;
 
 				return;
 			} else {
@@ -5958,17 +6076,61 @@
 			}
 
 			// Define a range
-			var ranges = [new Range(startRow, startCell, endRow, endCell)];
+			var range = new Range(startRow, startCell, endRow, endCell),
+				ranges, i, l, j, k;
 
-			// Process the selection
-			handleSelectedRangesChanged(null, {
-				ranges: ranges
-			});
+			// Is this is a single cell range that falls within an existing selection range?
+			if (range.isSingleCell() && this.selection) {
+				for (i = 0, l = this.selection.length; i < l; i++) {
+					// Part of a selected range -- we're done. Leave.
+					if (this.selection[i].contains(startRow, startCell)) return;
 
-			// Trigger range selection
-			this.trigger('onCellRangeSelected', this._event, {
-				ranges: ranges
-			});
+					// Part of an excluded item -- remove from exclusion.
+					if (this.selection[i].inExclusion(startRow, startCell)) {
+						// Remove from exclusion
+						var excl_index = this.selection[i].exclusions.indexOf([startRow, startCell]);
+						this.selection[i].exclusions.splice(excl_index, 1);
+
+						// Select cell
+						var styls = {};
+						styls[startRow][cache.activeColumns[startCell].id] = this.options.selectedClass;
+						updateCellCssStylesOnRenderedRows(styls);
+						return;
+					}
+				}
+			}
+
+			if (add) {
+				if (!this.selection) this.selection = [];
+				ranges = this.selection;
+				ranges.push(range);
+			} else {
+				ranges = [range];
+			}
+
+			// Set new selection
+			this.selection = ranges;
+
+			// Select the new range
+			var cellStyles = {};
+			for (i = 0, l = this.selection.length; i < l; i++) {
+				for (j = this.selection[i].fromRow; j <= this.selection[i].toRow; j++) {
+					if (!cellStyles[j]) { // prevent duplicates
+						cellStyles[j] = {};
+					}
+					for (k = self.selection[i].fromCell; k <= this.selection[i].toCell; k++) {
+						if (canCellBeSelected(j, k)) {
+							cellStyles[j][cache.activeColumns[k].id] = this.options.selectedClass;
+						}
+					}
+				}
+			}
+
+			// Select cells
+			updateCellCssStylesOnRenderedRows(cellStyles);
+
+			this.trigger('onSelectedRowsChanged', this._event);
+			this.trigger('onCellRangeSelected', this._event);
 		};
 
 

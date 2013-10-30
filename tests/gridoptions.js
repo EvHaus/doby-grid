@@ -653,6 +653,113 @@ describe("Grid Options", function () {
 	// ==========================================================================================
 
 
+	describe("options.ctrlSelect", function () {
+		it("should be enabled by default", function () {
+			var grid = resetGrid(defaultData());
+			expect(grid.options.ctrlSelect).toEqual(true);
+		});
+
+
+		// ==========================================================================================
+
+
+		it("should allow Ctrl+Click selection when enabled", function () {
+			var grid = resetGrid($.extend(defaultData(), {ctrlSelect: true}));
+
+			// Get the number of columns and rows we have
+			var cols = grid.options.columns.length,
+				rows = grid.options.data.length;
+
+			// Activate the first cell
+			grid.activate(0, 0);
+
+			var lastcell = grid.$el.find('.doby-grid-cell').last(),
+				firstcell = grid.$el.find('.doby-grid-cell').first();
+
+			// Ctrl-click on the last cell
+			lastcell.simulate("click", {ctrlKey: true});
+
+			// Expect to have two selection ranges
+			expect(grid.selection.length).toEqual(2);
+			expect(grid.selection[0].fromCell).toEqual(0);
+			expect(grid.selection[0].fromRow).toEqual(0);
+			expect(grid.selection[0].toCell).toEqual(0);
+			expect(grid.selection[0].toRow).toEqual(0);
+			expect(grid.selection[1].fromCell).toEqual(cols - 1);
+			expect(grid.selection[1].fromRow).toEqual(rows - 1);
+			expect(grid.selection[1].toCell).toEqual(cols - 1);
+			expect(grid.selection[1].toRow).toEqual(rows - 1);
+			expect(firstcell.attr('class')).toContain(grid.options.selectedClass);
+			expect(lastcell.attr('class')).toContain(grid.options.selectedClass);
+		});
+
+
+		// ==========================================================================================
+
+
+		it("should have only activate cell when Ctrl+Clicking on a cell with no prior active cell chosen", function () {
+			var grid = resetGrid($.extend(defaultData(), {ctrlSelect: true}));
+
+			var cell = grid.$el.find('.doby-grid-cell').first();
+
+			// Ctrl+Click the first cell
+			cell.simulate("click", {ctrlKey: true});
+
+			// Expect to have no selection ranges and no cells styled
+			expect(grid.selection).toEqual(null);
+			expect(grid.active.cell).toEqual(0);
+			expect(grid.active.row).toEqual(0);
+			expect(cell.attr('class')).not.toContain(grid.options.selectedClass);
+		});
+
+
+
+		// ==========================================================================================
+
+
+		it("should correctly destroy ranges when they become empty", function () {
+			var grid = resetGrid($.extend(defaultData(), {ctrlSelect: true}));
+
+			// Get the number of columns and rows we have
+			var cols = grid.options.columns.length,
+				rows = grid.options.data.length;
+
+			var cells = grid.$el.find('.doby-grid-cell');
+
+			// Activate the first cell
+			grid.activate(0, 0);
+
+			// Ctrl+Click to select every cell
+			cells.each(function () {
+				$(this).simulate("click", {ctrlKey: true});
+			});
+
+			// Expect to have ranges for each cell
+			expect(grid.selection.length).toEqual(cells.length);
+
+			// Expect all cells to be styled correctly
+			cells.each(function () {
+				expect($(this).attr('class')).toContain(grid.options.selectedClass);
+			});
+
+			// Now Ctrl+Click to deselect every cell
+			cells.each(function () {
+				$(this).simulate("click", {ctrlKey: true});
+			});
+
+			// Expect there to be no selections
+			expect(grid.selection).toEqual(null);
+			cells.each(function () {
+				expect($(this).attr('class')).not.toContain(grid.options.selectedClass);
+			});
+
+		});
+	});
+
+
+	// ==========================================================================================
+
+
 	describe("options.data", function () {
 		it("should throw a TypeError if the given data object is not an array or a function", function () {
 			var tp = new TypeError('The "data" option must be an array, a function or a Backbone.Collection.');
@@ -1661,7 +1768,7 @@ describe("Grid Options", function () {
 			grid.$el.find('.doby-grid-cell').last().simulate("click", {shiftKey: true});
 
 			// Expect all cells to be selected
-			expect(grid.selection.length).toBeGreaterThan(0);
+			expect(grid.selection.length).toEqual(1);
 			expect(grid.selection[0].fromCell).toEqual(0);
 			expect(grid.selection[0].fromRow).toEqual(0);
 			expect(grid.selection[0].toCell).toEqual(cols - 1);
@@ -1675,10 +1782,6 @@ describe("Grid Options", function () {
 		it("should not allow shift selection when disabled", function () {
 			var grid = resetGrid($.extend(defaultData(), {shiftSelect: false}));
 
-			// Get the number of columns and rows we have
-			var cols = grid.options.columns.length,
-				rows = grid.options.data.length;
-
 			// Activate the first cell
 			grid.activate(0, 0);
 
@@ -1687,6 +1790,44 @@ describe("Grid Options", function () {
 
 			// Expect all cells to be selected
 			expect(grid.selection).toEqual(null);
+		});
+
+
+		// ==========================================================================================
+
+
+		it("should only allow for one cell range when using shiftSelect", function () {
+			var grid = resetGrid($.extend(defaultData(), {shiftSelect: true}));
+
+			// Activate the first cell
+			grid.activate(0, 0);
+
+			// Shift-click on the last cell in the first column
+			grid.$el.find('.doby-grid-row:last-child .doby-grid-cell').first().simulate("click", {
+				shiftKey: true
+			});
+
+			var cols = grid.options.columns.length,
+				rows = grid.options.data.length;
+
+			// Expect the first column to be selected
+			expect(grid.selection.length).toEqual(1);
+			expect(grid.selection[0].fromCell).toEqual(0);
+			expect(grid.selection[0].fromRow).toEqual(0);
+			expect(grid.selection[0].toCell).toEqual(0);
+			expect(grid.selection[0].toRow).toEqual(rows - 1);
+
+			// Now shift select the top right cell
+			grid.$el.find('.doby-grid-row:first-child .doby-grid-cell').last().simulate("click", {
+				shiftKey: true
+			});
+
+			// Expect to have only 1 selection with the full grid selected
+			expect(grid.selection.length).toEqual(1);
+			expect(grid.selection[0].fromCell).toEqual(0);
+			expect(grid.selection[0].fromRow).toEqual(0);
+			expect(grid.selection[0].toCell).toEqual(cols - 1);
+			expect(grid.selection[0].toRow).toEqual(rows - 1);
 		});
 	});
 
