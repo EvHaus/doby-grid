@@ -5052,7 +5052,7 @@
 				row <= this.toRow &&
 				cell >= this.fromCell &&
 				cell <= this.toCell &&
-				!this.inExclusion(row, cell);
+				!this.isExcludedCell(row, cell);
 		};
 
 
@@ -5076,7 +5076,7 @@
 
 			// Get rows we want to deselect items
 			var selectedRows = [];
-			if (!row) {
+			if (row === undefined || row === null) {
 				for (var j = this.fromRow; j <= this.toRow; j++) {
 					if (selectedRows.indexOf(j) < 0) selectedRows.push(j);
 				}
@@ -5085,10 +5085,10 @@
 			}
 
 			// Build key/value object for classes we want to clear
-			var clear = {}, removeHash = {};
+			var clear = {}, styles = {};
 
 			// If we have a specific cell to deselect, just do that one
-			if (cell) {
+			if (cell !== undefined && cell !== undefined) {
 				clear[cache.activeColumns[cell].id] = self.options.selectedClass;
 			} else {
 				for (var ic = 0, lc = cache.activeColumns.length; ic < lc; ic++) {
@@ -5098,11 +5098,11 @@
 
 			// Do the same for every row that we're clearing
 			for (var iw = 0, lw = selectedRows.length; iw < lw; iw++) {
-				removeHash[selectedRows[iw]] = clear;
+				styles[selectedRows[iw]] = clear;
 			}
 
 			// Update cell node styling
-			updateCellCssStylesOnRenderedRows(null, removeHash);
+			updateCellCssStylesOnRenderedRows(null, styles);
 
 			return this;
 		};
@@ -5115,20 +5115,20 @@
 		Range.prototype.fullyExcluded = function () {
 			for (var row = this.fromRow; row <= this.toRow; row++) {
 				for (var cell = this.fromCell; cell <= this.toCell; cell++) {
-					if (!this.inExclusion(row, cell)) return false;
+					if (!this.isExcludedCell(row, cell)) return false;
 				}
 			}
 			return true;
 		};
 
 
-		// inExclusion()
+		// isExcludedCell()
 		// Returns whether a cell is excluded in this range
 		//
 		// @param	row		integer		Row index for cell to check
 		// @param	cell	integer		Cell index to check in the given row
 		//
-		Range.prototype.inExclusion = function (row, cell) {
+		Range.prototype.isExcludedCell = function (row, cell) {
 			if (this.exclusions.length === 0) return false;
 			for (var i = 0, l = this.exclusions.length; i < l; i++) {
 				if (this.exclusions[i][0] === row && this.exclusions[i][1] === cell) return true;
@@ -5183,7 +5183,7 @@
 				data = [];
 				for (var c = this.fromCell; c <= this.toCell; c++) {
 					// Replace excluded items with blanks
-					if (this.inExclusion(row, c)) {
+					if (this.isExcludedCell(row, c)) {
 						data.push(null);
 					} else {
 						column = cache.activeColumns[c];
@@ -6086,13 +6086,14 @@
 					if (this.selection[i].contains(startRow, startCell)) return;
 
 					// Part of an excluded item -- remove from exclusion.
-					if (this.selection[i].inExclusion(startRow, startCell)) {
+					if (this.selection[i].isExcludedCell(startRow, startCell)) {
 						// Remove from exclusion
 						var excl_index = this.selection[i].exclusions.indexOf([startRow, startCell]);
 						this.selection[i].exclusions.splice(excl_index, 1);
 
 						// Select cell
 						var styls = {};
+						styls[startRow] = {};
 						styls[startRow][cache.activeColumns[startCell].id] = this.options.selectedClass;
 						updateCellCssStylesOnRenderedRows(styls);
 						return;
@@ -6115,11 +6116,13 @@
 			var cellStyles = {};
 			for (i = 0, l = this.selection.length; i < l; i++) {
 				for (j = this.selection[i].fromRow; j <= this.selection[i].toRow; j++) {
-					if (!cellStyles[j]) { // prevent duplicates
-						cellStyles[j] = {};
-					}
+					// Prevent duplicates
+					if (!cellStyles[j]) cellStyles[j] = {};
+
+					// Creates cellStyles object
 					for (k = self.selection[i].fromCell; k <= this.selection[i].toCell; k++) {
-						if (canCellBeSelected(j, k)) {
+						// Skip exclusions and non-selectable cells
+						if (canCellBeSelected(j, k) && !this.selection[i].isExcludedCell(j, k)) {
 							cellStyles[j][cache.activeColumns[k].id] = this.options.selectedClass;
 						}
 					}

@@ -752,7 +752,78 @@ describe("Grid Options", function () {
 			cells.each(function () {
 				expect($(this).attr('class')).not.toContain(grid.options.selectedClass);
 			});
+		});
 
+
+		// ==========================================================================================
+
+
+		it("should keep existing ranges styled correctly when adding new selections", function () {
+			var grid = resetGrid($.extend(defaultData(), {
+				ctrlSelect: true,
+				columns: [
+					{id: 'id', field: 'id', name: 'id'},
+					{id: 'name', field: 'name', name: 'name'},
+					{id: 'asd', field: 'asd', name: 'asd'}
+				],
+				data: [
+					{data: {id: 189, name: 'test', asd: "asd"}, id: 189},
+					{data: {id: 289, name: 'test2', asd: "asd"}, id: 289}
+				]
+			}));
+
+			var rows = grid.$el.find('.doby-grid-row'),
+				cells = grid.$el.find('.doby-grid-cell');
+
+			// Activate the first cell
+			grid.activate(0, 0);
+
+			// Select everything but the last column
+			grid.selectCells(0, 0, grid.options.data.length - 1, grid.options.columns.length - 2);
+
+			var checkRange1 = function (exclude_first) {
+				expect(grid.selection[0].fromCell).toEqual(0);
+				expect(grid.selection[0].fromRow).toEqual(0);
+				expect(grid.selection[0].toCell).toEqual(grid.options.columns.length - 2);
+				expect(grid.selection[0].toRow).toEqual(grid.options.data.length - 1);
+				rows.each(function (row) {
+					$(this).find('.doby-grid-cell').each(function(cell) {
+						if (cell === 2) return;
+						if (exclude_first && row === 0 && cell === 0) {
+							expect($(this).attr('class')).not.toContain(grid.options.selectedClass);
+						} else {
+							expect($(this).attr('class')).toContain(grid.options.selectedClass);
+						}
+					});
+				});
+			};
+
+			// Check that everything got selected
+			expect(grid.selection.length).toEqual(1);
+			checkRange1();
+
+			// Now Ctrl+Click to deselect a cell in the first range
+			cells.first().simulate("click", {ctrlKey: true});
+
+			// Make sure everything is deselected except that one cell
+			expect(grid.selection.length).toEqual(1);
+			checkRange1(true);
+
+			// Now select the last cell in the grid via Ctrl+Click
+			cells.last().simulate("click", {ctrlKey: true});
+
+			// Make sure existing cell range is still selected and styled correctly
+			expect(grid.selection.length).toEqual(2);
+			checkRange1(true);
+			expect(grid.selection[1].fromCell).toEqual(grid.options.columns.length - 1);
+			expect(grid.selection[1].toCell).toEqual(grid.options.columns.length - 1);
+			expect(grid.selection[1].fromRow).toEqual(grid.options.data.length - 1);
+			expect(grid.selection[1].toRow).toEqual(grid.options.data.length - 1);
+
+			// Now re-select the excluded cell
+			cells.first().simulate("click", {ctrlKey: true});
+			expect(grid.selection.length).toEqual(2);
+			checkRange1();
 		});
 	});
 
