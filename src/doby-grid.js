@@ -5651,11 +5651,14 @@
 					}
 
 					// Click function
-					if (typeof item.fn === 'function') {
-						$el.click(function (event) {
+					$el.click(function (event) {
+						if (typeof item.fn === 'function') {
 							item.fn.bind(this)(event);
-						});
-					}
+						} else if (item.menu) {
+							// If item has a menu - clicking should not close the dropdown
+							event.stopPropagation();
+						}
+					});
 				}
 			});
 			$menu.appendTo($parent);
