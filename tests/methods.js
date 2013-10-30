@@ -569,6 +569,33 @@ describe("Methods and Data Manipulation", function () {
 			// Check er!
 			expect(result).toEqual('<table><thead><tr><th>ID</th><th>Name</th></tr></thead><tbody><tr><td>1</td><td>one</td></tr><tr><td>2</td><td>two</td></tr></tbody></table>');
 		});
+
+
+		// ==========================================================================================
+
+
+		it("should correctly handle Backbone Collection data", function () {
+			var collection = new Backbone.Collection([{
+				id: 'asd1', name: 'one'
+			}, {
+				id: 'asd2', name: 'two'
+			}]);
+
+			// Prepare for test
+			var grid = resetGrid({
+				columns: [
+					{id: 'id', name: 'ID', field: 'id'},
+					{id: 'name', name: 'Name', field: 'name'}
+				],
+				data: collection
+			});
+
+			// Export
+			var result = grid.export('csv');
+
+			// Check er!
+			expect(result).toEqual('"ID","Name"\n"asd1","one"\n"asd2","two"');
+		});
 	});
 
 

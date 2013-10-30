@@ -3180,7 +3180,7 @@
 				for (ii = 0, ll = cache.activeColumns.length; ii < ll; ii++) {
 
 					if (this.collection.items instanceof Backbone.Collection) {
-						val = getValueFromItem(this.collection.items.get(i), cache.activeColumns[ii]);
+						val = getValueFromItem(this.collection.items.at(i), cache.activeColumns[ii]);
 					} else {
 						val = getValueFromItem(this.collection.items[i], cache.activeColumns[ii]);
 					}
