@@ -343,6 +343,7 @@
 					remove:				'Remove "{{name}}" Column',
 					remove_group:		'Remove Grouping By "{{name}}"',
 					remove_sort:		'Remove Sort By "{{name}}"',
+					select:				'Select Column',
 					sort_asc:			'Sort By "{{name}}" (Ascending)',
 					sort_desc:			'Sort By "{{name}}" (Descending)'
 				},
@@ -5561,6 +5562,7 @@
 			if (mClass) cellCss.push(mClass);
 			if (self.active && row === self.active.row && cell === self.active.cell) cellCss.push("active");
 			if (mColumns[cell] && mColumns[cell].class) cellCss.push(mColumns[cell].class);
+			if (isCellSelected(row, cell)) cellCss.push(self.options.selectedClass);
 
 			result.push('<div class="' + cellCss.join(" ") + '">');
 
@@ -7164,6 +7166,14 @@
 				}
 			}, {
 				enabled: column && (column.sortable || column.removable || column.groupable),
+				divider: true
+			}, {
+				name: getLocale('column.select'),
+				fn: function () {
+					var column_idx = cache.columnsById[column.id];
+					self.selectCells(0, column_idx, (cache.rows.length - 1), column_idx);
+				}
+			}, {
 				divider: true
 			}, {
 				enabled: columns_menu.length > 0,
