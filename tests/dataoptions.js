@@ -186,8 +186,6 @@ describe("Data Options", function () {
 				expect(item.data).toEqual(null);
 			});
 		});
-
-		// TODO: Write me
 	});
 
 
@@ -202,7 +200,33 @@ describe("Data Options", function () {
 			});
 		});
 
-		// TODO: Write me
+
+		// ==========================================================================================
+
+
+		it("should be used for formatting data during data export", function () {
+			var grid = resetGrid({
+				columns: [
+					{id: 'id', field: 'id', name: 'id'},
+					{id: 'name', field: 'name', name: 'name'}
+				],
+				data: [{
+					data: {id: 1, name: 'test 0'},
+					id: 1,
+					exporter: function (columnDef, data) {
+						return "My Special Value " + columnDef.id + data.id;
+					}
+				}, {
+					data: {id: 2, name: 'test 1'},
+					id: 2
+				}]
+			});
+
+			// Export
+			var csv = grid.export('csv');
+
+			expect(csv).toEqual('"id","name"\n"My Special Value id1","My Special Value name1"\n"2","test 1"');
+		});
 	});
 
 
@@ -217,7 +241,43 @@ describe("Data Options", function () {
 			});
 		});
 
-		// TODO: Write me
+
+		// ==========================================================================================
+
+
+		it("should not allow given cells to be activated when enabled", function () {
+			var grid = resetGrid({
+				columns: [
+					{id: 'id', field: 'id', name: 'id'},
+					{id: 'name', field: 'name', name: 'name'}
+				],
+				data: [{
+					data: {id: 1, name: 'test 0'},
+					id: 1,
+					focusable: false
+				}, {
+					data: {id: 2, name: 'test 1'},
+					id: 2
+				}]
+			});
+
+			grid.$el.find('.doby-grid-row').each(function (row) {
+				$(this).find('.doby-grid-cell').each(function (cell) {
+					// Attempt to activate unfocusable row
+					grid.activate(row, cell);
+
+					if (row === 0) {
+						// Expect nothing to get activated
+						expect(grid.active).toEqual(null);
+						expect($(this).attr('class')).not.toContain('active');
+					} else {
+						expect(grid.active.cell).toEqual(cell);
+						expect(grid.active.row).toEqual(row);
+						expect($(this).attr('class')).toContain('active');
+					}
+				});
+			});
+		});
 	});
 
 
@@ -232,7 +292,72 @@ describe("Data Options", function () {
 			});
 		});
 
-		// TODO: Write me
+
+		// ==========================================================================================
+
+
+		it("should correctly render different heights for each row", function () {
+			var grid = resetGrid({
+				columns: [
+					{id: 'id', field: 'id', name: 'id'},
+					{id: 'name', field: 'name', name: 'name'}
+				],
+				data: [{
+					data: {id: 1, name: 'test 0'},
+					id: 1,
+					height: 50
+				}, {
+					data: {id: 2, name: 'test 1'},
+					id: 2,
+					height: 100
+				}]
+			});
+
+			grid.$el.find('.doby-grid-row').each(function (row) {
+				expect($(this).height()).toEqual(grid.options.data[row].height);
+			});
+		});
+
+
+		// ==========================================================================================
+
+
+		it("should correctly handle the row metadata processing for group rows when in variable height mode", function () {
+			// Reset
+			var grid = resetGrid({
+				columns: [{
+					id: "id",
+					name: "ID",
+					field: "id"
+				}, {
+					id: "name",
+					name: "Name",
+					field: "name"
+				}, {
+					id: "category",
+					name: "Category",
+					field: "category"
+				}],
+				data: [
+					{data: {id: 1, name: 'Asd3', category: 'a'}, id: 1, height: 50},
+					{data: {id: 2, name: 'Asd2', category: 'b'}, id: 2, height: 100},
+					{data: {id: 3, name: 'Asd1', category: 'b'}, id: 3, height: 150}
+				]
+			});
+
+			// Group
+			grid.setGrouping([{
+				column_id: 'category'
+			}]);
+
+			// Make sure row has the right height
+			grid.$el.find('.doby-grid-row:first-child').each(function () {
+				expect($(this).height()).not.toEqual(50);
+			});
+
+			// Reset
+			grid.setGrouping();
+		});
 	});
 
 
@@ -247,7 +372,38 @@ describe("Data Options", function () {
 			});
 		});
 
-		// TODO: Write me
+
+		// ==========================================================================================
+
+
+		it("should correctly prevent row resizing when enabled", function () {
+			var grid = resetGrid({
+				columns: [
+					{id: 'id', field: 'id', name: 'id'},
+					{id: 'name', field: 'name', name: 'name'}
+				],
+				data: [{
+					data: {id: 1, name: 'test 0'},
+					id: 1,
+					resizable: false
+				}, {
+					data: {id: 2, name: 'test 1'},
+					id: 2,
+					height: 100
+				}],
+				resizableRows: true
+			});
+
+			grid.$el.find('.doby-grid-row').each(function (row) {
+				if (row === 0) {
+					// Make sure handle is not available
+					expect($(this).find('.doby-grid-row-handle').length).toEqual(0);
+				} else {
+					// Make sure handle is available
+					expect($(this).find('.doby-grid-row-handle').length).toEqual(1);
+				}
+			});
+		});
 	});
 
 
@@ -262,7 +418,29 @@ describe("Data Options", function () {
 			});
 		});
 
-		// TODO: Write me
+
+		// ==========================================================================================
+
+
+		it("should correctly render multiple rows when using nested rows", function () {
+			var grid = resetGrid({
+				columns: [{id: 'name', field: 'name'}, {id: 'category', field: 'category'}],
+				data: [{
+					data: {name: 'test1', category: 'a'},
+					id: 1,
+					rows: {
+						0: {data: {name: 'test2', category: 'b'}, id: 2},
+						1: {data: {name: 'test3', category: 'c'}, id: 3}
+					}
+				}]
+			});
+
+			// Make sure row has the right height
+			var rows = grid.$el.find('.doby-grid-row');
+			expect(rows.length).toEqual(3);
+			expect(rows.first().children('.doby-grid-cell').first().html()).toEqual("test1");
+			expect(rows.last().children('.doby-grid-cell').last().html()).toEqual("c");
+		});
 	});
 
 
@@ -277,6 +455,32 @@ describe("Data Options", function () {
 			});
 		});
 
-		// TODO: Write me
+
+		// ==========================================================================================
+
+
+		it("should not allow enabled row to be selectable", function () {
+			var grid = resetGrid({
+				columns: [{id: 'name', field: 'name'}, {id: 'category', field: 'category'}],
+				data: [{
+					data: {name: 'test1', category: 'a'},
+					id: 1,
+					selectable: false
+				}, {
+					data: {name: 'test2', category: 'b'},
+					id: 2
+				}]
+			});
+
+			// Attempt to select the unselectable row
+			grid.selectCells(0, 0, 0, 1);
+
+			// Should do nothing
+			expect(grid.selection).toEqual(null);
+
+			// But second row selection should be fine
+			grid.selectCells(1, 0, 1, 1);
+			expect(grid.selection.length).toEqual(1);
+		});
 	});
 });

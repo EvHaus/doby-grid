@@ -588,6 +588,24 @@ describe("Grid Options", function () {
 				expect($(this).text()).toEqual(cols[i].name);
 			});
 		});
+
+
+		// ==========================================================================================
+
+
+		it("should render the expected number of column headers", function () {
+			var grid = resetGrid();
+			expect(grid.$el.find('.doby-grid-header-column').length).toEqual(grid.options.columns.length);
+		});
+
+
+		// ==========================================================================================
+
+
+		it("should render the expected number of columns for every row", function () {
+			var grid = resetGrid();
+			expect(grid.$el.find('.doby-grid-row:first .doby-grid-cell').length).toEqual(grid.options.columns.length);
+		});
 	});
 
 
@@ -1401,6 +1419,81 @@ describe("Grid Options", function () {
 			// Check to make sure all columns have handles
 			grid.$el.find('.doby-grid-header-column').each(function (i) {
 				expect($(this).children('.doby-grid-resizable-handle').length).toEqual(0);
+			});
+		});
+
+
+		// ==========================================================================================
+
+
+		it("should correctly resize all columns to their minimal width when double-clicking header handles", function () {
+
+			var colwidths = [80, 300];
+
+			// Create grid with some specific width items
+			var grid = resetGrid({
+				columns: [{
+					"class": 'nopad',
+					id: 'id',
+					field: 'id',
+					formatter: function(row, cell, value) {
+						return '<div style="width:' + colwidths[0] + 'px"></div>';
+					},
+					width: 50
+				}, {
+					"class": 'nopad',
+					id: 'width',
+					field: 'width',
+					formatter: function(row, cell, value) {
+						return '<div style="width:' + value + 'px"></div>';
+					},
+					width: 50
+				}],
+				data: [{
+					id: 1,
+					data: {
+						id: 1,
+						width: colwidths[1] - 20
+					}
+				}, {
+					id: 2,
+					data: {
+						id: 2,
+						width: colwidths[1] - 10
+					}
+				}, {
+					id: 3,
+					data: {
+						id: 3,
+						width: colwidths[1]
+					}
+				}]
+			});
+
+			// Click on each handle
+			grid.$el.find('.doby-grid-header-column .doby-grid-resizable-handle').each(function (i) {
+				$(this).simulate('dblclick');
+			});
+
+			// Get header padding - as that goes into the calculation
+			var header = grid.$el.find('.doby-grid-header-column:first').first(),
+				headerpadding = parseInt(header.css('paddingLeft'), 10) + parseInt(header.css('paddingRight'), 10);
+
+			// Get cell padding - for the same reason
+			var cell = grid.$el.find('.doby-grid-cell:first').first(),
+				cellpadding = parseInt(cell.css('paddingLeft'), 10) + parseInt(cell.css('paddingRight'), 10);
+
+			// Use the largest padding
+			var padding = Math.max(headerpadding, cellpadding),
+				weirdoffset = 12,		// FIXME: Tests seem to have this extra offset for some reason.
+				marginoferror = 5;		// FIXME: Can't find a way to reliable test pixel-perfect resizing
+										// here, so check to see that things at least get resized in the
+										// a relative margin of error.
+
+			// Verify the widths
+			_.each(grid.options.columns, function(col, i) {
+				expect(col.width).toBeGreaterThan(colwidths[i] + padding - weirdoffset - marginoferror);
+				expect(col.width).toBeLessThan(colwidths[i] + padding - weirdoffset + marginoferror);
 			});
 		});
 	});

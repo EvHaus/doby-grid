@@ -458,7 +458,7 @@
 				resetActiveCell();
 				return;
 			}
-			if (row > getDataLength() || row < 0 || cell >= cache.activeColumns.length || cell < 0) return;
+			if (row > getDataLength() || row < 0 || cell >= cache.activeColumns.length || cell < 0 || !canCellBeActive(row, cell)) return;
 			scrollCellIntoView(row, cell, false);
 			setActiveCellInternal(getCellNode(row, cell), false);
 			return this;
@@ -962,7 +962,7 @@
 					decorator.show(new Range(dd._range.start.row, dd._range.start.cell, end.row, end.cell));
 
 					// Set the active cell as you drag. This is default spreadsheet behavior.
-					if (self.options.activateSelection) {
+					if (self.options.activateSelection && canCellBeActive(end.row, end.cell)) {
 						setActiveCellInternal(getCellNode(end.row, end.cell), false);
 					}
 				})
@@ -5108,6 +5108,20 @@
 		};
 
 
+		// excludeUnselectable()
+		// Validates that all cells in the range are selectable, if not - adds them to the exclusions
+		//
+		Range.prototype.excludeUnselectable = function () {
+			for (var row = this.fromRow; row <= this.toRow; row++) {
+				for (var cell = this.fromCell; cell <= this.toCell; cell++) {
+					if (!canCellBeSelected(row, cell)) {
+						this.exclusions.push([row, cell]);
+					}
+				}
+			}
+		};
+
+
 		// fullyExcluded()
 		// Returns whether the range is fully excluded
 		//
@@ -6081,6 +6095,12 @@
 			// Define a range
 			var range = new Range(startRow, startCell, endRow, endCell),
 				ranges, i, l, j, k;
+
+			// Remove unselectable rows from the range
+			range.excludeUnselectable();
+
+			// If range is fully excluded already -- don't bother continuing.
+			if (range.fullyExcluded()) return;
 
 			// Is this is a single cell range that falls within an existing selection range?
 			if (range.isSingleCell() && this.selection) {
