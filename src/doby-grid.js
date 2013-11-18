@@ -7376,6 +7376,8 @@
 					viewportHasVScroll = dataLength * self.options.rowHeight > viewportH;
 				}
 			}
+			
+			makeActiveCellNormal();
 
 			// remove the rows that are now outside of the data range
 			// this helps avoid redundant calls to .remove() when the size of the data
