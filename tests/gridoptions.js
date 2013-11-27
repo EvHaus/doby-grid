@@ -323,17 +323,15 @@ describe("Grid Options", function () {
 			// Prepare for test
 			var grid = resetGrid($.extend(defaultData(), {
 				asyncPostRenderDelay: delay,
-				columns: [
-					{
-						id: 'postprocess',
-						name: 'postprocess',
-						postprocess: function(data, callback) {
-							var img = new Image();
-							data.cell.html(img);
-							callback();
-						}
+				columns: [{
+					id: 'postprocess',
+					name: 'postprocess',
+					postprocess: function(data, callback) {
+						var img = new Image();
+						data.cell.html(img);
+						callback();
 					}
-				]
+				}]
 			}));
 
 			// Expect cells to be empty at first

@@ -38,6 +38,7 @@ define(['faker'], function (Faker) {
 				formatter: function (row, cell, value, columnDef, data) {
 					return data.id;
 				},
+				maxWidth: 150,
 				sortable: true,
 				tooltip: "ID of the item"
 			}, {
