@@ -856,7 +856,7 @@
 					shrinkLeeway -= shrinkSize;
 					widths[i] -= shrinkSize;
 				}
-				if (prevTotal == total) { // avoid infinite loop
+				if (prevTotal <= total) { // avoid infinite loop
 					break;
 				}
 				prevTotal = total;
@@ -880,7 +880,7 @@
 					widths[i] += growSize;
 				}
 
-				if (prevTotal == total) { // avoid infinite loop
+				if (prevTotal >= total) { // avoid infinite loop
 					break;
 				}
 				prevTotal = total;
@@ -7376,7 +7376,7 @@
 					viewportHasVScroll = dataLength * self.options.rowHeight > viewportH;
 				}
 			}
-			
+
 			makeActiveCellNormal();
 
 			// remove the rows that are now outside of the data range
