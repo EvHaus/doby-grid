@@ -8,6 +8,10 @@
 /*jshint expr: true, white: true*/
 /*global console, define, saveAs*/
 
+// TODO:
+// Merge this: https://github.com/mleibman/SlickGrid/commit/dc5f4cef17925db0367ef18091d5d88dbaf62e97
+// Merge this: https://github.com/mleibman/SlickGrid/commit/368e1f5d2bf173ed3c39d970f06b295412a94508
+
 (function (root, factory) {
 	"use strict";
 
