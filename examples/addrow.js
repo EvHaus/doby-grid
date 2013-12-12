@@ -54,7 +54,12 @@ define(['faker'], function (Faker) {
 			event.stopPropagation();
 
 			if ($(event.target).hasClass('add')) {
-				var i = grid.collection.items.length - 1;
+				var i = _.chain(grid.collection.items)
+					.filter(function (item) { return !item.__nonDataRow; })
+					.sortBy(function (item) { return -parseInt(item.id.replace('fancy_id_', ''), 10); })
+					.value()[0];
+
+				i = parseInt(i.id.replace('fancy_id_', ''), 10) + 1;
 				grid.add({data: {name: "Bob Robert Jr. " + i}, id: 'fancy_id_' + i});
 			} else if ($(event.target).hasClass('remove')) {
 				grid.remove(args.item.id);
