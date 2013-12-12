@@ -51,7 +51,7 @@ define(['backbone', 'faker'], function (Backbone, Faker) {
 						this.total.push(item.get('rating'));
 					};
 					return this;
-				},
+				}
 			}],
 			data: collection
 		};

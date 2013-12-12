@@ -5,7 +5,7 @@
 // https://github.com/globexdesigns/doby-grid
 
 /*jslint vars: true, plusplus: true, devel: false, nomen: true, indent: 4, maxerr: 50*/
-/*global _, $, describe, document, expect, DobyGrid, Image, it, runs, setFixtures, waitsFor, window*/
+/*global _, $, document, DobyGrid, Image, window*/
 
 describe("Data Options", function () {
 	"use strict";
@@ -99,7 +99,7 @@ describe("Data Options", function () {
 					id: 1,
 					columns: {
 						0: {
-							formatter: function() {
+							formatter: function () {
 								return "Success 0";
 							}
 						}
@@ -109,7 +109,7 @@ describe("Data Options", function () {
 					id: 2,
 					columns: {
 						0: {
-							formatter: function() {
+							formatter: function () {
 								return "Success 1";
 							}
 						}

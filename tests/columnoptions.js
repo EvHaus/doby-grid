@@ -5,7 +5,7 @@
 // https://github.com/globexdesigns/doby-grid
 
 /*jslint vars: true, plusplus: true, devel: false, nomen: true, indent: 4, maxerr: 50*/
-/*global _, $, describe, document, expect, DobyGrid, Image, it, runs, setFixtures, waitsFor, window*/
+/*global _, $, document, DobyGrid, Image, window*/
 
 describe("Column Options", function () {
 	"use strict";
@@ -636,7 +636,7 @@ describe("Column Options", function () {
 				handle;
 
 			// Ensure initial width is the min width
-			_.each(grid.options.columns, function(col, i) {
+			_.each(grid.options.columns, function (col, i) {
 				if (i === 0) {
 					expect(col.width).toEqual(100);
 				} else {
@@ -836,7 +836,7 @@ describe("Column Options", function () {
 			grid.$el.find('.doby-grid-header-column').each(function (i) {
 				if (i % 2) {
 					expect($(this).children('.doby-grid-resizable-handle').length).toEqual(0);
-				} else{
+				} else {
 					expect($(this).children('.doby-grid-resizable-handle').length).toEqual(1);
 				}
 			});

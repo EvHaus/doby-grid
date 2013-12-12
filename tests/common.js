@@ -5,7 +5,7 @@
 // https://github.com/globexdesigns/doby-grid
 
 /*jslint vars: true, plusplus: true, nomen: true, indent: 4, maxerr: 50*/
-/*global describe, expect, DobyGrid, it*/
+/*global DobyGrid*/
 
 describe("Initialization and validation", function () {
 	"use strict";
@@ -29,9 +29,9 @@ describe("Initialization and validation", function () {
 
 	it("should throw a TypeError the given options param is not an object", function () {
 		var tp = new TypeError('The "options" param must be an object.');
-		expect(function () { new DobyGrid(1);} ).toThrow(tp);
-		expect(function () { new DobyGrid('testing');} ).toThrow(tp);
-		expect(function () { new DobyGrid([]);} ).toThrow(tp);
-		expect(function () { new DobyGrid(function () {});} ).toThrow(tp);
+		expect(function () { new DobyGrid(1); }).toThrow(tp);
+		expect(function () { new DobyGrid('testing'); }).toThrow(tp);
+		expect(function () { new DobyGrid([]); }).toThrow(tp);
+		expect(function () { new DobyGrid(function () {}); }).toThrow(tp);
 	});
 });

@@ -5,7 +5,7 @@
 // https://github.com/globexdesigns/doby-grid
 
 /*jslint vars: true, plusplus: true, nomen: true, indent: 4, maxerr: 50*/
-/*global _, $, Backbone, describe, document, expect, DobyGrid, Image, it, runs, setFixtures, waitsFor, window*/
+/*global _, $, Backbone, document, DobyGrid, Image, window*/
 
 describe("Grid Options", function () {
 	"use strict";
@@ -326,7 +326,7 @@ describe("Grid Options", function () {
 				columns: [{
 					id: 'postprocess',
 					name: 'postprocess',
-					postprocess: function(data, callback) {
+					postprocess: function (data, callback) {
 						var img = new Image();
 						data.cell.html(img);
 						callback();
@@ -582,7 +582,7 @@ describe("Grid Options", function () {
 			}));
 
 			// Ensure correct name is set
-			grid.$el.find('.doby-grid-column-name').each(function(i) {
+			grid.$el.find('.doby-grid-column-name').each(function (i) {
 				expect($(this).text()).toEqual(cols[i].name);
 			});
 		});
@@ -639,7 +639,7 @@ describe("Grid Options", function () {
 			}));
 
 			// Ensure correct values are set for headers
-			grid.$el.find('.doby-grid-header-column').each(function(i) {
+			grid.$el.find('.doby-grid-header-column').each(function (i) {
 				if (i === 0) {
 					expect(grid.options.columns[i].width).toEqual(100);
 					expect($(this).outerWidth()).toEqual(100);
@@ -651,8 +651,8 @@ describe("Grid Options", function () {
 
 			// Ensure correct values are set for cells
 			var w;
-			grid.$el.find('.doby-grid-row').each(function() {
-				$(this).children('.doby-grid-cell').each(function(i) {
+			grid.$el.find('.doby-grid-row').each(function () {
+				$(this).children('.doby-grid-cell').each(function (i) {
 					w = $(this).outerWidth() - parseInt($(this).css('borderLeftWidth'), 10) - parseInt($(this).css('borderRightWidth'), 10);
 
 					if (i === 0) {
@@ -803,7 +803,7 @@ describe("Grid Options", function () {
 				expect(grid.selection[0].toCell).toEqual(grid.options.columns.length - 2);
 				expect(grid.selection[0].toRow).toEqual(grid.options.data.length - 1);
 				rows.each(function (row) {
-					$(this).find('.doby-grid-cell').each(function(cell) {
+					$(this).find('.doby-grid-cell').each(function (cell) {
 						if (cell === 2) return;
 						if (exclude_first && row === 0 && cell === 0) {
 							expect($(this).attr('class')).not.toContain(grid.options.selectedClass);
@@ -1013,8 +1013,8 @@ describe("Grid Options", function () {
 
 			// Make sure cells have the right values
 			var value;
-			grid.$el.find('.doby-grid-row').each(function(row) {
-				$(this).find('.doby-grid-cell').each(function(cell) {
+			grid.$el.find('.doby-grid-row').each(function (row) {
+				$(this).find('.doby-grid-cell').each(function (cell) {
 					value = grid.options.data[row].data[grid.options.columns[cell].id];
 					expect($(this).text()).toEqual([row, cell, value].join('-'));
 				});
@@ -1434,7 +1434,7 @@ describe("Grid Options", function () {
 					"class": 'nopad',
 					id: 'id',
 					field: 'id',
-					formatter: function(row, cell, value) {
+					formatter: function (row, cell, value) {
 						return '<div style="width:' + colwidths[0] + 'px"></div>';
 					},
 					width: 50
@@ -1442,7 +1442,7 @@ describe("Grid Options", function () {
 					"class": 'nopad',
 					id: 'width',
 					field: 'width',
-					formatter: function(row, cell, value) {
+					formatter: function (row, cell, value) {
 						return '<div style="width:' + value + 'px"></div>';
 					},
 					width: 50
@@ -1489,7 +1489,7 @@ describe("Grid Options", function () {
 										// a relative margin of error.
 
 			// Verify the widths
-			_.each(grid.options.columns, function(col, i) {
+			_.each(grid.options.columns, function (col, i) {
 				expect(col.width).toBeGreaterThan(colwidths[i] + padding - weirdoffset - marginoferror);
 				expect(col.width).toBeLessThan(colwidths[i] + padding - weirdoffset + marginoferror);
 			});
@@ -1555,7 +1555,7 @@ describe("Grid Options", function () {
 			grid.$el.find('.doby-grid-row').each(function (i) {
 				if (i % 2) {
 					expect($(this).children('.doby-grid-row-handle').length).toEqual(0);
-				} else{
+				} else {
 					expect($(this).children('.doby-grid-row-handle').length).toEqual(1);
 				}
 			});
@@ -1586,7 +1586,7 @@ describe("Grid Options", function () {
 
 			// Find columns and their cells
 			var columnData = [];
-			grid.$el.find('.doby-grid-header-column').each(function() {
+			grid.$el.find('.doby-grid-header-column').each(function () {
 				columnData.push({
 					header: $(this),
 					cells: []
@@ -1603,13 +1603,13 @@ describe("Grid Options", function () {
 
 			// Simulate a drag
 			var handle, widths_before, widths_during, widths_after;
-			_.each(columnData, function(cd) {
+			_.each(columnData, function (cd) {
 				// Grab the handle
 				handle = cd.header.find('.doby-grid-resizable-handle');
 
 				// Calculate widths before drag
 				widths_before = [cd.header.width()];
-				_.each(cd.cells, function(cell, i) {
+				_.each(cd.cells, function (cell, i) {
 					widths_before.push(cell.width());
 				});
 
@@ -1619,7 +1619,7 @@ describe("Grid Options", function () {
 
 				// Calculate widths during drag
 				widths_during = [cd.header.width()];
-				_.each(cd.cells, function(cell, i) {
+				_.each(cd.cells, function (cell, i) {
 					widths_during.push(cell.width());
 				});
 
@@ -1628,7 +1628,7 @@ describe("Grid Options", function () {
 
 				// Calculate widths after drag
 				widths_after = [cd.header.width()];
-				_.each(cd.cells, function(cell, i) {
+				_.each(cd.cells, function (cell, i) {
 					widths_after.push(cell.width());
 				});
 
@@ -1658,7 +1658,7 @@ describe("Grid Options", function () {
 
 			// Find columns and their cells
 			var columnData = [];
-			grid.$el.find('.doby-grid-header-column').each(function() {
+			grid.$el.find('.doby-grid-header-column').each(function () {
 				columnData.push({
 					header: $(this),
 					cells: []
@@ -1675,13 +1675,13 @@ describe("Grid Options", function () {
 
 			// Simulate a drag
 			var handle, widths_before, widths_during, widths_after;
-			_.each(columnData, function(cd) {
+			_.each(columnData, function (cd) {
 				// Grab the handle
 				handle = cd.header.find('.doby-grid-resizable-handle');
 
 				// Calculate widths before drag
 				widths_before = [cd.header.width()];
-				_.each(cd.cells, function(cell, i) {
+				_.each(cd.cells, function (cell, i) {
 					widths_before.push(cell.width());
 				});
 
@@ -1691,7 +1691,7 @@ describe("Grid Options", function () {
 
 				// Calculate widths during drag
 				widths_during = [cd.header.width()];
-				_.each(cd.cells, function(cell, i) {
+				_.each(cd.cells, function (cell, i) {
 					widths_during.push(cell.width());
 				});
 
@@ -1700,7 +1700,7 @@ describe("Grid Options", function () {
 
 				// Calculate widths after drag
 				widths_after = [cd.header.width()];
-				_.each(cd.cells, function(cell, i) {
+				_.each(cd.cells, function (cell, i) {
 					widths_after.push(cell.width());
 				});
 

@@ -1908,15 +1908,16 @@
 					r,
 					level = parentGroup ? parentGroup.level + 1 : 0,
 					gi = self.groups[level],
-					i, l, predef;
+					i, l, predef, aggregateRow;
 
 				// Loop through the rows in the group and create group header rows as needed
 				for (i = 0, l = rows.length; i < l; i++) {
 					r = rows[i];
 
-					// Do not group grid aggregator
+					// The global grid aggregate should at the very end of the grid. Remember it here
+					// And then we'll add it at the very end.
 					if (r instanceof Aggregate && r.__gridAggregate) {
-						groups.push(r);
+						aggregateRow = r;
 						continue;
 					}
 
@@ -1955,6 +1956,9 @@
 				}
 
 				groups.sort(self.groups[level].comparer);
+
+				// If there's a global grid aggregate - put it at the end of the grid
+				if (aggregateRow) groups.push(aggregateRow);
 
 				return groups;
 			};
@@ -2262,7 +2266,7 @@
 				// Loop through the data and process the aggregators
 				for (i = 0, l = self.items.length; i < l; i++) {
 					if (self.items instanceof Backbone.Collection) {
-						item = self.items.get(i);
+						item = self.items.at(i);
 					} else {
 						item = self.items[i];
 					}

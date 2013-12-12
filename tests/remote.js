@@ -5,7 +5,7 @@
 // https://github.com/globexdesigns/doby-grid
 
 /*jslint vars: true, plusplus: true, devel: true, nomen: true, indent: 4, maxerr: 50*/
-/*global _, $, describe, document, expect, DobyGrid, it, runs, setFixtures, waitsFor*/
+/*global _, $, document, DobyGrid*/
 
 describe("Remote Data", function () {
 	"use strict";

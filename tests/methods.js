@@ -5,7 +5,7 @@
 // https://github.com/globexdesigns/doby-grid
 
 /*jslint vars: true, plusplus: true, devel: true, nomen: true, indent: 4, maxerr: 50*/
-/*global _, $, describe, document, expect, DobyGrid, it, setFixtures*/
+/*global _, $, Backbone, document, DobyGrid*/
 
 describe("Methods and Data Manipulation", function () {
 	"use strict";
@@ -19,7 +19,7 @@ describe("Methods and Data Manipulation", function () {
 
 		// This is needed for grunt-jasmine tests which doesn't read the CSS
 		// from the HTML version of jasmine.
-		fixture.attr('style', 'position:absolute;top:0;left:0;opacity:0;width:500px');
+		fixture.attr('style', 'height:600px;position:absolute;top:0;left:0;opacity:0;width:500px');
 
 		grid.appendTo(fixture);
 		return grid;
@@ -452,7 +452,7 @@ describe("Methods and Data Manipulation", function () {
 			rows = _.sortBy(rows, function (row) {
 				// For some reason jasmine-grunt doesn't like .css('top') here, which returns NaN
 				// But attr('style') seems to return the right thing. Wat?
-				return parseInt($(row).attr('style').replace('top:',''), 10);
+				return parseInt($(row).attr('style').replace('top:', ''), 10);
 			});
 
 			// Make sure first row is a group row and is still expanded
@@ -469,6 +469,84 @@ describe("Methods and Data Manipulation", function () {
 			expect($(rows[2]).hasClass('doby-grid-group')).toEqual(true);
 			expect($(rows[2]).children('.doby-grid-cell').length).toBeGreaterThan(0);
 			expect($(rows[2]).text()).toEqual("SubCategory: D (1 item)");
+		});
+
+
+		// ==========================================================================================
+
+
+		it("should keep global grid Aggregate rows at the bottom of the grid when adding grouping (seems to only happen if you have at least 10 items in the collection)", function () {
+
+			var grid = resetGrid({
+				columns: [{
+					id: "id",
+					name: "ID",
+					field: "id"
+				}, {
+					id: "name",
+					name: "Name",
+					field: "name",
+					minWidth: 100
+				}, {
+					id: "city",
+					name: "City",
+					field: "city"
+				}, {
+					id: "rating",
+					name: "Rating",
+					field: "rating",
+					aggregator: function (column) {
+						this.total = [];
+						this.exporter = function () {
+							var avg = this.total.reduce(function (a, b) { return a + b; });
+							return Math.round(avg / this.total.length);
+						};
+						this.formatter = function () {
+							var avg = this.total.reduce(function (a, b) { return a + b; });
+							return "Avg: <strong>" + Math.round(avg / this.total.length) + "</strong>";
+						};
+						this.process = function (item) {
+							this.total.push(item.data.rating);
+						};
+						return this;
+					}
+				}],
+				data: [
+					{data: {name: 'Andy Duguid', city: "Amsterdam", rating: 9}, id: 1},
+					{data: {name: 'Dr. Daniel Kandi', city: "Ibiza", rating: 6}, id: 2},
+					{data: {name: 'Tom Fall', city: "San Francisco", rating: 8}, id: 3},
+					{data: {name: 'Yenn', city: "San Francisco", rating: 8}, id: 4},
+					{data: {name: 'Dr. Lonnie Smith', city: "Vancouver", rating: 8}, id: 5},
+					{data: {name: 'Tiesto', city: "Amsterdam", rating: 1}, id: 6},
+					{data: {name: 'Bart Claessen', city: "Cologne", rating: 8}, id: 7},
+					{data: {name: 'Arty', city: "Moscow", rating: 8}, id: 8},
+					{data: {name: 'Mike Sonar', city: "Los Angeles", rating: 2}, id: 9},
+					{data: {name: 'Dinka', city: "Stockholm", rating: 8}, id: 10}
+				]
+			});
+
+			// First make sure the aggregate row is at the bottom of the grid
+			var rows = grid.$el.find('.doby-grid-row');
+
+			// Get the lowest row
+			var lastrow = _.sortBy(rows, function (item) {
+				return -parseInt($(item).css('top'), 10);
+			})[0];
+
+			// Last row should be an aggregate
+			expect(lastrow).toHaveClass('doby-grid-row-total');
+
+			// Now group by "category"
+			grid.addGrouping("name");
+
+			// Make sure last row is still the aggregate row from before
+			rows = grid.$el.find('.doby-grid-row');
+			lastrow = _.sortBy(rows, function (item) {
+				return -parseInt($(item).css('top'), 10);
+			})[0];
+
+			// Last row should be the same aggregate row as before
+			expect(lastrow).toHaveClass('doby-grid-row-total');
 		});
 	});
 
@@ -575,11 +653,10 @@ describe("Methods and Data Manipulation", function () {
 
 
 		it("should correctly handle Backbone Collection data", function () {
-			var collection = new Backbone.Collection([{
-				id: 'asd1', name: 'one'
-			}, {
-				id: 'asd2', name: 'two'
-			}]);
+			var collection = new Backbone.Collection([
+				{id: 'asd1', name: 'one'},
+				{id: 'asd2', name: 'two'}
+			]);
 
 			// Prepare for test
 			var grid = resetGrid({
