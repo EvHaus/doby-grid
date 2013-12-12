@@ -2067,7 +2067,11 @@
 			};
 
 
-			// TODO: Do we still need this?
+			// getItem()
+			// Given an index, retrieves that row item from the cache
+			//
+			// @param	i	integer		Row index
+			//
 			this.getItem = function (i) {
 				return cache.rows[i];
 			};

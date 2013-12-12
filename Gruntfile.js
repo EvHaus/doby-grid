@@ -6,6 +6,10 @@ module.exports = function (grunt) {
 	grunt.initConfig({
 		pkg: grunt.file.readJSON("package.json"),
 
+		csslint: {
+			options: grunt.file.readJSON('.csslintrc')
+		},
+
 		copy: {
 			main: {
 				src: "src/<%= pkg.name %>.js",
@@ -33,13 +37,10 @@ module.exports = function (grunt) {
 		},
 
 		jshint: {
-			ignore_warning: {
-				options: {
-					'-W083': true,
-					'-W030': true
-				},
-				src: ['src/<%= pkg.name %>.js']
-			}
+			options: {
+				jshintrc: '.jshintrc',
+			},
+			src: ['src/<%= pkg.name %>.js']
 		},
 
 		less: {
@@ -57,6 +58,13 @@ module.exports = function (grunt) {
 					'build/<%= pkg.version %>/themes/<%= pkg.name %>-dark.css': 'src/themes/<%= pkg.name %>-dark.less'
 				}
 			}
+		},
+
+		lesslint: {
+			src: [
+				'src/doby-grid.less',
+				'src/themes/*.less'
+			]
 		},
 
 		uglify: {
@@ -86,7 +94,12 @@ module.exports = function (grunt) {
 	grunt.loadNpmTasks('grunt-contrib-jshint');
 	grunt.loadNpmTasks('grunt-contrib-less');
 	grunt.loadNpmTasks('grunt-contrib-uglify');
+	grunt.loadNpmTasks('grunt-lesslint');
 
-	// Run tasks
-	grunt.registerTask('default', ['jshint', 'less', 'jasmine', 'uglify', 'copy']);
+	// Grunt "default" task (validation only)
+	grunt.registerTask('default', ['lesslint', 'less', 'jshint', 'jasmine']);
+
+	// Grunt "build" task
+	grunt.registerTask('build', ['lesslint', 'less', 'jshint', 'jasmine', 'uglify', 'copy']);
+
 };

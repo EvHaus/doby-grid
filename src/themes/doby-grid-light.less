@@ -28,28 +28,32 @@
 	box-shadow: rgba(0,0,0,0.2) 0 4px 4px;
 }
 
-	.doby-grid-header-columns {
-		.gradient(~"linear-gradient(#EEE, #D1D1D1)");
+	.doby-grid-header-columns,
+	.doby-grid-header-column.ui-sortable-helper {
+		.background-image(linear-gradient(to bottom, #EEE 0%, #D1D1D1 100%));
 	}
 
 		.doby-grid-header-column {
+			border-right: 1px solid #DDD;
 			border-right: 1px solid rgba(0,0,0,0.2);
 			box-shadow: #FFF 0 1px 0 inset;
 			color: #111;
-			.transition(~"background 0.2s ease-in-out, box-shadow 0.2s ease-in-out");
+			.transition(background 0.2s ease-in-out, box-shadow 0.2s ease-in-out);
 
 			&.sortable:hover {
+				background: #DDD;
 				background: rgba(0,0,0,0.05);
 				box-shadow: rgba(0,0,0,0.1) 2px 2px 2px inset;
 			}
 
 			&.ui-sortable-helper {
-				.gradient(~"linear-gradient(#EEE, #D1D1D1)");
+				border-left: 1px solid #DDD;
 				border-left: 1px solid rgba(0,0,0,0.2);
 			}
 
 			// Sorted
 			&.doby-grid-header-column-sorted {
+				background: #DDD;
 				background: rgba(255,255,255,0.25);
 			}
 		}
@@ -61,6 +65,7 @@
 			// Resize handle
 			.doby-grid-resizable-handle {
 				span {
+					border-color: #111;
 					border-color: rgba(0,0,0,0.2);
 				}
 			}
@@ -69,7 +74,9 @@
 		.doby-grid-header-column-dragging .doby-grid-resizable-handle span,
 		.doby-grid-resizable-handle:hover span {
 			background: #AAA;
+			border-left: 1px solid #EEE;
 			border-left: 1px solid rgba(255,255,255,0.8);
+			border-right: 1px solid #444;
 			border-right: 1px solid rgba(0,0,0,0.5);
 			box-shadow: #333 0 0 2px inset;
 		}
@@ -85,6 +92,7 @@
 
 		// Placeholder when re-ordering columns
 		.doby-grid-sortable-placeholder {
+			background: #111;
 			background: rgba(0,0,0,0.1);
 			box-shadow: rgba(0,0,0,0.4) 2px 2px 5px inset;
 		}
@@ -96,20 +104,22 @@
 
 .doby-grid-dropdown {
 	.doby-grid-dropdown-menu {
+		background: #FFF;
 		background: rgba(255,255,255,0.95);
 		border: 1px solid;
 		border-color: #D2D2D2 #CCC #888;
 		border-radius: 5px;
 		box-shadow: #999 0 4px 4px;
-		.transition(~"opacity 0.15s ease-in-out");
+		.transition(opacity 0.15s ease-in-out);
 	}
 
 	.doby-grid-dropdown-item {
-		.transition(~"background 0.3s ease-in-out");
+		.transition(background 0.3s ease-in-out);
 
 		.doby-grid-dropdown-arrow {border-left-color: #333}
 
 		&:hover {
+			background: #DDD;
 			background: rgba(0,0,0,0.1);
 		}
 
@@ -123,6 +133,7 @@
 	}
 
 	.doby-grid-dropdown-divider {
+		border-top: 1px solid #CCC;
 		border-top: 1px solid rgba(0,0,0,0.2);
 	}
 }
@@ -133,12 +144,14 @@
 
 
 .doby-grid-header-filter {
-	.gradient(~"linear-gradient(#D2D2D2, #EEE)");
+	.background-image(linear-gradient(to bottom, #D2D2D2 0%, #EEE 100%));
+	border-top: 1px solid #DDD;
 	border-top: 1px solid rgba(0,0,0,0.3);
 	box-shadow: rgba(0,0,0,0.3) 0 4px 10px inset;
 }
 
 	.doby-grid-header-filter-cell {
+		border-color: #EEE;
 		border-color: rgba(0,0,0,0.05);
 	}
 
@@ -151,6 +164,7 @@
 	border-color: #CACACA;
 
 	&.odd:not(.doby-grid-group):not(.doby-grid-row-total) {
+		background: #EEE;
 		background: rgba(255,255,255,0.2)
 	}
 }
@@ -158,16 +172,20 @@
 	.doby-grid-cell {
 		border-color: #CACACA;
 		border-left: 1px solid transparent;
+		border-right: 1px dotted #DDD;
 		border-right: 1px dotted rgba(0,0,0,0.2);
 		box-shadow: 1px 1px 0 rgba(255,255,255,0.3) inset;
-		.transition(~"background 0.3s ease-in-out, border 0.3s ease-in-out, box-shadow 0.3s ease-in-out");
+		.transition(background 0.3s ease-in-out, border 0.3s ease-in-out, box-shadow 0.3s ease-in-out);
 
 		&.selected {
+			background: #5AFF28;
 			background: rgba(90,255,40,0.1);
 		}
 
 		&.active {
+			background: #145AFF;
 			background: rgba(20,90,255,0.1);
+			border: 1px solid #0A46B4;
 			border: 1px solid rgba(10,70,180,0.3);
 			box-shadow: 1px 1px 1px rgba(10,70,180,0.2) inset;
 		}
@@ -175,13 +193,17 @@
 
 	// Row resize handle
 	.doby-grid-row-handle {
+		border-bottom: 1px solid #DDD;
 		border-bottom: 1px solid rgba(255,255,255,0);
+		border-top: 1px solid #000;
 		border-top: 1px solid rgba(0,0,0,0);
-		.transition(~"all 0.3s ease-in-out");
+		.transition(all 0.3s ease-in-out);
 
 		&:hover {
 			background: #AAA;
+			border-bottom: 1px #EEE;
 			border-bottom: 1px solid rgba(255,255,255,0.8);
+			border-top: 1px solid #444;
 			border-top: 1px solid rgba(0,0,0,0.5);
 			box-shadow: #333 0 0 2px inset;
 		}
@@ -202,7 +224,7 @@
 
 
 .doby-grid-row-total {
-	.gradient(~"linear-gradient(#E0E0E0, #D0D0D0)");
+	.background-image(linear-gradient(to bottom, #E0E0E0 0%, #D0D0D0 100%));
 	text-shadow: #FFF 0 1px 0;
 
 	.doby-grid-cell {
@@ -217,7 +239,7 @@
 
 
 .doby-grid-group {
-	.gradient(~"linear-gradient(#EEE, #DDD)");
+	.background-image(linear-gradient(to bottom, #EEE 0%, #DDD 100%));
 
 	.doby-grid-cell {
 		box-shadow: none;
@@ -247,10 +269,10 @@
 
 	// Click this to expand/collapse groups
 	.doby-grid-group-toggle {
-		.transition(~"box-shadow 0.2s ease-in-out");
+		.transition(box-shadow 0.2s ease-in-out);
 
 		&:hover {
-			.gradient(~"linear-gradient(#E0E0E0, #D0D0D0)");
+			.background-image(linear-gradient(to bottom, #E1E1E1 0%, #D1D1D1 100%));
 			box-shadow: rgba(0,0,0,0.3) 2px 2px 5px inset;
 		}
 
@@ -277,20 +299,24 @@
 
 	// Focused cell
 	&.editable {
+		background: #0A46C8;
 		background: rgba(10,70,200,0.1);
 		box-shadow: rgba(20,80,200,0.3) 4px 4px 2px inset;
 	}
 
 	// Errors
 	&.invalid {
+		background: #FF6464;
 		background: rgba(255,100,100,0.5);
-		box-shadow: rgba(200,60,80,0.3) 4px 4px 2px inset;
+		border-color: #C83C50;
 		border-color: rgba(200,60,80,0.8);
+		box-shadow: rgba(200,60,80,0.3) 4px 4px 2px inset;
 	}
 }
 
 // Cell range decorator
 .doby-grid-range-decorator {
+	border: 2px dashed #1E7D0A;
 	border: 2px dashed rgba(30,125,10,0.6);
 }
 
@@ -300,7 +326,7 @@
 
 
 .doby-grid-tooltip {
-	.gradient(~"linear-gradient(#FBEE9A, #FAD86C)");
+	.background-image(linear-gradient(to bottom, #FBEE9A 0%, #FAD86C 100%));
 	border-radius: 4px;
 	box-shadow: rgba(0,0,0,0.3) 2px 2px 5px;
 	font-size: 12px;
@@ -308,7 +334,7 @@
 	padding: 4px 8px;
 	text-align: center;
 	text-shadow: rgba(255,255,255,0.5) 0 1px 0;
-	.transition(~"opacity 0.3s ease-in-out, top 0.3s ease-in-out");
+	.transition(opacity 0.3s ease-in-out, top 0.3s ease-in-out);
 
 	strong {
 		font-weight: 500;
@@ -326,7 +352,9 @@
 
 
 .doby-grid-loader {
-	background: rgba(0,0,0,0.5) url(themes/default/img/loader-big.gif) no-repeat center center;
+	background-color: #666;
+	background-color: rgba(0,0,0,0.5);
+	background: url(themes/default/img/loader-big.gif) no-repeat center center;
 }
 
 	.doby-grid-message > div > div {

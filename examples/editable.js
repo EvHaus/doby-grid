@@ -59,7 +59,8 @@ define(['faker'], function (Faker) {
 				removable: true
 			}],
 			data: data,
-			editable: true
+			editable: true,
+			quickFilter: true
 		};
 	}];
 });

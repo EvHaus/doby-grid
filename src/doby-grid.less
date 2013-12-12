@@ -17,17 +17,23 @@
 	font-size: 12px;
 	height: 100%;
 	line-height: normal;
-	outline: 0;
 	position: relative;
+
+	&:focus {
+		outline: 0;
+	}
 }
 
 .doby-grid-clipboard {
 	bottom: 0;
 	height: 0;
-	opacity: 0;
 	position: absolute;
 	right: 0;
 	width: 0;
+
+	&:focus {
+		outline: 0;
+	}
 }
 
 
@@ -54,21 +60,24 @@
 		.doby-grid-header-column {
 			border: 0;
 			display: inline-block;
-			float: left;
-			height: 21px;
+			height: 29px;
 			left: 1000px;
-			line-height: 22px;
+			line-height: 28px;
 			margin: 0;
-			padding: 4px 8px;
+			padding: 0 8px;
 			position: relative;
 
 			&.sortable:hover {
 				cursor: pointer;
 			}
+		}
 
-			&.ui-sortable-helper {
-				.doby-grid-resizable-handle {display: none}
-			}
+		.ui-sortable-helper .doby-grid-resizable-handle {
+			display: none
+		}
+
+		.doby-grid-sortable-placeholder {
+			vertical-align: top;
 		}
 
 		// When columns are auto-sized, remove right border on the last item for a cleaner edge
@@ -97,7 +106,7 @@
 					display: block;
 					height: 100%;
 					margin: 0 3px;
-					.transition(~'all 0.2s ease-in-out');
+					.transition(all 0.2s ease-in-out);
 					width: 1px;
 				}
 			}
@@ -177,7 +186,7 @@
 			left: 100%;
 			position: absolute;
 			top: -5px;
-			.transition(~'0.5s opacity ease-in-out');
+			.transition(0.5s opacity ease-in-out);
 			visibility: hidden;
 			z-index: 1;
 		}
@@ -205,11 +214,9 @@
 }
 
 	.doby-grid-header-filter-cell {
-		border: 1px solid transparent;
-		border-bottom: 0;
-		border-top: 0;
+		border-left: 1px solid transparent;
+		border-right: 1px solid transparent;
 		display: inline-block;
-		float: left;
 		height: 30px;
 		margin: -1px 0 -1px -1px;
 		padding: 0 8px;
@@ -221,15 +228,21 @@
 
 
 .doby-grid-viewport {
-	outline: 0;
 	overflow: auto;
 	position: relative;
 	width: 100%;
+
+	&:focus {
+		outline: 0;
+	}
 }
 
 	.doby-grid-canvas {
-		outline: 0;
 		position: relative;
+
+		&:focus {
+			outline: 0;
+		}
 	}
 
 
@@ -315,10 +328,10 @@
 
 .doby-grid {
 	// Input field
-	input.editor {
+	.editor {
 		background: none;
 		border: 0;
-		box-shadow: none !important;
+		box-shadow: none;
 		height: 100%;
 		margin: 0;
 		outline: none;

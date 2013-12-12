@@ -1,0 +1,31 @@
+{
+	"globals": {
+		"alert": true,
+		"confirm": true,
+		"prompt": true,
+
+		"define": true,
+		"require": true,
+
+		"beforeEach": true,
+		"describe": true,
+		"expect": true,
+		"it": true,
+		"jasmine": true,
+		"runs": true,
+		"setFixtures": true,
+		"spyOn": true,
+		"waits": true,
+		"waitsFor": true,
+		"xit": true
+	},
+
+	"browser": true,
+	"devel": false,
+	"indent": 4,
+	"loopfunc": false,
+	"plusplus": false,
+	"strict": true,
+	"undef": true,
+	"white": true
+}
