@@ -4,7 +4,6 @@
 // For all details and documentation:
 // https://github.com/globexdesigns/doby-grid
 
-/*jslint vars: true, plusplus: true, devel: false, nomen: true, indent: 4, maxerr: 50*/
 /*global _, $, document, DobyGrid, Image, window*/
 
 describe("Data Options", function () {

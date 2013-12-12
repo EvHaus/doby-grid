@@ -223,6 +223,7 @@
 			isCellSelected,
 			lastRenderedScrollLeft = 0,
 			lastRenderedScrollTop = 0,
+			linkToCollection,
 			makeActiveCellEditable,
 			makeActiveCellNormal,
 			measureCellPadding,
@@ -1631,11 +1632,11 @@
 
 		// Collection()
 		// This is a special class that looks an awful lot like Backbone.Collection and it
-		// stores and manipulates the data set for this grid. Why not just use a Backbone.Collection?
+		// stores and manipulates the data set for this grid. So why not just use a Backbone.Collection?
 		//	1) It's super slow for large data sets: https://github.com/jashkenas/backbone/issues/2760
 		//	2) In order for 'remote' fetching to work nicely with scrolling, the collection has to
 		//		simulate objects that haven't been fetched from the server yet. Backbone doesn't allow
-		//		you to have "fake" data in their collections.
+		//		you to have "fake" data in their collections without some serious hacking.
 		//
 		// @param	grid		object		Reference pointer to the grid instance
 		//
@@ -1764,13 +1765,20 @@
 						at = this.items.length - 1;
 					}
 
-					if (at !== null && at !== undefined) {
-						Array.prototype.splice.apply(this.items, [at, 0].concat(toAdd));
-						cacheRows((at > 0 ? at - 1 : 0));
+					// If we're working with a Backbone.Collection - use native Backbone functions.
+					// As you can add items both to DobyGrid and the original Backbone Collection.
+					// So the items might already be there.
+					if (this.items instanceof Backbone.Collection) {
+						this.items.add(toAdd);
 					} else {
-						var prevLength = this.items.length;
-						Array.prototype.push.apply(this.items, toAdd);
-						cacheRows(prevLength - 1);
+						if (at !== null && at !== undefined) {
+							Array.prototype.splice.apply(this.items, [at, 0].concat(toAdd));
+							cacheRows((at > 0 ? at - 1 : 0));
+						} else {
+							var prevLength = this.items.length;
+							Array.prototype.push.apply(this.items, toAdd);
+							cacheRows(prevLength > 0 ? prevLength - 1 : 0);
+						}
 					}
 				}
 
@@ -2436,14 +2444,20 @@
 			//
 			this.remove = function (id) {
 				if (id === undefined || id === null) {
-					throw "Unable to delete collection item. Invalid 'id' supplied.";
+					throw new Error("Unable to delete collection item. Invalid 'id' supplied.");
 				}
 
 				var idx = cache.indexById[id];
-				if (!idx) return;
+				if (idx === null || idx === undefined) {
+					throw new Error(["Unable to remove row '", id, "' because no such row could be found in the grid."].join(''));
+				}
 
 				// Remove from items
-				this.items.splice(idx, 1);
+				if (this.items instanceof Backbone.Collection) {
+					this.items.remove(id);
+				} else {
+					this.items.splice(idx, 1);
+				}
 
 				// Clear cache
 				delete cache.indexById[id];
@@ -2548,7 +2562,7 @@
 				// Update the row cache and the item
 				var idx = cache.indexById[id];
 
-				if (cache.rows[idx] instanceof Placeholder) {
+				if (cache.rows[idx] instanceof Placeholder || this.items[i] instanceof Backbone.Model) {
 					cache.rows[idx] = data;
 				} else {
 					cache.rows[idx] = $.extend(true, cache.rows[idx], data);
@@ -2558,15 +2572,19 @@
 				// This is most relevant in remote grids where real IDs replace placeholder IDs
 				cache.indexById[data.id] = idx;
 
-				// Find the data item
-				for (var i = 0, l = this.items.length; i < l; i++) {
-					if (this.items[i].id == id) {
-						if (this.items[i] instanceof Placeholder) {
-							this.items[i] = data;
-						} else {
-							this.items[i] = $.extend(true, this.items[i], data);
+				// Find the data item and update it
+				if (this.items instanceof Backbone.Collection) {
+					this.items.set(data);
+				} else {
+					for (var i = 0, l = this.items.length; i < l; i++) {
+						if (this.items[i].id == id) {
+							if (this.items[i] instanceof Placeholder) {
+								this.items[i] = data;
+							} else {
+								this.items[i] = $.extend(true, this.items[i], data);
+							}
+							break;
 						}
-						break;
 					}
 				}
 
@@ -4802,6 +4820,30 @@
 		// @return boolean
 		this.isSorted = function () {
 			return this.sorting.length ? true : false;
+		};
+
+
+		// linkToCollection()
+		// When the given data set is a Backbone Collection - this function will link
+		// up common Collection events to the grid.
+		//
+		linkToCollection = function () {
+			self.options.data
+				.on('add', function (model) {
+					// Ignore NonDataRows
+					if (model.get('__nonDataRow')) return;
+
+					// When new items are added to the collection - add them to the grid
+					self.add(model);
+				})
+				.on('change', function (model) {
+					// When items are changed - re-render the right row
+					self.setItem(model.id, model);
+				})
+				.on('remove', function (model) {
+					// When items are removed - remove the right row
+					self.remove(model.id);
+				});
 		};
 
 
@@ -7569,6 +7611,9 @@
 
 			// Validate and pre-process
 			validateColumns();
+
+			// If the given dataset is a Backbone.Collection - hook up the grid to collection events
+			if (self.options.data instanceof Backbone.Collection) linkToCollection();
 		};
 
 
