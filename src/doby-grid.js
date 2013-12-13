@@ -223,7 +223,7 @@
 			isCellSelected,
 			lastRenderedScrollLeft = 0,
 			lastRenderedScrollTop = 0,
-			linkToCollection,
+			bindToCollection,
 			makeActiveCellEditable,
 			makeActiveCellNormal,
 			measureCellPadding,
@@ -2574,7 +2574,7 @@
 
 				// Find the data item and update it
 				if (this.items instanceof Backbone.Collection) {
-					this.items.set(data);
+					this.items.set(data, {add: false, remove: false});
 				} else {
 					for (var i = 0, l = this.items.length; i < l; i++) {
 						if (this.items[i].id == id) {
@@ -4823,11 +4823,11 @@
 		};
 
 
-		// linkToCollection()
+		// bindToCollection()
 		// When the given data set is a Backbone Collection - this function will link
 		// up common Collection events to the grid.
 		//
-		linkToCollection = function () {
+		bindToCollection = function () {
 			self.options.data
 				.on('add', function (model) {
 					// Ignore NonDataRows
@@ -4843,6 +4843,13 @@
 				.on('remove', function (model) {
 					// When items are removed - remove the right row
 					self.remove(model.id);
+				})
+				.on('sort', function () {
+					// Tell the collection to refresh everything
+					self.collection.refresh();
+
+					// When sorting - invalidate and re-render all rows
+					invalidate();
 				});
 		};
 
@@ -7613,7 +7620,7 @@
 			validateColumns();
 
 			// If the given dataset is a Backbone.Collection - hook up the grid to collection events
-			if (self.options.data instanceof Backbone.Collection) linkToCollection();
+			if (self.options.data instanceof Backbone.Collection) bindToCollection();
 		};
 
 

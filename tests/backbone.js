@@ -82,22 +82,91 @@ describe("Backbone Integration", function () {
 	// ==========================================================================================
 
 
+	it("should update the grid with the collection is sorted", function () {
+		var results = resetGrid(),
+			grid = results[0],
+			collection = results[1];
+
+		// Set a new comparator function on the collection
+		collection.comparator = function (item) {
+			return -item.id;
+		};
+
+		// Sort collection using the new comparator
+		collection.sort();
+
+		var rows = grid.$el.find('.doby-grid-row');
+
+		// Make sure rows are sorted by their position
+		rows = $(_.sortBy(rows, function (item) {
+			return parseInt($(item).css('top'), 10);
+		}));
+
+		// First row should now be the last item in the collection
+		expect(rows.first().children('.doby-grid-cell.l0.r0')).toHaveText(collection.length);
+	});
+
+
+	// ==========================================================================================
+
+
+	it("should respect the given collection's comparator and insert the row into the right spot", function () {
+		var results = resetGrid(),
+			grid = results[0],
+			collection = results[1];
+
+		// Set a new comparator function on the collection
+		collection.comparator = function (item) {
+			return -item.id;
+		};
+
+		// Sort collection using the new comparator
+		collection.sort();
+
+		var rows = grid.$el.find('.doby-grid-row');
+
+		// Add an item to the collection
+		collection.add({
+			id: collection.length + 1,
+			name: "Robert Miles",
+			age: "not that old",
+			city: "American City"
+		});
+
+		var newrows = grid.$el.find('.doby-grid-row');
+
+		// Make sure rows are sorted by their position
+		newrows = $(_.sortBy(newrows, function (item) {
+			return parseInt($(item).css('top'), 10);
+		}));
+
+		// New row should be inserted at the top of the grid
+		expect(newrows.length).toEqual(collection.length);
+		expect(newrows.first().children('.doby-grid-cell.l1.r1')).toHaveText('Robert Miles');
+	});
+
+
+	// ==========================================================================================
+
+
 	it("should automatically re-draw row when the collection model is updated", function () {
 		var results = resetGrid(),
 			grid = results[0],
 			collection = results[1];
 
-		var rows = grid.$el.find('.doby-grid-row');
-
-		// Add an item to the collection
-		collection.set({
-			id: 1,
+		// Update the first item
+		collection.get(1).set({
 			name: "Houdini",
 			age: "dead",
 			city: "Europe?"
 		});
 
-		rows = grid.$el.find('.doby-grid-row');
+		var rows = grid.$el.find('.doby-grid-row');
+
+		// Make sure rows are sorted by their position
+		rows = $(_.sortBy(rows, function (item) {
+			return parseInt($(item).css('top'), 10);
+		}));
 
 		// First row should be updated with new data
 		expect(rows.first().children('.doby-grid-cell.l1.r1')).toHaveText('Houdini');
