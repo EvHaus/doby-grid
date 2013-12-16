@@ -8,10 +8,6 @@
 /*jshint expr: true, white: true*/
 /*global console, define, saveAs*/
 
-// TODO:
-// Merge this: https://github.com/mleibman/SlickGrid/commit/dc5f4cef17925db0367ef18091d5d88dbaf62e97
-// Merge this: https://github.com/mleibman/SlickGrid/commit/368e1f5d2bf173ed3c39d970f06b295412a94508
-
 (function (root, factory) {
 	"use strict";
 
@@ -601,85 +597,80 @@
 			this.$el.appendTo(target);
 
 			// Initialize the Grid
-			try {
-				initialized = true;
+			initialized = true;
 
-				// Calculate viewport width
-				viewportW = parseFloat($.css(this.$el[0], "width", true));
+			// Calculate viewport width
+			viewportW = parseFloat($.css(this.$el[0], "width", true));
 
-				// Calculate caches, dimensions and prepare layout
-				measureCellPadding();
-				disableSelection($headers);
-				renderColumnHeaders();
-				setupColumnSort();
-				createCssRules();
-				cacheRows();
-				resizeCanvas();
+			// Calculate caches, dimensions and prepare layout
+			measureCellPadding();
+			disableSelection($headers);
+			renderColumnHeaders();
+			setupColumnSort();
+			createCssRules();
+			cacheRows();
+			resizeCanvas();
 
-				// If we're using remote data, start by fetching the data set length
-				if (remote) {
-					remoteCount(function () {
-						// If we haven't scrolled anywhere yet - fetch the first page
-						if ($viewport[0].scrollTop === 0) {
-							var vp = getVisibleRange();
-							remoteFetch(vp.top, vp.bottom);
-						}
-					});
-
-					// Subscribe to scroll events
-					this.on('onViewportChanged', function (event) {
+			// If we're using remote data, start by fetching the data set length
+			if (remote) {
+				remoteCount(function () {
+					// If we haven't scrolled anywhere yet - fetch the first page
+					if ($viewport[0].scrollTop === 0) {
 						var vp = getVisibleRange();
 						remoteFetch(vp.top, vp.bottom);
-					});
-				}
+					}
+				});
 
-				// Assign events
+				// Subscribe to scroll events
+				this.on('onViewportChanged', function (event) {
+					var vp = getVisibleRange();
+					remoteFetch(vp.top, vp.bottom);
+				});
+			}
 
-				this.$el
-					.on("resize." + this.NAME, resizeCanvas);
+			// Assign events
 
-				if (this.options.autoDestroy) {
-					this.$el.one("remove", function (event) {
-						// Self-destroy when the element is deleted
-						self.destroy();
-					});
-				}
+			this.$el
+				.on("resize." + this.NAME, resizeCanvas);
 
-				$viewport
-					.on("scroll", handleScroll);
+			if (this.options.autoDestroy) {
+				this.$el.one("remove", function (event) {
+					// Self-destroy when the element is deleted
+					self.destroy();
+				});
+			}
 
+			$viewport
+				.on("scroll", handleScroll);
+
+			$headerScroller
+				.on("contextmenu", handleHeaderContextMenu)
+				.on("click", handleHeaderClick);
+
+			// Events for column header tooltips
+			if (self.options.tooltipType != 'title') {
 				$headerScroller
-					.on("contextmenu", handleHeaderContextMenu)
-					.on("click", handleHeaderClick);
-
-				// Events for column header tooltips
-				if (self.options.tooltipType != 'title') {
-					$headerScroller
-						.on("mouseover", function (event) {
-							// Show tooltips
-							showTooltip(event);
-						});
-				}
-
-				$canvas
-					.on("keydown", handleKeyDown)
-					.on("click", handleClick)
-					.on("dblclick", handleDblClick)
-					.on("contextmenu", handleContextMenu)
-					.on("mouseenter", function () {
-						// Focus on the canvas when the mouse is in it
-						var ae = document.activeElement;
-						if (ae != this && !$(this).has($(ae)).length) {
-							$(this).focus();
-						}
+					.on("mouseover", function (event) {
+						// Show tooltips
+						showTooltip(event);
 					});
+			}
 
-				if (this.options.resizableRows) {
-					bindRowResize();
-				}
+			$canvas
+				.on("keydown", handleKeyDown)
+				.on("click", handleClick)
+				.on("dblclick", handleDblClick)
+				.on("contextmenu", handleContextMenu)
+				.on("mouseenter", function () {
+					// Focus on the canvas when the mouse is in it
+					var ae = document.activeElement;
+					if (ae != this && !$(this).has($(ae)).length) {
+						$(this).focus();
+					}
+				});
 
-			} catch (e) {
-				if (console.error) console.error(e);
+			if (this.options.resizableRows) {
+				bindRowResize();
 			}
 
 			// Enable header menu
