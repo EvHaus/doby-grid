@@ -3083,7 +3083,8 @@
 		//
 		// @param	args		object		Slick.Event sort data
 		//
-		executeSorter = function () {
+		executeSorter = function (args) {
+			var cols = args.sortCols;
 
 			// If remote, and not all data is fetched - sort on server
 			if (remote && !remoteAllLoaded()) {
