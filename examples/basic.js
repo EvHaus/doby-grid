@@ -1,6 +1,5 @@
-/*jslint browser:true,expr:true,vars:true,plusplus:true,devel:true,indent:4,maxerr:50*/
-/*jshint white: true*/
-/*global _, $, define*/
+/*jshint loopfunc: true*/
+/*global _, define*/
 
 define(['faker'], function (Faker) {
 	"use strict";

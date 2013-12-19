@@ -343,17 +343,17 @@ describe("Methods and Data Manipulation", function () {
 					id: 'id',
 					name: 'ID'
 				}, {
-					aggregator: function (column) {
+					aggregator: function () {
 						this.formatter = function () { return "test"; };
-						this.process = function (item) {};
+						this.process = function () {};
 					},
 					id: 'category',
 					name: 'Category',
 					field: 'cateogory'
 				}, {
-					aggregator: function (column) {
+					aggregator: function () {
 						this.formatter = function () { return "test"; };
-						this.process = function (item) {};
+						this.process = function () {};
 					},
 					id: 'subcategory',
 					name: 'SubCategory',
@@ -494,7 +494,7 @@ describe("Methods and Data Manipulation", function () {
 					id: "rating",
 					name: "Rating",
 					field: "rating",
-					aggregator: function (column) {
+					aggregator: function () {
 						this.total = [];
 						this.exporter = function () {
 							var avg = this.total.reduce(function (a, b) { return a + b; });

@@ -1,6 +1,4 @@
-/*jslint browser:true,expr:true,vars:true,plusplus:true,indent:4,maxerr:50*/
-/*jshint white: true*/
-/*global _, $, define*/
+/*global _, define*/
 
 define(['backbone', 'faker'], function (Backbone, Faker) {
 	"use strict";
@@ -37,7 +35,7 @@ define(['backbone', 'faker'], function (Backbone, Faker) {
 				id: "rating",
 				name: "Rating",
 				field: "rating",
-				aggregator: function (column) {
+				aggregator: function () {
 					this.total = [];
 					this.exporter = function () {
 						var avg = this.total.reduce(function (a, b) { return a + b; });
@@ -55,7 +53,5 @@ define(['backbone', 'faker'], function (Backbone, Faker) {
 			}],
 			data: collection
 		};
-	}, function (grid) {
-
 	}];
 });

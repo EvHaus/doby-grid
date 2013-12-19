@@ -112,7 +112,8 @@
 				'faker': 'libs/faker',
 				'filesaver': 'libs/FileSaver',
 				'less': 'libs/less',
-				'underscore': 'libs/underscore'
+				'underscore': 'libs/underscore',
+				'vkthread': 'libs/vkthread'
 			},
 			shim: {
 				'backbone': {
@@ -130,13 +131,16 @@
 				},
 				'jquery.simulate': {
 					deps: ['jquery']
+				},
+				'vkthread': {
+					exports: 'vkthread'
 				}
 			}
 		});
 
 		// Less Config
 		var less = {
-			env: "production"
+			env: "development"
 		};
 
 		// Initialize doby
@@ -146,7 +150,8 @@
 			'jquery-ui',
 			'jquery.event.drag',
 			'jquery.simulate',
-			'filesaver'
+			'filesaver',
+			'vkthread'
 		], function(less, DobyGrid) {
 
 			// or "profile"

@@ -4,7 +4,7 @@
 // For all details and documentation:
 // https://github.com/globexdesigns/doby-grid
 
-/*global _, $, document, DobyGrid*/
+/*global _, $, DobyGrid*/
 
 describe("Remote Data", function () {
 	"use strict";
@@ -37,7 +37,7 @@ describe("Remote Data", function () {
 				name: "Name",
 				field: "name"
 			}],
-			data: function (options) {
+			data: function () {
 				this.count = function (options, callback) {
 					callback(100);
 				};

@@ -4,7 +4,7 @@
 // For all details and documentation:
 // https://github.com/globexdesigns/doby-grid
 
-/*global _, $, Backbone, document, DobyGrid, Image, window*/
+/*global _, $, Backbone, document, DobyGrid, Image */
 
 describe("Grid Options", function () {
 	"use strict";
@@ -141,7 +141,6 @@ describe("Grid Options", function () {
 				lastcell = grid.$el.find('.doby-grid-row:last .doby-grid-cell:first');
 
 			// Get the drag delta from the first cell
-			var a = grid.$el.find('.doby-grid-cell:first');
 			var dy = firstcell.position().top - lastcell.position().top + lastcell.height();
 
 			// Simulate a click and drag on the cell ranges
@@ -258,8 +257,7 @@ describe("Grid Options", function () {
 			}));
 
 			// Find the first cell
-			var firstCell = grid.$el.find('.doby-grid-cell:first').first(),
-				originalValue = firstCell.html();
+			var firstCell = grid.$el.find('.doby-grid-cell:first').first();
 
 			// Double-click a cell to enable editor
 			firstCell.simulate('dblclick');
@@ -472,8 +470,7 @@ describe("Grid Options", function () {
 			var grid = resetGrid($.extend(defaultData(), {editable: true}));
 
 			// Find the first cell
-			var firstCell = grid.$el.find('.doby-grid-cell:first').first(),
-				originalValue = firstCell.html();
+			var firstCell = grid.$el.find('.doby-grid-cell:first').first();
 
 			// Double-click a cell to enable editor
 			firstCell.simulate('click');
@@ -735,10 +732,6 @@ describe("Grid Options", function () {
 		it("should correctly destroy ranges when they become empty", function () {
 			var grid = resetGrid($.extend(defaultData(), {ctrlSelect: true}));
 
-			// Get the number of columns and rows we have
-			var cols = grid.options.columns.length,
-				rows = grid.options.data.length;
-
 			var cells = grid.$el.find('.doby-grid-cell');
 
 			// Activate the first cell
@@ -877,7 +870,7 @@ describe("Grid Options", function () {
 
 
 		it("should be able to initialize grid with a Backbone.Collection data set", function () {
-			var grid = resetGrid($.extend(defaultData(), {
+			resetGrid($.extend(defaultData(), {
 				data: new Backbone.Collection()
 			}));
 		});
@@ -893,7 +886,7 @@ describe("Grid Options", function () {
 
 			// Prepare for test
 			var grid = resetGrid($.extend(defaultData(), {
-				dataExtractor: function (item, columnDef) {
+				dataExtractor: function () {
 					return value;
 				}
 			}));
@@ -930,8 +923,7 @@ describe("Grid Options", function () {
 			var grid = resetGrid(defaultData());
 
 			// Find the first cell
-			var firstCell = grid.$el.find('.doby-grid-cell:first').first(),
-				originalValue = firstCell.html();
+			var firstCell = grid.$el.find('.doby-grid-cell:first').first();
 
 			// Double-click a cell to enable editor
 			firstCell.simulate('dblclick');
@@ -949,8 +941,7 @@ describe("Grid Options", function () {
 			var grid = resetGrid($.extend(defaultData(), {editable: true}));
 
 			// Find the first cell
-			var firstCell = grid.$el.find('.doby-grid-cell:first').first(),
-				originalValue = firstCell.html();
+			var firstCell = grid.$el.find('.doby-grid-cell:first').first();
 
 			// Double-click a cell to enable editor
 			firstCell.simulate('dblclick');
@@ -1005,7 +996,7 @@ describe("Grid Options", function () {
 		it("should correctly formater the cell values", function () {
 			// Prepare for test
 			var grid = resetGrid($.extend(defaultData(), {
-				formatter: function (row, cell, value, columnDef, data) {
+				formatter: function (row, cell, value) {
 					return [row, cell, value].join('-');
 				}
 			}));
@@ -1126,7 +1117,7 @@ describe("Grid Options", function () {
 			var grid = resetGrid($.extend(defaultData(), {headerMenu: false}));
 
 			// Right-click on every columns and make sure the menu comes up
-			grid.$el.find('.doby-grid-header-column').each(function (i) {
+			grid.$el.find('.doby-grid-header-column').each(function () {
 				$(this).simulate('contextmenu');
 
 				// Should be no dropdowns
@@ -1414,7 +1405,7 @@ describe("Grid Options", function () {
 			}));
 
 			// Check to make sure all columns have handles
-			grid.$el.find('.doby-grid-header-column').each(function (i) {
+			grid.$el.find('.doby-grid-header-column').each(function () {
 				expect($(this).children('.doby-grid-resizable-handle').length).toEqual(0);
 			});
 		});
@@ -1433,7 +1424,7 @@ describe("Grid Options", function () {
 					"class": 'nopad',
 					id: 'id',
 					field: 'id',
-					formatter: function (row, cell, value) {
+					formatter: function () {
 						return '<div style="width:' + colwidths[0] + 'px"></div>';
 					},
 					width: 50
@@ -1468,7 +1459,7 @@ describe("Grid Options", function () {
 			});
 
 			// Click on each handle
-			grid.$el.find('.doby-grid-header-column .doby-grid-resizable-handle').each(function (i) {
+			grid.$el.find('.doby-grid-header-column .doby-grid-resizable-handle').each(function () {
 				$(this).simulate('dblclick');
 			});
 
@@ -1514,7 +1505,7 @@ describe("Grid Options", function () {
 			var grid = resetGrid($.extend(defaultData(), {resizableRows: true}));
 
 			// Check to make sure all columns have handles
-			grid.$el.find('.doby-grid-row').each(function (i) {
+			grid.$el.find('.doby-grid-row').each(function () {
 				expect($(this).children('.doby-grid-row-handle').length).toEqual(1);
 			});
 		});
@@ -1528,7 +1519,7 @@ describe("Grid Options", function () {
 			var grid = resetGrid($.extend(defaultData(), {resizableRows: false}));
 
 			// Check to make sure all columns have handles
-			grid.$el.find('.doby-grid-row').each(function (i) {
+			grid.$el.find('.doby-grid-row').each(function () {
 				expect($(this).children('.doby-grid-row-handle').length).toEqual(0);
 			});
 		});
@@ -1608,7 +1599,7 @@ describe("Grid Options", function () {
 
 				// Calculate widths before drag
 				widths_before = [cd.header.width()];
-				_.each(cd.cells, function (cell, i) {
+				_.each(cd.cells, function (cell) {
 					widths_before.push(cell.width());
 				});
 
@@ -1618,7 +1609,7 @@ describe("Grid Options", function () {
 
 				// Calculate widths during drag
 				widths_during = [cd.header.width()];
-				_.each(cd.cells, function (cell, i) {
+				_.each(cd.cells, function (cell) {
 					widths_during.push(cell.width());
 				});
 
@@ -1627,7 +1618,7 @@ describe("Grid Options", function () {
 
 				// Calculate widths after drag
 				widths_after = [cd.header.width()];
-				_.each(cd.cells, function (cell, i) {
+				_.each(cd.cells, function (cell) {
 					widths_after.push(cell.width());
 				});
 
@@ -1680,7 +1671,7 @@ describe("Grid Options", function () {
 
 				// Calculate widths before drag
 				widths_before = [cd.header.width()];
-				_.each(cd.cells, function (cell, i) {
+				_.each(cd.cells, function (cell) {
 					widths_before.push(cell.width());
 				});
 
@@ -1690,7 +1681,7 @@ describe("Grid Options", function () {
 
 				// Calculate widths during drag
 				widths_during = [cd.header.width()];
-				_.each(cd.cells, function (cell, i) {
+				_.each(cd.cells, function (cell) {
 					widths_during.push(cell.width());
 				});
 
@@ -1699,7 +1690,7 @@ describe("Grid Options", function () {
 
 				// Calculate widths after drag
 				widths_after = [cd.header.width()];
-				_.each(cd.cells, function (cell, i) {
+				_.each(cd.cells, function (cell) {
 					widths_after.push(cell.width());
 				});
 

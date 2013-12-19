@@ -4,7 +4,7 @@
 // For all details and documentation:
 // https://github.com/globexdesigns/doby-grid
 
-/*global _, $, document, DobyGrid, Image, window*/
+/*global _, $, DobyGrid*/
 
 describe("Data Options", function () {
 	"use strict";
@@ -167,7 +167,7 @@ describe("Data Options", function () {
 
 				// The correct value should be written
 
-				cells.each(function (cell) {
+				cells.each(function () {
 					expect($(this).text()).toEqual((row + 1).toString());
 				});
 			});

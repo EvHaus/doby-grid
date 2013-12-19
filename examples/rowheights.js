@@ -1,4 +1,8 @@
-define(['faker'], function(Faker) {
+/*global _*/
+
+define(['faker'], function (Faker) {
+	"use strict";
+
 	// Generate Grid
 	return [function () {
 
@@ -10,7 +14,7 @@ define(['faker'], function(Faker) {
 				data: {
 					id: i,
 					text: Faker.Lorem.words(120).join(' '),
-					category: _.sample(['A','B','C','D'])
+					category: _.sample(['A', 'B', 'C', 'D'])
 				},
 				height: _.random(20, 70)
 			});
@@ -26,7 +30,7 @@ define(['faker'], function(Faker) {
 				id: "text",
 				name: "Text",
 				field: "text",
-				formatter: function(row, cell, value, columnDef, data) {
+				formatter: function (row, cell, value, columnDef, data) {
 					return '<div style="line-height:normal;white-space:normal">' + data.data[columnDef.field] + '</div>';
 				}
 			}, {
@@ -36,7 +40,7 @@ define(['faker'], function(Faker) {
 			}, {
 				id: "height",
 				name: "Row Height",
-				formatter: function(row, cell, value, columnDef, data) {
+				formatter: function (row, cell, value, columnDef, data) {
 					return data.height;
 				}
 			}],

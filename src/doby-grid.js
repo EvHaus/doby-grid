@@ -8,10 +8,6 @@
 /*jshint expr: true, white: true*/
 /*global console, define, saveAs*/
 
-// TODO:
-// Merge this: https://github.com/mleibman/SlickGrid/commit/dc5f4cef17925db0367ef18091d5d88dbaf62e97
-// Merge this: https://github.com/mleibman/SlickGrid/commit/368e1f5d2bf173ed3c39d970f06b295412a94508
-
 (function (root, factory) {
 	"use strict";
 
@@ -275,7 +271,6 @@
 			scrollTo,
 			scrollTop = 0,
 			serializedEditorValue,
-			setActiveCell,
 			setActiveCellInternal,
 			setRowHeight,
 			setupColumnReorder,
@@ -291,7 +286,6 @@
 			toggleHeaderContextMenu,
 			uid = this.NAME + "-" + Math.round(1000000 * Math.random()),
 			updateCanvasWidth,
-			updateCell,
 			updateCellCssStylesOnRenderedRows,
 			updateColumnCaches,
 			updateRow,
@@ -557,7 +551,7 @@
 
 		// Aggregate()
 		// Information about data totals.
-		// An instance of GroupTotals will be created for each totals row and passed to the aggregators
+		// An instance of Aggregates will be created for each totals row and passed to the aggregators
 		// so that they can store arbitrary data in it. That data can later be accessed by group totals
 		// formatters during the display.
 		//
@@ -572,13 +566,13 @@
 
 		Aggregate.prototype = new NonDataItem();
 		Aggregate.prototype.toString = function () { return "Aggregate"; };
-		Aggregate.prototype.exporter = function (columnDef, item) {
+		Aggregate.prototype.exporter = function (columnDef) {
 			if (this.aggregators[columnDef.id] && this.aggregators[columnDef.id].exporter) {
 				return this.aggregators[columnDef.id].exporter();
 			}
 			return "";
 		};
-		Aggregate.prototype.formatter = function (row, cell, value, columnDef, data) {
+		Aggregate.prototype.formatter = function (row, cell, value, columnDef) {
 			if (this.aggregators[columnDef.id] && this.aggregators[columnDef.id].formatter) {
 				return this.aggregators[columnDef.id].formatter();
 			}
@@ -627,7 +621,7 @@
 					});
 
 					// Subscribe to scroll events
-					this.on('onViewportChanged', function (event) {
+					this.on('onViewportChanged', function () {
 						var vp = getVisibleRange();
 						remoteFetch(vp.top, vp.bottom);
 					});
@@ -639,7 +633,7 @@
 					.on("resize." + this.NAME, resizeCanvas);
 
 				if (this.options.autoDestroy) {
-					this.$el.one("remove", function (event) {
+					this.$el.one("remove", function () {
 						// Self-destroy when the element is deleted
 						self.destroy();
 					});
@@ -1080,7 +1074,7 @@
 				}
 			}
 
-			var item, data, childrowheight;
+			var item, data;
 			for (var i = from, l = cache.rows.length; i < l; i++) {
 				item = cache.rows[i];
 
@@ -1120,8 +1114,7 @@
 			// top and bottom of the viewport
 			if (variableRowHeight) {
 				var scrollTop = $viewport[0].scrollTop,
-					bottomRow = getRowFromPosition(viewportH + scrollTop),
-					topRow = getRowFromPosition(scrollTop);
+					bottomRow = getRowFromPosition(viewportH + scrollTop);
 				numVisibleRows = bottomRow - getRowFromPosition(scrollTop);
 
 			// When in fixed right height mode - we can make a much faster calculation
@@ -1529,7 +1522,7 @@
 					.appendTo(self.$el)
 					.focus()
 					.select()
-					.on('keyup', function (e) {
+					.on('keyup', function () {
 						$(this).remove();
 					});
 			}
@@ -1663,8 +1656,6 @@
 
 			// Private Methods
 
-				compiledFilter,
-				compiledFilterWithCaching,
 				expandCollapseGroup,
 				extractGroups,
 				finalizeGroups,
@@ -1802,13 +1793,8 @@
 
 
 			// collapseGroup()
-			// @param	varArgs		Either a Group's "id" property, or a
-			//						variable argument list of grouping values denoting a
-			//						unique path to the row. For example, calling
-			//						collapseGroup('high', '10%') will collapse the '10%' subgroup of
-			//						the 'high' setGrouping.
 			//
-			this.collapseGroup = function (varArgs) {
+			this.collapseGroup = function () {
 				var args = Array.prototype.slice.call(arguments),
 					arg0 = args[0];
 				if (args.length == 1 && arg0.indexOf(groupingDelimiter) != -1) {
@@ -1863,13 +1849,8 @@
 
 
 			// expandGroup()
-			// @param	varArgs		Either a Group's "id" property, or a
-			//						variable argument list of grouping values denoting a
-			//						unique path to the row. For example, calling
-			//						expandGroup('high', '10%') will expand the '10%' subgroup of
-			//						the 'high' setGrouping.
 			//
-			this.expandGroup = function (varArgs) {
+			this.expandGroup = function () {
 				var args = Array.prototype.slice.call(arguments),
 					arg0 = args[0];
 
@@ -1916,7 +1897,7 @@
 					r,
 					level = parentGroup ? parentGroup.level + 1 : 0,
 					gi = self.groups[level],
-					i, l, predef, aggregateRow;
+					i, l, aggregateRow;
 
 				// Loop through the rows in the group and create group header rows as needed
 				for (i = 0, l = rows.length; i < l; i++) {
@@ -2012,8 +1993,7 @@
 			// @return array
 			flattenGroupedRows = function (groups, level) {
 				level = level || 0;
-				var gi = self.groups[level],
-					groupedRows = [],
+				var groupedRows = [],
 					rows, gl = 0,
 					g;
 
@@ -2164,7 +2144,7 @@
 									// no good way to compare totals since they are arbitrary DTOs
 									// deep object comparison is pretty expensive
 									// always considering them 'dirty' seems easier for the time being
-									(item.__groupTotals || r.__groupTotals)
+									(item instanceof Aggregate || r instanceof Aggregate)
 								) ||
 								// Compare between different data object ids
 								(
@@ -2197,7 +2177,7 @@
 					columns: {
 						0: {
 							colspan: "*",
-							formatter: function (row, cell, value, columnDef, data) {
+							formatter: function () {
 								return getLocale("empty.default");
 							},
 							editor: null
@@ -2219,7 +2199,7 @@
 			parse = function (items) {
 				items = items instanceof Backbone.Collection ? items.models : items;
 
-				var i, l, id, childrow, item;
+				var i, l, childrow, item;
 				for (i = 0, l = items.length; i < l; i++) {
 					item = items[i];
 
@@ -2399,7 +2379,6 @@
 				if (suspend) return;
 
 				var countBefore = cache.rows.length,
-					totalRowsBefore = totalRows,
 					diff = recalc(this.items);
 
 				// if the current page is no longer valid, go to last page and recalc
@@ -2524,7 +2503,7 @@
 				if (!options.length) toggledGroupsByLevel = [];
 
 				// Reset group cache
-				var i, l, groupingObject, groups = [], col;
+				var i, l, groups = [], col;
 				for (i = 0, l = options.length; i < l; i++) {
 					col = getColumnById(options[i].column_id);
 
@@ -2687,8 +2666,6 @@
 			//
 			// @return array
 			validate = function (items) {
-				var id;
-
 				// If no data - add an empty alert
 				if (grid.options.emptyNotice && !items.length) insertEmptyAlert(items);
 
@@ -2705,8 +2682,6 @@
 		// @param	options		object		Editor arguments
 		//
 		defaultEditor = function (options) {
-
-			var self = this;
 
 			// initialize()
 			// The editor is actived when an active cell in the grid is focused.
@@ -3108,8 +3083,7 @@
 		//
 		// @param	args		object		Slick.Event sort data
 		//
-		executeSorter = function (args) {
-			var cols = args.sortCols;
+		executeSorter = function () {
 
 			// If remote, and not all data is fetched - sort on server
 			if (remote && !remoteAllLoaded()) {
@@ -5754,7 +5728,6 @@
 				rowCss = classrow +
 					(self.active && row === self.active.row ? " active" : "") +
 					(row % 2 === 1 ? " odd" : ""),
-				data = self.collection,
 				top, pos = {};
 
 			if (variableRowHeight) {
@@ -5826,7 +5799,6 @@
 			var stringArray = [],
 				rows = [],
 				needToReselectCell = false,
-				dataLength = getDataLength(),
 				i, ii;
 
 			for (i = range.top, ii = range.bottom; i <= ii; i++) {
@@ -6039,7 +6011,6 @@
 		//									otherwise use direction of scroll to determine where
 		//
 		scrollRowIntoView = function (row, doPaging) {
-			var vr = getVisibleRange();
 
 			// Determine where the row's page is
 			var rowAtTop, rowAtBottom, pos;
@@ -6532,7 +6503,7 @@
 			// If resizable columns are disabled -- return
 			if (!self.options.resizableColumns) return;
 
-			var $col, j, c, l, pageX, columnElements, minPageX, maxPageX, firstResizable, lastResizable;
+			var j, c, l, pageX, columnElements, minPageX, maxPageX, firstResizable, lastResizable;
 
 			columnElements = $headers.children();
 			columnElements.find("." + classhandle).remove();
@@ -6546,7 +6517,7 @@
 			if (firstResizable === undefined) return;
 
 			var lockColumnWidths = function () {
-				columnElements.each(function (i, e) {
+				columnElements.each(function (i) {
 					// The extra 1 here is to compensate for the border separator
 					cache.activeColumns[i].previousWidth = cache.activeColumns[i].width;
 				});
@@ -6839,7 +6810,7 @@
 			// This is called when user types into any of the input boxes.
 			// It's on a 150ms timeout so that fast typing doesn't search really large grid immediately
 			var keyTimer;
-			var onKeyUp = function (event) {
+			var onKeyUp = function () {
 				if (keyTimer) clearTimeout(keyTimer);
 				keyTimer = setTimeout(function () {
 					self.filter(function (item) {
@@ -6938,7 +6909,7 @@
 			el.attr('aria-describedby', tooltip_id);
 
 			// Assign removal event
-			el.one("mouseleave", function (event) {
+			el.one("mouseleave", function () {
 				// Remove tooltip
 				if ($(this).attr('aria-describedby') !== undefined) {
 					var tltp = $('#' + tooltip_id);
@@ -6982,8 +6953,7 @@
 				// Compensate when we get close to the edge
 				var arrowoffset = 0,
 					win = $(window),
-					windowwidth = win.outerWidth(),
-					windowheight = win.outerHeight();
+					windowwidth = win.outerWidth();
 
 				if (x < 0) {
 					arrowoffset = x;

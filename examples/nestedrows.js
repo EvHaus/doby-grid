@@ -1,6 +1,5 @@
-/*jslint browser:true,expr:true,vars:true,plusplus:true,devel:true,indent:4,maxerr:50*/
-/*jshint white: true*/
-/*global _, $, define, DobyGrid */
+/*jshint loopfunc: true*/
+/*global _, $, define */
 
 define(['dobygrid'], function (DobyGrid) {
 	"use strict";
@@ -29,10 +28,10 @@ define(['dobygrid'], function (DobyGrid) {
 							0: {
 								class: "nopad",
 								colspan: "*",
-								formatter: function (row, cell, value, columnDef, data) {
+								formatter: function () {
 									return '<div style="text-align:center;">Loading components...</div>';
 								},
-								postprocess: function (data, callback) {
+								postprocess: function (data) {
 									var subdata = [];
 
 									for (var i = 0; i < 100; i++) {
@@ -81,7 +80,7 @@ define(['dobygrid'], function (DobyGrid) {
 				id: "picture",
 				name: "Picture",
 				field: "picture",
-				formatter: function (row, cell, value, columnDef, data) {
+				formatter: function () {
 					return '<div style="background:rgba(255,0,0,0.1);box-shadow:red 0 0 0 2px inset;height:100px;width:100px"></div>';
 				},
 				focusable: false,

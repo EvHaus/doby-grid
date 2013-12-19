@@ -123,8 +123,6 @@ describe("Backbone Integration", function () {
 		// Sort collection using the new comparator
 		collection.sort();
 
-		var rows = grid.$el.find('.doby-grid-row');
-
 		// Add an item to the collection
 		collection.add({
 			id: collection.length + 1,

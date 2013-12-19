@@ -4,7 +4,7 @@
 // For all details and documentation:
 // https://github.com/globexdesigns/doby-grid
 
-/*global _, $, document, DobyGrid, Image, window*/
+/*global _, $, DobyGrid */
 
 describe("Column Options", function () {
 	"use strict";
@@ -120,14 +120,14 @@ describe("Column Options", function () {
 					id: 'id',
 					field: 'id',
 					name: 'id',
-					aggregator: function (column) {
+					aggregator: function () {
 						return this;
 					}
 				}, {
 					id: 'name',
 					field: 'name',
 					name: 'name',
-					aggregator: function (column) {
+					aggregator: function () {
 						return this;
 					}
 				}]
@@ -140,7 +140,7 @@ describe("Column Options", function () {
 			var lastRow = grid.$el.find('.doby-grid-row').last();
 			expect(lastRow.hasClass('doby-grid-row-total')).toEqual(true);
 
-			lastRow.children('.doby-grid-cell').each(function (i) {
+			lastRow.children('.doby-grid-cell').each(function () {
 				expect($(this).text()).toEqual('');
 			});
 		});
@@ -255,7 +255,6 @@ describe("Column Options", function () {
 
 
 		it("should correctly override the global grid default", function () {
-			var used = false;
 			var grid = resetGrid($.extend(defaultData(), {
 				columns: [{
 					id: 'id',
@@ -290,7 +289,6 @@ describe("Column Options", function () {
 
 
 		it("should have no effect on editing if the editable Grid Option is disabled", function () {
-			var used = false;
 			var grid = resetGrid($.extend(defaultData(), {
 				columns: [{
 					id: 'id',
@@ -307,7 +305,7 @@ describe("Column Options", function () {
 			var rows = grid.$el.find('.doby-grid-row');
 
 			rows.each(function () {
-				$(this).children('.doby-grid-cell').each(function (i) {
+				$(this).children('.doby-grid-cell').each(function () {
 					// Clicking on cells should not do anything
 					$(this).simulate("dblclick");
 					expect($(this)).not.toContain("input");
@@ -793,7 +791,7 @@ describe("Column Options", function () {
 			var valueBefore = grid.$el.find('.doby-grid-cell').first().text();
 
 			// Resize column
-			grid.$el.find('.doby-grid-header-column').each(function (i) {
+			grid.$el.find('.doby-grid-header-column').each(function () {
 				$(this).find('.doby-grid-resizable-handle').simulate('drag', {dx: -100});
 			});
 
