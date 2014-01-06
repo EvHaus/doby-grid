@@ -3,7 +3,10 @@
 	<head>
 		<title>Doby Grid - Examples</title>
 		<script src="../libs/require.js" type="text/javascript"></script>
-		<link rel="stylesheet/less" type="text/css" href="../src/doby-grid.less" />
+
+		<link rel="stylesheet" type="text/css" href="../build/0.0.1/doby-grid.min.css" />
+		<!-- <link rel="stylesheet/less" type="text/css" href="../src/doby-grid.less" /> -->
+
 		<style rel="stylesheet" type="text/css">
 			html, body {
 				font-family: Helvetica, Arial, sans-serif;
@@ -149,6 +152,9 @@
 			'filesaver'
 		], function(less, DobyGrid) {
 
+			// Load "css" or "less" theme files
+			var theme_type = "css";
+
 			// or "profile"
 			var profiler = 'time';
 
@@ -177,33 +183,58 @@
 				$('#dobythemeless').remove();
 				if (document.location.hash) $('#gridwrapper').html('Loading...')
 
-				// Load new theme
-				var less_file = '../src/themes/doby-grid-'+theme+'.less';
-				$.ajax({
-					url: less_file,
-					method: 'GET',
-					complete: function(response) {
-						var data = response.responseText;
-						data = data.replace(/\.\.\/\.\.\//g, '../');
+				// After theme is loaded
+				var finish = function () {
+					$(document.body).attr('class', theme);
 
-						less.Parser({}).parse(data, function (err, t) {
-							if (err) {
-								return console.error(err)
-							}
-
-							var css = t.toCSS();
-							css = css.replace(/\/\.\.\/assets/g, '../assets')
-
-							$('<style id="dobythemeless"/>').html(css).appendTo("body");
-							$(document.body).attr('class', theme);
-
-							// Load current example
-							if (document.location.hash) {
-								loadExample(document.location.hash.substring(1));
-							}
-						});
+					// Load current example
+					if (document.location.hash) {
+						loadExample(document.location.hash.substring(1));
 					}
-				});
+				};
+
+				// Load new theme
+				var theme_file;
+				if (theme_type === 'css') {
+					theme_file = '../build/0.0.1/themes/doby-grid-' + theme + '.css';
+				} else {
+					theme_file = '../src/themes/doby-grid-' + theme + '.less';
+				}
+
+				// LESS needs to be loaded dynamically and parsed
+				if (theme_type === 'less') {
+					$.ajax({
+						url: less_file,
+						method: 'GET',
+						complete: function(response) {
+							var data = response.responseText;
+							data = data.replace(/\.\.\/\.\.\//g, '../');
+
+							less.Parser({}).parse(data, function (err, t) {
+								if (err) {
+									return console.error(err)
+								}
+
+								var css = t.toCSS();
+								css = css.replace(/\/\.\.\/assets/g, '../assets')
+
+								$('<style id="dobythemeless"/>').html(css).appendTo("body");
+
+								finish();
+							});
+						}
+					});
+				} else {
+					// Remove other themes
+					$('.doby-theme').remove();
+
+					// Load new theme
+					$(document.head).append([
+						'<link class="doby-theme" rel="stylesheet" type="text/css" href="', theme_file, '" />'
+					].join(''));
+
+					finish();
+				}
 			}
 
 			// Enable Theme Selector

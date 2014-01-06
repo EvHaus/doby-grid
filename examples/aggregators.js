@@ -24,39 +24,53 @@ define([], function () {
 		var columns = [];
 		for (var q = 0; q < 5; q++) {
 			columns.push({
-				aggregator: function () {
-					this.total = [];
-					this.exporter = function () {
-						var avg = this.total.reduce(function (a, b) { return a + b; });
-						return Math.round(avg / this.total.length);
-					};
-					this.formatter = function () {
-						var avg = this.total.reduce(function (a, b) { return a + b; });
-						return "Avg: <strong>" + Math.round(avg / this.total.length) + "</strong>";
-					};
-					this.process = function (item) {
-						this.total.push(item.id);
-					};
-					return this;
-				},
+				aggregators: [{
+					name: "Average",
+					description: "Calculate the average for all values in this column",
+					fn: function () {
+						this.total = [];
+						this.exporter = function () {
+							var avg;
+							if (this.total.length) {
+								avg = this.total.reduce(function (a, b) { return a + b; });
+							}
+							return Math.round(avg / this.total.length);
+						};
+						this.formatter = function () {
+							var avg;
+							if (this.total.length) {
+								avg = this.total.reduce(function (a, b) { return a + b; });
+							}
+							return "Avg: <strong>" + Math.round(avg / this.total.length) + "</strong>";
+						};
+						this.process = function (item) {
+							this.total.push(item.id);
+						};
+						return this;
+					},
+				}],
 				id: "id" + q,
 				name: "ID",
 				field: "id",
 				sortable: true
 			}, {
-				aggregator: function (column) {
-					this.total = 0;
-					this.exporter = function () {
-						return (this.total || "");
-					};
-					this.formatter = function () {
-						return "Total: <strong>" + this.total + "</strong>";
-					};
-					this.process = function (item) {
-						this.total += (item.data[column.field] || 0);
-					};
-					return this;
-				},
+				aggregators: [{
+					name: "Total",
+					description: "Calculate the total for all values in this column",
+					fn: function (column) {
+						this.total = 0;
+						this.exporter = function () {
+							return (this.total || "");
+						};
+						this.formatter = function () {
+							return "Total: <strong>" + this.total + "</strong>";
+						};
+						this.process = function (item) {
+							this.total += (item.data[column.field] || 0);
+						};
+						return this;
+					}
+				}],
 				id: "population" + q,
 				name: "Population",
 				field: "population",

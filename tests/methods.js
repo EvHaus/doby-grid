@@ -494,21 +494,23 @@ describe("Methods and Data Manipulation", function () {
 					id: "rating",
 					name: "Rating",
 					field: "rating",
-					aggregator: function () {
-						this.total = [];
-						this.exporter = function () {
-							var avg = this.total.reduce(function (a, b) { return a + b; });
-							return Math.round(avg / this.total.length);
-						};
-						this.formatter = function () {
-							var avg = this.total.reduce(function (a, b) { return a + b; });
-							return "Avg: <strong>" + Math.round(avg / this.total.length) + "</strong>";
-						};
-						this.process = function (item) {
-							this.total.push(item.data.rating);
-						};
-						return this;
-					}
+					aggregators: [{
+						fn: function () {
+							this.total = [];
+							this.exporter = function () {
+								var avg = this.total.reduce(function (a, b) { return a + b; });
+								return Math.round(avg / this.total.length);
+							};
+							this.formatter = function () {
+								var avg = this.total.reduce(function (a, b) { return a + b; });
+								return "Avg: <strong>" + Math.round(avg / this.total.length) + "</strong>";
+							};
+							this.process = function (item) {
+								this.total.push(item.data.rating);
+							};
+							return this;
+						}
+					}]
 				}],
 				data: [
 					{data: {name: 'Andy Duguid', city: "Amsterdam", rating: 9}, id: 1},

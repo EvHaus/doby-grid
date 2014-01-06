@@ -336,6 +336,7 @@
 					add_sort_desc:		'Add Sort By "{{name}}" (Descending)',
 					filter:				'Quick Filter on "{{name}}"',
 					group:				'Group By "{{name}}"',
+					grouping:			'Grouping',
 					groups_clear:		'Clear All Grouping',
 					groups_collapse:	'Collapse All Groups',
 					groups_expand:		'Expand All Groups',
@@ -565,16 +566,31 @@
 		};
 
 		Aggregate.prototype = new NonDataItem();
+
 		Aggregate.prototype.toString = function () { return "Aggregate"; };
+
 		Aggregate.prototype.exporter = function (columnDef) {
-			if (this.aggregators[columnDef.id] && this.aggregators[columnDef.id].exporter) {
-				return this.aggregators[columnDef.id].exporter();
+			if (this.aggregators[columnDef.id]) {
+				var aggr;
+				for (var aggr_idx in this.aggregators[columnDef.id]) {
+					aggr = this.aggregators[columnDef.id][aggr_idx];
+					if (aggr.active && aggr.exporter) {
+						return aggr.exporter();
+					}
+				}
 			}
 			return "";
 		};
+
 		Aggregate.prototype.formatter = function (row, cell, value, columnDef) {
-			if (this.aggregators[columnDef.id] && this.aggregators[columnDef.id].formatter) {
-				return this.aggregators[columnDef.id].formatter();
+			if (this.aggregators[columnDef.id]) {
+				var aggr;
+				for (var aggr_idx in this.aggregators[columnDef.id]) {
+					aggr = this.aggregators[columnDef.id][aggr_idx];
+					if (aggr.active && aggr.formatter) {
+						return aggr.formatter();
+					}
+				}
 			}
 			return "";
 		};
@@ -2091,12 +2107,6 @@
 			};
 
 
-			// TODO: Do we still need this?
-			this.getItemByIdx = function (i) {
-				return this.items[i];
-			};
-
-
 			// getRowDiffs()
 			// Given two lists of row data objects, returns a list of indexes of the rows which
 			// are changed. This will tell the grid what needs to be re-cached and re-rendered.
@@ -2250,7 +2260,8 @@
 			// Processes any aggregrators that are enabled and caches their results.
 			// Then inserts new Aggregate rows that are needed.
 			processAggregators = function () {
-				var item, i, l;
+				var item, i, l, active_aggregator;
+
 				// Loop through the data and process the aggregators
 				for (i = 0, l = self.items.length; i < l; i++) {
 					if (self.items instanceof Backbone.Collection) {
@@ -2260,8 +2271,21 @@
 					}
 
 					for (var column_id in cache.aggregatorsByColumnId) {
-						if (typeof cache.aggregatorsByColumnId[column_id].process === 'function') {
-							cache.aggregatorsByColumnId[column_id].process(item);
+						active_aggregator = null;
+						for (var aggreg_idx in cache.aggregatorsByColumnId[column_id]) {
+							if (typeof cache.aggregatorsByColumnId[column_id][aggreg_idx].process === 'function') {
+								if (active_aggregator === null && cache.aggregatorsByColumnId[column_id][aggreg_idx].active) {
+									active_aggregator = aggreg_idx;
+								}
+
+								cache.aggregatorsByColumnId[column_id][aggreg_idx].process(item);
+							}
+						}
+
+						// If no active aggregator specified - enable the first one
+						if (active_aggregator === null) {
+							active_aggregator = 0;
+							cache.aggregatorsByColumnId[column_id][active_aggregator].active = true;
 						}
 					}
 				}
@@ -2285,26 +2309,36 @@
 			// Then inserts new Aggregate rows at the bottom of each.
 			processGroupAggregators = function (groups) {
 				// For each group we're going to generate a new aggregate row
-				var i, l, group, item, column, column_id, ii, ll;
+				var i, l, group, item, column, column_id, ii, ll, aggreg_idx;
 				for (i = 0, l = groups.length; i < l; i++) {
 					group = groups[i];
 
 					// Make sure this is a group row
 					if (!(group instanceof Group)) continue;
 
-					// Create a new aggregator instance for each column
+					// Create a new aggregators instance for each column
 					group.aggregators = {};
 					for (column_id in cache.aggregatorsByColumnId) {
 						// TODO: This can be optimized
 						column = getColumnById(column_id);
-						group.aggregators[column_id] = new column.aggregator(column);
+
+						group.aggregators[column_id] = {};
+						for (aggreg_idx in cache.aggregatorsByColumnId[column_id]) {
+							group.aggregators[column_id][aggreg_idx] = new column.aggregators[aggreg_idx].fn(column);
+
+							if (cache.aggregatorsByColumnId[column_id][aggreg_idx].active) {
+								group.aggregators[column_id][aggreg_idx].active = true;
+							}
+						}
 					}
 
 					// Loop through the group row data and process the aggregators
 					for (ii = 0, ll = groups[i].grouprows.length; ii < ll; ii++) {
 						item = groups[i].grouprows[ii];
 						for (column_id in group.aggregators) {
-							group.aggregators[column_id].process(item);
+							for (aggreg_idx in group.aggregators[column_id]) {
+								group.aggregators[column_id][aggreg_idx].process(item);
+							}
 						}
 					}
 
@@ -7156,46 +7190,50 @@
 				enabled: self.options.groupable && column && column.groupable,
 				divider: true
 			}, {
-				enabled: self.options.groupable && column && column.groupable && (!hasGrouping(column.id) || !self.isGrouped()),
-				name: column ? getLocale('column.group', {name: column.name}) : '',
-				fn: function () {
-					self.setGrouping([{
-						column_id: column.id
-					}]);
-				}
-			}, {
-				enabled: self.options.groupable && column && column.groupable && !hasGrouping(column.id) && self.isGrouped(),
-				name: column ? getLocale('column.add_group', {name: column.name}) : '',
-				fn: function () {
-					self.addGrouping(column.id);
-				}
-			}, {
-				enabled: self.options.groupable && column && hasGrouping(column.id),
-				name: column ? getLocale('column.remove_group', {name: column.name}) : '',
-				fn: function () {
-					self.removeGrouping(column.id);
-				}
-			}, {
-				enabled: self.options.groupable && column && self.isGrouped(),
-				name: getLocale("column.groups_clear"),
-				fn: function () {
-					self.setGrouping();
-				}
-			}, {
-				enabled: self.options.groupable && column && self.isGrouped(),
-				divider: true
-			}, {
-				enabled: self.options.groupable && column && self.isGrouped(),
-				name: getLocale('column.groups_expand'),
-				fn: function () {
-					self.collection.expandAllGroups();
-				}
-			}, {
-				enabled: self.options.groupable && column && self.isGrouped(),
-				name: getLocale('column.groups_collapse'),
-				fn: function () {
-					self.collection.collapseAllGroups();
-				}
+				enabled: self.options.groupable && column && column.groupable,
+				name: getLocale('column.grouping'),
+				menu: [{
+					enabled: !hasGrouping(column.id) || !self.isGrouped(),
+					name: column ? getLocale('column.group', {name: column.name}) : '',
+					fn: function () {
+						self.setGrouping([{
+							column_id: column.id
+						}]);
+					}
+				}, {
+					enabled: !hasGrouping(column.id) && self.isGrouped(),
+					name: column ? getLocale('column.add_group', {name: column.name}) : '',
+					fn: function () {
+						self.addGrouping(column.id);
+					}
+				}, {
+					enabled: hasGrouping(column.id),
+					name: column ? getLocale('column.remove_group', {name: column.name}) : '',
+					fn: function () {
+						self.removeGrouping(column.id);
+					}
+				}, {
+					enabled: self.isGrouped(),
+					name: getLocale("column.groups_clear"),
+					fn: function () {
+						self.setGrouping();
+					}
+				}, {
+					enabled: self.isGrouped(),
+					divider: true
+				}, {
+					enabled: self.isGrouped(),
+					name: getLocale('column.groups_expand'),
+					fn: function () {
+						self.collection.expandAllGroups();
+					}
+				}, {
+					enabled: self.isGrouped(),
+					name: getLocale('column.groups_collapse'),
+					fn: function () {
+						self.collection.collapseAllGroups();
+					}
+				}]
 			}, {
 				enabled: column && (column.sortable || column.removable || column.groupable),
 				divider: true
@@ -7347,8 +7385,15 @@
 				x += column.width;
 
 				// Cache aggregators
-				if (column.aggregator) {
-					cache.aggregatorsByColumnId[column.id] = new column.aggregator(column);
+				if (column.aggregators) {
+					for (var j = 0, m = column.aggregators.length; j < m; j++) {
+						if (!cache.aggregatorsByColumnId[column.id]) {
+							cache.aggregatorsByColumnId[column.id] = {};
+						}
+
+						// Create new aggregator instance
+						cache.aggregatorsByColumnId[column.id][j] = new column.aggregators[j].fn(column);
+					}
 				}
 			}
 		};
@@ -7515,16 +7560,26 @@
 				if (c.minWidth !== undefined && c.minWidth !== null && c.width < c.minWidth) c.width = c.minWidth;
 				if (c.maxWidth !== undefined && c.maxWidth !== null && c.width > c.maxWidth) c.width = c.maxWidth;
 
-				// Aggregators and editors must be functions
-				var fn_attrs = ['aggregator', 'editor', 'exporter', 'formatter'], attr;
+				// These params must be functions
+				var fn_attrs = ['editor', 'exporter', 'formatter'], attr;
 				for (var j = 0, k = fn_attrs.length; j < k; j++) {
 					attr = fn_attrs[j];
 					if (c[attr] !== undefined && c[attr] !== null && typeof c[attr] !== 'function') {
-						throw [
+						throw new Error([
 							"Column ", attr, "s must be functions. ",
 							"Invalid ", attr, " given for column \"",
 							(c.name || c.id), '"'
-						].join("");
+						].join(""));
+					}
+				}
+
+				// Aggregators must be arrays
+				if (c.aggregators !== undefined && c.aggregators !== null) {
+					if (!$.isArray(c.aggregators)) {
+						throw new Error([
+							"A column's \"aggregators\" value must be array. ",
+							"Invalid value given for column \"", (c.name || c.id), "\""
+						].join(""));
 					}
 				}
 

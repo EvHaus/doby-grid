@@ -44,11 +44,11 @@ describe("Column Options", function () {
 	// ==========================================================================================
 
 
-	describe("options.aggregator", function () {
+	describe("options.aggregators", function () {
 		it("should be null by default", function () {
 			var grid = resetGrid(defaultData());
 			_.each(grid.options.columns, function (col) {
-				expect(col.aggregator).toEqual(null);
+				expect(col.aggregators).toEqual(null);
 			});
 		});
 
@@ -56,16 +56,16 @@ describe("Column Options", function () {
 		// ==========================================================================================
 
 
-		it("should throw an exception is given something other than a function", function () {
-			_.each([1, 'test', [], {}], function (test, i) {
+		it("should throw an exception is given something other than an array", function () {
+			_.each([1, 'test', function () {}, {}], function (test, i) {
 				expect(function () {
 					resetGrid($.extend(defaultData(), {
 						columns: [{
 							id: i,
-							aggregator: test
+							aggregators: test
 						}]
 					}));
-				}).toThrow('Column aggregators must be functions. Invalid aggregator given for column "' + i + '"');
+				}).toThrow('A column\'s "aggregators" value must be array. Invalid value given for column "' + i + '"');
 			});
 		});
 
@@ -79,22 +79,30 @@ describe("Column Options", function () {
 					id: 'id',
 					field: 'id',
 					name: 'id',
-					aggregator: function (column) {
-						this.formatter = function () {
-							return "Test " + column.name;
-						};
-						return this;
-					}
+					aggregators: [{
+						name: "Test",
+						description: "Something here",
+						fn: function (column) {
+							this.formatter = function () {
+								return "Test " + column.name;
+							};
+							return this;
+						}
+					}]
 				}, {
 					id: 'name',
 					field: 'name',
 					name: 'name',
-					aggregator: function (column) {
-						this.formatter = function () {
-							return "Test " + column.name;
-						};
-						return this;
-					}
+					aggregators: [{
+						name: "Another Test",
+						description: "Something else here",
+						fn: function (column) {
+							this.formatter = function () {
+								return "Test " + column.name;
+							};
+							return this;
+						}
+					}]
 				}]
 			}));
 
@@ -120,16 +128,22 @@ describe("Column Options", function () {
 					id: 'id',
 					field: 'id',
 					name: 'id',
-					aggregator: function () {
-						return this;
-					}
+					aggregators: [{
+						fn: function () {
+							return this;
+						}
+					}]
 				}, {
 					id: 'name',
 					field: 'name',
 					name: 'name',
-					aggregator: function () {
-						return this;
-					}
+					aggregators: [{
+						name: null,
+						description: null,
+						fn: function () {
+							return this;
+						}
+					}]
 				}]
 			}));
 
