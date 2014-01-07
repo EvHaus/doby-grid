@@ -640,7 +640,7 @@
 					});
 
 					// Subscribe to scroll events
-					this.on('onViewportChanged', function () {
+					this.on('viewportchanged', function () {
 						var vp = getVisibleRange();
 						remoteFetch(vp.top, vp.bottom);
 					});
@@ -698,7 +698,7 @@
 			// Enable header menu
 			if (this.options.headerMenu) {
 				// Subscribe to header menu context clicks
-				this.on('onHeaderContextMenu', toggleHeaderContextMenu);
+				this.on('headercontextmenu', toggleHeaderContextMenu);
 			}
 
 			// Resize grid when window is changed
@@ -1432,7 +1432,7 @@
 					.width(); // force layout
 				$(self.active.node).addClass(classinvalid);
 
-				self.trigger('onValidationError', self._event, {
+				self.trigger('validationerror', self._event, {
 					editor: currentEditor,
 					cellNode: self.active.node,
 					validationResults: validationResults,
@@ -1472,7 +1472,7 @@
 
 						self.add(newItem);
 
-						self.trigger('onAddNewRow', self._event, {
+						self.trigger('newrow', self._event, {
 							item: newItem,
 							column: column
 						});
@@ -1489,7 +1489,7 @@
 						// Reset active cell
 						makeActiveCellNormal();
 
-						self.trigger('onCellChange', self._event, {
+						self.trigger('change', self._event, {
 							row: self.active.row,
 							cell: self.active.cell,
 							item: item
@@ -4396,7 +4396,7 @@
 			// Are we editing this cell?
 			if (self.active && self.active.node === $cell[0] && currentEditor !== null) return;
 
-			self.trigger('onContextMenu', e);
+			self.trigger('contextmenu', e);
 		};
 
 
@@ -4411,7 +4411,7 @@
 				return;
 			}
 
-			self.trigger('onDblClick', e, {
+			self.trigger('dblclick', e, {
 				row: cell.row,
 				cell: cell.cell
 			});
@@ -4432,7 +4432,7 @@
 		handleHeaderClick = function (event) {
 			var column = getColumnFromEvent(event);
 			if (column) {
-				self.trigger('onHeaderClick', event, {
+				self.trigger('headerclick', event, {
 					column: column
 				});
 			}
@@ -4446,7 +4446,7 @@
 		//
 		handleHeaderContextMenu = function (event) {
 			var column = getColumnFromEvent(event);
-			self.trigger('onHeaderContextMenu', event, {
+			self.trigger('headercontextmenu', event, {
 				column: column
 			});
 		};
@@ -4459,7 +4459,7 @@
 		//
 		handleKeyDown = function (e) {
 			if (self.active) {
-				self.trigger('onKeyDown', e, {
+				self.trigger('keydown', e, {
 					row: self.active.row,
 					cell: self.active.cell
 				});
@@ -4649,11 +4649,11 @@
 						}, 50);
 					}
 
-					self.trigger('onViewportChanged', event, {});
+					self.trigger('viewportchanged', event, {});
 				}
 			}
 
-			self.trigger('onScroll', event, {
+			self.trigger('scroll', event, {
 				scrollLeft: scrollLeft,
 				scrollTop: scrollTop
 			});
@@ -4896,15 +4896,6 @@
 			var columnDef = cache.activeColumns[self.active.cell];
 			var item = getDataItem(self.active.row);
 
-			if (self.trigger('onCellCssStylesChanged', {}, {
-				row: self.active.row,
-				cell: self.active.cell,
-				item: item,
-				column: columnDef
-			}) === false) {
-				return;
-			}
-
 			$(self.active.node).addClass("editable");
 
 			// If no editor is given, clear the cell
@@ -4928,9 +4919,10 @@
 
 			serializedEditorValue = currentEditor.serializeValue();
 
+			/* TODO: Not sure what onActiveCellPositionChanged is for.
 			if (currentEditor.position && self.active && self.active.node) {
 				self.trigger('onActiveCellPositionChanged', {});
-			}
+			} */
 		};
 
 
@@ -4940,9 +4932,9 @@
 		makeActiveCellNormal = function () {
 			if (!currentEditor) return;
 
-			self.trigger('onBeforeCellEditorDestroy', {}, {
+			/*self.trigger('onBeforeCellEditorDestroy', {}, {
 				editor: currentEditor
-			});
+			});*/
 
 			currentEditor.destroy();
 			currentEditor = null;
@@ -6131,7 +6123,7 @@
 				vScrollDir = (prevScrollTop + oldOffset < newScrollTop + offset) ? 1 : -1;
 				$viewport[0].scrollTop = (lastRenderedScrollTop = scrollTop = prevScrollTop = newScrollTop);
 
-				self.trigger('onViewportChanged', {});
+				self.trigger('viewportchanged', {});
 			}
 		};
 
@@ -6245,8 +6237,7 @@
 			// Select cells
 			updateCellCssStylesOnRenderedRows(cellStyles);
 
-			this.trigger('onSelectedRowsChanged', this._event);
-			this.trigger('onCellRangeSelected', this._event);
+			this.trigger('selection', this._event);
 		};
 
 
@@ -6306,7 +6297,7 @@
 			}
 
 			if (activeCellChanged) {
-				self.trigger('onActiveCellChanged', {}, getActiveCell());
+				self.trigger('activecellchange', {}, getActiveCell());
 			}
 		};
 
@@ -6332,7 +6323,7 @@
 
 			updateColumnCaches();
 
-			this.trigger('onColumnsChanged', {}, {
+			this.trigger('columnchange', {}, {
 				columns: columns
 			});
 
@@ -6544,7 +6535,7 @@
 					self.setColumns(reorderedColumns);
 					setupColumnResize();
 
-					self.trigger('onColumnsReordered', e);
+					self.trigger('columnreorder', e);
 				}
 			});
 		};
@@ -6706,7 +6697,7 @@
 
 				updateCanvasWidth(true);
 				render();
-				self.trigger('onColumnsResized', {});
+				self.trigger('columnresize', {});
 			};
 
 			// Assign double-click to auto-resize event
@@ -6838,8 +6829,8 @@
 				// Execute sort
 				executeSorter(args);
 
-				// Fire onSort event
-				self.trigger('onSort', e, args);
+				// Fire event
+				self.trigger('sort', e, args);
 			});
 		};
 
