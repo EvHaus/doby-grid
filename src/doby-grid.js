@@ -266,7 +266,6 @@
 			renderRows,
 			resetActiveCell,
 			resizeCanvas,
-			rowsToRanges,
 			scrollCellIntoView,
 			scrollLeft = 0,
 			scrollPage,
@@ -2363,7 +2362,7 @@
 					// Create a new aggregators instance for each column
 					group.aggregators = {};
 					for (column_id in cache.aggregatorsByColumnId) {
-						// TODO: This can be optimized
+						// NOTE: This can be optimized
 						column = getColumnById(column_id);
 
 						group.aggregators[column_id] = {};
@@ -4998,11 +4997,6 @@
 			});
 
 			serializedEditorValue = currentEditor.serializeValue();
-
-			/* TODO: Not sure what onActiveCellPositionChanged is for.
-			if (currentEditor.position && self.active && self.active.node) {
-				self.trigger('onActiveCellPositionChanged', {});
-			} */
 		};
 
 
@@ -5408,7 +5402,7 @@
 		remoteCount = function (callback) {
 			var options = {};
 
-			// TODO: options.filters needed here... I think...
+			// TODO: Add an options.filters variable in here
 			remote.count(options, function (result) {
 				// Set collection length
 				self.collection.length = result;
@@ -6077,23 +6071,6 @@
 		};
 
 
-		// rowsToRanges()
-		// Given a list of row indexes, returns a list of ranges
-		// TODO: This doesn't work... do we still need it?
-		//
-		// @return array
-		rowsToRanges = function (rows) {
-			var ranges = [],
-				lastCell = cache.activeColumns.length - 1;
-
-			for (var i = 0; i < rows.length; i++) {
-				ranges.push(new Range(rows[i], 0, rows[i], lastCell));
-			}
-
-			return ranges;
-		};
-
-
 		// scrollCellIntoView()
 		// Scroll the viewport until the given cell position is visible
 		//
@@ -6666,7 +6643,7 @@
 
 		// setupColumnResize()
 		// Enables the resizing of columns.
-		// NOTE: Optimize me. I'm slow.
+		// NOTE: This can be optimized
 		// NOTE: Perhaps assign the handle events on the whole header instead of on each element
 		//
 		setupColumnResize = function () {
