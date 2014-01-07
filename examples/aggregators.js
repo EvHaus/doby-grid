@@ -26,7 +26,6 @@ define([], function () {
 			columns.push({
 				aggregators: [{
 					name: "Average",
-					description: "Calculate the average for all values in this column",
 					fn: function () {
 						this.total = [];
 						this.exporter = function () {
@@ -50,7 +49,6 @@ define([], function () {
 					},
 				}, {
 					name: "Hello World",
-					description: "Just a simple hello world message",
 					fn: function () {
 						this.exporter = function () {
 							return "Hello World";
@@ -71,7 +69,6 @@ define([], function () {
 			}, {
 				aggregators: [{
 					name: "Total",
-					description: "Calculate the total for all values in this column",
 					fn: function (column) {
 						this.total = 0;
 						this.exporter = function () {

@@ -81,7 +81,6 @@ describe("Column Options", function () {
 					name: 'id',
 					aggregators: [{
 						name: "Test",
-						description: "Something here",
 						fn: function (column) {
 							this.formatter = function () {
 								return "Test " + column.name;
@@ -95,7 +94,6 @@ describe("Column Options", function () {
 					name: 'name',
 					aggregators: [{
 						name: "Another Test",
-						description: "Something else here",
 						fn: function (column) {
 							this.formatter = function () {
 								return "Test " + column.name;
@@ -139,7 +137,6 @@ describe("Column Options", function () {
 					name: 'name',
 					aggregators: [{
 						name: null,
-						description: null,
 						fn: function () {
 							return this;
 						}
