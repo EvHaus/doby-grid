@@ -366,7 +366,7 @@
 			},
 			multiColumnSort:		true,
 			quickFilter:			false,
-			remote:					false,
+			remoteScrollTime:		200,
 			resizableColumns:		true,
 			resizableRows:			false,
 			resizeCells:			false,
@@ -5369,9 +5369,7 @@
 			}
 
 			// Also cancel previous execution entirely (if scrolling really really fast)
-			if (remoteTimer !== null) {
-				clearTimeout(remoteTimer);
-			}
+			if (remoteTimer !== null) clearTimeout(remoteTimer);
 
 			// Don't attempt to fetch more results than there are
 			if (from < 0) from = 0;
@@ -5426,7 +5424,7 @@
 				} catch (err) {
 					throw new Error('Doby Grid remote fetching failed due to: ' + err);
 				}
-			}, 150);
+			}, self.options.remoteScrollTime);
 		};
 
 
