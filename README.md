@@ -5,11 +5,11 @@ Doby Grid is stand-alone module (part of the Doby JS framework) for rendering a 
 
 ---
 
-### !!! Warning !!!!
+### !!! Doby Grid isn't ready for general use yet !!!
 
 Doby Grid is currently in **alpha** and not yet intended for production use. The library changes very rapidly, often with breaking changes. API methods and functions get renamed and parameters are reconfigured frequently. Documentation is only partially complete.
 
-At this time we're looking for early testers who are interested in [contributing](https://github.com/globexdesigns/doby-grid/blob/master/CONTRIBUTING.md) to the development and testing of the library.
+At this time we're looking for early testers who are interested in [contributing](https://github.com/globexdesigns/doby-grid/blob/master/CONTRIBUTING.md) to the development and testing of the library. Feel free to give it a spin and let us know what's missing.
 
 ---
 
@@ -48,11 +48,7 @@ At this time we're looking for early testers who are interested in [contributing
 
 - jQuery.ui.sortable <http://jqueryui.com/> (for column re-ordering)
 - jquery.event.drag <http://threedubmedia.com/code/event/drag> (for column and row re-sizing and cell range selection)
-- FileSaver <https://github.com/eligrey/FileSaver.js> (for CSV/HTML export functionality)
-
-### Other Dependencies
-
-Default icon set used is copyright of <http://p.yusukekamiyamane.com/>.
+- FileSaver <https://github.com/eligrey/FileSaver.js> (for data export functionality)
 
 ### Limitations
 
