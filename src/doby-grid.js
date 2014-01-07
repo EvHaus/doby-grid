@@ -2732,7 +2732,6 @@
 			// uncompiledFilterWithCaching()
 			// Runs the given items through the active filters in the collection,
 			// and caches the results.
-			// TODO: Should this be the default instead of uncompiledFilter?
 			//
 			// @param	items	array		List of items to filter
 			//
@@ -2919,7 +2918,7 @@
 			this.validate = function () {
 				var value = this.getValue();
 
-				// TODO: What is this? Looks interesting.
+				// TODO: Add support for this
 				if (options.column.validator) {
 					var validationResults = options.column.validator(value);
 					if (!validationResults.valid) {
@@ -3302,7 +3301,7 @@
 
 					if (format === 'csv') {
 						// Escape quotes
-						val = val ? val.toString().replace(/\"/g, '\"') : '';
+						val = val !== null && val !== undefined ? val.toString().replace(/\"/g, '\"') : '';
 
 						row.push(['"', val, '"'].join(''));
 					} else if (format === 'html') {
