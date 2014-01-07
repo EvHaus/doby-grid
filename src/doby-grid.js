@@ -7142,9 +7142,16 @@
 
 			// When an aggregator is chosen from the menu
 			var aFn = function (column, aggr_index) {
-				return function () {
+				return function (event) {
 					// If this is the only aggregator available - clicking does nothing
 					if (Object.keys(cache.aggregatorsByColumnId[column.id]).length === 1) return;
+
+					// Update menu items
+					$(event.target).parent().children('.' + classdropdownitem).removeClass('on');
+					$(event.target).addClass('on');
+					if (!$(event.target).children('.' + classdropdownicon).length) {
+						$(event.target).append('<span class="' + classdropdownicon + '"></span>');
+					}
 
 					// Disable old aggregator and enable the new one
 					for (var aggr_i in cache.aggregatorsByColumnId[column.id]) {
@@ -7159,9 +7166,8 @@
 						}
 					}
 
-					// Re-process Aggregators and re-render Aggregate rows
+					// Re-process aggregators and re-render rows
 					self.collection.refresh();
-					//render();
 				};
 			};
 
