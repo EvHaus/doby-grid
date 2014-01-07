@@ -462,12 +462,12 @@ describe("Methods and Data Manipulation", function () {
 			// Make sure the second row is a group row for the first subcategory
 			expect($(rows[1]).hasClass('doby-grid-group')).toEqual(true);
 			expect($(rows[1]).hasClass('collapsed')).toEqual(true);
-			expect($(rows[1]).text()).toEqual("SubCategory: Q (1 item)");
+			expect($(rows[1]).text()).toEqual("SubCategory: D (1 item)");
 
 			// Make sure the third row is a data row for the other subcategory
 			expect($(rows[2]).hasClass('doby-grid-group')).toEqual(true);
 			expect($(rows[2]).children('.doby-grid-cell').length).toBeGreaterThan(0);
-			expect($(rows[2]).text()).toEqual("SubCategory: D (1 item)");
+			expect($(rows[2]).text()).toEqual("SubCategory: Q (1 item)");
 		});
 
 

@@ -251,6 +251,7 @@
 			remoteLoaded,
 			remoteCount,
 			remoteFetch,
+			remoteFetchGroups,
 			remoteRequest = null,
 			remoteTimer = null,
 			removeCssRules,
@@ -634,15 +635,13 @@
 					remoteCount(function () {
 						// If we haven't scrolled anywhere yet - fetch the first page
 						if ($viewport[0].scrollTop === 0) {
-							var vp = getVisibleRange();
-							remoteFetch(vp.top, vp.bottom);
+							remoteFetch();
 						}
 					});
 
 					// Subscribe to scroll events
 					this.on('viewportchanged', function () {
-						var vp = getVisibleRange();
-						remoteFetch(vp.top, vp.bottom);
+						remoteFetch();
 					});
 				}
 
@@ -1616,7 +1615,7 @@
 				column_id: column.id,
 
 				comparer: function (a, b) {
-					return a.value - b.value;
+					return naturalSort(a.value, b.value);
 				},
 
 				getter: function (item) {
@@ -1904,11 +1903,12 @@
 			// extractGroups()
 			// Generates new group objects from the given rows
 			//
-			// @param	rows			??		TODO: ??
-			// @param	parentGroup		??		TODO: ??
+			// @param	rows			array		The list of data objects to group
+			// @param	parentGroup		object		The parent group object
+			// @param	callback		function	Callback function
 			//
 			// @return array
-			extractGroups = function (rows, parentGroup) {
+			extractGroups = function (rows, parentGroup, callback) {
 				var group,
 					val,
 					groups = [],
@@ -1918,57 +1918,93 @@
 					gi = self.groups[level],
 					i, l, aggregateRow;
 
-				// Loop through the rows in the group and create group header rows as needed
-				for (i = 0, l = rows.length; i < l; i++) {
-					r = rows[i];
 
-					// The global grid aggregate should at the very end of the grid. Remember it here
-					// And then we'll add it at the very end.
-					if (r instanceof Aggregate && r.__gridAggregate) {
-						aggregateRow = r;
-						continue;
+				var submitGroups = function () {
+					// Nest groups
+					if (level < self.groups.length - 1) {
+						var setGroups = function (result) {
+							group.groups = result;
+						};
+
+						for (i = 0, l = groups.length; i < l; i++) {
+							group = groups[i];
+
+							// Do not treat aggreates as groups
+							if (group instanceof Aggregate) continue;
+
+							extractGroups(group.grouprows, group, setGroups);
+						}
 					}
 
-					val = typeof gi.getter === "function" ? gi.getter(r) : r[gi.getter];
+					// Sort the groups
+					groups.sort(self.groups[level].comparer);
 
-					// Store groups by value if the getter
-					group = groupsByVal[val];
+					// If there's a global grid aggregate - put it at the end of the grid
+					if (aggregateRow) groups.push(aggregateRow);
 
-					// Create a new group header row, if it doesn't already exist for this group
-					if (!group) {
-						group = new Group();
-						group.collapsed = gi.collapsed;
-						group.value = val;
-						group.level = level;
-						group.predef = gi;
-						group.id = '__group' + (parentGroup ? parentGroup.id + groupingDelimiter : '') + val;
-						group.height = gi.grouprows[group.id] && gi.grouprows[group.id].height ? gi.grouprows[group.id].height : null;
-						groups[groups.length] = group;
-						groupsByVal[val] = group;
-					}
+					callback(groups);
+				};
 
-					group.grouprows[group.count++] = r;
-				}
 
-				if (level < self.groups.length - 1) {
-					for (i = 0, l = groups.length; i < l; i++) {
-						group = groups[i];
+				// Remote groups needs to be extracted from the remote source
+				if (remote) {
+					remoteFetchGroups(function (results) {
+						for (i = 0, l = results.length; i < l; i++) {
+							val = results[i].value;
 
-						// Do not treat aggreates as groups
-						if (group instanceof Aggregate) {
+							// Store groups by value if the getter
+							group = groupsByVal[val];
+
+							group = new Group();
+							group.collapsed = gi.collapsed;
+							group.count = results[i].count;
+							group.value = val;
+							group.level = level;
+							group.predef = gi;
+							group.id = '__group' + (parentGroup ? parentGroup.id + groupingDelimiter : '') + val;
+							group.height = gi.grouprows[group.id] && gi.grouprows[group.id].height ? gi.grouprows[group.id].height : null;
+							groups[groups.length] = group;
+							groupsByVal[val] = group;
+						}
+
+						submitGroups(groups);
+					});
+				} else {
+
+					// Loop through the rows in the group and create group header rows as needed
+					for (i = 0, l = rows.length; i < l; i++) {
+						r = rows[i];
+
+						// The global grid aggregate should at the very end of the grid. Remember it here
+						// And then we'll add it at the very end.
+						if (r instanceof Aggregate && r.__gridAggregate) {
+							aggregateRow = r;
 							continue;
 						}
 
-						group.groups = extractGroups(group.grouprows, group);
+						val = typeof gi.getter === "function" ? gi.getter(r) : r[gi.getter];
+
+						// Store groups by value if the getter
+						group = groupsByVal[val];
+
+						// Create a new group header row, if it doesn't already exist for this group
+						if (!group) {
+							group = new Group();
+							group.collapsed = gi.collapsed;
+							group.value = val;
+							group.level = level;
+							group.predef = gi;
+							group.id = '__group' + (parentGroup ? parentGroup.id + groupingDelimiter : '') + val;
+							group.height = gi.grouprows[group.id] && gi.grouprows[group.id].height ? gi.grouprows[group.id].height : null;
+							groups[groups.length] = group;
+							groupsByVal[val] = group;
+						}
+
+						group.grouprows[group.count++] = r;
 					}
+
+					submitGroups(groups);
 				}
-
-				groups.sort(self.groups[level].comparer);
-
-				// If there's a global grid aggregate - put it at the end of the grid
-				if (aggregateRow) groups.push(aggregateRow);
-
-				return groups;
 			};
 
 
@@ -2358,9 +2394,10 @@
 			// Given a list of rows we're viewing determines which of them need to be re-rendered
 			//
 			// @param		_items		array		List of rows to render
+			// @param		callback	function	Callback function
 			//
 			// @return array
-			recalc = function (_items) {
+			recalc = function (_items, callback) {
 				rowsById = null;
 
 				if (refreshHints.isFilterNarrowing != prevRefreshHints.isFilterNarrowing ||
@@ -2372,43 +2409,51 @@
 				totalRows = filteredItems.totalRows;
 				var newRows = filteredItems.rows;
 
+				var processChildRows = function () {
+					// Insert child rows
+					var cRow, ri = 0;
+					for (var i = 0, l = newRows.length; i < l; i++) {
+						if (newRows[i].rows) {
+							for (var r in newRows[i].rows) {
+								if (newRows[i].rows[r].collapsed) continue;
+								cRow = new NonDataItem(newRows[i].rows[r]);
+								cRow.parent = newRows[i];
+								newRows.splice((i + ri + 1), 0, cRow);
+								ri++;
+							}
+						}
+					}
+
+					var diff = getRowDiffs(cache.rows, newRows);
+
+					cache.rows = newRows;
+
+					if (diff.length) {
+						// Recache positions using the flattened group data
+						cacheRows(0);
+					}
+
+					callback(diff);
+				};
+
 				// Insert group rows
 				var groups = [];
 				if (self.groups.length) {
-					groups = extractGroups(newRows);
-					if (groups.length) {
-						if (Object.keys(cache.aggregatorsByColumnId).length) {
-							processGroupAggregators(groups);
+					extractGroups(newRows, null, function (result) {
+						groups = result;
+						if (groups.length) {
+							if (Object.keys(cache.aggregatorsByColumnId).length) {
+								processGroupAggregators(groups);
+							}
+							finalizeGroups(groups);
+							newRows = flattenGroupedRows(groups);
 						}
-						finalizeGroups(groups);
-						newRows = flattenGroupedRows(groups);
-					}
+
+						processChildRows();
+					});
+				} else {
+					processChildRows();
 				}
-
-				// Insert child rows
-				var cRow, ri = 0;
-				for (var i = 0, l = newRows.length; i < l; i++) {
-					if (newRows[i].rows) {
-						for (var r in newRows[i].rows) {
-							if (newRows[i].rows[r].collapsed) continue;
-							cRow = new NonDataItem(newRows[i].rows[r]);
-							cRow.parent = newRows[i];
-							newRows.splice((i + ri + 1), 0, cRow);
-							ri++;
-						}
-					}
-				}
-
-				var diff = getRowDiffs(cache.rows, newRows);
-
-				cache.rows = newRows;
-
-				if (diff.length) {
-					// Recache positions using the flattened group data
-					cacheRows(0);
-				}
-
-				return diff;
 			};
 
 
@@ -2419,40 +2464,52 @@
 				if (suspend) return;
 
 				var countBefore = cache.rows.length,
-					diff = recalc(this.items);
+					diff;
 
-				// if the current page is no longer valid, go to last page and recalc
-				// we suffer a performance penalty here, but the main loop (recalc)
-				// remains highly optimized
-				if (pagesize && totalRows < pagenum * pagesize) {
-					pagenum = Math.max(0, Math.ceil(totalRows / pagesize) - 1);
-					diff = recalc(this.items);
-				}
+				var process = function () {
+					updated = null;
+					prevRefreshHints = refreshHints;
+					refreshHints = {};
 
-				updated = null;
-				prevRefreshHints = refreshHints;
-				refreshHints = {};
+					// Set data length if this is not a remote model
+					if (!remote) this.length = cache.rows.length;
 
-				// Set data length if this is not a remote model
-				if (!remote) this.length = cache.rows.length;
+					if (countBefore != cache.rows.length) {
+						updateRowCount();
 
-				if (countBefore != cache.rows.length) {
-					updateRowCount();
+						this.trigger('onRowCountChanged', {}, {
+							previous: countBefore,
+							current: cache.rows.length
+						});
+					}
 
-					this.trigger('onRowCountChanged', {}, {
-						previous: countBefore,
-						current: cache.rows.length
-					});
-				}
+					if (diff.length > 0) {
+						invalidateRows(diff);
+						render();
 
-				if (diff.length > 0) {
-					invalidateRows(diff);
-					render();
+						this.trigger('onRowsChanged', {}, {
+							rows: diff
+						});
+					}
+				}.bind(this);
 
-					this.trigger('onRowsChanged', {}, {
-						rows: diff
-					});
-				}
+				// Recalculate changed rows
+				recalc(this.items, function (result) {
+					diff = result;
+
+					// if the current page is no longer valid, go to last page and recalc
+					// we suffer a performance penalty here, but the main loop (recalc)
+					// remains highly optimized
+					if (pagesize && totalRows < pagenum * pagesize) {
+						pagenum = Math.max(0, Math.ceil(totalRows / pagesize) - 1);
+						recalc(this.items, function (result) {
+							diff = result;
+							process();
+						});
+					} else {
+						process();
+					}
+				}.bind(this));
 			};
 
 
@@ -3148,8 +3205,7 @@
 				cache.rows = [];
 
 				// Ask the Remote fetcher to refetch the data -- this time using the new sort settings
-				var vp = getVisibleRange();
-				remoteFetch(vp.top, vp.bottom);
+				remoteFetch();
 				return;
 			}
 
@@ -5351,10 +5407,11 @@
 		// remoteFetch()
 		// Executes a remote data fetch and re-renders the grid with the new data.
 		//
-		// @param	from	integer		Row index from which to start fetching
-		// @param	to		integer		Row index until when to fetch
-		//
-		remoteFetch = function (from, to) {
+		remoteFetch = function () {
+			var vp = getVisibleRange(),
+				from = vp.top,
+				to = vp.bottom;
+
 			// If scrolling fast, abort pending requests
 			if (remoteRequest && typeof remoteRequest.abort === 'function') {
 				remoteRequest.abort();
@@ -5417,6 +5474,48 @@
 					throw new Error('Doby Grid remote fetching failed due to: ' + err);
 				}
 			}, self.options.remoteScrollTime);
+		};
+
+
+		// remoteFetchGroups()
+		// Executes a remote data fetch for group objects
+		//
+		// @param	callback	function	Callback function
+		//
+		remoteFetchGroups = function (callback) {
+			var vp = getVisibleRange(),
+				from = vp.top,
+				to = vp.bottom;
+
+			// If grouping fast, abort pending requests
+			if (remoteRequest && typeof remoteRequest.abort === 'function') {
+				remoteRequest.abort();
+			}
+
+			// Don't attempt to fetch more results than there are
+			if (from < 0) from = 0;
+			if (self.collection.length > 0) to = Math.min(to, self.collection.length - 1);
+
+			var options = {
+				groups: self.collection.groups,
+				limit: to - from,
+				offset: from
+			};
+
+			// Fire onLoading callback
+			if (typeof remote.onLoading === 'function') remote.onLoading();
+
+			// Begin remote fetch request
+			remoteRequest = remote.fetchGroups(options, function (results) {
+				// Empty the request variable so it doesn't get aborted on scroll
+				remoteRequest = null;
+
+				// Return results via callback
+				callback(results);
+
+				// Fire onLoaded callback
+				if (typeof remote.onLoaded === 'function') remote.onLoaded();
+			});
 		};
 
 
