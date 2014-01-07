@@ -97,6 +97,7 @@
 			classdropdowndivider = classdropdown + '-divider',
 			classdropdownarrow = classdropdown + '-arrow',
 			classdropdownicon = classdropdown + '-icon',
+			classdropdownleft = classdropdown + '-left',
 			classexpanded = 'expanded',
 			classgroup = this.NAME + '-group',
 			classgrouptitle = this.NAME + '-group-title',
@@ -334,6 +335,7 @@
 					add_group:			'Add Grouping By "{{name}}"',
 					add_sort_asc:		'Add Sort By "{{name}}" (Ascending)',
 					add_sort_desc:		'Add Sort By "{{name}}" (Descending)',
+					aggregators:		'Aggregators',
 					filter:				'Quick Filter on "{{name}}"',
 					group:				'Group By "{{name}}"',
 					grouping:			'Grouping',
@@ -344,6 +346,7 @@
 					remove_group:		'Remove Grouping By "{{name}}"',
 					remove_sort:		'Remove Sort By "{{name}}"',
 					select:				'Select Column',
+					sorting:			'Sorting',
 					sort_asc:			'Sort By "{{name}}" (Ascending)',
 					sort_desc:			'Sort By "{{name}}" (Descending)'
 				},
@@ -2270,6 +2273,9 @@
 						item = self.items[i];
 					}
 
+					// Skip existing Aggregator rows
+					if (item instanceof Aggregate) continue;
+
 					for (var column_id in cache.aggregatorsByColumnId) {
 						active_aggregator = null;
 						for (var aggreg_idx in cache.aggregatorsByColumnId[column_id]) {
@@ -3100,7 +3106,20 @@
 			//
 			this.position = function () {
 				var top = event.clientY - this.$parent.offset().top,
-					left = event.clientX - this.$parent.offset().left;
+					left = event.clientX - this.$parent.offset().left,
+					menu_width = this.$el.outerWidth(),
+					required_space = left + menu_width,
+					available_space = this.$el.parent().width();
+
+				// If no room on the right side, throw dropdown to the left
+				if (available_space < required_space) {
+					left -= menu_width;
+				}
+
+				// If no room on the right side for submenu, throw submenus to the left
+				if (available_space < required_space + menu_width) {
+					this.$el.addClass(classdropdownleft);
+				}
 
 				this.$el.css({
 					left: left,
@@ -7085,7 +7104,8 @@
 		toggleHeaderContextMenu = function (event, args) {
 			event.preventDefault();
 
-			var column = args.column || false;
+			var column = args.column || false,
+				col_def = column ? getColumnById(column.id) : null;
 
 			// When a column is chosen from the menu
 			var cFn = function (column) {
@@ -7120,6 +7140,43 @@
 				});
 			});
 
+			// When an aggregator is chosen from the menu
+			var aFn = function (column, aggr_index) {
+				return function () {
+					// If this is the only aggregator available - clicking does nothing
+					if (Object.keys(cache.aggregatorsByColumnId[column.id]).length === 1) return;
+
+					// Disable old aggregator and enable the new one
+					for (var aggr_i in cache.aggregatorsByColumnId[column.id]) {
+						cache.aggregatorsByColumnId[column.id][aggr_i].active = (aggr_i == aggr_index);
+					}
+
+					// Invalidate all Aggregate rows in the visible range
+					var range = getVisibleRange();
+					for (var ci = range.top, ct = range.bottom; ci < ct; ci++) {
+						if (cache.rows[ci] instanceof Aggregate) {
+							invalidateRow(ci);
+						}
+					}
+
+					// Re-process Aggregators and re-render Aggregate rows
+					self.collection.refresh();
+					//render();
+				};
+			};
+
+			// Builds a list of all available aggregators for the user to choose from
+			var aggregator_menu = [];
+			if (column && cache.aggregatorsByColumnId[column.id]) {
+				_.each(cache.aggregatorsByColumnId[column.id], function (aggr, i) {
+					aggregator_menu.push({
+						fn: aFn(col_def, i),
+						name: col_def.aggregators[i].name,
+						value: aggr.active
+					});
+				});
+			}
+
 			// Menu data object which will define what the menu will have
 			//
 			// @param	divider		boolean		If true, item will be a divider
@@ -7152,42 +7209,46 @@
 				enabled: column && column.removable,
 				divider: true
 			}, {
-				enabled: column && column.sortable && !hasSorting(column.id),
-				name: column ? getLocale('column.sort_asc', {name: column.name}) : '',
-				fn: function () {
-					self.sortBy(column.id, true);
-				}
+				enabled: column && column.sortable,
+				name: getLocale('column.sorting'),
+				menu: [{
+					enabled: !hasSorting(column.id),
+					name: column ? getLocale('column.sort_asc', {name: column.name}) : '',
+					fn: function () {
+						self.sortBy(column.id, true);
+					}
+				}, {
+					enabled: !hasSorting(column.id),
+					name: column ? getLocale('column.sort_desc', {name: column.name}) : '',
+					fn: function () {
+						self.sortBy(column.id, false);
+					}
+				}, {
+					enabled: self.isSorted() && !hasSorting(column.id),
+					name: column ? getLocale('column.add_sort_asc', {name: column.name}) : '',
+					fn: function () {
+						self.sorting.push({columnId: column.id, sortAsc: true});
+						self.setSorting(self.sorting);
+					}
+				}, {
+					enabled: self.isSorted() && !hasSorting(column.id),
+					name: column ? getLocale('column.add_sort_desc', {name: column.name}) : '',
+					fn: function () {
+						self.sorting.push({columnId: column.id, sortAsc: false});
+						self.setSorting(self.sorting);
+					}
+				}, {
+					enabled: hasSorting(column.id),
+					name: column ? getLocale('column.remove_sort', {name: column.name}) : '',
+					fn: function () {
+						self.sorting = _.filter(self.sorting, function (s) {
+							return s.columnId != column.id;
+						});
+						self.setSorting(self.sorting);
+					}
+				}]
 			}, {
-				enabled: column && column.sortable && !hasSorting(column.id),
-				name: column ? getLocale('column.sort_desc', {name: column.name}) : '',
-				fn: function () {
-					self.sortBy(column.id, false);
-				}
-			}, {
-				enabled: column && column.sortable && self.isSorted() && !hasSorting(column.id),
-				name: column ? getLocale('column.add_sort_asc', {name: column.name}) : '',
-				fn: function () {
-					self.sorting.push({columnId: column.id, sortAsc: true});
-					self.setSorting(self.sorting);
-				}
-			}, {
-				enabled: column && column.sortable && self.isSorted() && !hasSorting(column.id),
-				name: column ? getLocale('column.add_sort_desc', {name: column.name}) : '',
-				fn: function () {
-					self.sorting.push({columnId: column.id, sortAsc: false});
-					self.setSorting(self.sorting);
-				}
-			}, {
-				enabled: column && column.sortable && hasSorting(column.id),
-				name: column ? getLocale('column.remove_sort', {name: column.name}) : '',
-				fn: function () {
-					self.sorting = _.filter(self.sorting, function (s) {
-						return s.columnId != column.id;
-					});
-					self.setSorting(self.sorting);
-				}
-			}, {
-				enabled: self.options.groupable && column && column.groupable,
+				enabled: column && !column.sortable,
 				divider: true
 			}, {
 				enabled: self.options.groupable && column && column.groupable,
@@ -7235,15 +7296,21 @@
 					}
 				}]
 			}, {
-				enabled: column && (column.sortable || column.removable || column.groupable),
+				enabled: column && col_def.aggregators !== undefined,
+				name: getLocale('column.aggregators'),
+				menu: aggregator_menu
+			}, {
+				enabled: column && !(column.sortable || column.removable || column.groupable || column.aggregators),
 				divider: true
 			}, {
+				enabled: column,
 				name: getLocale('column.select'),
 				fn: function () {
 					var column_idx = cache.columnsById[column.id];
 					self.selectCells(0, column_idx, (cache.rows.length - 1), column_idx);
 				}
 			}, {
+				enabled: column,
 				divider: true
 			}, {
 				enabled: columns_menu.length > 0,

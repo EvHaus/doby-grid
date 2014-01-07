@@ -48,6 +48,21 @@ define([], function () {
 						};
 						return this;
 					},
+				}, {
+					name: "Hello World",
+					description: "Just a simple hello world message",
+					fn: function () {
+						this.exporter = function () {
+							return "Hello World";
+						};
+						this.formatter = function () {
+							return "Hello World";
+						};
+						this.process = function () {
+							return;
+						};
+						return this;
+					}
 				}],
 				id: "id" + q,
 				name: "ID",
