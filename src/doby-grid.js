@@ -994,15 +994,15 @@
 
 					self._event = event;
 
-					// Dragging always selects a new range
-					// TODO: Good candidate for a Grid Option toggle
-					deselectCells();
+					// Dragging always selects a new range unless Shift key is held down
+					if (!event.shiftKey) deselectCells();
 
 					self.selectCells(
 						dd._range.start.row,
 						dd._range.start.cell,
 						dd._range.end.row,
-						dd._range.end.cell
+						dd._range.end.cell,
+						event.shiftKey
 					);
 					self._event = null;
 

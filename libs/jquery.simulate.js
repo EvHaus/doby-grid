@@ -300,6 +300,7 @@ $.extend( $.simulate.prototype, {
 			coord = { clientX: x, clientY: y },
 			dx = options.dx || ( options.x !== undefined ? options.x - x : 0 ),
 			dy = options.dy || ( options.y !== undefined ? options.y - y : 0 ),
+			shiftKey = options.shiftKey !== undefined ? options.shiftKey  : false,
 			moves = options.moves || 3;
 
 		this.simulateEvent( target, "mousedown", coord );
@@ -310,7 +311,8 @@ $.extend( $.simulate.prototype, {
 
 			coord = {
 				clientX: Math.round( x ),
-				clientY: Math.round( y )
+				clientY: Math.round( y ),
+				shiftKey: shiftKey
 			};
 
 			this.simulateEvent( target.ownerDocument, "mousemove", coord );

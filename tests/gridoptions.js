@@ -1858,6 +1858,46 @@ describe("Grid Options", function () {
 			// Expect the first and last cells to be selected
 			expect(grid.selection).toEqual(null);
 		});
+
+
+		// ==========================================================================================
+
+
+		it("should append to the selection when dragging selection and holding down the Shift key", function () {
+			// Prepare for test
+			var grid = resetGrid($.extend(defaultData(), {}));
+
+			// Find the first and last cells
+			var firstcell = grid.$el.find('.doby-grid-row:first .doby-grid-cell:first'),
+				lastcell = grid.$el.find('.doby-grid-row:last .doby-grid-cell:first');
+
+			// Simulate a selection of the first cell
+			firstcell.simulate('drag', {
+				dx: firstcell.position().right,
+				dy: firstcell.position().bottom
+			});
+
+			// Expect the first cell to be selected
+			expect(grid.selection.length).toEqual(1);
+			expect(grid.selection[0].fromCell).toEqual(0);
+			expect(grid.selection[0].fromRow).toEqual(0);
+			expect(grid.selection[0].toCell).toEqual(0);
+			expect(grid.selection[0].toRow).toEqual(0);
+
+			// Simulate a selection of the last cell (with Shift key)
+			lastcell.simulate('drag', {
+				dx: lastcell.position().right,
+				dy: lastcell.position().bottom,
+				shiftKey: true
+			});
+
+			// Expect the first cell to be selected
+			expect(grid.selection.length).toEqual(2);
+			expect(grid.selection[1].fromCell).toEqual(0);
+			expect(grid.selection[1].fromRow).toEqual(1);
+			expect(grid.selection[1].toCell).toEqual(0);
+			expect(grid.selection[1].toRow).toEqual(1);
+		});
 	});
 
 
