@@ -5337,7 +5337,6 @@
 			var options = {};
 
 			// TODO: options.filters needed here... I think...
-
 			remote.count(options, function (result) {
 				// Set collection length
 				self.collection.length = result;
@@ -5348,6 +5347,10 @@
 				// Updating the row count here will ensure the scrollbar is rendered the right size
 				updateRowCount();
 
+				// Now that we have placeholders and the right row count - update the viewport with blanks
+				self.collection.refresh();
+
+				// Now go and fetch the real items
 				callback();
 			});
 		};
@@ -5398,9 +5401,10 @@
 
 					// Builds the options we need to give the fetcher
 					var options = {
-						order: self.sorting,
+						columns: cache.activeColumns,
 						limit: newTo - newFrom + 1,
-						offset: newFrom
+						offset: newFrom,
+						order: self.sorting
 					};
 
 					// TODO: Enable remote filtering here
