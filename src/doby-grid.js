@@ -218,6 +218,7 @@
 			invalidateRows,
 			isCellPotentiallyEditable,
 			isCellSelected,
+			isColumnSelected,
 			lastRenderedScrollLeft = 0,
 			lastRenderedScrollTop = 0,
 			bindToCollection,
@@ -337,6 +338,7 @@
 					add_sort_asc:		'Add Sort By "{{name}}" (Ascending)',
 					add_sort_desc:		'Add Sort By "{{name}}" (Descending)',
 					aggregators:		'Aggregators',
+					deselect:			'Deselect Column',
 					filter:				'Quick Filter on "{{name}}"',
 					group:				'Group By "{{name}}"',
 					grouping:			'Grouping',
@@ -4820,6 +4822,29 @@
 		};
 
 
+		// isColumnSelected()
+		// Returns true if all the cells for a given column are selected
+		//
+		// @param	column_idx	integer		Index of the column to check
+		//
+		// @return boolean
+		isColumnSelected = function (column_idx) {
+			if (!self.selection) return false;
+
+			var selectable_rows = self.collection.length;
+			if (self.collection.items[self.collection.items.length - 1].__gridAggregate) selectable_rows--;
+
+			var s;
+			for (var i = 0, l = self.selection.length; i < l; i++) {
+				s = self.selection[i];
+				if (s.fromRow === 0 && s.toRow === selectable_rows && s.fromCell >= column_idx && s.toCell <= column_idx) {
+					return true;
+				}
+			}
+			return false;
+		};
+
+
 		// invalidate()
 		// Clears the caching for all rows counts and positions
 		//
@@ -7195,8 +7220,7 @@
 		toggleHeaderContextMenu = function (event, args) {
 			event.preventDefault();
 
-			var column = args.column || false,
-				col_def = column ? getColumnById(column.id) : null;
+			var column = args.column || false;
 
 			// When a column is chosen from the menu
 			var cFn = function (column) {
@@ -7267,8 +7291,8 @@
 			if (column && cache.aggregatorsByColumnId[column.id]) {
 				_.each(cache.aggregatorsByColumnId[column.id], function (aggr, i) {
 					aggregator_menu.push({
-						fn: aFn(col_def, i),
-						name: col_def.aggregators[i].name,
+						fn: aFn(column, i),
+						name: column.aggregators[i].name,
 						value: aggr.active
 					});
 				});
@@ -7393,18 +7417,27 @@
 					}
 				}]
 			}, {
-				enabled: column && col_def.aggregators !== undefined,
+				enabled: column && column.aggregators !== undefined,
 				name: getLocale('column.aggregators'),
 				menu: aggregator_menu
 			}, {
 				enabled: column && !(column.sortable || column.removable || column.groupable || column.aggregators),
 				divider: true
 			}, {
-				enabled: column,
+				enabled: column && !isColumnSelected(cache.columnsById[column.id]),
 				name: getLocale('column.select'),
 				fn: function () {
 					var column_idx = cache.columnsById[column.id];
 					self.selectCells(0, column_idx, (cache.rows.length - 1), column_idx);
+				}
+			}, {
+				enabled: column && isColumnSelected(cache.columnsById[column.id]),
+				name: getLocale('column.deselect'),
+				fn: function () {
+					var column_idx = cache.columnsById[column.id];
+					for (var i = 0; i < cache.rows.length - 1; i++) {
+						deselectCells(i, column_idx);
+					}
 				}
 			}, {
 				enabled: column,
