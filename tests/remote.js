@@ -183,7 +183,6 @@ describe("Remote Data", function () {
 			expect(grid.collection.groups[0].column_id).toEqual(column_id);
 
 			// Only group rows should be drawn
-			console.log(grid.$el)
 			grid.$el.find('.doby-grid-row').each(function () {
 				expect($(this)).toHaveClass('doby-grid-group');
 			});

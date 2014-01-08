@@ -13,6 +13,12 @@ At this time we're looking for early testers who are interested in [contributing
 
 ---
 
+### Demo
+
+For a live demo of the most recent build visit: http://dobyjs.com/grid/examples/
+
+---
+
 ### Features
 
 - Extremely fast rendering speed
