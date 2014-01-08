@@ -30,7 +30,7 @@ define(['faker'], function (Faker) {
 
 		// Generate Columns
 		var columns = [];
-		for (var q = 0; q < 5; q++) {
+		for (var q = 0; q < 3; q++) {
 			columns.push({
 				id: "id" + q,
 				name: "ID",
