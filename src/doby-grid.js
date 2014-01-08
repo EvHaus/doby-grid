@@ -758,6 +758,11 @@
 				// Right
 				// The -2 here is to compensate for the border spacing between cells
 				r = canvasWidth - x - w - 2;
+
+				// If this is the last column, and there is no vertical scrollbar, and
+				// do not allow negative spacing on the right otherwise we get a gap
+				if (i + 1 === l && r < 0 && !viewportHasVScroll) r = 0;
+
 				rule.right.style.right = r + "px";
 
 				// The +1 here is to compensate for the border spacing between cells
