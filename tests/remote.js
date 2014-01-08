@@ -111,7 +111,7 @@ describe("Remote Data", function () {
 
 		waitsFor(function () {
 			return grid.collection.items[0].toString() !== 'Placeholder';
-		}, "Fetching the first page", 200);
+		}, "Fetching the first page", 2000);
 	});
 
 
@@ -153,7 +153,7 @@ describe("Remote Data", function () {
 		// Wait for first page to load
 		waitsFor(function () {
 			return grid.collection.items[20].toString() !== 'Placeholder';
-		}, "Fetching the second page", 200);
+		}, "Fetching the second page", 2000);
 
 		runs(function () {
 			expect(grid.collection.items[20].toString()).toEqual('[object Object]');
