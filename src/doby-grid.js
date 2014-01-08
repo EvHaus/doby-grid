@@ -7220,7 +7220,8 @@
 		toggleHeaderContextMenu = function (event, args) {
 			event.preventDefault();
 
-			var column = args.column || false;
+			var column = args.column || false,
+				dropdown;
 
 			// When a column is chosen from the menu
 			var cFn = function (column) {
@@ -7381,24 +7382,28 @@
 						self.setGrouping([{
 							column_id: column.id
 						}]);
+						dropdown.hide();
 					}
 				}, {
 					enabled: !hasGrouping(column.id) && self.isGrouped(),
 					name: column ? getLocale('column.add_group', {name: column.name}) : '',
 					fn: function () {
 						self.addGrouping(column.id);
+						dropdown.hide();
 					}
 				}, {
 					enabled: hasGrouping(column.id),
 					name: column ? getLocale('column.remove_group', {name: column.name}) : '',
 					fn: function () {
 						self.removeGrouping(column.id);
+						dropdown.hide();
 					}
 				}, {
 					enabled: self.isGrouped(),
 					name: getLocale("column.groups_clear"),
 					fn: function () {
 						self.setGrouping();
+						dropdown.hide();
 					}
 				}, {
 					enabled: self.isGrouped(),
@@ -7500,7 +7505,7 @@
 			});
 
 			// Create dropdown
-			new Dropdown(event, {
+			dropdown = new Dropdown(event, {
 				id: column.id,
 				menu: $menu,
 				parent: self.$el
