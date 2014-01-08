@@ -7487,6 +7487,18 @@
 			var $menu = $('<div class="' + classcontextmenu + '"></div>');
 			renderMenu(menuData, $menu);
 
+			// Hovering on an item that has a submenu should show the submenu
+			$menu.on('mouseover', function (event) {
+				var $item = $(event.target).hasClass(classdropdownitem) ? $(event.target) : $(event.target).parent().hasClass(classdropdownitem) ? $(event.target).parent() : null;
+
+				if ($item && $item.children('.' + classdropdownmenu).length) {
+					// Find any other open menus on this level and close them
+					$item.parent().children('.open').removeClass('open');
+
+					$item.addClass('open');
+				}
+			});
+
 			// Create dropdown
 			new Dropdown(event, {
 				id: column.id,
