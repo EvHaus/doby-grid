@@ -2041,7 +2041,10 @@
 				var gi = self.groups[level],
 					toggledGroups = toggledGroupsByLevel[level],
 					idx = groups.length,
-					g;
+					g,
+					aggregateFilter = function (row) {
+						return row instanceof Aggregate;
+					};
 
 				while (idx--) {
 					g = groups[idx];
@@ -2051,10 +2054,10 @@
 
 					if (g.groups) {
 						finalizeGroups(g.groups, level + 1);
+
 						// Let the non-leaf setGrouping rows get garbage-collected.
-						// They may have been used by aggregates that go over all of the descendants,
-						// but at this point they are no longer needed.
-						g.grouprows = [];
+						// Only keep Aggregate rows.
+						g.grouprows = Array.filter(g.grouprows, aggregateFilter);
 					}
 				}
 			};
@@ -2083,6 +2086,11 @@
 						if (!rows) continue;
 						for (var j = 0, m = rows.length; j < m; j++) {
 							groupedRows[gl++] = rows[j];
+						}
+
+						// If this is a nested group - still draw its Aggregate row
+						if (g.groups && g.grouprows.length === 1 && g.grouprows[0] instanceof Aggregate) {
+							groupedRows[gl++] = g.grouprows[0];
 						}
 					}
 				}
@@ -2343,6 +2351,8 @@
 								}
 
 								cache.aggregatorsByColumnId[column_id][aggreg_idx].process(item);
+							} else {
+								throw new Error('The column aggregator for "' + column_id + '" is missing a valid \'process\' function.');
 							}
 						}
 
@@ -2408,6 +2418,9 @@
 
 					// Insert grid totals row
 					group.grouprows.push(new Aggregate(group.aggregators));
+
+					// Process nested groups
+					if (group.groups && group.groups.length) processGroupAggregators(group.groups);
 				}
 			};
 
