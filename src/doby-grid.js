@@ -1619,10 +1619,6 @@
 					return naturalSort(a.value, b.value);
 				},
 
-				getter: function (item) {
-					return getDataItemValueForColumn(item, column);
-				},
-
 				formatter: function (g) {
 					var h = [
 						"<strong>" + column.name + ":</strong> ",
@@ -1632,11 +1628,15 @@
 					if (g.count !== 1) h.push("s");
 					h.push(")</span>");
 					return h.join('');
-				}
-			}, grouping);
+				},
 
-			// Prepare counters and internal settings
-			result.grouprows = {};
+				getter: function (item) {
+					return getDataItemValueForColumn(item, column);
+				},
+
+				grouprows: []
+
+			}, grouping);
 
 			return result;
 		};
@@ -1812,7 +1812,7 @@
 
 
 			// collapseGroup()
-			//
+			// Collapse a group
 			this.collapseGroup = function () {
 				var args = Array.prototype.slice.call(arguments),
 					arg0 = args[0];
@@ -1827,7 +1827,6 @@
 			// expandAllGroups()
 			// @param	level	integer		Optional level to expand.
 			//								If not specified, applies to all levels.
-			//
 			this.expandAllGroups = function (level) {
 				this.expandCollapseAllGroups(level, false);
 			};
@@ -1868,7 +1867,7 @@
 
 
 			// expandGroup()
-			//
+			// Expands a collapsed group
 			this.expandGroup = function () {
 				var args = Array.prototype.slice.call(arguments),
 					arg0 = args[0];
@@ -1919,8 +1918,77 @@
 					gi = self.groups[level],
 					i, l, aggregateRow;
 
+				var processGroups = function (remote_groups) {
 
-				var submitGroups = function () {
+					var createGroupObject = function (g) {
+						var grp = new Group();
+						grp.collapsed = gi.collapsed;
+						if (g) grp.count = g.count;
+						grp.value = g ? g.value : val;
+						grp.level = level;
+						grp.predef = gi;
+						grp.id = '__group' + (parentGroup ? parentGroup.id + groupingDelimiter : '') + (g ? g.value : val);
+
+						// Remember the group rows in the grouping objects
+						gi.grouprows.push(grp);
+
+						return grp;
+					};
+
+					// If we are given a set of remote_groups, use them to generate new group objects
+					if (remote_groups) {
+						for (i = 0, l = remote_groups.length; i < l; i++) {
+							group = createGroupObject(remote_groups[i]);
+							groups.push(group);
+							groupsByVal[remote_groups[i].value] = group;
+						}
+					}
+
+					// Loop through the rows in the group and create group header rows as needed
+					for (i = 0, l = rows.length; i < l; i++) {
+						r = rows[i];
+
+						// The global grid aggregate should at the very end of the grid. Remember it here
+						// And then we'll add it at the very end.
+						if (r instanceof Aggregate && r.__gridAggregate) {
+							aggregateRow = r;
+							continue;
+						}
+
+						// If this is a real item - store it with it's group, otherwise for remote
+						// placeholder items - store into the next available group
+						if (r instanceof Placeholder && remote_groups) {
+							// Find a group that isn't full yet - and put the placeholder there
+							// FIXME: This is potentially dangerous since a placeholder will be inserted
+							// into a group that has real rows pending insert. Which will cause the group
+							// counts to be incorrect. The solution here is to process placeholders after
+							// all real items.
+							for (var g = 0, gl = groups.length; g < gl; g++) {
+								if (groups[g].grouprows.length < groups[g].count) {
+									group = groups[g];
+									break;
+								}
+							}
+						} else {
+							val = typeof gi.getter === "function" ? gi.getter(r) : r[gi.getter];
+
+							// Store groups by value if the getter
+							group = groupsByVal[val];
+						}
+
+						// Create a new group header row, if it doesn't already exist for this group
+						if (!group) {
+							group = createGroupObject();
+							groups.push(group);
+							groupsByVal[val] = group;
+						}
+
+						group.grouprows.push(r);
+
+						// Do not increment count for remote groups because we already have the right count
+						if (!remote_groups)	group.count++;
+					}
+
 					// Nest groups
 					if (level < self.groups.length - 1) {
 						var setGroups = function (result) {
@@ -1946,65 +2014,13 @@
 					callback(groups);
 				};
 
-
 				// Remote groups needs to be extracted from the remote source
 				if (remote) {
 					remoteFetchGroups(function (results) {
-						for (i = 0, l = results.length; i < l; i++) {
-							val = results[i].value;
-
-							// Store groups by value if the getter
-							group = groupsByVal[val];
-
-							group = new Group();
-							group.collapsed = gi.collapsed;
-							group.count = results[i].count;
-							group.value = val;
-							group.level = level;
-							group.predef = gi;
-							group.id = '__group' + (parentGroup ? parentGroup.id + groupingDelimiter : '') + val;
-							group.height = gi.grouprows[group.id] && gi.grouprows[group.id].height ? gi.grouprows[group.id].height : null;
-							groups[groups.length] = group;
-							groupsByVal[val] = group;
-						}
-
-						submitGroups(groups);
+						processGroups(results);
 					});
 				} else {
-
-					// Loop through the rows in the group and create group header rows as needed
-					for (i = 0, l = rows.length; i < l; i++) {
-						r = rows[i];
-
-						// The global grid aggregate should at the very end of the grid. Remember it here
-						// And then we'll add it at the very end.
-						if (r instanceof Aggregate && r.__gridAggregate) {
-							aggregateRow = r;
-							continue;
-						}
-
-						val = typeof gi.getter === "function" ? gi.getter(r) : r[gi.getter];
-
-						// Store groups by value if the getter
-						group = groupsByVal[val];
-
-						// Create a new group header row, if it doesn't already exist for this group
-						if (!group) {
-							group = new Group();
-							group.collapsed = gi.collapsed;
-							group.value = val;
-							group.level = level;
-							group.predef = gi;
-							group.id = '__group' + (parentGroup ? parentGroup.id + groupingDelimiter : '') + val;
-							group.height = gi.grouprows[group.id] && gi.grouprows[group.id].height ? gi.grouprows[group.id].height : null;
-							groups[groups.length] = group;
-							groupsByVal[val] = group;
-						}
-
-						group.grouprows[group.count++] = r;
-					}
-
-					submitGroups(groups);
+					processGroups();
 				}
 			};
 
@@ -2438,6 +2454,8 @@
 				};
 
 				// Insert group rows
+				// NOTE: This is called when groups are collapsed and expanded which causes extractGroups
+				// to be executed again -- there is no reason this needs to happen. Optimize.
 				var groups = [];
 				if (self.groups.length) {
 					extractGroups(newRows, null, function (result) {
@@ -2472,8 +2490,8 @@
 					prevRefreshHints = refreshHints;
 					refreshHints = {};
 
-					// Set data length if this is not a remote model
-					if (!remote) this.length = cache.rows.length;
+					// Change the length of the collection to the new number of rows
+					this.length = cache.rows.length;
 
 					if (countBefore != cache.rows.length) {
 						updateRowCount();
@@ -2498,7 +2516,7 @@
 				recalc(this.items, function (result) {
 					diff = result;
 
-					// if the current page is no longer valid, go to last page and recalc
+					// If the current page is no longer valid, go to last page and recalc
 					// we suffer a performance penalty here, but the main loop (recalc)
 					// remains highly optimized
 					if (pagesize && totalRows < pagenum * pagesize) {
@@ -2605,6 +2623,10 @@
 				for (i = 0, l = options.length; i < l; i++) {
 					col = getColumnById(options[i].column_id);
 
+					if (col === undefined) {
+						throw new Error('Cannot add grouping for column "' + options[i].column_id + '" because no such column could be found.');
+					}
+
 					if (col.groupable === false) {
 						throw new Error('Cannot add grouping for column "' + col.id + '" because "options.groupable" is disabled for that column.');
 					}
@@ -2633,7 +2655,7 @@
 			// @return object
 			this.setItem = function (id, data) {
 				if (cache.indexById[id] === undefined) {
-					throw "Unable to update item (id: " + id + "). Invalid or non-matching id";
+					throw new Error("Unable to update item (id: " + id + "). Invalid or non-matching id");
 				}
 
 				// Update the row cache and the item
@@ -5467,13 +5489,11 @@
 					// Builds the options we need to give the fetcher
 					var options = {
 						columns: cache.activeColumns,
+						//filters: null, TODO: Enable remote filtering here
 						limit: newTo - newFrom + 1,
 						offset: newFrom,
 						order: self.sorting
 					};
-
-					// TODO: Enable remote filtering here
-					// options.filter
 
 					remoteRequest = remote.fetch(options, function (results) {
 						// Add items to collection
@@ -5501,39 +5521,37 @@
 		// @param	callback	function	Callback function
 		//
 		remoteFetchGroups = function (callback) {
-			var vp = getVisibleRange(),
-				from = vp.top,
-				to = vp.bottom;
-
 			// If grouping fast, abort pending requests
 			if (remoteRequest && typeof remoteRequest.abort === 'function') {
 				remoteRequest.abort();
 			}
 
-			// Don't attempt to fetch more results than there are
-			if (from < 0) from = 0;
-			if (self.collection.length > 0) to = Math.min(to, self.collection.length - 1);
+			// If we have a cache -- load that
+			if (cache.remoteGroups) {
+				callback(cache.remoteGroups);
+			} else {
+				var options = {
+					groups: self.collection.groups
+				};
 
-			var options = {
-				groups: self.collection.groups,
-				limit: to - from,
-				offset: from
-			};
+				// Fire onLoading callback
+				if (typeof remote.onLoading === 'function') remote.onLoading();
 
-			// Fire onLoading callback
-			if (typeof remote.onLoading === 'function') remote.onLoading();
+				// Begin remote fetch request
+				remoteRequest = remote.fetchGroups(options, function (results) {
+					// Empty the request variable so it doesn't get aborted on scroll
+					remoteRequest = null;
 
-			// Begin remote fetch request
-			remoteRequest = remote.fetchGroups(options, function (results) {
-				// Empty the request variable so it doesn't get aborted on scroll
-				remoteRequest = null;
+					// Cache the results for this column
+					cache.remoteGroups = results;
 
-				// Return results via callback
-				callback(results);
+					// Return results via callback
+					callback(results);
 
-				// Fire onLoaded callback
-				if (typeof remote.onLoaded === 'function') remote.onLoaded();
-			});
+					// Fire onLoaded callback
+					if (typeof remote.onLoaded === 'function') remote.onLoaded();
+				});
+			}
 		};
 
 

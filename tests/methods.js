@@ -298,11 +298,22 @@ describe("Methods and Data Manipulation", function () {
 
 
 	describe("addGrouping()", function () {
-		it("should throw an error if attempt to addGrouping() by null", function () {
+		it("should throw an error if attempting to addGrouping() by null", function () {
 			var grid = resetGrid();
 			expect(function () {
 				grid.addGrouping();
 			}).toThrow("Unable to add grouping to grid because the 'column_id' value is missing.");
+		});
+
+
+		// ==========================================================================================
+
+
+		it("should throw an error if attempting to addGrouping() by an invalid column", function () {
+			var grid = resetGrid();
+			expect(function () {
+				grid.addGrouping('armadillo');
+			}).toThrow("Cannot add grouping for column \"armadillo\" because no such column could be found.");
 		});
 
 

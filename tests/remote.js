@@ -9,11 +9,17 @@
 describe("Remote Data", function () {
 	"use strict";
 
-	var resetGrid = function (opts) {
-		opts = opts || {};
+	var grid;
 
-		var data = [];
-		for (var i = 0; i < 1000; i++) {
+
+	// ==========================================================================================
+
+
+	beforeEach(function () {
+		var data = [],
+			count = 100;
+
+		for (var i = 0; i < count; i++) {
 			data.push({
 				id: i,
 				data: {
@@ -36,32 +42,66 @@ describe("Remote Data", function () {
 				id: "name",
 				name: "Name",
 				field: "name"
+			}, {
+				id: "age",
+				name: "Age",
+				field: "age"
+			}, {
+				id: "city",
+				name: "City",
+				field: "city"
 			}],
 			data: function () {
 				this.count = function (options, callback) {
-					callback(100);
+					callback(count);
 				};
 
-				// The following options will be passed in:
-				//
-				// @param		filters		object		Filters that are applied by the user
-				// @param		limit		integer		The number of items needed
-				// @param		offset		integer		On which row to start fetching
-				//
 				this.fetch = function (options, callback) {
-					callback(data.slice(options.offset, options.offset + options.limit));
+					return setTimeout(function () {
+						var mydata = JSON.parse(JSON.stringify(data));
+						if (options.order.length) {
+							mydata.sort(function (dataRow1, dataRow2) {
+								var result = 0, column, value1, value2;
+								for (var i = 0, l = options.order.length; i < l; i++) {
+									column = options.order[i].columnId;
+									value1 = dataRow1.data[column];
+									value2 = dataRow2.data[column];
+									if (value1 === value2) result += 0;
+									else result += options.order[i].sortAsc ? (value1 > value2) : (value1 < value2);
+								}
+								return result;
+							});
+						}
+						// Apply fake offset and fake limit
+						callback(mydata.slice(options.offset, options.offset + options.limit));
+					}, 5);
 				};
 
 				this.fetchGroups = function (options, callback) {
-					callback([]);
+					return setTimeout(function () {
+						var c_idx = 0,
+							column_id = options.groups[c_idx].column_id,
+							grouped = _.groupBy(data, function (item) {
+								return item.data[column_id];
+							}),
+							results = [];
+						for (var group in grouped) {
+							results.push({
+								column_id: column_id,
+								count: grouped[group].length,
+								groups: null,
+								value: group
+							});
+						}
+						callback(results);
+					}, 5);
 				};
 			}
 		};
 
 		// Create a new grid inside a fixture
-		options = $.extend(options, opts);
-		var grid = new DobyGrid(options),
-			fixture = setFixtures();
+		grid = new DobyGrid(options);
+		var fixture = setFixtures();
 
 		// This is needed for grunt-jasmine tests which doesn't read the CSS
 		// from the HTML version of jasmine.
@@ -69,15 +109,16 @@ describe("Remote Data", function () {
 
 		grid.appendTo(fixture);
 
-		return grid;
-	};
+		waitsFor(function () {
+			return grid.collection.items[0].toString() !== 'Placeholder';
+		}, "Fetching the first page", 200);
+	});
 
 
 	// ==========================================================================================
 
 
 	it("should set the correct data length", function () {
-		var grid = resetGrid();
 		expect(grid.collection.length).toEqual(100);
 	});
 
@@ -86,7 +127,6 @@ describe("Remote Data", function () {
 
 
 	it("should generate placeholders for all rows", function () {
-		var grid = resetGrid();
 		expect(grid.collection.items.length).toEqual(100);
 	});
 
@@ -95,11 +135,6 @@ describe("Remote Data", function () {
 
 
 	it("should automatically load the first page", function () {
-		var grid = resetGrid();
-		waitsFor(function () {
-			return grid.collection.items[0].toString() !== 'Placeholder';
-		}, "Fetching the first page", 200);
-
 		runs(function () {
 			expect(grid.collection.items[0].toString()).toEqual('[object Object]');
 		});
@@ -110,13 +145,6 @@ describe("Remote Data", function () {
 
 
 	it("should correctly load the second page", function () {
-		var grid = resetGrid();
-
-		// Wait for first page to load
-		waitsFor(function () {
-			return grid.collection.items[0].toString() !== 'Placeholder';
-		}, "Fetching the first page", 200);
-
 		// Scroll to second page
 		runs(function () {
 			grid.scrollToRow(20);
@@ -129,6 +157,36 @@ describe("Remote Data", function () {
 
 		runs(function () {
 			expect(grid.collection.items[20].toString()).toEqual('[object Object]');
+		});
+	});
+
+
+	// ==========================================================================================
+
+
+	it("should be able to group results", function () {
+		var column_id = "city";
+
+		// Add grouping
+		runs(function () {
+			grid.addGrouping(column_id);
+		});
+
+		// Wait for the groups to be fetched and calculated
+		waitsFor(function () {
+			return grid.collection.groups.length && grid.collection.groups[0].grouprows.length;
+		});
+
+		runs(function () {
+			// Groups should be generated
+			expect(grid.collection.groups.length).toEqual(1);
+			expect(grid.collection.groups[0].column_id).toEqual(column_id);
+
+			// Only group rows should be drawn
+			console.log(grid.$el)
+			grid.$el.find('.doby-grid-row').each(function () {
+				expect($(this)).toHaveClass('doby-grid-group');
+			});
 		});
 	});
 });

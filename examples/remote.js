@@ -118,8 +118,6 @@ define(['faker'], function (Faker) {
 				// The following options will be passed in:
 				//
 				// @opt		groups		array		A list of grouping objects currently enabled
-				// @opt		limit		integer		The number of items needed
-				// @opt		offset		integer		On which row to start fetching
 				//
 				// @return object
 				this.fetchGroups = function (options, callback) {
