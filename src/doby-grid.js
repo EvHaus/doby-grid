@@ -7520,7 +7520,7 @@
 						$item.parent().children('.open').removeClass('open');
 
 						$item.addClass('open');
-					}, 250);
+					}, 200);
 				}
 			});
 
