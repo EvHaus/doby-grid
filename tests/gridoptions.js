@@ -1342,6 +1342,145 @@ describe("Grid Options", function () {
 	// ==========================================================================================
 
 
+	describe("options.nestedAggregators", function () {
+		it("should correctly display aggregate rows when having nested groupings", function () {
+			var grid = resetGrid($.extend(defaultData(), {
+				columns: [{
+					id: 'id',
+					field: 'id',
+					name: 'id',
+					aggregators: [{
+						fn: function () {
+							this.formatter = function () { return "Aggregator"; };
+							this.process = function () {};
+							return this;
+						}
+					}]
+				}, {
+					id: 'name',
+					field: 'name',
+					name: 'name',
+					aggregators: [{
+						name: null,
+						fn: function () {
+							this.formatter = function () { return "Aggregator"; };
+							this.process = function () {};
+							return this;
+						}
+					}]
+				}]
+			}));
+
+			// Add grouping by Name, then by Id
+			grid.addGrouping('name');
+			grid.addGrouping('id');
+
+			// Make sure main grid aggregator row is still visible
+			grid.$el.find('.doby-grid-row').last().children('.doby-grid-cell').each(function () {
+				expect($(this)).toContainText('Aggregator');
+			});
+
+			// Expand the first group
+			var $grouptoggle = grid.$el.find('.doby-grid-group-toggle').first().children('.doby-grid-cell').first();
+			$grouptoggle.simulate('click', {
+				clientX: $grouptoggle.offset().left,
+				clientY: $grouptoggle.offset().top
+			});
+
+			// Confirm that the group got expanded
+			expect(grid.$el.find('.doby-grid-row').length).toEqual(5);
+
+			// There should now be two Aggregate rows. One for the grid, and one for the expanded group
+			expect(grid.$el.find('.doby-grid-row-total').length).toEqual(2);
+
+			// Expand the nested group
+			$grouptoggle = $grouptoggle = grid.$el.find('.doby-grid-group-toggle').eq(1).children('.doby-grid-cell').first();
+			$grouptoggle.simulate('click', {
+				clientX: $grouptoggle.offset().left,
+				clientY: $grouptoggle.offset().top
+			});
+
+			// Confirm that the group got expanded
+			expect(grid.$el.find('.doby-grid-row').length).toEqual(7);
+
+			// There should now be 3 aggregators (one for the main grid and one for each expanded group)
+			expect(grid.$el.find('.doby-grid-row-total').length).toEqual(3);
+		});
+
+
+		// ==========================================================================================
+
+
+		it("should only display deepest nested group aggregators when nestedAggregators is disabled", function () {
+			var grid = resetGrid($.extend(defaultData(), {
+				columns: [{
+					id: 'id',
+					field: 'id',
+					name: 'id',
+					aggregators: [{
+						fn: function () {
+							this.formatter = function () { return "Aggregator"; };
+							this.process = function () {};
+							return this;
+						}
+					}]
+				}, {
+					id: 'name',
+					field: 'name',
+					name: 'name',
+					aggregators: [{
+						name: null,
+						fn: function () {
+							this.formatter = function () { return "Aggregator"; };
+							this.process = function () {};
+							return this;
+						}
+					}]
+				}],
+				nestedAggregators: false
+			}));
+
+			// Add grouping by Name, then by Id
+			grid.addGrouping('name');
+			grid.addGrouping('id');
+
+			// Make sure main grid aggregator row is still visible
+			grid.$el.find('.doby-grid-row').last().children('.doby-grid-cell').each(function () {
+				expect($(this)).toContainText('Aggregator');
+			});
+
+			// Expand the first group
+			var $grouptoggle = grid.$el.find('.doby-grid-group-toggle').first().children('.doby-grid-cell').first();
+			$grouptoggle.simulate('click', {
+				clientX: $grouptoggle.offset().left,
+				clientY: $grouptoggle.offset().top
+			});
+
+			// Confirm that the group got expanded
+			expect(grid.$el.find('.doby-grid-row').length).toEqual(4);
+
+			// There should still only be 1 aggregator (for the main grid)
+			expect(grid.$el.find('.doby-grid-row-total').length).toEqual(1);
+
+			// Expand the nested group
+			$grouptoggle = $grouptoggle = grid.$el.find('.doby-grid-group-toggle').eq(1).children('.doby-grid-cell').first();
+			$grouptoggle.simulate('click', {
+				clientX: $grouptoggle.offset().left,
+				clientY: $grouptoggle.offset().top
+			});
+
+			// Confirm that the group got expanded
+			expect(grid.$el.find('.doby-grid-row').length).toEqual(6);
+
+			// There should now be 2 aggregators (one for the main grid and one for the inner group)
+			expect(grid.$el.find('.doby-grid-row-total').length).toEqual(2);
+		});
+	});
+
+
+	// ==========================================================================================
+
+
 	describe("options.quickFilter", function () {
 		it("should be disabled by default", function () {
 			var grid = resetGrid(defaultData());

@@ -190,61 +190,6 @@ describe("Column Options", function () {
 				}));
 			}).toThrow("The column aggregator for \"id\" is missing a valid 'process' function.");
 		});
-
-
-		// ==========================================================================================
-
-
-		it("should correctly display aggregate rows when having nested groupings", function () {
-			var grid = resetGrid($.extend(defaultData(), {
-				columns: [{
-					id: 'id',
-					field: 'id',
-					name: 'id',
-					aggregators: [{
-						fn: function () {
-							this.formatter = function () { return "Aggregator"; };
-							this.process = function () {};
-							return this;
-						}
-					}]
-				}, {
-					id: 'name',
-					field: 'name',
-					name: 'name',
-					aggregators: [{
-						name: null,
-						fn: function () {
-							this.formatter = function () { return "Aggregator"; };
-							this.process = function () {};
-							return this;
-						}
-					}]
-				}]
-			}));
-
-			// Add grouping by Name, then by Id
-			grid.addGrouping('name');
-			grid.addGrouping('id');
-
-			// Make sure main grid aggregator row is still visible
-			grid.$el.find('.doby-grid-row').last().children('.doby-grid-cell').each(function () {
-				expect($(this)).toContainText('Aggregator');
-			});
-
-			// Expand the first group
-			var $grouptoggle = grid.$el.find('.doby-grid-group-toggle').first().children('.doby-grid-cell').first();
-			$grouptoggle.simulate('click', {
-				clientX: $grouptoggle.offset().left,
-				clientY: $grouptoggle.offset().top
-			});
-
-			// Confirm that the group got expanded
-			expect(grid.$el.find('.doby-grid-row').length).toEqual(5);
-
-			// There should now be two Aggregate rows. One for the grid, and one for the expanded group
-			expect(grid.$el.find('.doby-grid-row-total').length).toEqual(2);
-		});
 	});
 
 

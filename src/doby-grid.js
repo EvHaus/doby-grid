@@ -366,6 +366,7 @@
 					hide_filter:		'Hide Quick Filter'
 				}
 			},
+			nestedAggregators:		true,
 			multiColumnSort:		true,
 			quickFilter:			false,
 			remoteScrollTime:		200,
@@ -2056,8 +2057,12 @@
 						finalizeGroups(g.groups, level + 1);
 
 						// Let the non-leaf setGrouping rows get garbage-collected.
-						// Only keep Aggregate rows.
-						g.grouprows = _.filter(g.grouprows, aggregateFilter);
+						// Only keep Aggregate rows (when nestedAggregators option is on)
+						if (grid.options.nestedAggregators) {
+							g.grouprows = _.filter(g.grouprows, aggregateFilter);
+						} else {
+							g.grouprows = [];
+						}
 					}
 				}
 			};
@@ -2089,7 +2094,8 @@
 						}
 
 						// If this is a nested group - still draw its Aggregate row
-						if (g.groups && g.grouprows.length === 1 && g.grouprows[0] instanceof Aggregate) {
+						// when nestedAggregators is enabled
+						if (grid.options.nestedAggregators && g.groups && g.grouprows.length === 1 && g.grouprows[0] instanceof Aggregate) {
 							groupedRows[gl++] = g.grouprows[0];
 						}
 					}
