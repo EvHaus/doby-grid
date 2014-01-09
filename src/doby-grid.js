@@ -2057,7 +2057,7 @@
 
 						// Let the non-leaf setGrouping rows get garbage-collected.
 						// Only keep Aggregate rows.
-						g.grouprows = Array.filter(g.grouprows, aggregateFilter);
+						g.grouprows = _.filter(g.grouprows, aggregateFilter);
 					}
 				}
 			};
