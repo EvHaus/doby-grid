@@ -3108,8 +3108,6 @@
 		// @return object
 		Dropdown = function (event, options) {
 
-			var self = this;
-
 			// Is the dropdown currently shown?
 			this.open = false;
 
@@ -3125,8 +3123,8 @@
 				} else {
 					// Also find the existing dropdown for this id (if it exists)
 					existing = this.$parent.data(classdropdown).filter(function (i) {
-						return i.id == self.id;
-					});
+						return i.id == this.id;
+					}.bind(this));
 					if (existing) existing = existing[0];
 				}
 
@@ -3144,63 +3142,15 @@
 				var bodyEscape;
 				bodyEscape = function (e) {
 					if (e.target == event.target) return;
-					self.hide();
+					this.hide();
 					$(document).off('click', bodyEscape);
 					$(document).off('context', bodyEscape);
-				};
+				}.bind(this);
 
 				$(document).on('click', bodyEscape);
 				$(document).on('contextmenu', bodyEscape);
 
 				return this;
-			};
-
-
-			// show()
-			// Displays the dropdown
-			//
-			this.show = function () {
-				if (this.open) return;
-
-				this.$el.appendTo(this.$parent);
-
-				this.position();
-
-				var store = this.$parent.data(classdropdown);
-				store.push(this);
-				this.$parent.data(classdropdown, store);
-
-				// Animate fade in
-				setTimeout(function () {
-					self.$el.removeClass('off');
-				}, 150);
-
-				this.open = true;
-			};
-
-
-			// hide()
-			// Hides the dropdown
-			//
-			this.hide = function () {
-				if (!this.open || !this.$parent) return;
-
-				if (this.$parent.data(classdropdown)) {
-					var store = this.$parent.data(classdropdown).filter(function (i) {
-						return i != self;
-					});
-
-					this.$parent.data(classdropdown, store);
-
-					this.$el.addClass('off');
-
-					// Animate fade out
-					setTimeout(function () {
-						self.$el.remove();
-					}, 150);
-
-					this.open = false;
-				}
 			};
 
 
@@ -3231,6 +3181,54 @@
 			};
 
 			return this.initialize();
+		};
+
+
+		// show()
+		// Displays the dropdown
+		//
+		Dropdown.prototype.show = function () {
+			if (this.open) return;
+
+			this.$el.appendTo(this.$parent);
+
+			this.position();
+
+			var store = this.$parent.data(classdropdown);
+			store.push(this);
+			this.$parent.data(classdropdown, store);
+
+			// Animate fade in
+			setTimeout(function () {
+				this.$el.removeClass('off');
+			}.bind(this), 150);
+
+			this.open = true;
+		};
+
+
+		// hide()
+		// Hides the dropdown
+		//
+		Dropdown.prototype.hide = function () {
+			if (!this.open || !this.$parent) return;
+
+			if (this.$parent.data(classdropdown)) {
+				var store = this.$parent.data(classdropdown).filter(function (i) {
+					return i != this;
+				}.bind(this));
+
+				this.$parent.data(classdropdown, store);
+
+				this.$el.addClass('off');
+
+				// Animate fade out
+				setTimeout(function () {
+					this.$el.remove();
+				}.bind(this), 150);
+
+				this.open = false;
+			}
 		};
 
 
