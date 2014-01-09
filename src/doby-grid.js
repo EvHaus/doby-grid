@@ -3512,18 +3512,17 @@
 		getCaretPosition = function (input) {
 			var pos = 0;
 
-			// IE Specific
 			if (document.selection) {
+				// IE Specific
 				input.focus();
 				var oSel = document.selection.createRange();
 				oSel.moveStart('character', -input.value.length);
 				pos = oSel.text.length;
-			}
-			// If text is selected -- return null
-			else if (input.selectionStart !== input.selectionEnd) {
+			} else if (input.selectionStart !== input.selectionEnd) {
+				// If text is selected -- return null
 				return null;
-			// Find cursor position
 			} else if (input.selectionStart || input.selectionStart == '0') {
+				// Find cursor position
 				pos = input.selectionStart;
 			}
 
@@ -4715,7 +4714,7 @@
 				vScrollDir = prevScrollTop < scrollTop ? 1 : -1;
 				prevScrollTop = scrollTop;
 
-				// switch virtual pages if needed
+				// Switch virtual pages if needed
 				if (vScrollDist < viewportH) {
 					scrollTo(scrollTop + offset);
 				} else {
@@ -4738,6 +4737,9 @@
 
 				if (Math.abs(lastRenderedScrollTop - scrollTop) > 20 ||
 					Math.abs(lastRenderedScrollLeft - scrollLeft) > 20) {
+
+					// If virtual scroll is disabled, or viewing something that is already rendered --
+					// re-render immediately
 					if (!self.options.virtualScroll || (
 						Math.abs(lastRenderedScrollTop - scrollTop) < viewportH &&
 						Math.abs(lastRenderedScrollLeft - scrollLeft) < viewportW)) {
@@ -5136,19 +5138,21 @@
 				oFxNcL, oFyNcL;
 			// first try and sort Hex codes or Dates
 			if (yD)
-				if (xD < yD) return -1;
-				else if (xD > yD) return 1;
+				if (xD < yD) {
+					return -1;
+				} else if (xD > yD) {
+					return 1;
+				}
 			// natural sorting through split numeric strings and default strings
 			for (var cLoc = 0, numS = Math.max(xN.length, yN.length); cLoc < numS; cLoc++) {
 				// find floats not starting with '0', string or 0 if not defined (Clint Priest)
 				oFxNcL = !(xN[cLoc] || '').match(ore) && parseFloat(xN[cLoc]) || xN[cLoc] || 0;
 				oFyNcL = !(yN[cLoc] || '').match(ore) && parseFloat(yN[cLoc]) || yN[cLoc] || 0;
-				// handle numeric vs string comparison - number < string - (Kyle Adams)
 				if (isNaN(oFxNcL) !== isNaN(oFyNcL)) {
+					// handle numeric vs string comparison - number < string - (Kyle Adams)
 					return (isNaN(oFxNcL)) ? 1 : -1;
-				}
-				// rely on string comparison if different types - i.e. '02' < 2 != '02' < '2'
-				else if (typeof oFxNcL !== typeof oFyNcL) {
+				} else if (typeof oFxNcL !== typeof oFyNcL) {
+					// rely on string comparison if different types - i.e. '02' < 2 != '02' < '2'
 					oFxNcL += '';
 					oFyNcL += '';
 				}
@@ -6161,6 +6165,7 @@
 			scrollTo(targetY);
 			render();
 
+			// Move the active cell into the right place if activeFollowsPage is enabled
 			if (self.options.activeFollowsPage && self.active && self.active.row !== null) {
 				var row = self.active.row + deltaRows,
 					dataLength = getDataLength();
@@ -6221,13 +6226,12 @@
 				pgup = pos.top < scrollTop + offset;
 			}
 
-			// Need to page down?
 			if (pgdwn) {
+				// Need to page down?
 				scrollTo(doPaging ? rowAtTop : rowAtBottom);
 				render();
-			}
-			// or page up?
-			else if (pgup) {
+			} else if (pgup) {
+				// or page up?
 				scrollTo(doPaging ? rowAtBottom : rowAtTop);
 				render();
 			}
@@ -7250,8 +7254,7 @@
 					c.visible = !c.visible;
 
 					// Toggle menu
-					if (c.visible) $(this).addClass('on');
-					else $(this).removeClass('on');
+					c.visible ? $(this).addClass('on') : $(this).removeClass('on');
 
 					// Update grid
 					self.setColumns(self.options.columns);
