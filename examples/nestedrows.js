@@ -12,6 +12,7 @@ define(['dobygrid'], function (DobyGrid) {
 			data.push({
 				id: 'product_' + i,
 				data: {
+					id: 'product_' + i,
 					name: _.sample(["Coffee Pot", "Mug", "Frying Pan", "Rice Cooker"]),
 					price: _.sample(["$2.00", "$20.15", "$4.99"])
 				},
@@ -75,7 +76,6 @@ define(['dobygrid'], function (DobyGrid) {
 		}
 
 		return {
-			//autoColumnWidth: true,
 			columns: [{
 				id: "picture",
 				name: "Picture",
@@ -84,7 +84,9 @@ define(['dobygrid'], function (DobyGrid) {
 					return '<div style="background:rgba(255,0,0,0.1);box-shadow:red 0 0 0 2px inset;height:100px;width:100px"></div>';
 				},
 				focusable: false,
+				groupable: false,
 				selectable: false,
+				sortable: false,
 				width: 100
 			}, {
 				id: "id",

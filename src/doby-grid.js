@@ -7390,9 +7390,6 @@
 					}
 				}]
 			}, {
-				enabled: column && !column.sortable,
-				divider: true
-			}, {
 				enabled: self.options.groupable && column && column.groupable,
 				name: getLocale('column.grouping'),
 				menu: [{
@@ -7446,9 +7443,6 @@
 				name: getLocale('column.aggregators'),
 				menu: aggregator_menu
 			}, {
-				enabled: column && !(column.sortable || column.removable || column.groupable || column.aggregators),
-				divider: true
-			}, {
 				enabled: column && !isColumnSelected(cache.columnsById[column.id]),
 				name: getLocale('column.select'),
 				fn: function () {
@@ -7465,7 +7459,7 @@
 					}
 				}
 			}, {
-				enabled: column,
+				enabled: column && (column.sortable || column.removable || column.groupable || column.aggregators),
 				divider: true
 			}, {
 				enabled: columns_menu.length > 0,
@@ -7512,15 +7506,21 @@
 			var $menu = $('<div class="' + classcontextmenu + '"></div>');
 			renderMenu(menuData, $menu);
 
+			var option_change_delay;
+
 			// Hovering on an item that has a submenu should show the submenu
 			$menu.on('mouseover', function (event) {
+				if (option_change_delay) clearTimeout(option_change_delay);
+
 				var $item = $(event.target).hasClass(classdropdownitem) ? $(event.target) : $(event.target).parent().hasClass(classdropdownitem) ? $(event.target).parent() : null;
 
-				if ($item && $item.children('.' + classdropdownmenu).length) {
-					// Find any other open menus on this level and close them
-					$item.parent().children('.open').removeClass('open');
+				if ($item) {
+					option_change_delay = setTimeout(function () {
+						// Find any other open menus on this level and close them
+						$item.parent().children('.open').removeClass('open');
 
-					$item.addClass('open');
+						$item.addClass('open');
+					}, 250);
 				}
 			});
 
