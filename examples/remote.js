@@ -91,9 +91,9 @@ define(['faker'], function (Faker) {
 									value1 = dataRow1.data[column];
 									value2 = dataRow2.data[column];
 
-									// Use natural sort by default
-									if (value1 === value2) result += 0;
-									else result += options.order[i].sortAsc ? (value1 > value2) : (value1 < value2);
+									if (value1 !== value2) {
+										result += options.order[i].sortAsc ? (value1 > value2) ? 1 : -1 : (value1 < value2) ? 1 : -1;
+									}
 								}
 
 								return result;
