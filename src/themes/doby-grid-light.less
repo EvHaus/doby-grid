@@ -6,7 +6,7 @@
 
 @w3c: true;
 @import "../../libs/lesshat/lesshat";
-@url: "../../assets/img/";
+@url: "../../../assets/img/";
 
 
 /*! Containers
@@ -83,11 +83,11 @@
 
 		// Sorting Indicator
 		.doby-grid-sort-indicator-desc {
-			background-image: url("/@{url}sort-alphabet-descending.png");
+			background-image: url("@{url}sort-alphabet-descending.png");
 		}
 
 		.doby-grid-sort-indicator-asc {
-			background-image: url("/@{url}sort-alphabet.png");
+			background-image: url("@{url}sort-alphabet.png");
 		}
 
 		// Placeholder when re-ordering columns
@@ -123,7 +123,7 @@
 		}
 
 		&.on .doby-grid-dropdown-icon {
-			background: url("/@{url}tick.png") no-repeat;
+			background: url("@{url}tick.png") no-repeat;
 		}
 
 		& > .doby-grid-dropdown-menu {
@@ -275,8 +275,8 @@
 			box-shadow: rgba(0,0,0,0.3) 2px 2px 5px inset;
 		}
 
-		&.expanded .icon {background-image: url("/@{url}minus-small.png")}
-		&.collapsed .icon {background-image: url("/@{url}plus-small.png")}
+		&.expanded .icon {background-image: url("@{url}minus-small.png")}
+		&.collapsed .icon {background-image: url("@{url}plus-small.png")}
 	}
 
 
