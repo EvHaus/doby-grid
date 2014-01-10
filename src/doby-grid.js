@@ -175,6 +175,7 @@
 			getLocale,
 			getMaxCSSHeight,
 			getRenderedRange,
+			getRowFromEvent,
 			getRowFromNode,
 			getRowFromPosition,
 			getScrollbarSize,
@@ -3989,6 +3990,19 @@
 		};
 
 
+		// getRowFromEvent()
+		// Given an event object, gets the row that generated the event
+		//
+		// @param	e		object		Javascript event object
+		//
+		// @return object
+		getRowFromEvent = function (e) {
+			var $row = $(e.target).closest("." + classrow, $canvas);
+			if (!$row.length) return null;
+			return getRowFromNode($row[0]);
+		};
+
+
 		// getRowFromNode()
 		// Given a DOM node, returns the row index for that row
 		//
@@ -4411,15 +4425,18 @@
 		// @param	e	object		Javascript event object
 		//
 		handleClick = function (e) {
-			var cell = getCellFromEvent(e);
-			if (!cell || (currentEditor !== null &&
-				(self.active && self.active.row == cell.row && self.active.cell == cell.cell))
-			) {
+			var cell = getCellFromEvent(e),
+				row = getRowFromEvent(e);
+
+			if ((row === null || row === undefined) || (
+				currentEditor !== null &&
+				(self.active && self.active.row == cell.row && self.active.cell == cell.cell)
+			)) {
 				return;
 			}
 
 			// Get item from cell
-			var item = getDataItem(cell.row);
+			var item = getDataItem(row);
 
 			// Handle group expand/collapse
 			if (item && item instanceof Group) {
@@ -4438,6 +4455,9 @@
 					return;
 				}
 			}
+
+			// The rest of the events require a valid cell
+			if (!cell) return;
 
 			self.trigger('click', e, {
 				row: cell.row,
