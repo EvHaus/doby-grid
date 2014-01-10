@@ -98,7 +98,8 @@ define([], function () {
 
 		return {
 			columns: columns,
-			data: data
+			data: data,
+			quickFilter: true
 		};
 	}, function (grid) {
 		grid.addGrouping('city1', {collapsed: false});

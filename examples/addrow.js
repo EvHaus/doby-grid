@@ -11,6 +11,7 @@ define(['faker'], function (Faker) {
 			data.push({
 				id: 'fancy_id_' + i,
 				data: {
+					id: 'fancy_id_' + i,
 					name: Faker.Name.findName()
 				}
 			});

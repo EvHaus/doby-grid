@@ -132,14 +132,14 @@ define(['faker'], function (Faker) {
 							results = [];
 
 						// Generate results
-						for (var group in grouped) {
+						_.each(_.keys(grouped).sort(), function (group) {
 							results.push({
 								column_id: column_id,
 								count: grouped[group].length,
 								groups: null, // TODO: For nested groups
 								value: group
 							});
-						}
+						});
 
 						callback(results);
 					}, 100);
@@ -155,7 +155,7 @@ define(['faker'], function (Faker) {
 
 					// Generate a loader overlay
 					if (!this.loader) {
-						this.loader = $('<div class="myloader" style="background:rgba(0,0,0,0.2);position:absolute;top:30px;left:0;right:0;bottom:0;text-align:center;line-height:300px;opacity:0;pointer-events:none;z-index:10;transition:0.1s opacity ease-in-out">Loading...</div>').appendTo(this.grid.$el);
+						this.loader = $('<div class="myloader" style="position:absolute;top:0;left:0;right:0;bottom:0;display:table;opacity:0;pointer-events:none;z-index:10;transition:0.1s opacity ease-in-out;text-align:center;height:100%;width:100%;"><div style="display:table-cell;vertical-align:middle;"><span style="background:rgba(255,255,255,0.9);border-radius:8px;padding:10px 20px;border:1px solid rgba(0,0,0,0.2);box-shadow:rgba(0,0,0,0.1) 5px 5px 5px;">Loading...</span></div></div>').appendTo(this.grid.$el);
 
 						// Start CSS animation
 						this.loader.width();
