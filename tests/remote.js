@@ -66,8 +66,11 @@ describe("Remote Data", function () {
 									column = options.order[i].columnId;
 									value1 = dataRow1.data[column];
 									value2 = dataRow2.data[column];
-									if (value1 === value2) result += 0;
-									else result += options.order[i].sortAsc ? (value1 > value2) : (value1 < value2);
+									if (value1 === value2) {
+										result += 0;
+									} else {
+										result += options.order[i].sortAsc ? (value1 > value2) : (value1 < value2);
+									}
 								}
 								return result;
 							});
@@ -82,17 +85,17 @@ describe("Remote Data", function () {
 						var c_idx = 0,
 							column_id = options.groups[c_idx].column_id,
 							grouped = _.groupBy(data, function (item) {
-								return item.data[column_id];
-							}),
+									return item.data[column_id];
+								}),
 							results = [];
-						for (var group in grouped) {
+						_.each(_.keys(grouped).sort(), function (group) {
 							results.push({
 								column_id: column_id,
 								count: grouped[group].length,
 								groups: null,
 								value: group
 							});
-						}
+						});
 						callback(results);
 					}, 5);
 				};
@@ -105,7 +108,7 @@ describe("Remote Data", function () {
 
 		// This is needed for grunt-jasmine tests which doesn't read the CSS
 		// from the HTML version of jasmine.
-		fixture.attr('style', 'position:absolute;top:0;left:0;opacity:0;height:100px;width:100px');
+		fixture.attr('style', 'position:absolute;top:0;left:0;opacity:0;height:300px;width:300px');
 
 		grid.appendTo(fixture);
 
@@ -188,4 +191,125 @@ describe("Remote Data", function () {
 			});
 		});
 	});
+
+
+	// ==========================================================================================
+
+
+	it("should be able to switch between different groupings (ensuring that the remote grouping cache is properly cleaned up)", function () {
+		var column_id = "city",
+			another_column_id = "age";
+
+		// Add grouping
+		runs(function () {
+			grid.addGrouping(column_id);
+		});
+
+		// Wait for the groups to be fetched and calculated
+		waitsFor(function () {
+			return grid.collection.groups.length && grid.collection.groups[0].grouprows.length;
+		});
+
+		runs(function () {
+			// Groups should be generated
+			expect(grid.collection.groups.length).toEqual(1);
+			expect(grid.collection.groups[0].column_id).toEqual(column_id);
+
+			// Only group rows should be drawn
+			grid.$el.find('.doby-grid-row').each(function () {
+				expect($(this)).toHaveClass('doby-grid-group');
+				expect($(this).find('.doby-grid-group-title strong').first()).toHaveText('City:');
+			});
+		});
+
+		// Now group by another column
+		runs(function () {
+			grid.setGrouping([{column_id: another_column_id}]);
+		});
+
+		// Wait for the groups to be fetched and calculated
+		waitsFor(function () {
+			return grid.collection.groups.length &&
+				grid.collection.groups[0].column_id == another_column_id &&
+				grid.collection.groups[0].grouprows.length;
+		});
+
+		runs(function () {
+			// Groups should be generated
+			expect(grid.collection.groups.length).toEqual(1);
+			expect(grid.collection.groups[0].column_id).toEqual(another_column_id);
+
+			// Only group rows should be drawn
+			grid.$el.find('.doby-grid-row').each(function () {
+				expect($(this)).toHaveClass('doby-grid-group');
+				expect($(this).find('.doby-grid-group-title strong').first()).toHaveText('Age:');
+			});
+		});
+	});
+
+
+	// ==========================================================================================
+
+
+	// FIXME: This test is failing because there are 3 placeholder rows that remain visible when the
+	// group is opened up. Find out why.
+	xit("should be able to fetch group pages correctly when grouping results", function () {
+		var column_id = "city";
+
+		// Add grouping
+		runs(function () {
+			grid.addGrouping(column_id);
+		});
+
+		// Wait for the groups to be fetched and calculated
+		waitsFor(function () {
+			return grid.collection.groups.length && grid.collection.groups[0].grouprows.length;
+		});
+
+		runs(function () {
+			// Groups should be generated
+			expect(grid.collection.groups.length).toEqual(1);
+			expect(grid.collection.groups[0].column_id).toEqual(column_id);
+
+			// Only group rows should be drawn
+			var $rows = grid.$el.find('.doby-grid-row');
+			$rows.each(function () {
+				expect($(this)).toHaveClass('doby-grid-group');
+			});
+
+			// Expand the second row
+			$rows.eq(1).find('.doby-grid-cell').simulate('click');
+		});
+
+		// Wait for some non-placeholder row data to be fetched
+		waitsFor(function () {
+			return _.filter(grid.collection.items, function (item) {
+				return !item.__nonDataRow;
+			}).length;
+		});
+
+		runs(function () {
+			// Find the group row that got expanded
+			_.each(grid.collection.groups[0].grouprows, function (gr) {
+				if (gr.collapsed === 0) {
+					// Expect the correct grid.collection item values to have been fetched
+					_.each(grid.collection.items, function (item) {
+						if (!item.__nonDataRow) {
+							expect(item.data[column_id]).toEqual(gr.value);
+						}
+					});
+
+					// And expect only those rows to have been rendered
+					grid.$el.find('.doby-grid-row').each(function () {
+						if (!$(this).hasClass('doby-grid-group')) {
+							var $cell = $(this).find('.doby-grid-cell').last();
+							expect($cell).toHaveText(gr.value);
+						}
+					});
+				}
+			});
+		});
+	});
+
+
 });
