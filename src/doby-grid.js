@@ -1688,7 +1688,6 @@
 				flattenGroupedRows,
 				getFilteredAndPagedItems,
 				getRowDiffs,
-				insertEmptyAlert,
 				parse,
 				processAggregators,
 				processGroupAggregators,
@@ -2269,7 +2268,7 @@
 			//
 			// @param	items	array		Array of items to insert into
 			//
-			insertEmptyAlert = function (items) {
+			this.insertEmptyAlert = function (items) {
 				var obj = new NonDataItem({
 					__alert: true,
 					id: '-empty-alert-message-',
@@ -2836,7 +2835,7 @@
 			// @return array
 			validate = function (items) {
 				// If no data - add an empty alert
-				if (grid.options.emptyNotice && !items.length) insertEmptyAlert(items);
+				if (grid.options.emptyNotice && !items.length) self.insertEmptyAlert(items);
 
 				return items;
 			};
@@ -5500,8 +5499,13 @@
 				// Set collection length
 				self.collection.length = result;
 
-				// Fill the collection with placeholders
-				generatePlaceholders();
+				if (result === 0) {
+					// When there are no results insert an empty row
+					self.collection.insertEmptyAlert(self.collection.items);
+				} else {
+					// Fill the collection with placeholders
+					generatePlaceholders();
+				}
 
 				// Updating the row count here will ensure the scrollbar is rendered the right size
 				updateRowCount();
@@ -5683,18 +5687,6 @@
 			for (var i = from; i <= to; i++) {
 				invalidateRow(i);
 			}
-
-//			// TODO: Display alert if empty
-//			if (self.options.alertOnEmpty && self.dataView.getLength() === 0) {
-//				// Need to clear cache to reset dataview lengths
-//				self.loader.clearCache()
-//
-//				// Insert row
-//				insertEmptyAlert()
-//
-//				// Manually tell collection it's 1 units long
-//				self.dataView.setLength(1)
-//			}
 
 			updateRowCount();
 			render();

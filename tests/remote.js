@@ -17,7 +17,8 @@ describe("Remote Data", function () {
 
 	beforeEach(function () {
 		var data = [],
-			count = 100;
+			count = 100,
+			empty = this.description == 'should display an empty row when remote data is empty';
 
 		for (var i = 0; i < count; i++) {
 			data.push({
@@ -53,30 +54,38 @@ describe("Remote Data", function () {
 			}],
 			data: function () {
 				this.count = function (options, callback) {
-					callback(count);
+					if (empty) {
+						callback(0);
+					} else {
+						callback(count);
+					}
 				};
 
 				this.fetch = function (options, callback) {
 					return setTimeout(function () {
-						var mydata = JSON.parse(JSON.stringify(data));
-						if (options.order.length) {
-							mydata.sort(function (dataRow1, dataRow2) {
-								var result = 0, column, value1, value2;
-								for (var i = 0, l = options.order.length; i < l; i++) {
-									column = options.order[i].columnId;
-									value1 = dataRow1.data[column];
-									value2 = dataRow2.data[column];
-									if (value1 === value2) {
-										result += 0;
-									} else {
-										result += options.order[i].sortAsc ? (value1 > value2) : (value1 < value2);
+						if (empty) {
+							callback([]);
+						} else {
+							var mydata = JSON.parse(JSON.stringify(data));
+							if (options.order.length) {
+								mydata.sort(function (dataRow1, dataRow2) {
+									var result = 0, column, value1, value2;
+									for (var i = 0, l = options.order.length; i < l; i++) {
+										column = options.order[i].columnId;
+										value1 = dataRow1.data[column];
+										value2 = dataRow2.data[column];
+										if (value1 === value2) {
+											result += 0;
+										} else {
+											result += options.order[i].sortAsc ? (value1 > value2) : (value1 < value2);
+										}
 									}
-								}
-								return result;
-							});
+									return result;
+								});
+							}
+							// Apply fake offset and fake limit
+							callback(mydata.slice(options.offset, options.offset + options.limit));
 						}
-						// Apply fake offset and fake limit
-						callback(mydata.slice(options.offset, options.offset + options.limit));
 					}, 5);
 				};
 
@@ -161,6 +170,16 @@ describe("Remote Data", function () {
 		runs(function () {
 			expect(grid.collection.items[20].toString()).toEqual('[object Object]');
 		});
+	});
+
+
+	// ==========================================================================================
+
+
+	it("should display an empty row when remote data is empty", function () {
+		var rows = grid.$el.find('.doby-grid-row');
+		expect(rows.length).toEqual(1);
+		expect(rows.eq(0)).toHaveClass('doby-grid-alert');
 	});
 
 
