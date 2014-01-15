@@ -7527,12 +7527,14 @@
 					name: column ? getLocale('column.sort_asc', {name: column.name}) : '',
 					fn: function () {
 						self.sortBy(column.id, true);
+						dropdown.hide();
 					}
 				}, {
 					enabled: !hasSorting(column.id),
 					name: column ? getLocale('column.sort_desc', {name: column.name}) : '',
 					fn: function () {
 						self.sortBy(column.id, false);
+						dropdown.hide();
 					}
 				}, {
 					enabled: self.isSorted() && !hasSorting(column.id),
@@ -7540,6 +7542,7 @@
 					fn: function () {
 						self.sorting.push({columnId: column.id, sortAsc: true});
 						self.setSorting(self.sorting);
+						dropdown.hide();
 					}
 				}, {
 					enabled: self.isSorted() && !hasSorting(column.id),
@@ -7547,6 +7550,7 @@
 					fn: function () {
 						self.sorting.push({columnId: column.id, sortAsc: false});
 						self.setSorting(self.sorting);
+						dropdown.hide();
 					}
 				}, {
 					enabled: hasSorting(column.id),
@@ -7556,6 +7560,7 @@
 							return s.columnId != column.id;
 						});
 						self.setSorting(self.sorting);
+						dropdown.hide();
 					}
 				}]
 			}, {
