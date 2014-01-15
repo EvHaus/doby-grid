@@ -1336,6 +1336,80 @@ describe("Grid Options", function () {
 			// Make sure sort isn't set
 			expect(grid.sorting).not.toEqual(sort);
 		});
+
+
+		// ==========================================================================================
+
+
+		it("should be able to add multi column sort by Shift+Clicking on column headers", function () {
+			var grid = resetGrid({
+				columns: [{
+					id: 'id',
+					name: 'ID',
+					field: 'id'
+				}, {
+					id: 'category',
+					name: 'Category',
+					field: 'category'
+				}, {
+					id: 'subcat',
+					name: 'SubCategory',
+					field: 'subcat'
+				}],
+				data: [
+					{data: {category: 'A', subcat: 'Q', id: 1}, id: 1},
+					{data: {category: 'A', subcat: 'D', id: 2}, id: 2},
+					{data: {category: 'B', subcat: 'A', id: 3}, id: 3}
+				]
+			});
+
+			// Click on the column header to set sort direction
+			var $header = grid.$el.find('.doby-grid-header-column[id*="category"]');
+			$header.simulate('click');
+
+			// Make sure the sorting object was updated
+			expect(grid.sorting).toEqual([{columnId: "category", sortAsc: true}]);
+
+			// Rows should sorted in the right direction
+			var $rows = grid.$el.find('.doby-grid-row');
+			expect($rows.eq(0).find('.doby-grid-cell.l0').first().text()).toContain('1');
+			expect($rows.eq(1).find('.doby-grid-cell.l0').first().text()).toContain('2');
+			expect($rows.eq(2).find('.doby-grid-cell.l0').first().text()).toContain('3');
+
+			// Add sort via Shift+Click on another column
+			var $header2 = grid.$el.find('.doby-grid-header-column[id*="subcat"]');
+			$header2.simulate('click', {shiftKey: true});
+
+			// Make sure the sorting object was updated
+			expect(grid.sorting).toEqual([{columnId: "category", sortAsc: true}, {columnId: "subcat", sortAsc: true}]);
+
+			// Rows should sorted in the right direction
+			$rows = grid.$el.find('.doby-grid-row');
+
+			// Make sure rows are in correct order
+			$rows.sort(function (i) { return parseInt($(i).css('top'), 10); });
+
+			expect($rows.eq(0).find('.doby-grid-cell.l0').first().text()).toContain('2');
+			expect($rows.eq(1).find('.doby-grid-cell.l0').first().text()).toContain('1');
+			expect($rows.eq(2).find('.doby-grid-cell.l0').first().text()).toContain('3');
+
+			// Left-clicking again on first column, changes the sort direction
+			$header.simulate('click');
+
+			// Make sure the sorting object was updated
+			expect(grid.sorting).toEqual([{columnId: "category", sortAsc: false}, {columnId: "subcat", sortAsc: true}]);
+
+			// Rows should sorted in the right direction
+			$rows = grid.$el.find('.doby-grid-row');
+
+			// Make sure rows are in correct order
+			$rows.sort(function (i) { return parseInt($(i).css('top'), 10); });
+
+			expect($rows.eq(0).find('.doby-grid-cell.l0').first().text()).toContain('3');
+			expect($rows.eq(1).find('.doby-grid-cell.l0').first().text()).toContain('1');
+			expect($rows.eq(2).find('.doby-grid-cell.l0').first().text()).toContain('2');
+
+		});
 	});
 
 

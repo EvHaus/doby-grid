@@ -560,6 +560,61 @@ describe("Methods and Data Manipulation", function () {
 			// Last row should be the same aggregate row as before
 			expect(lastrow).toHaveClass('doby-grid-row-total');
 		});
+
+
+		// ==========================================================================================
+
+
+		it("should be able to sort grouped columns", function () {
+			var grid = resetGrid({
+				columns: [{
+					id: 'id',
+					name: 'ID'
+				}, {
+					id: 'category',
+					name: 'Category',
+					field: 'category'
+				}, {
+					id: 'subcat',
+					name: 'SubCategory',
+					field: 'subcat'
+				}],
+				data: [
+					{data: {category: 'A', subcat: 'Q'}, id: 1},
+					{data: {category: 'A', subcat: 'D'}, id: 2},
+					{data: {category: 'B', subcat: 'A'}, id: 3}
+				]
+			});
+
+			// Group by category
+			grid.addGrouping("category");
+
+			// Make sure the sorting object was updated
+			expect(grid.sorting).toEqual([{columnId: "category", sortAsc: true, group: true}]);
+
+			// Check to make sure groups are sorted in the right direction
+			expect(grid.$el.find('.doby-grid-group-title').eq(0).text()).toContain('Category: A');
+			expect(grid.$el.find('.doby-grid-group-title').eq(1).text()).toContain('Category: B');
+
+			// Click on the column header to reverse the sort direction
+			var $header = grid.$el.find('.doby-grid-header-column[id*="category"]');
+			$header.simulate('click');
+
+			// Make sure the sorting object was updated
+			expect(grid.sorting).toEqual([{columnId: "category", sortAsc: true}]);
+
+			// Should still be sorted in the same direction
+			expect(grid.$el.find('.doby-grid-group-title').eq(0).text()).toContain('Category: A');
+			expect(grid.$el.find('.doby-grid-group-title').eq(1).text()).toContain('Category: B');
+
+			// Now click it again and the sort should be reversed
+			$header.simulate('click');
+
+			expect(grid.sorting).toEqual([{columnId: "category", sortAsc: false}]);
+			console.log(grid.$el.find('.doby-grid-group-title'))
+			expect(grid.$el.find('.doby-grid-group-title').eq(0).text()).toContain('Category: B');
+			expect(grid.$el.find('.doby-grid-group-title').eq(1).text()).toContain('Category: A');
+		});
 	});
 
 
