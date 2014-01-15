@@ -1372,9 +1372,9 @@ describe("Grid Options", function () {
 
 			// Rows should sorted in the right direction
 			var $rows = grid.$el.find('.doby-grid-row');
-			expect($rows.eq(0).find('.doby-grid-cell.l0').first().text()).toContain('1');
-			expect($rows.eq(1).find('.doby-grid-cell.l0').first().text()).toContain('2');
-			expect($rows.eq(2).find('.doby-grid-cell.l0').first().text()).toContain('3');
+			expect($rows.eq(0).find('.doby-grid-cell.l0').first().text()).toEqual('1');
+			expect($rows.eq(1).find('.doby-grid-cell.l0').first().text()).toEqual('2');
+			expect($rows.eq(2).find('.doby-grid-cell.l0').first().text()).toEqual('3');
 
 			// Add sort via Shift+Click on another column
 			var $header2 = grid.$el.find('.doby-grid-header-column[id*="subcat"]');
@@ -1387,11 +1387,13 @@ describe("Grid Options", function () {
 			$rows = grid.$el.find('.doby-grid-row');
 
 			// Make sure rows are in correct order
-			$rows.sort(function (i) { return parseInt($(i).css('top'), 10); });
+			$rows = _.sortBy($rows, function (i) {
+				return parseInt($(i).css('top'), 10);
+			});
 
-			expect($rows.eq(0).find('.doby-grid-cell.l0').first().text()).toContain('2');
-			expect($rows.eq(1).find('.doby-grid-cell.l0').first().text()).toContain('1');
-			expect($rows.eq(2).find('.doby-grid-cell.l0').first().text()).toContain('3');
+			expect($($rows[0]).find('.doby-grid-cell.l0').first().text()).toEqual('2');
+			expect($($rows[1]).find('.doby-grid-cell.l0').first().text()).toEqual('1');
+			expect($($rows[2]).find('.doby-grid-cell.l0').first().text()).toEqual('3');
 
 			// Left-clicking again on first column, changes the sort direction
 			$header.simulate('click');
@@ -1403,12 +1405,13 @@ describe("Grid Options", function () {
 			$rows = grid.$el.find('.doby-grid-row');
 
 			// Make sure rows are in correct order
-			$rows.sort(function (i) { return parseInt($(i).css('top'), 10); });
+			$rows = _.sortBy($rows, function (i) {
+				return parseInt($(i).css('top'), 10);
+			});
 
-			expect($rows.eq(0).find('.doby-grid-cell.l0').first().text()).toContain('3');
-			expect($rows.eq(1).find('.doby-grid-cell.l0').first().text()).toContain('1');
-			expect($rows.eq(2).find('.doby-grid-cell.l0').first().text()).toContain('2');
-
+			expect($($rows[0]).find('.doby-grid-cell.l0').first().text()).toEqual('3');
+			expect($($rows[1]).find('.doby-grid-cell.l0').first().text()).toEqual('2');
+			expect($($rows[2]).find('.doby-grid-cell.l0').first().text()).toEqual('1');
 		});
 	});
 
