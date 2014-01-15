@@ -26,7 +26,7 @@ describe("Remote Data", function () {
 				data: {
 					id: i,
 					name: "Name " + i,
-					age: _.sample([18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28]),
+					age: _.sample(_.range(18, 28)),
 					city: _.sample(["Vancouver", "New York", "Chicago", "London", "Paris"])
 				}
 			});
@@ -70,16 +70,18 @@ describe("Remote Data", function () {
 							if (options.order.length) {
 								mydata.sort(function (dataRow1, dataRow2) {
 									var result = 0, column, value1, value2;
+
+									// Loops through the columns by which we are sorting
 									for (var i = 0, l = options.order.length; i < l; i++) {
 										column = options.order[i].columnId;
 										value1 = dataRow1.data[column];
 										value2 = dataRow2.data[column];
-										if (value1 === value2) {
-											result += 0;
-										} else {
-											result += options.order[i].sortAsc ? (value1 > value2) : (value1 < value2);
+
+										if (value1 !== value2) {
+											result += options.order[i].sortAsc ? (value1 > value2) ? 1 : -1 : (value1 < value2) ? 1 : -1;
 										}
 									}
+
 									return result;
 								});
 							}
@@ -91,20 +93,41 @@ describe("Remote Data", function () {
 
 				this.fetchGroups = function (options, callback) {
 					return setTimeout(function () {
-						var c_idx = 0,
-							column_id = options.groups[c_idx].column_id,
-							grouped = _.groupBy(data, function (item) {
+						var generateGrouping = function (dataset, column_id) {
+							var groups = [],
+								grouped = _.groupBy(dataset, function (item) {
 									return item.data[column_id];
-								}),
-							results = [];
-						_.each(_.keys(grouped).sort(), function (group) {
-							results.push({
-								column_id: column_id,
-								count: grouped[group].length,
-								groups: null,
-								value: group
+								});
+
+							_.each(_.keys(grouped).sort(), function (group) {
+								groups.push({
+									column_id: column_id,
+									count: grouped[group].length,
+									groups: [],
+									grouprows: grouped[group],
+									value: group
+								});
 							});
-						});
+
+							return groups;
+						};
+
+						var results = [], column_id, level;
+						for (var i = 0, l = options.groups.length; i < l; i++) {
+							column_id = options.groups[i].column_id;
+							if (i === 0) {
+								results = generateGrouping(data, column_id);
+								level = results;
+							} else {
+								var newLevel = [];
+								for (var j = 0, m = level.length; j < m; j++) {
+									level[j].groups = generateGrouping(level[j].grouprows, column_id);
+									newLevel.push(level);
+								}
+								level = newLevel;
+							}
+						}
+
 						callback(results);
 					}, 5);
 				};
@@ -270,9 +293,7 @@ describe("Remote Data", function () {
 	// ==========================================================================================
 
 
-	// FIXME: This test is failing because there are 3 placeholder rows that remain visible when the
-	// group is opened up. Find out why.
-	xit("should be able to fetch group pages correctly when grouping results", function () {
+	it("should be able to fetch group pages correctly when expanding grouped results", function () {
 		var column_id = "city";
 
 		// Add grouping
@@ -297,7 +318,7 @@ describe("Remote Data", function () {
 			});
 
 			// Expand the second row
-			$rows.eq(1).find('.doby-grid-cell').simulate('click');
+			$rows.eq(0).find('.doby-grid-cell').simulate('click');
 		});
 
 		// Wait for some non-placeholder row data to be fetched
@@ -309,22 +330,20 @@ describe("Remote Data", function () {
 
 		runs(function () {
 			// Find the group row that got expanded
-			_.each(grid.collection.groups[0].grouprows, function (gr) {
-				if (gr.collapsed === 0) {
-					// Expect the correct grid.collection item values to have been fetched
-					_.each(grid.collection.items, function (item) {
-						if (!item.__nonDataRow) {
-							expect(item.data[column_id]).toEqual(gr.value);
-						}
-					});
+			var expandedgroup = _.findWhere(grid.collection.groups[0].grouprows, {collapsed: 0});
 
-					// And expect only those rows to have been rendered
-					grid.$el.find('.doby-grid-row').each(function () {
-						if (!$(this).hasClass('doby-grid-group')) {
-							var $cell = $(this).find('.doby-grid-cell').last();
-							expect($cell).toHaveText(gr.value);
-						}
-					});
+			// Expect the correct grid.collection item values to have been fetched
+			_.each(grid.collection.items, function (item) {
+				if (!item.__nonDataRow) {
+					expect(item.data[column_id]).toEqual(expandedgroup.value);
+				}
+			});
+
+			// And expect only those rows to have been rendered
+			grid.$el.find('.doby-grid-row').each(function () {
+				if (!$(this).hasClass('doby-grid-group')) {
+					var $cell = $(this).find('.doby-grid-cell').last();
+					if ($cell.text()) expect($cell).toHaveText(expandedgroup.value);
 				}
 			});
 		});

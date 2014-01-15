@@ -1929,10 +1929,6 @@
 					gi = self.groups[level],
 					i, l, aggregateRow, addRow;
 
-				var spacer = '-';
-				_.times(level, function () { spacer += '-'; })
-				console.log(spacer, 'Processing Group', '"' + (gi ? gi.column_id : 'FAIL') + '"', '# of rows: ', rows.length)
-
 				var processGroups = function (remote_groups) {
 
 					var createGroupObject = function (g, lvl, parentGrp) {
@@ -1984,8 +1980,6 @@
 
 						processRemoteGroups(remote_groups);
 					}
-
-					console.log(spacer, 'creating ', gi.column_id, ' with', rows.length, 'items')
 
 					// Loop through the rows in the group and create group header rows as needed
 					for (i = 0, l = rows.length; i < l; i++) {
@@ -4471,7 +4465,7 @@
 					var indent = item.level * 15;
 					return [(indent ? '<span style="margin-left:' + indent + 'px">' : ''),
 						'<span class="icon"></span>',
-						'<span class="' + classgrouptitle + '" level="' + item.level + '">',
+						'<span class="' + classgrouptitle + '">',
 						item.title,
 						'</span>',
 						(indent ? '</span>' : '')
