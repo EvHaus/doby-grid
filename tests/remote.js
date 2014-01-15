@@ -209,145 +209,149 @@ describe("Remote Data", function () {
 	// ==========================================================================================
 
 
-	it("should be able to group results", function () {
-		var column_id = "city";
+	describe("Grouping", function () {
 
-		// Add grouping
-		runs(function () {
-			grid.addGrouping(column_id);
-		});
+		it("should be able to group results", function () {
+			var column_id = "city";
 
-		// Wait for the groups to be fetched and calculated
-		waitsFor(function () {
-			return grid.collection.groups.length && grid.collection.groups[0].grouprows.length;
-		});
+			// Add grouping
+			runs(function () {
+				grid.addGrouping(column_id);
+			});
 
-		runs(function () {
-			// Groups should be generated
-			expect(grid.collection.groups.length).toEqual(1);
-			expect(grid.collection.groups[0].column_id).toEqual(column_id);
+			// Wait for the groups to be fetched and calculated
+			waitsFor(function () {
+				return grid.collection.groups.length && grid.collection.groups[0].grouprows.length;
+			});
 
-			// Only group rows should be drawn
-			grid.$el.find('.doby-grid-row').each(function () {
-				expect($(this)).toHaveClass('doby-grid-group');
+			runs(function () {
+				// Groups should be generated
+				expect(grid.collection.groups.length).toEqual(1);
+				expect(grid.collection.groups[0].column_id).toEqual(column_id);
+
+				// Only group rows should be drawn
+				grid.$el.find('.doby-grid-row').each(function () {
+					expect($(this)).toHaveClass('doby-grid-group');
+				});
 			});
 		});
+
+
+		// ==========================================================================================
+
+
+		it("should be able to switch between different groupings (ensuring that the remote grouping cache is properly cleaned up)", function () {
+			var column_id = "city",
+				another_column_id = "age";
+
+			// Add grouping
+			runs(function () {
+				grid.addGrouping(column_id);
+			});
+
+			// Wait for the groups to be fetched and calculated
+			waitsFor(function () {
+				return grid.collection.groups.length && grid.collection.groups[0].grouprows.length;
+			});
+
+			runs(function () {
+				// Groups should be generated
+				expect(grid.collection.groups.length).toEqual(1);
+				expect(grid.collection.groups[0].column_id).toEqual(column_id);
+
+				// Only group rows should be drawn
+				grid.$el.find('.doby-grid-row').each(function () {
+					expect($(this)).toHaveClass('doby-grid-group');
+					expect($(this).find('.doby-grid-group-title strong').first()).toHaveText('City:');
+				});
+			});
+
+			// Now group by another column
+			runs(function () {
+				grid.setGrouping([{column_id: another_column_id}]);
+			});
+
+			// Wait for the groups to be fetched and calculated
+			waitsFor(function () {
+				return grid.collection.groups.length &&
+					grid.collection.groups[0].column_id == another_column_id &&
+					grid.collection.groups[0].grouprows.length;
+			});
+
+			runs(function () {
+				// Groups should be generated
+				expect(grid.collection.groups.length).toEqual(1);
+				expect(grid.collection.groups[0].column_id).toEqual(another_column_id);
+
+				// Only group rows should be drawn
+				grid.$el.find('.doby-grid-row').each(function () {
+					expect($(this)).toHaveClass('doby-grid-group');
+					expect($(this).find('.doby-grid-group-title strong').first()).toHaveText('Age:');
+				});
+			});
+		});
+
+
+		// ==========================================================================================
+
+
+		it("should be able to fetch group pages correctly when expanding grouped results", function () {
+			var column_id = "city";
+
+			// Add grouping
+			runs(function () {
+				grid.addGrouping(column_id);
+			});
+
+			// Wait for the groups to be fetched and calculated
+			waitsFor(function () {
+				return grid.collection.groups.length && grid.collection.groups[0].grouprows.length;
+			});
+
+			runs(function () {
+				// Groups should be generated
+				expect(grid.collection.groups.length).toEqual(1);
+				expect(grid.collection.groups[0].column_id).toEqual(column_id);
+
+				// Only group rows should be drawn
+				var $rows = grid.$el.find('.doby-grid-row');
+				$rows.each(function () {
+					expect($(this)).toHaveClass('doby-grid-group');
+				});
+
+				// Expand the second row
+				$rows.eq(0).find('.doby-grid-cell').simulate('click');
+			});
+
+			// Wait for some non-placeholder row data to be fetched
+			waitsFor(function () {
+				return _.filter(grid.collection.items, function (item) {
+					return !item.__nonDataRow;
+				}).length;
+			});
+
+			runs(function () {
+				// Find the group row that got expanded
+				var expandedgroup = _.findWhere(grid.collection.groups[0].grouprows, {collapsed: 0});
+
+				// Expect the correct grid.collection item values to have been fetched
+				_.each(grid.collection.items, function (item) {
+					if (!item.__nonDataRow) {
+						expect(item.data[column_id]).toEqual(expandedgroup.value);
+					}
+				});
+
+				// And expect only those rows to have been rendered
+				grid.$el.find('.doby-grid-row').each(function () {
+					if (!$(this).hasClass('doby-grid-group')) {
+						var $cell = $(this).find('.doby-grid-cell').last();
+						if ($cell.text()) expect($cell).toHaveText(expandedgroup.value);
+					}
+				});
+			});
+		});
+
+
+
 	});
-
-
-	// ==========================================================================================
-
-
-	it("should be able to switch between different groupings (ensuring that the remote grouping cache is properly cleaned up)", function () {
-		var column_id = "city",
-			another_column_id = "age";
-
-		// Add grouping
-		runs(function () {
-			grid.addGrouping(column_id);
-		});
-
-		// Wait for the groups to be fetched and calculated
-		waitsFor(function () {
-			return grid.collection.groups.length && grid.collection.groups[0].grouprows.length;
-		});
-
-		runs(function () {
-			// Groups should be generated
-			expect(grid.collection.groups.length).toEqual(1);
-			expect(grid.collection.groups[0].column_id).toEqual(column_id);
-
-			// Only group rows should be drawn
-			grid.$el.find('.doby-grid-row').each(function () {
-				expect($(this)).toHaveClass('doby-grid-group');
-				expect($(this).find('.doby-grid-group-title strong').first()).toHaveText('City:');
-			});
-		});
-
-		// Now group by another column
-		runs(function () {
-			grid.setGrouping([{column_id: another_column_id}]);
-		});
-
-		// Wait for the groups to be fetched and calculated
-		waitsFor(function () {
-			return grid.collection.groups.length &&
-				grid.collection.groups[0].column_id == another_column_id &&
-				grid.collection.groups[0].grouprows.length;
-		});
-
-		runs(function () {
-			// Groups should be generated
-			expect(grid.collection.groups.length).toEqual(1);
-			expect(grid.collection.groups[0].column_id).toEqual(another_column_id);
-
-			// Only group rows should be drawn
-			grid.$el.find('.doby-grid-row').each(function () {
-				expect($(this)).toHaveClass('doby-grid-group');
-				expect($(this).find('.doby-grid-group-title strong').first()).toHaveText('Age:');
-			});
-		});
-	});
-
-
-	// ==========================================================================================
-
-
-	it("should be able to fetch group pages correctly when expanding grouped results", function () {
-		var column_id = "city";
-
-		// Add grouping
-		runs(function () {
-			grid.addGrouping(column_id);
-		});
-
-		// Wait for the groups to be fetched and calculated
-		waitsFor(function () {
-			return grid.collection.groups.length && grid.collection.groups[0].grouprows.length;
-		});
-
-		runs(function () {
-			// Groups should be generated
-			expect(grid.collection.groups.length).toEqual(1);
-			expect(grid.collection.groups[0].column_id).toEqual(column_id);
-
-			// Only group rows should be drawn
-			var $rows = grid.$el.find('.doby-grid-row');
-			$rows.each(function () {
-				expect($(this)).toHaveClass('doby-grid-group');
-			});
-
-			// Expand the second row
-			$rows.eq(0).find('.doby-grid-cell').simulate('click');
-		});
-
-		// Wait for some non-placeholder row data to be fetched
-		waitsFor(function () {
-			return _.filter(grid.collection.items, function (item) {
-				return !item.__nonDataRow;
-			}).length;
-		});
-
-		runs(function () {
-			// Find the group row that got expanded
-			var expandedgroup = _.findWhere(grid.collection.groups[0].grouprows, {collapsed: 0});
-
-			// Expect the correct grid.collection item values to have been fetched
-			_.each(grid.collection.items, function (item) {
-				if (!item.__nonDataRow) {
-					expect(item.data[column_id]).toEqual(expandedgroup.value);
-				}
-			});
-
-			// And expect only those rows to have been rendered
-			grid.$el.find('.doby-grid-row').each(function () {
-				if (!$(this).hasClass('doby-grid-group')) {
-					var $cell = $(this).find('.doby-grid-cell').last();
-					if ($cell.text()) expect($cell).toHaveText(expandedgroup.value);
-				}
-			});
-		});
-	});
-
-
 });

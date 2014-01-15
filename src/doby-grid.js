@@ -5586,11 +5586,9 @@
 
 				// When encountering Group rows - keep in mind how many collapsed rows
 				// we need to skip over
-				if (r && r instanceof Group && r.collapsed) {
-					if (newFrom === undefined) {
-						collapsedOffset += r.count;
-						nonDataOffset++;
-					}
+				if (r && r instanceof Group && r.collapsed && newFrom === undefined) {
+					collapsedOffset += r.count;
+					nonDataOffset++;
 					continue;
 				}
 
@@ -5659,8 +5657,7 @@
 						remoteRequest = null;
 
 						// Fire loaded function to process the changes
-
-						remoteLoaded((newFrom + nonDataOffset - collapsedOffset), (newTo + nonDataOffset - collapsedOffset));
+						remoteLoaded((newFrom - collapsedOffset), (newTo + nonDataOffset - collapsedOffset));
 
 						// Fire onLoaded callback
 						if (typeof remote.onLoaded === 'function') remote.onLoaded();
@@ -5719,13 +5716,15 @@
 		// @param	to		integer		Row index until when to fetch
 		//
 		remoteLoaded = function (from, to) {
-			// Invalidate edited rows
+			// Invalidate updated rows
 			for (var i = from; i <= to; i++) {
 				invalidateRow(i);
 			}
 
 			updateRowCount();
 			render();
+
+			self.trigger('remoteloaded', {});
 		};
 
 
