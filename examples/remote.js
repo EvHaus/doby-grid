@@ -6,7 +6,7 @@ define(['faker'], function (Faker) {
 	return [function () {
 
 		var data = [];
-		for (var i = 0; i < 10000; i++) {
+		for (var i = 0; i < 50; i++) {
 			data.push({
 				id: i,
 				data: {
@@ -123,23 +123,41 @@ define(['faker'], function (Faker) {
 				this.fetchGroups = function (options, callback) {
 					// Fake AJAX delay
 					return setTimeout(function () {
-						// TODO: Support nested groups somehow
-						var c_idx = 0,
-							column_id = options.groups[c_idx].column_id,
-							grouped = _.groupBy(data, function (item) {
-								return item.data[column_id];
-							}),
-							results = [];
+						// This function will recursively generate nested groupings from our data set
+						var generateGrouping = function (dataset, column_id) {
+							var groups = [],
+								grouped = _.groupBy(dataset, function (item) {
+									return item.data[column_id];
+								});
 
-						// Generate results
-						_.each(_.keys(grouped).sort(), function (group) {
-							results.push({
-								column_id: column_id,
-								count: grouped[group].length,
-								groups: null, // TODO: For nested groups
-								value: group
+							_.each(_.keys(grouped).sort(), function (group) {
+								groups.push({
+									column_id: column_id,
+									count: grouped[group].length,
+									groups: [],
+									grouprows: grouped[group],
+									value: group
+								});
 							});
-						});
+
+							return groups;
+						};
+
+						var results = [], column_id, level;
+						for (var i = 0, l = options.groups.length; i < l; i++) {
+							column_id = options.groups[i].column_id;
+							if (i === 0) {
+								results = generateGrouping(data, column_id);
+								level = results;
+							} else {
+								var newLevel = [];
+								for (var j = 0, m = level.length; j < m; j++) {
+									level[j].groups = generateGrouping(level[j].grouprows, column_id);
+									newLevel.push(level);
+								}
+								level = newLevel;
+							}
+						}
 
 						callback(results);
 					}, 100);

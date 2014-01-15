@@ -1924,23 +1924,29 @@
 					val,
 					groups = [],
 					groupsByVal = {},
-					r,
+					r, gr,
 					level = parentGroup ? parentGroup.level + 1 : 0,
 					gi = self.groups[level],
 					i, l, aggregateRow, addRow;
 
+				var spacer = '-';
+				_.times(level, function () { spacer += '-'; })
+				console.log(spacer, 'Processing Group', '"' + (gi ? gi.column_id : 'FAIL') + '"', '# of rows: ', rows.length)
+
 				var processGroups = function (remote_groups) {
 
-					var createGroupObject = function (g) {
+					var createGroupObject = function (g, lvl, parentGrp) {
 						var grp = new Group(),
 							value = g ? g.value : val;
+
+						parentGrp = parentGrp || parentGroup;
 
 						grp.collapsed = gi.collapsed;
 						if (g) grp.count = g.count;
 						grp.value = value;
-						grp.level = level;
+						grp.level = lvl ? lvl : level;
 						grp.predef = gi;
-						grp.id = '__group' + (parentGroup ? parentGroup.id + groupingDelimiter : '') + value;
+						grp.id = '__group' + (parentGrp ? parentGrp.id + groupingDelimiter : '') + value;
 
 						// Remember the group rows in the grouping objects
 						gi.grouprows.push(grp);
@@ -1950,13 +1956,36 @@
 
 					// If we are given a set of remote_groups, use them to generate new group objects
 					if (remote_groups) {
+						// TODO: Why is this here?
 						gi.grouprows = [];
-						for (i = 0, l = remote_groups.length; i < l; i++) {
-							group = createGroupObject(remote_groups[i]);
-							groups.push(group);
-							groupsByVal[remote_groups[i].value] = group;
-						}
+
+						var processRemoteGroups = function (grps, target, lvl, nested) {
+							for (var m = 0, n = grps.length; m < n; m++) {
+								group = createGroupObject(grps[m], lvl, nested ? target : null);
+
+								if (target) {
+									// Nested groups go into their parent target
+									if (!target.groups) target.groups = [];
+									target.groups.push(group);
+								} else {
+									// Otherwise, go to main groups array
+									groups.push(group);
+
+									// This line ensures the correct group is expanded/collapsed
+									groupsByVal[group.value] = group;
+								}
+
+								// Nested groups
+								if (grps[m].groups && grps[m].groups.length) {
+									processRemoteGroups(grps[m].groups, group, level + 1, true);
+								}
+							}
+						};
+
+						processRemoteGroups(remote_groups);
 					}
+
+					console.log(spacer, 'creating ', gi.column_id, ' with', rows.length, 'items')
 
 					// Loop through the rows in the group and create group header rows as needed
 					for (i = 0, l = rows.length; i < l; i++) {
@@ -2004,7 +2033,7 @@
 						}
 
 						// Do not increment count for remote groups because we already have the right count
-						if (!remote_groups)	group.count++;
+						if (!remote) group.count++;
 					}
 
 					// Nest groups
@@ -2014,12 +2043,16 @@
 						};
 
 						for (i = 0, l = groups.length; i < l; i++) {
-							group = groups[i];
+							gr = groups[i];
+
+							// TODO: I have no idea why this has to be here -- but without it
+							// nested groups in regular mode don't work correctly.
+							if (!remote) group = gr;
 
 							// Do not treat aggreates as groups
-							if (group instanceof Aggregate) continue;
+							if (gr instanceof Aggregate) continue;
 
-							extractGroups(group.grouprows, group, setGroups);
+							extractGroups(gr.grouprows, gr, setGroups);
 						}
 					}
 
@@ -2037,7 +2070,7 @@
 				};
 
 				// Remote groups needs to be extracted from the remote source
-				if (remote) {
+				if (remote && level === 0) {
 					remoteFetchGroups(function (results) {
 						processGroups(results);
 					});
@@ -2674,7 +2707,7 @@
 
 					if (!toggledGroupsByLevel[i]) toggledGroupsByLevel[i] = {};
 
-					// Extend using a default grouping object nad add to groups
+					// Extend using a default grouping object and add to groups
 					groups.push(createGroupingObject(options[i]));
 				}
 
@@ -2684,7 +2717,13 @@
 				// When we're dealing with remote groups - we might as well re-generate placeholders
 				// for everything since any data that was previously fetched is no longer in the right
 				// order anyway.
-				if (remote) generatePlaceholders();
+				if (remote) {
+					// Reset collection length to full. This ensures that when groupings are removed,
+					// the grid correctly refetches the full page of results.
+					this.length = this.remote_length;
+
+					generatePlaceholders();
+				}
 
 				// Reload the grid with the new grouping
 				this.refresh();
@@ -5496,8 +5535,11 @@
 
 			// TODO: Add an options.filters variable in here
 			remote.count(options, function (result) {
-				// Set collection length
+				// Sets the current collection length
 				self.collection.length = result;
+
+				// Sets the total remote collection length
+				self.collection.remote_length = result;
 
 				if (result === 0) {
 					// When there are no results insert an empty row
