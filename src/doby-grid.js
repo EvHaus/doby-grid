@@ -6755,6 +6755,8 @@
 				throw new Error('Doby Grid cannot set the sorting because the "options" parameter must be an array of objects.');
 			}
 
+			var old_sorting = JSON.parse(JSON.stringify(this.sorting)), i, l;
+
 			if (!this.options.multiColumnSort && options.length > 1) {
 				throw new Error('Doby Grid cannot set the sorting given because "multiColumnSort" is disabled and the given sorting options contain multiple columns.');
 			}
@@ -6762,7 +6764,7 @@
 			// Make sure all selected columns are sortable, and make sure
 			// every column has a sort direction set
 			var colDef;
-			for (var i = 0, l = options.length; i < l; i++) {
+			for (i = 0, l = options.length; i < l; i++) {
 				colDef = getColumnById(options[i].columnId);
 				if (colDef.sortable === false) {
 					throw new Error([
@@ -6780,6 +6782,19 @@
 
 			// Update the sorting data
 			styleSortColumns();
+
+			// Check to see if the sorting has actually changed
+			var changed = old_sorting.length != this.sorting.length;
+			if (!changed) {
+				for (i = 0, l = old_sorting.length; i < l; i++) {
+					if (old_sorting[i].columnId != this.sorting[i].columnId	|| old_sorting[i].sortAsc != this.sorting[i].sortAsc) {
+						changed = true;
+						break;
+					}
+				}
+			}
+
+			if (changed) {
 
 			// Re-process column args into something the execute sorter can understand
 			var args = {
@@ -6800,6 +6815,8 @@
 
 			// Fire event
 			self.trigger('sort', this._event, args);
+
+			}
 
 			return this;
 		};
@@ -7102,10 +7119,10 @@
 
 					// If that column is already being sorted by, remove it
 					if (sortOpts) {
-						self.sorting.splice(i, 1);
-						sorting = self.sorting;
+						sorting = JSON.parse(JSON.stringify(self.sorting));
+						sorting.splice(i, 1);
 					} else {
-						sorting = self.sorting;
+						sorting = JSON.parse(JSON.stringify(self.sorting));
 						sorting.push({
 							columnId: column.id,
 							sortAsc: true
@@ -7116,8 +7133,8 @@
 						// If we're in multi-sort mode, do not reset sorted columns
 						// just flip the direction instead.
 						if (self.options.multiColumnSort) {
-							self.sorting[i].sortAsc = !self.sorting[i].sortAsc;
-							sorting = self.sorting;
+							sorting = JSON.parse(JSON.stringify(self.sorting));
+							sorting[i].sortAsc = !sorting[i].sortAsc;
 						} else {
 							sorting = [sortOpts];
 						}
@@ -7544,10 +7561,9 @@
 					enabled: hasSorting(column.id),
 					name: column ? getLocale('column.remove_sort', {name: column.name}) : '',
 					fn: function () {
-						self.sorting = _.filter(self.sorting, function (s) {
+						self.setSorting(_.filter(self.sorting, function (s) {
 							return s.columnId != column.id;
-						});
-						self.setSorting(self.sorting);
+						}));
 						dropdown.hide();
 					}
 				}]
