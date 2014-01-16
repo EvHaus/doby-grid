@@ -3320,8 +3320,17 @@
 				// Clear the row cache to ensure when new data comes in the grid refreshes
 				cache.rows = [];
 
-				// Ask the Remote fetcher to refetch the data -- this time using the new sort settings
-				remoteFetch();
+				if (self.collection.groups.length) {
+					// If we're grouped, we need to refetch groups in the right order again.
+					// For this we call 'refresh' which will refetch the groups and auto-render the grid
+					// for us.
+					cache.remoteGroups = null;
+					self.collection.refresh();
+				} else {
+					// Ask the Remote fetcher to refetch the data -- this time using the new sort settings
+					remoteFetch();
+				}
+
 				return;
 			}
 
@@ -5568,6 +5577,12 @@
 			for (var i = 0, l = cache.rows.length; i < l; i++) {
 				if (cache.rows[i] instanceof Placeholder) {
 					return false;
+				} else if (cache.rows[i] instanceof Group) {
+					for (var j = 0, m = cache.rows[i].grouprows.length; j < m; j++) {
+						if (cache.rows[i].grouprows[j] instanceof Placeholder) {
+							return false;
+						}
+					}
 				}
 			}
 			return true;
@@ -5716,6 +5731,8 @@
 		// @param	callback	function	Callback function
 		//
 		remoteFetchGroups = function (callback) {
+			callback = callback || function () {};
+
 			// If grouping fast, abort pending requests
 			if (remoteRequest && typeof remoteRequest.abort === 'function') {
 				remoteRequest.abort();
@@ -5726,7 +5743,8 @@
 				callback(cache.remoteGroups);
 			} else {
 				var options = {
-					groups: self.collection.groups
+					groups: self.collection.groups,
+					order: self.sorting
 				};
 
 				// Fire onLoading callback
@@ -5742,6 +5760,8 @@
 
 					// Return results via callback
 					callback(results);
+
+					self.trigger('remoteloaded', {});
 
 					// Fire onLoaded callback
 					if (typeof remote.onLoaded === 'function') remote.onLoaded();
@@ -6796,25 +6816,25 @@
 
 			if (changed) {
 
-			// Re-process column args into something the execute sorter can understand
-			var args = {
-				multiColumnSort: this.sorting.length > 1,
-				sortCols: []
-			};
+				// Re-process column args into something the execute sorter can understand
+				var args = {
+					multiColumnSort: this.sorting.length > 1,
+					sortCols: []
+				};
 
-			_.each(this.sorting, function (col) {
-				colDef = getColumnById(col.columnId);
-				args.sortCols.push({
-					sortCol: colDef,
-					sortAsc: col.sortAsc
+				_.each(this.sorting, function (col) {
+					colDef = getColumnById(col.columnId);
+					args.sortCols.push({
+						sortCol: colDef,
+						sortAsc: col.sortAsc
+					});
 				});
-			});
 
-			// Manually execute the sorter that will actually re-draw the table
-			executeSorter(args);
+				// Manually execute the sorter that will actually re-draw the table
+				executeSorter(args);
 
-			// Fire event
-			self.trigger('sort', this._event, args);
+				// Fire event
+				self.trigger('sort', this._event, args);
 
 			}
 

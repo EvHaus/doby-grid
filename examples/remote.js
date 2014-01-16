@@ -6,7 +6,7 @@ define(['faker'], function (Faker) {
 	return [function () {
 
 		var data = [];
-		for (var i = 0; i < 5000; i++) {
+		for (var i = 0; i < 1000; i++) {
 			data.push({
 				id: i,
 				data: {
@@ -119,6 +119,7 @@ define(['faker'], function (Faker) {
 				// The following options will be passed in:
 				//
 				// @opt		groups		array		A list of grouping objects currently enabled
+				// @opt		order		array		A list of the current sort order objects
 				//
 				// @return object
 				this.fetchGroups = function (options, callback) {
@@ -159,6 +160,23 @@ define(['faker'], function (Faker) {
 								level = newLevel;
 							}
 						}
+
+						// Sort the group results according to request
+						results.sort(function (a, b) {
+							var result = 0, val;
+
+							// TODO: Add support for nested group sorting
+
+							// Loops through the columns by which we are sorting
+							for (var i = 0, l = options.order.length; i < l; i++) {
+								if (a.value !== b.value) {
+									val = options.order[i].sortAsc ? (a.value > b.value) ? 1 : -1 : (a.value < b.value) ? 1 : -1;
+									if (val !== 0) return val;
+								}
+							}
+
+							return result;
+						});
 
 						callback(results);
 					}, 100);

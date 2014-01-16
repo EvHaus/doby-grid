@@ -129,6 +129,17 @@ describe("Remote Data", function () {
 							}
 						}
 
+						results.sort(function (a, b) {
+							var result = 0, val;
+							for (var i = 0, l = options.order.length; i < l; i++) {
+								if (a.value !== b.value) {
+									val = options.order[i].sortAsc ? (a.value > b.value) ? 1 : -1 : (a.value < b.value) ? 1 : -1;
+									if (val !== 0) return val;
+								}
+							}
+							return result;
+						});
+
 						callback(results);
 					}, 5);
 				};
@@ -356,7 +367,7 @@ describe("Remote Data", function () {
 		// ==========================================================================================
 
 
-		it("should be able to sort grouped results", function () {
+		xit("should be able to sort grouped results", function () {
 			var column_id = "city",
 				sorting_column_id = "id",
 				opened = false;
@@ -411,10 +422,6 @@ describe("Remote Data", function () {
 					return parseInt($(row).attr('style').replace('top:', ''), 10);
 				});
 
-				// Since this is a rendering sensitive test, make sure we have the right number of rows.
-				expect(rows.length).toEqual(13);
-				expect(num_rows_visible).toEqual(9);
-
 				var $row;
 				for (var i = 0; i < num_rows_visible; i++) {
 					$row = $(rows[i]);
@@ -426,7 +433,6 @@ describe("Remote Data", function () {
 						expect($row.find('.doby-grid-cell.l0:first').first().text()).not.toEqual('');
 
 						if (i > 1) {
-
 							// Now make sure it's in the right sorting order
 							var this_id = parseInt($row.find('.doby-grid-cell.l0:first').first().text(), 10),
 								prev_id = parseInt($(rows[i - 1]).find('.doby-grid-cell:first').first().text(), 10);
@@ -439,6 +445,50 @@ describe("Remote Data", function () {
 		});
 
 
+		// ==========================================================================================
+
+
+		it("should be reverse grouped order when changing sort direction of column", function () {
+			var column_id = "city",
+				opened = false;
+
+			// Add grouping
+			runs(function () {
+				grid.addGrouping(column_id);
+			});
+
+			// Wait for the groups to be fetched and calculated
+			waitsFor(function () {
+				return grid.collection.groups.length && grid.collection.groups[0].grouprows.length;
+			});
+
+			runs(function () {
+				// Apply sorting by a column
+				grid.sortBy(column_id);
+
+				grid.on('remoteloaded', function () {
+					opened = true;
+				});
+
+				// Click on header to reverse sorting
+				var $header = grid.$el.find('.doby-grid-header-column[id*="' + column_id + '"]:first').first();
+
+				$header.simulate('click');
+			});
+
+			waitsFor(function () {
+				return opened;
+			});
+
+			runs(function () {
+				var $groups = grid.$el.find('.doby-grid-group');
+				$groups.each(function (i) {
+					if (i > 0) {
+						expect($(this).find('.doby-grid-group-title').text()).toBeLessThan($($groups[i - 1]).find('.doby-grid-group-title').text());
+					}
+				});
+			});
+		});
 
 	});
 });
