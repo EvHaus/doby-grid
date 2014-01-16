@@ -2729,7 +2729,6 @@
 					// Reset collection length to full. This ensures that when groupings are removed,
 					// the grid correctly refetches the full page of results.
 					this.length = this.remote_length;
-
 					generatePlaceholders();
 				}
 
@@ -3314,6 +3313,10 @@
 
 			// If remote, and not all data is fetched - sort on server
 			if (remote && !remoteAllLoaded()) {
+				// Reset collection length to full. This ensures that when groupings are removed,
+				// the grid correctly refetches the full page of results.
+				self.collection.length = self.collection.remote_length;
+
 				// Refill the collection with placeholders
 				generatePlaceholders();
 
@@ -3321,10 +3324,32 @@
 				cache.rows = [];
 
 				if (self.collection.groups.length) {
+					// Clear the grouping cache
+					cache.remoteGroups = null;
+
+					// Subscribe to an event that will tell us once the refresh
+					// (and group fetching is done)
+					var waitForGroups = function () {
+						// Only call remoteFetch if at least 1 group is open
+						var allClosed = true;
+						for (var i = 0, l = self.collection.groups.length; i < l; i++) {
+							if (!allClosed) break;
+							for (var j = 0, m = self.collection.groups[i].grouprows.length; j < m; j++) {
+								if (!self.collection.groups[i].grouprows[j].collapsed) {
+									allClosed = false;
+									break;
+								}
+							}
+						}
+
+						if (!allClosed) remoteFetch();
+					};
+
+					self.once('remotegroupsloaded', waitForGroups);
+
 					// If we're grouped, we need to refetch groups in the right order again.
 					// For this we call 'refresh' which will refetch the groups and auto-render the grid
 					// for us.
-					cache.remoteGroups = null;
 					self.collection.refresh();
 				} else {
 					// Ask the Remote fetcher to refetch the data -- this time using the new sort settings
@@ -3518,17 +3543,44 @@
 		// generatePlaceholders()
 		// Replaces the entire collection with Placeholder objects
 		//
-		generatePlaceholders = function () {
+		// @param	group		object		(Optional) Group object whose placeholders should be reset.
+		//									If not specified, will reset placeholders for everything.
+		//
+		generatePlaceholders = function (group) {
+			var len = group ? group.count : self.collection.length,
+				i, l;
+
 			// Reset the collection
-			self.collection.items = [];
+			if (!group) {
+				self.collection.items = [];
+			}
 
 			// Populate the collection with placeholders
 			var phId, ph;
-			for (var i = 0, l = self.collection.length; i < l; i++) {
+			for (i = 0, l = len; i < l; i++) {
 				phId = 'placeholder-' + i;
 				ph = new Placeholder({id: phId});
-				self.collection.items.push(ph);
-				cache.indexById[phId] = ph;
+				if (!group) {
+					self.collection.items.push(ph);
+					cache.indexById[phId] = ph;
+				} else {
+					group.grouprows.push(ph);
+				}
+			}
+
+			// If we're grouped - we need to reset placeholders in all groups
+			if (!group && self.collection.groups) {
+				for (i = 0, l = self.collection.groups.length; i < l; i++) {
+					for (var j = 0, m = self.collection.groups[i].grouprows.length; j < m; j++) {
+						generatePlaceholders(self.collection.groups[i].grouprows[j]);
+					}
+				}
+			} else if (group) {
+				if (group.groups && group.groups.length) {
+					for (i = 0, l = group.groups.length; i < l; i++) {
+						generatePlaceholders(group.groups[i]);
+					}
+				}
 			}
 		};
 
@@ -5761,7 +5813,7 @@
 					// Return results via callback
 					callback(results);
 
-					self.trigger('remoteloaded', {});
+					self.trigger('remotegroupsloaded', {});
 
 					// Fire onLoaded callback
 					if (typeof remote.onLoaded === 'function') remote.onLoaded();

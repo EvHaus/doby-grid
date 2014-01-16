@@ -367,9 +367,10 @@ describe("Remote Data", function () {
 		// ==========================================================================================
 
 
-		xit("should be able to sort grouped results", function () {
+		it("should be able to sort grouped results", function () {
 			var column_id = "city",
 				sorting_column_id = "id",
+				sorted = false,
 				opened = false;
 
 			// Add grouping
@@ -393,15 +394,26 @@ describe("Remote Data", function () {
 					expect($(this)).toHaveClass('doby-grid-group');
 				});
 
+				grid.on('remotegroupsloaded', function () {
+					sorted = true;
+				});
+
 				// Apply sorting by a column
 				grid.sortBy(sorting_column_id);
+			});
 
+			// Wait for some non-placeholder row data to be fetched
+			waitsFor(function () {
+				return sorted;
+			});
+
+			runs(function () {
 				grid.on('remoteloaded', function () {
 					opened = true;
 				});
 
 				// Expand the first group
-				grid.$el.find('.doby-grid-group:first .doby-grid-cell:first').simulate('click');
+				grid.$el.find('.doby-grid-group:first .doby-grid-cell:first').simulate('click', {});
 			});
 
 			// Wait for some non-placeholder row data to be fetched
@@ -466,7 +478,7 @@ describe("Remote Data", function () {
 				// Apply sorting by a column
 				grid.sortBy(column_id);
 
-				grid.on('remoteloaded', function () {
+				grid.on('remotegroupsloaded', function () {
 					opened = true;
 				});
 
@@ -485,6 +497,97 @@ describe("Remote Data", function () {
 				$groups.each(function (i) {
 					if (i > 0) {
 						expect($(this).find('.doby-grid-group-title').text()).toBeLessThan($($groups[i - 1]).find('.doby-grid-group-title').text());
+					}
+				});
+			});
+		});
+
+
+		// ==========================================================================================
+
+
+		it("should be able to sort grouped results after a group has been expanded", function () {
+			var column_id = "city",
+				sorting_column_id = "age",
+				sorted = false,
+				opened = false;
+
+			// Add grouping
+			runs(function () {
+				grid.addGrouping(column_id);
+			});
+
+			// Wait for the groups to be fetched and calculated
+			waitsFor(function () {
+				return grid.collection.groups.length && grid.collection.groups[0].grouprows.length;
+			});
+
+			runs(function () {
+				// Groups should be generated
+				expect(grid.collection.groups.length).toEqual(1);
+				expect(grid.collection.groups[0].column_id).toEqual(column_id);
+
+				// Only group rows should be drawn
+				var $rows = grid.$el.find('.doby-grid-row');
+				$rows.each(function () {
+					expect($(this)).toHaveClass('doby-grid-group');
+				});
+			});
+
+			runs(function () {
+				grid.on('remoteloaded', function () {
+					opened = true;
+				});
+
+				// Expand the second group
+				grid.$el.find('.doby-grid-group:nth-child(2) .doby-grid-cell:first').simulate('click', {});
+			});
+
+			// Wait for some non-placeholder row data to be fetched
+			waitsFor(function () {
+				return opened;
+			});
+
+			runs(function () {
+				grid.on('remoteloaded', function () {
+					sorted = true;
+				});
+
+				// Apply sorting by a column
+				grid.sortBy(sorting_column_id);
+			});
+
+			// Wait for some non-placeholder row data to be fetched
+			waitsFor(function () {
+				return sorted;
+			});
+
+			runs(function () {
+				// Check to make sure all expanded rows have the correct data
+				var rows = _.sortBy(grid.$el.find('.doby-grid-row:not(.doby-grid-group)'), function (row) {
+					// For some reason jasmine-grunt doesn't like .css('top') here, which returns NaN
+					// But attr('style') seems to return the right thing. Wat?
+					return parseInt($(row).attr('style').replace('top:', ''), 10);
+				});
+
+				// Number of rows which we're expecting to be visible at this point
+				var viewportH = grid.$el.find('.doby-grid-viewport').height(),
+					rowH = grid.$el.find('.doby-grid-row:first').outerHeight(),
+					num_rows_visible = Math.floor(viewportH / rowH);
+
+				// Remove the extra collapsed group row above
+				num_rows_visible--;
+
+				_.each(rows, function (row, i) {
+					if (i > num_rows_visible) return;
+
+					expect($(row).children('.l2').text()).not.toEqual('');
+
+					if (i > 0) {
+						var left = $(row).children('.l2').text(),
+							right = $(rows[i - 1]).children('.l2').text();
+
+						expect(left).not.toBeLessThan(right);
 					}
 				});
 			});
