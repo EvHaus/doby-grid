@@ -69,7 +69,7 @@ describe("Remote Data", function () {
 							var mydata = JSON.parse(JSON.stringify(data));
 							if (options.order.length) {
 								mydata.sort(function (dataRow1, dataRow2) {
-									var result = 0, column, value1, value2;
+									var result = 0, column, value1, value2, val;
 
 									// Loops through the columns by which we are sorting
 									for (var i = 0, l = options.order.length; i < l; i++) {
@@ -78,7 +78,8 @@ describe("Remote Data", function () {
 										value2 = dataRow2.data[column];
 
 										if (value1 !== value2) {
-											result += options.order[i].sortAsc ? (value1 > value2) ? 1 : -1 : (value1 < value2) ? 1 : -1;
+											val = options.order[i].sortAsc ? (value1 > value2) ? 1 : -1 : (value1 < value2) ? 1 : -1;
+											if (val !== 0) return val;
 										}
 									}
 
@@ -348,6 +349,92 @@ describe("Remote Data", function () {
 						if ($cell.text()) expect($cell).toHaveText(expandedgroup.value);
 					}
 				});
+			});
+		});
+
+
+		// ==========================================================================================
+
+
+		it("should be able to sort grouped results", function () {
+			var column_id = "city",
+				sorting_column_id = "id",
+				opened = false;
+
+			// Add grouping
+			runs(function () {
+				grid.addGrouping(column_id);
+			});
+
+			// Wait for the groups to be fetched and calculated
+			waitsFor(function () {
+				return grid.collection.groups.length && grid.collection.groups[0].grouprows.length;
+			});
+
+			runs(function () {
+				// Groups should be generated
+				expect(grid.collection.groups.length).toEqual(1);
+				expect(grid.collection.groups[0].column_id).toEqual(column_id);
+
+				// Only group rows should be drawn
+				var $rows = grid.$el.find('.doby-grid-row');
+				$rows.each(function () {
+					expect($(this)).toHaveClass('doby-grid-group');
+				});
+
+				// Apply sorting by a column
+				grid.sortBy(sorting_column_id);
+
+				grid.on('remoteloaded', function () {
+					opened = true;
+				});
+
+				// Expand the first group
+				grid.$el.find('.doby-grid-group:first .doby-grid-cell:first').simulate('click');
+			});
+
+			// Wait for some non-placeholder row data to be fetched
+			waitsFor(function () {
+				return opened;
+			});
+
+			runs(function () {
+				// Get viewport height
+				var viewportH = grid.$el.find('.doby-grid-viewport').height(),
+					rowH = grid.$el.find('.doby-grid-row:first').outerHeight(),
+					num_rows_visible = Math.floor(viewportH / rowH);
+
+				// Make sure all visible rows have the correct data
+				var rows = _.sortBy(grid.$el.find('.doby-grid-row:not(.doby-grid-group)'), function (row) {
+					// For some reason jasmine-grunt doesn't like .css('top') here, which returns NaN
+					// But attr('style') seems to return the right thing. Wat?
+					return parseInt($(row).attr('style').replace('top:', ''), 10);
+				});
+
+				// Since this is a rendering sensitive test, make sure we have the right number of rows.
+				expect(rows.length).toEqual(13);
+				expect(num_rows_visible).toEqual(9);
+
+				var $row;
+				for (var i = 0; i < num_rows_visible; i++) {
+					$row = $(rows[i]);
+
+					if ($row.hasClass('doby-grid-group')) {
+						expect($row).toHaveClass('expanded');
+					} else {
+						// Make sure we have at least some text rendered (ie. not a placeholder)
+						expect($row.find('.doby-grid-cell.l0:first').first().text()).not.toEqual('');
+
+						if (i > 1) {
+
+							// Now make sure it's in the right sorting order
+							var this_id = parseInt($row.find('.doby-grid-cell.l0:first').first().text(), 10),
+								prev_id = parseInt($(rows[i - 1]).find('.doby-grid-cell:first').first().text(), 10);
+
+							expect(this_id).toBeGreaterThan(prev_id);
+						}
+					}
+				}
 			});
 		});
 

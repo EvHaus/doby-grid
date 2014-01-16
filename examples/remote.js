@@ -6,7 +6,7 @@ define(['faker'], function (Faker) {
 	return [function () {
 
 		var data = [];
-		for (var i = 0; i < 50; i++) {
+		for (var i = 0; i < 5000; i++) {
 			data.push({
 				id: i,
 				data: {
@@ -83,7 +83,7 @@ define(['faker'], function (Faker) {
 						// Apply fake sort
 						if (options.order.length) {
 							mydata.sort(function (dataRow1, dataRow2) {
-								var result = 0, column, value1, value2;
+								var result = 0, column, value1, value2, val;
 
 								// Loops through the columns by which we are sorting
 								for (var i = 0, l = options.order.length; i < l; i++) {
@@ -92,7 +92,8 @@ define(['faker'], function (Faker) {
 									value2 = dataRow2.data[column];
 
 									if (value1 !== value2) {
-										result += options.order[i].sortAsc ? (value1 > value2) ? 1 : -1 : (value1 < value2) ? 1 : -1;
+										val = options.order[i].sortAsc ? (value1 > value2) ? 1 : -1 : (value1 < value2) ? 1 : -1;
+										if (val !== 0) return val;
 									}
 								}
 

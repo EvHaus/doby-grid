@@ -3326,7 +3326,11 @@
 			}
 
 			self.collection.sort(function (dataRow1, dataRow2) {
-				var column, field, sign, value1, value2, result = 0;
+				var column, field, sign, value1, value2, result = 0, val;
+
+				// Do not attempt to sort Aggregators. They will always go to the bottom.
+				if (dataRow1 instanceof Aggregate) return 1;
+				if (dataRow2 instanceof Aggregate) return -1;
 
 				// Loops through the columns by which we are sorting
 				for (var i = 0, l = cols.length; i < l; i++) {
@@ -3334,24 +3338,22 @@
 					field = column.field;
 					sign = cols[i].sortAsc ? 1 : -1;
 
-					// Do not attempt to sort Aggregators. They will always go to the bottom.
-					if (dataRow1 instanceof Aggregate) return 1;
-					if (dataRow2 instanceof Aggregate) return -1;
-
 					value1 = getDataItemValueForColumn(dataRow1, column);
 					value2 = getDataItemValueForColumn(dataRow2, column);
 
 					// Use custom column comparer if it exists
 					if (typeof(column.comparator) === 'function') {
-						return column.comparator(value1, value2) * sign;
+						val = column.comparator(value1, value2) * sign;
+						if (val !== 0) return val;
 					} else {
 						// Always keep null values on the bottom
-						if (value1 === null && value2 === null) return 0;
+						if (value1 === null && value2 === null) continue;
 						if (value1 === null) return 1;
 						if (value2 === null) return -1;
 
 						// Use natural sort by default
-						result += naturalSort(value1, value2) * sign;
+						val = naturalSort(value1, value2) * sign;
+						if (val !== 0) return val;
 					}
 				}
 
@@ -5228,6 +5230,8 @@
 			// Now add any remaining user sorting configs at the end
 			var gsort;
 			for (i = 0, l = user_sorting.length; i < l; i++) {
+				if (user_sorting[i].group) continue;
+
 				gsort = groupSortById[user_sorting[i].columnId];
 				if (!gsort) {
 					sorting.push(user_sorting[i]);
@@ -5677,28 +5681,13 @@
 					// Fire onLoading callback
 					if (typeof remote.onLoading === 'function') remote.onLoading();
 
-					// Define order
-					var order = [];
-
-					// If we have any groups, we need to sort by them first
-					if (self.collection.groups) {
-						for (var j = 0, k = self.collection.groups.length; j < k; j++) {
-							order.push({
-								columnId: self.collection.groups[j].column_id,
-								sortAsc: true
-							});
-						}
-					}
-
-					if (self.sorting) order = order.concat(self.sorting);
-
 					// Builds the options we need to give the fetcher
 					var options = {
 						columns: cache.activeColumns,
 						//filters: null, TODO: Enable remote filtering here
 						limit: newTo - newFrom + 1,
 						offset: newFrom,
-						order: order
+						order: self.sorting
 					};
 
 					remoteRequest = remote.fetch(options, function (results) {
@@ -6770,21 +6759,19 @@
 				throw new Error('Doby Grid cannot set the sorting given because "multiColumnSort" is disabled and the given sorting options contain multiple columns.');
 			}
 
-			// Make sure all selected columns are sortable
-			var colDef = null;
+			// Make sure all selected columns are sortable, and make sure
+			// every column has a sort direction set
+			var colDef;
 			for (var i = 0, l = options.length; i < l; i++) {
-				if (colDef) break;
-				for (var j = 0, m = cache.activeColumns.length; j < m; j++) {
-					if (options[i].columnId === cache.activeColumns[j].id) {
-						colDef = cache.activeColumns[j];
-						if (colDef.sortable === false) {
-							throw new Error([
-								'Doby Grid cannot sort by "', colDef.id,
-								'" because that column is not sortable.'
-							].join(''));
-						}
-						break;
-					}
+				colDef = getColumnById(options[i].columnId);
+				if (colDef.sortable === false) {
+					throw new Error([
+						'Doby Grid cannot sort by "', colDef.id,
+						'" because that column is not sortable.'
+					].join(''));
+				}
+				if (options[i].sortAsc === null || options[i].sortAsc === undefined) {
+					options[i].sortAsc = colDef.sortAsc !== null || colDef.sortAsc !== undefined ? colDef.sortAsc : true;
 				}
 			}
 
@@ -6796,14 +6783,15 @@
 
 			// Re-process column args into something the execute sorter can understand
 			var args = {
-				multiColumnSort: true,
+				multiColumnSort: this.sorting.length > 1,
 				sortCols: []
 			};
 
-			_.each(options, function (col) {
+			_.each(this.sorting, function (col) {
+				colDef = getColumnById(col.columnId);
 				args.sortCols.push({
-					sortCol: getColumnById(col.columnId),
-					sortAsc: col.sortAsc !== null && col.sortAsc !== undefined ? col.sortAsc : colDef.sortAsc
+					sortCol: colDef,
+					sortAsc: col.sortAsc
 				});
 			});
 
