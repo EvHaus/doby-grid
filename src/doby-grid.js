@@ -5681,8 +5681,6 @@
 			for (var i = start; i <= to; i++) {
 				r = cache.rows[i];
 
-				console.log('scanning', r)
-
 				// When encountering Group rows - keep in mind how many collapsed rows
 				// we need to skip over
 				if (r && r instanceof Group && r.collapsed && newFrom === undefined) {
@@ -5711,9 +5709,6 @@
 				}
 			}
 
-			console.log('nonData', nonDataOffset)
-			console.log('collapsedOffset', collapsedOffset)
-
 			// If everything is already loaded - simply process the rows via remoteLoaded()
 			if (newFrom === undefined) {
 				remoteLoaded();
@@ -5736,10 +5731,7 @@
 						order: self.sorting
 					};
 
-					console.log('fetching', newFrom, 'to', newTo)
 					remoteRequest = remote.fetch(options, function (results) {
-						console.log('got', results)
-
 						// Add items to collection
 						self.collection.add(results, {at: newFrom, merge: true});
 
