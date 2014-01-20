@@ -132,6 +132,9 @@ describe("Remote Data", function () {
 						results.sort(function (a, b) {
 							var result = 0, val;
 							for (var i = 0, l = options.order.length; i < l; i++) {
+								if (!isNaN(parseInt(a.value, 10))) a.value = parseInt(a.value, 10);
+								if (!isNaN(parseInt(b.value, 10))) b.value = parseInt(b.value, 10);
+
 								if (a.value !== b.value) {
 									val = options.order[i].sortAsc ? (a.value > b.value) ? 1 : -1 : (a.value < b.value) ? 1 : -1;
 									if (val !== 0) return val;
@@ -394,7 +397,7 @@ describe("Remote Data", function () {
 					expect($(this)).toHaveClass('doby-grid-group');
 				});
 
-				grid.on('remotegroupsloaded', function () {
+				grid.once('remotegroupsloaded', function () {
 					sorted = true;
 				});
 
@@ -408,7 +411,7 @@ describe("Remote Data", function () {
 			});
 
 			runs(function () {
-				grid.on('remoteloaded', function () {
+				grid.once('remoteloaded', function () {
 					opened = true;
 				});
 
@@ -478,7 +481,7 @@ describe("Remote Data", function () {
 				// Apply sorting by a column
 				grid.sortBy(column_id);
 
-				grid.on('remotegroupsloaded', function () {
+				grid.once('remotegroupsloaded', function () {
 					opened = true;
 				});
 
@@ -535,7 +538,7 @@ describe("Remote Data", function () {
 			});
 
 			runs(function () {
-				grid.on('remoteloaded', function () {
+				grid.once('remoteloaded', function () {
 					opened = true;
 				});
 
@@ -549,7 +552,7 @@ describe("Remote Data", function () {
 			});
 
 			runs(function () {
-				grid.on('remoteloaded', function () {
+				grid.once('remoteloaded', function () {
 					sorted = true;
 				});
 
@@ -590,6 +593,135 @@ describe("Remote Data", function () {
 						expect(left).not.toBeLessThan(right);
 					}
 				});
+			});
+		});
+
+
+		// ==========================================================================================
+
+
+		it("should fetch the correct row data when grouped results are scrolled before being expanded", function () {
+			var column_id = "id",
+				scrolled = true,
+				opened = false;
+
+			// Add grouping
+			runs(function () {
+				grid.addGrouping(column_id);
+			});
+
+			// Wait for the groups to be fetched and calculated
+			waitsFor(function () {
+				return grid.collection.groups.length && grid.collection.groups[0].grouprows.length;
+			});
+
+			runs(function () {
+				grid.once('remoteloaded', function () {
+					scrolled = true;
+				});
+
+				// Scroll to the bottom
+				grid.scrollToRow(grid.collection.length);
+			});
+
+			// Wait for some non-placeholder row data to be fetched
+			waitsFor(function () {
+				return scrolled;
+			});
+
+			runs(function () {
+				grid.once('remoteloaded', function () {
+					opened = true;
+				});
+
+				// Expand a group in the middle of the last page
+				grid.$el.find('.doby-grid-group:nth-child(10) .doby-grid-cell:first').simulate('click', {});
+			});
+
+			// Wait for some non-placeholder row data to be fetched
+			waitsFor(function () {
+				return opened;
+			});
+
+			runs(function () {
+				// Find the non-group row
+				var $row = grid.$el.find('.doby-grid-row:not(.doby-grid-group)');
+
+				// Should not be a placeholder
+				expect($row.find('.l0')).not.toBeEmpty();
+			});
+		});
+
+
+		// ==========================================================================================
+
+
+		// TODO: This doesn't work yet
+		xit("should be able to correctly fetch and render nested groupings", function () {
+			var group1_column_id = "age",
+				group2_column_id = "city",
+				opened1 = false,
+				opened2 = false;
+
+			// Add grouping
+			runs(function () {
+				grid.setGrouping([{column_id: group1_column_id}, {column_id: group2_column_id}]);
+			});
+
+			// Wait for the groups to be fetched and calculated
+			waitsFor(function () {
+				return grid.collection.groups.length == 2 && grid.collection.groups[0].grouprows.length;
+			});
+
+			runs(function () {
+				// Groups should be generated
+				expect(grid.collection.groups.length).toEqual(2);
+				expect(grid.collection.groups[0].column_id).toEqual(group1_column_id);
+
+				// Only group rows should be drawn
+				var $rows = grid.$el.find('.doby-grid-row');
+				$rows.each(function () {
+					expect($(this)).toHaveClass('doby-grid-group');
+				});
+
+				grid.once('remoteloaded', function () {
+					opened1 = true;
+				});
+
+				// Expand the first group
+				grid.$el.find('.doby-grid-group:first .doby-grid-cell:first').simulate('click', {});
+			});
+
+			// Wait for some non-placeholder row data to be fetched
+			waitsFor(function () {
+				return opened1;
+			});
+
+			runs(function () {
+				// All rows should still be groups
+				var $rows = grid.$el.find('.doby-grid-row');
+				$rows.each(function () {
+					expect($(this)).toHaveClass('doby-grid-group');
+				});
+
+				grid.once('remoteloaded', function () {
+					opened2 = true;
+				});
+
+				// Expand the first group's first group
+				grid.$el.find('.doby-grid-group:nth-child(2) .doby-grid-cell:first').simulate('click', {});
+			});
+
+			// Wait for some non-placeholder row data to be fetched
+			waitsFor(function () {
+				return opened2;
+			});
+
+			runs(function () {
+				// At this point we should have one regular row visible
+				var $rows = grid.$el.find('.doby-grid-row:not(.doby-grid-group)');
+
+				expect($rows.length).toEqual(1);
 			});
 		});
 

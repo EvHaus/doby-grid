@@ -1867,7 +1867,6 @@
 				}
 
 				self.refresh();
-
 				if (remote && !collapse) remoteFetch();
 			};
 
@@ -1881,9 +1880,7 @@
 			//
 			expandCollapseGroup = function (level, group_id, collapse) {
 				toggledGroupsByLevel[level][group_id] = self.groups[level].collapsed ^ collapse;
-
 				self.refresh();
-
 				if (remote && !collapse) remoteFetch();
 			};
 
@@ -1963,7 +1960,8 @@
 
 					// If we are given a set of remote_groups, use them to generate new group objects
 					if (remote_groups) {
-						// TODO: Why is this here?
+						// TODO: This is confusion as the Group objects themselves also have a 'grouprows'
+						// property. Why do we need both?
 						gi.grouprows = [];
 
 						var processRemoteGroups = function (grps, target, lvl, nested) {
@@ -1984,7 +1982,7 @@
 
 								// Nested groups
 								if (grps[m].groups && grps[m].groups.length) {
-									processRemoteGroups(grps[m].groups, group, level + 1, true);
+									processRemoteGroups(grps[m].groups, group, lvl + 1, true);
 								}
 							}
 						};
@@ -3546,41 +3544,17 @@
 		// @param	group		object		(Optional) Group object whose placeholders should be reset.
 		//									If not specified, will reset placeholders for everything.
 		//
-		generatePlaceholders = function (group) {
-			var len = group ? group.count : self.collection.length,
-				i, l;
-
+		generatePlaceholders = function () {
 			// Reset the collection
-			if (!group) {
-				self.collection.items = [];
-			}
+			self.collection.items = [];
 
 			// Populate the collection with placeholders
 			var phId, ph;
-			for (i = 0, l = len; i < l; i++) {
+			for (var i = 0, l = self.collection.length; i < l; i++) {
 				phId = 'placeholder-' + i;
 				ph = new Placeholder({id: phId});
-				if (!group) {
-					self.collection.items.push(ph);
-					cache.indexById[phId] = ph;
-				} else {
-					group.grouprows.push(ph);
-				}
-			}
-
-			// If we're grouped - we need to reset placeholders in all groups
-			if (!group && self.collection.groups) {
-				for (i = 0, l = self.collection.groups.length; i < l; i++) {
-					for (var j = 0, m = self.collection.groups[i].grouprows.length; j < m; j++) {
-						generatePlaceholders(self.collection.groups[i].grouprows[j]);
-					}
-				}
-			} else if (group) {
-				if (group.groups && group.groups.length) {
-					for (i = 0, l = group.groups.length; i < l; i++) {
-						generatePlaceholders(group.groups[i]);
-					}
-				}
+				self.collection.items.push(ph);
+				cache.indexById[phId] = ph;
 			}
 		};
 
@@ -4892,8 +4866,8 @@
 				if (Math.abs(lastRenderedScrollTop - scrollTop) > 20 ||
 					Math.abs(lastRenderedScrollLeft - scrollLeft) > 20) {
 
-					// If virtual scroll is disabled, or viewing something that is already rendered --
-					// re-render immediately
+					// If virtual scroll is disabled, or viewing something that is already rendered
+					// -- re-render immediately
 					if (!self.options.virtualScroll || (
 						Math.abs(lastRenderedScrollTop - scrollTop) < viewportH &&
 						Math.abs(lastRenderedScrollLeft - scrollLeft) < viewportW)) {
@@ -5707,6 +5681,8 @@
 			for (var i = start; i <= to; i++) {
 				r = cache.rows[i];
 
+				console.log('scanning', r)
+
 				// When encountering Group rows - keep in mind how many collapsed rows
 				// we need to skip over
 				if (r && r instanceof Group && r.collapsed && newFrom === undefined) {
@@ -5735,6 +5711,9 @@
 				}
 			}
 
+			console.log('nonData', nonDataOffset)
+			console.log('collapsedOffset', collapsedOffset)
+
 			// If everything is already loaded - simply process the rows via remoteLoaded()
 			if (newFrom === undefined) {
 				remoteLoaded();
@@ -5757,7 +5736,10 @@
 						order: self.sorting
 					};
 
+					console.log('fetching', newFrom, 'to', newTo)
 					remoteRequest = remote.fetch(options, function (results) {
+						console.log('got', results)
+
 						// Add items to collection
 						self.collection.add(results, {at: newFrom, merge: true});
 
@@ -6256,7 +6238,7 @@
 					// Can also be used for checking whether a cell has been rendered.
 					cellColSpans: [],
 
-					// Cell nodes (by column idx).  Lazy-populated by ensureCellNodesInRowsCache().
+					// Cell nodes (by column idx). Lazy-populated by ensureCellNodesInRowsCache().
 					cellNodesByColumnIdx: [],
 
 					// Column indices of cell nodes that have been rendered, but not yet indexed in

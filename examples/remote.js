@@ -169,6 +169,9 @@ define(['faker'], function (Faker) {
 
 							// Loops through the columns by which we are sorting
 							for (var i = 0, l = options.order.length; i < l; i++) {
+								if (!isNaN(parseInt(a.value, 10))) a.value = parseInt(a.value, 10);
+								if (!isNaN(parseInt(b.value, 10))) b.value = parseInt(b.value, 10);
+
 								if (a.value !== b.value) {
 									val = options.order[i].sortAsc ? (a.value > b.value) ? 1 : -1 : (a.value < b.value) ? 1 : -1;
 									if (val !== 0) return val;
