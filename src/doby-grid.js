@@ -1961,8 +1961,11 @@
 
 					// If we are given a set of remote_groups, use them to generate new group objects
 					if (remote_groups) {
+						var rm_g;
 						for (var m = 0, n = remote_groups[level].groups.length; m < n; m++) {
-							group = createGroupObject(remote_groups[level].groups[m]);
+							rm_g = remote_groups[level].groups[m];
+							if (parentGroup && rm_g.parent != parentGroup.value) continue;
+							group = createGroupObject(rm_g);
 							groups.push(group);
 							groupsByVal[group.value] = group;
 						}
@@ -1986,10 +1989,12 @@
 						}
 
 						if (r instanceof Placeholder) {
-							// For placeholder rows - find an empty group's value
-							for (var key in groupsByVal) {
-								if (groupsByVal[key].count > groupsByVal[key].grouprows.length) {
-									val = key;
+							// For placeholder rows - find an empty group's value.
+							// This must use the 'groups' object and not the 'groupByVal' because
+							// the order of the groups is important for sorting.
+							for (var g = 0, q = groups.length; g < q; g++) {
+								if (groups[g].count > groups[g].grouprows.length) {
+									val = groups[g].value;
 									break;
 								}
 							}
@@ -3526,12 +3531,21 @@
 			self.collection.items = [];
 
 			// Populate the collection with placeholders
-			var phId, ph;
-			for (var i = 0, l = self.collection.length; i < l; i++) {
+			var phId, ph, i, l;
+			for (i = 0, l = self.collection.length; i < l; i++) {
 				phId = 'placeholder-' + i;
 				ph = new Placeholder({id: phId});
 				self.collection.items.push(ph);
 				cache.indexById[phId] = ph;
+			}
+
+			// Reset any row references in groups as they are no longer valid
+			if (self.collection.groups.length) {
+				for (i = 0, l = self.collection.groups.length; i < l; i++) {
+					for (var j = 0, m = self.collection.groups[i].rows.length; j < m; j++) {
+						self.collection.groups[i].rows[j].grouprows = [];
+					}
+				}
 			}
 		};
 
@@ -5709,7 +5723,6 @@
 					};
 
 					remoteRequest = remote.fetch(options, function (results) {
-
 						// Add items to collection
 						self.collection.add(results, {at: newFrom, merge: true});
 

@@ -95,14 +95,16 @@ describe("Remote Data", function () {
 				this.fetchGroups = function (options, callback) {
 					return setTimeout(function () {
 						var results = [], column_id;
-						var generateGroup = function (column_id) {
+						var generateGroup = function (column_id, data, level, parent_group_value) {
 							var groups = [], grouped;
 							grouped = _.groupBy(data, function (item) {
 								return item.data[column_id];
 							});
 							_.each(_.keys(grouped).sort(), function (group) {
 								groups.push({
+									_rows: grouped[group],
 									count: grouped[group].length,
+									parent: parent_group_value,
 									value: group
 								});
 							});
@@ -117,19 +119,30 @@ describe("Remote Data", function () {
 										if (val !== 0) return val;
 									}
 								}
+
 								return result;
 							});
-							results.push({
-								column_id: column_id,
-								groups: groups
-							});
+							if (level && results[level]) {
+								results[level].groups = results[level].groups.concat(groups);
+							} else {
+								results[level] = {
+									column_id: column_id,
+									groups: groups
+								};
+							}
 						};
 						for (var i = 0, l = options.groups.length; i < l; i++) {
 							column_id = options.groups[i].column_id;
-							generateGroup(column_id);
+							if (i === 0) {
+								generateGroup(column_id, data, i);
+							} else {
+								for (var j = 0, m = results[i - 1].groups.length; j < m; j++) {
+									generateGroup(column_id, results[i - 1].groups[j]._rows, i, results[i - 1].groups[j].value);
+								}
+							}
 						}
 						callback(results);
-					}, 100);
+					}, 5);
 				};
 			}
 		};
@@ -450,6 +463,53 @@ describe("Remote Data", function () {
 
 		it("should be reverse grouped order when changing sort direction of column", function () {
 			var column_id = "city",
+				sorted = false;
+
+			// Add grouping
+			runs(function () {
+				grid.addGrouping(column_id);
+			});
+
+			// Wait for the groups to be fetched and calculated
+			waitsFor(function () {
+				return grid.collection.groups.length && grid.collection.groups[0].rows.length;
+			});
+
+			runs(function () {
+				// Apply sorting by a column
+				grid.sortBy(column_id);
+
+				grid.once('remotegroupsloaded', function () {
+					sorted = true;
+				});
+
+				// Click on header to reverse sorting
+				var $header = grid.$el.find('.doby-grid-header-column[id*="' + column_id + '"]:first').first();
+
+				$header.simulate('click');
+			});
+
+			waitsFor(function () {
+				return sorted;
+			});
+
+			runs(function () {
+				var $groups = grid.$el.find('.doby-grid-group');
+				$groups.each(function (i) {
+					if (i > 0) {
+						expect($(this).find('.doby-grid-group-title').text()).toBeLessThan($($groups[i - 1]).find('.doby-grid-group-title').text());
+					}
+				});
+			});
+		});
+
+
+		// ==========================================================================================
+
+
+		it("should be able to fetch grouped result rows when sorting in reverse order", function () {
+			var column_id = "age",
+				sorted = false,
 				opened = false;
 
 			// Add grouping
@@ -467,7 +527,7 @@ describe("Remote Data", function () {
 				grid.sortBy(column_id);
 
 				grid.once('remotegroupsloaded', function () {
-					opened = true;
+					sorted = true;
 				});
 
 				// Click on header to reverse sorting
@@ -477,14 +537,33 @@ describe("Remote Data", function () {
 			});
 
 			waitsFor(function () {
+				return sorted;
+			});
+
+			runs(function () {
+				grid.once('remoteloaded', function () {
+					opened = true;
+				});
+
+				// Expand the first group
+				grid.$el.find('.doby-grid-group:first .doby-grid-cell:first').simulate('click', {});
+			});
+
+			waitsFor(function () {
 				return opened;
 			});
 
 			runs(function () {
-				var $groups = grid.$el.find('.doby-grid-group');
-				$groups.each(function (i) {
-					if (i > 0) {
-						expect($(this).find('.doby-grid-group-title').text()).toBeLessThan($($groups[i - 1]).find('.doby-grid-group-title').text());
+				var rows = _.sortBy(grid.$el.find('.doby-grid-row:not(.doby-grid-group)'), function (row) {
+					// For some reason jasmine-grunt doesn't like .css('top') here, which returns NaN
+					// But attr('style') seems to return the right thing. Wat?
+					return parseInt($(row).attr('style').replace('top:', ''), 10);
+				});
+
+				// Make sure at least first 3 rows have visible data loaded
+				_.each(rows, function (row, i) {
+					if (i < 3) {
+						expect($(row).find('.doby-grid-cell.l2')).toHaveText(27);
 					}
 				});
 			});
@@ -641,8 +720,7 @@ describe("Remote Data", function () {
 		// ==========================================================================================
 
 
-		// TODO: This doesn't work yet
-		xit("should be able to correctly fetch and render nested groupings", function () {
+		it("should be able to correctly fetch and render nested groupings", function () {
 			var group1_column_id = "age",
 				group2_column_id = "city",
 				opened1 = false,
@@ -673,8 +751,14 @@ describe("Remote Data", function () {
 					opened1 = true;
 				});
 
+				var rows = _.sortBy(grid.$el.find('.doby-grid-group'), function (row) {
+					// For some reason jasmine-grunt doesn't like .css('top') here, which returns NaN
+					// But attr('style') seems to return the right thing. Wat?
+					return parseInt($(row).attr('style').replace('top:', ''), 10);
+				});
+
 				// Expand the first group
-				grid.$el.find('.doby-grid-group:first .doby-grid-cell:first').simulate('click', {});
+				$(rows[0]).find('.doby-grid-cell:first').simulate('click', {});
 			});
 
 			// Wait for some non-placeholder row data to be fetched
@@ -693,8 +777,14 @@ describe("Remote Data", function () {
 					opened2 = true;
 				});
 
+				var rows = _.sortBy(grid.$el.find('.doby-grid-group'), function (row) {
+					// For some reason jasmine-grunt doesn't like .css('top') here, which returns NaN
+					// But attr('style') seems to return the right thing. Wat?
+					return parseInt($(row).attr('style').replace('top:', ''), 10);
+				});
+
 				// Expand the first group's first group
-				grid.$el.find('.doby-grid-group:nth-child(2) .doby-grid-cell:first').simulate('click', {});
+				$(rows[1]).find('.doby-grid-cell:first').simulate('click', {});
 			});
 
 			// Wait for some non-placeholder row data to be fetched
@@ -706,7 +796,37 @@ describe("Remote Data", function () {
 				// At this point we should have one regular row visible
 				var $rows = grid.$el.find('.doby-grid-row:not(.doby-grid-group)');
 
-				expect($rows.length).toEqual(1);
+
+				// First make sure none of the opened rows are placeholders
+				$rows.each(function () {
+					expect($(this).find('.doby-grid-cell').html()).not.toBeEmpty();
+				});
+
+				// Make sure the right group was opened. Find the groups which are expanded
+				// and use those to verify the data.
+				var open_groups = [];
+				_.each(grid.collection.groups[0].rows, function (g) {
+					if (g.collapsed === 0) {
+						open_groups.push({
+							column: g.predef.column_id,
+							value: g.value
+						});
+
+						_.each(g.groups, function (s) {
+							if (s.collapsed === 0) {
+								open_groups.push({
+									column: s.predef.column_id,
+									value: s.value
+								});
+							}
+						});
+					}
+				});
+
+				$rows.each(function () {
+					expect($(this).find('.doby-grid-cell.l2').html()).toBe(open_groups[0].value.toString());
+					expect($(this).find('.doby-grid-cell.l3').html()).toBe(open_groups[1].value.toString());
+				});
 			});
 		});
 

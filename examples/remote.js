@@ -6,7 +6,7 @@ define(['faker'], function (Faker) {
 	return [function () {
 
 		var data = [];
-		for (var i = 0; i < 5; i++) {
+		for (var i = 0; i < 10; i++) {
 			data.push({
 				id: i,
 				data: {
@@ -127,15 +127,23 @@ define(['faker'], function (Faker) {
 				//		column_id: 'first_grouped_column',
 				//		groups: [{
 				//			count: 432,
-				//			value: 'A',
+				//			value: 'A'
 				//		}, {
 				//			count: 192,
-				//			value: 'B',
-				//		}, ...]
+				//			value: 'B'
+				//		}]
 				// }, {
 				//		column_id: 'second_grouped_column',
-				//		groups: [...]
-				// }, ...]
+				//		groups: [{
+				//			count: 12,
+				//			value: '1',
+				//			parent: 'A'
+				//		}, {
+				//			count: 14,
+				//			value: '2',
+				//			parent: 'A'
+				//		}]
+				// }]
 				//
 				// @return object
 				this.fetchGroups = function (options, callback) {
@@ -143,7 +151,7 @@ define(['faker'], function (Faker) {
 					return setTimeout(function () {
 						var results = [], column_id;
 
-						var generateGroup = function (column_id) {
+						var generateGroup = function (column_id, data, level, parent_group_value) {
 							var groups = [], grouped;
 
 							grouped = _.groupBy(data, function (item) {
@@ -151,7 +159,9 @@ define(['faker'], function (Faker) {
 							});
 							_.each(_.keys(grouped).sort(), function (group) {
 								groups.push({
+									_rows: grouped[group],
 									count: grouped[group].length,
+									parent: parent_group_value,
 									value: group
 								});
 							});
@@ -173,15 +183,25 @@ define(['faker'], function (Faker) {
 								return result;
 							});
 
-							results.push({
-								column_id: column_id,
-								groups: groups
-							});
+							if (level && results[level]) {
+								results[level].groups = results[level].groups.concat(groups);
+							} else {
+								results[level] = {
+									column_id: column_id,
+									groups: groups
+								};
+							}
 						};
 
 						for (var i = 0, l = options.groups.length; i < l; i++) {
 							column_id = options.groups[i].column_id;
-							generateGroup(column_id);
+							if (i === 0) {
+								generateGroup(column_id, data, i);
+							} else {
+								for (var j = 0, m = results[i - 1].groups.length; j < m; j++) {
+									generateGroup(column_id, results[i - 1].groups[j]._rows, i, results[i - 1].groups[j].value);
+								}
+							}
 						}
 
 						callback(results);
