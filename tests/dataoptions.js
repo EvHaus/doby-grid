@@ -353,9 +353,57 @@ describe("Data Options", function () {
 			grid.$el.find('.doby-grid-row:first-child').each(function () {
 				expect($(this).height()).not.toEqual(50);
 			});
+		});
 
+
+		// ==========================================================================================
+
+
+		it("should correctly reset the canvas height when variable row height grids are grouped", function () {
 			// Reset
-			grid.setGrouping();
+			var data = _.map(_.range(0, 100), function (i) {
+				return {
+					data: {
+						id: i,
+						name: 'Asd' + i,
+						category: _.sample(['a', 'b', 'c'])
+					},
+					id: i,
+					height: _.sample([50, 100, 150, 200, 250])
+				};
+			});
+
+			var grid = resetGrid({
+				columns: [{
+					id: "id",
+					name: "ID",
+					field: "id"
+				}, {
+					id: "name",
+					name: "Name",
+					field: "name"
+				}, {
+					id: "category",
+					name: "Category",
+					field: "category"
+				}],
+				data: data
+			});
+
+			// Check to make sure the canvas height is correct
+			var rowheights = _.reduce(data, function (a, b) {
+				return (a.height ? a.height : a) + b.height;
+			});
+
+			expect(grid.$el.find('.doby-grid-canvas').height()).toEqual(rowheights + data.length - 1);
+
+			// Group
+			grid.setGrouping([{
+				column_id: 'id'
+			}]);
+
+			// Check to make sure the canvas height is correct
+			expect(grid.$el.find('.doby-grid-canvas').height()).toEqual(data.length * grid.options.rowHeight + data.length - 1);
 		});
 	});
 

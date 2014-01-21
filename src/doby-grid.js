@@ -2715,6 +2715,10 @@
 				// Reload the grid with the new grouping
 				this.refresh();
 
+				// If we're in variable row height mode - resize the canvas now since grouping changes
+				// will cause the row sizes to be changed.
+				if (variableRowHeight) resizeCanvas();
+
 				// If we're removing grouping - refetch remote data
 				if (remote && groups.length === 0) remoteFetch();
 			};
