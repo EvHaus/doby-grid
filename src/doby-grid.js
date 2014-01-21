@@ -1942,52 +1942,30 @@
 
 				var processGroups = function (remote_groups) {
 
-					var createGroupObject = function (g, lvl, parentGrp) {
+					var createGroupObject = function (g) {
 						var grp = new Group(),
 							value = g ? g.value : val;
-
-						parentGrp = parentGrp || parentGroup;
 
 						grp.collapsed = gi.collapsed;
 						if (g) grp.count = g.count;
 						grp.value = value;
-						grp.level = lvl ? lvl : level;
+						grp.level = level;
 						grp.predef = gi;
-						grp.id = '__group' + (parentGrp ? parentGrp.id + groupingDelimiter : '') + value;
+						grp.id = '__group' + (parentGroup ? parentGroup.id + groupingDelimiter : '') + value;
 
 						// Remember the group rows in the grouping objects
-						self.groups[grp.level].rows.push(grp);
+						self.groups[level].rows.push(grp);
 
 						return grp;
 					};
 
 					// If we are given a set of remote_groups, use them to generate new group objects
 					if (remote_groups) {
-						var processRemoteGroups = function (grps, target, lvl, nested) {
-
-							for (var m = 0, n = grps.length; m < n; m++) {
-								group = createGroupObject(grps[m], lvl, nested ? target : null);
-
-								if (target) {
-									// Nested groups go into their parent target
-									if (!target.groups) target.groups = [];
-									target.groups.push(group);
-								} else {
-									// Otherwise, go to main groups array
-									groups.push(group);
-								}
-
-								// This line ensures the correct group is expanded/collapsed
-								groupsByVal[group.value] = group;
-
-								// Nested groups
-								if (grps[m].groups && grps[m].groups.length) {
-									processRemoteGroups(grps[m].groups, group, lvl + 1, true);
-								}
-							}
-						};
-
-						processRemoteGroups(remote_groups, null, level);
+						for (var m = 0, n = remote_groups[level].groups.length; m < n; m++) {
+							group = createGroupObject(remote_groups[level].groups[m]);
+							groups.push(group);
+							groupsByVal[group.value] = group;
+						}
 					}
 
 					// Loop through the rows in the group and create group header rows as needed
@@ -2070,7 +2048,9 @@
 				};
 
 				// Remote groups needs to be extracted from the remote source
-				if (remote && level === 0) {
+				if (remote) {
+					// remoteFetchGroups will cache the results after the first request,
+					// so there is no fear of this being re-querying the server on every grouping loop
 					remoteFetchGroups(function (results) {
 						processGroups(results);
 					});

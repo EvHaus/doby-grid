@@ -121,65 +121,68 @@ define(['faker'], function (Faker) {
 				// @opt		groups		array		A list of grouping objects currently enabled
 				// @opt		order		array		A list of the current sort order objects
 				//
+				// Expecting results in the following format:
+				//
+				// [{
+				//		column_id: 'first_grouped_column',
+				//		groups: [{
+				//			count: 432,
+				//			value: 'A',
+				//		}, {
+				//			count: 192,
+				//			value: 'B',
+				//		}, ...]
+				// }, {
+				//		column_id: 'second_grouped_column',
+				//		groups: [...]
+				// }, ...]
+				//
 				// @return object
 				this.fetchGroups = function (options, callback) {
 					// Fake AJAX delay
 					return setTimeout(function () {
-						// This function will recursively generate nested groupings from our data set
-						var generateGrouping = function (dataset, column_id) {
-							var groups = [],
-								grouped = _.groupBy(dataset, function (item) {
-									return item.data[column_id];
-								});
+						var results = [], column_id;
 
+						var generateGroup = function (column_id) {
+							var groups = [], grouped;
+
+							grouped = _.groupBy(data, function (item) {
+								return item.data[column_id];
+							});
 							_.each(_.keys(grouped).sort(), function (group) {
 								groups.push({
-									column_id: column_id,
 									count: grouped[group].length,
-									groups: [],
-									rows: grouped[group],
 									value: group
 								});
 							});
 
-							return groups;
+							// Sort the group results according to request
+							groups.sort(function (a, b) {
+								var result = 0, val;
+								// Loops through the columns by which we are sorting
+								for (var i = 0, l = options.order.length; i < l; i++) {
+									if (!isNaN(parseInt(a.value, 10))) a.value = parseInt(a.value, 10);
+									if (!isNaN(parseInt(b.value, 10))) b.value = parseInt(b.value, 10);
+
+									if (a.value !== b.value) {
+										val = options.order[i].sortAsc ? (a.value > b.value) ? 1 : -1 : (a.value < b.value) ? 1 : -1;
+										if (val !== 0) return val;
+									}
+								}
+
+								return result;
+							});
+
+							results.push({
+								column_id: column_id,
+								groups: groups
+							});
 						};
 
-						var results = [], column_id, level;
 						for (var i = 0, l = options.groups.length; i < l; i++) {
 							column_id = options.groups[i].column_id;
-							if (i === 0) {
-								results = generateGrouping(data, column_id);
-								level = results;
-							} else {
-								var newLevel = [];
-								for (var j = 0, m = level.length; j < m; j++) {
-									level[j].groups = generateGrouping(level[j].rows, column_id);
-									newLevel.push(level);
-								}
-								level = newLevel;
-							}
+							generateGroup(column_id);
 						}
-
-						// Sort the group results according to request
-						results.sort(function (a, b) {
-							var result = 0, val;
-
-							// TODO: Add support for nested group sorting
-
-							// Loops through the columns by which we are sorting
-							for (var i = 0, l = options.order.length; i < l; i++) {
-								if (!isNaN(parseInt(a.value, 10))) a.value = parseInt(a.value, 10);
-								if (!isNaN(parseInt(b.value, 10))) b.value = parseInt(b.value, 10);
-
-								if (a.value !== b.value) {
-									val = options.order[i].sortAsc ? (a.value > b.value) ? 1 : -1 : (a.value < b.value) ? 1 : -1;
-									if (val !== 0) return val;
-								}
-							}
-
-							return result;
-						});
 
 						callback(results);
 					}, 100);
