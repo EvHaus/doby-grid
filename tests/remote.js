@@ -105,7 +105,7 @@ describe("Remote Data", function () {
 									column_id: column_id,
 									count: grouped[group].length,
 									groups: [],
-									grouprows: grouped[group],
+									rows: grouped[group],
 									value: group
 								});
 							});
@@ -122,7 +122,7 @@ describe("Remote Data", function () {
 							} else {
 								var newLevel = [];
 								for (var j = 0, m = level.length; j < m; j++) {
-									level[j].groups = generateGrouping(level[j].grouprows, column_id);
+									level[j].groups = generateGrouping(level[j].rows, column_id);
 									newLevel.push(level);
 								}
 								level = newLevel;
@@ -236,7 +236,7 @@ describe("Remote Data", function () {
 
 			// Wait for the groups to be fetched and calculated
 			waitsFor(function () {
-				return grid.collection.groups.length && grid.collection.groups[0].grouprows.length;
+				return grid.collection.groups.length && grid.collection.groups[0].rows.length;
 			});
 
 			runs(function () {
@@ -266,7 +266,7 @@ describe("Remote Data", function () {
 
 			// Wait for the groups to be fetched and calculated
 			waitsFor(function () {
-				return grid.collection.groups.length && grid.collection.groups[0].grouprows.length;
+				return grid.collection.groups.length && grid.collection.groups[0].rows.length;
 			});
 
 			runs(function () {
@@ -290,7 +290,7 @@ describe("Remote Data", function () {
 			waitsFor(function () {
 				return grid.collection.groups.length &&
 					grid.collection.groups[0].column_id == another_column_id &&
-					grid.collection.groups[0].grouprows.length;
+					grid.collection.groups[0].rows.length;
 			});
 
 			runs(function () {
@@ -320,7 +320,7 @@ describe("Remote Data", function () {
 
 			// Wait for the groups to be fetched and calculated
 			waitsFor(function () {
-				return grid.collection.groups.length && grid.collection.groups[0].grouprows.length;
+				return grid.collection.groups.length && grid.collection.groups[0].rows.length;
 			});
 
 			runs(function () {
@@ -347,7 +347,7 @@ describe("Remote Data", function () {
 
 			runs(function () {
 				// Find the group row that got expanded
-				var expandedgroup = _.findWhere(grid.collection.groups[0].grouprows, {collapsed: 0});
+				var expandedgroup = _.findWhere(grid.collection.groups[0].rows, {collapsed: 0});
 
 				// Expect the correct grid.collection item values to have been fetched
 				_.each(grid.collection.items, function (item) {
@@ -383,7 +383,7 @@ describe("Remote Data", function () {
 
 			// Wait for the groups to be fetched and calculated
 			waitsFor(function () {
-				return grid.collection.groups.length && grid.collection.groups[0].grouprows.length;
+				return grid.collection.groups.length && grid.collection.groups[0].rows.length;
 			});
 
 			runs(function () {
@@ -474,7 +474,7 @@ describe("Remote Data", function () {
 
 			// Wait for the groups to be fetched and calculated
 			waitsFor(function () {
-				return grid.collection.groups.length && grid.collection.groups[0].grouprows.length;
+				return grid.collection.groups.length && grid.collection.groups[0].rows.length;
 			});
 
 			runs(function () {
@@ -522,7 +522,7 @@ describe("Remote Data", function () {
 
 			// Wait for the groups to be fetched and calculated
 			waitsFor(function () {
-				return grid.collection.groups.length && grid.collection.groups[0].grouprows.length;
+				return grid.collection.groups.length && grid.collection.groups[0].rows.length;
 			});
 
 			runs(function () {
@@ -612,7 +612,7 @@ describe("Remote Data", function () {
 
 			// Wait for the groups to be fetched and calculated
 			waitsFor(function () {
-				return grid.collection.groups.length && grid.collection.groups[0].grouprows.length;
+				return grid.collection.groups.length && grid.collection.groups[0].rows.length;
 			});
 
 			runs(function () {
@@ -670,7 +670,7 @@ describe("Remote Data", function () {
 
 			// Wait for the groups to be fetched and calculated
 			waitsFor(function () {
-				return grid.collection.groups.length == 2 && grid.collection.groups[0].grouprows.length;
+				return grid.collection.groups.length == 2 && grid.collection.groups[0].rows.length;
 			});
 
 			runs(function () {

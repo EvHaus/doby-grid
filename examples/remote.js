@@ -6,7 +6,7 @@ define(['faker'], function (Faker) {
 	return [function () {
 
 		var data = [];
-		for (var i = 0; i < 1000; i++) {
+		for (var i = 0; i < 5; i++) {
 			data.push({
 				id: i,
 				data: {
@@ -137,7 +137,7 @@ define(['faker'], function (Faker) {
 									column_id: column_id,
 									count: grouped[group].length,
 									groups: [],
-									grouprows: grouped[group],
+									rows: grouped[group],
 									value: group
 								});
 							});
@@ -154,7 +154,7 @@ define(['faker'], function (Faker) {
 							} else {
 								var newLevel = [];
 								for (var j = 0, m = level.length; j < m; j++) {
-									level[j].groups = generateGrouping(level[j].grouprows, column_id);
+									level[j].groups = generateGrouping(level[j].rows, column_id);
 									newLevel.push(level);
 								}
 								level = newLevel;

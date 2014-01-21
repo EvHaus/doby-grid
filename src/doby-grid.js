@@ -1651,7 +1651,7 @@
 					return getDataItemValueForColumn(item, column);
 				},
 
-				grouprows: []
+				rows: []
 
 			}, grouping);
 
@@ -1937,6 +1937,9 @@
 					gi = self.groups[level],
 					i, l, aggregateRow, addRow;
 
+				// Reset grouping row references
+				gi.rows = [];
+
 				var processGroups = function (remote_groups) {
 
 					var createGroupObject = function (g, lvl, parentGrp) {
@@ -1953,18 +1956,15 @@
 						grp.id = '__group' + (parentGrp ? parentGrp.id + groupingDelimiter : '') + value;
 
 						// Remember the group rows in the grouping objects
-						gi.grouprows.push(grp);
+						self.groups[grp.level].rows.push(grp);
 
 						return grp;
 					};
 
 					// If we are given a set of remote_groups, use them to generate new group objects
 					if (remote_groups) {
-						// TODO: This is confusion as the Group objects themselves also have a 'grouprows'
-						// property. Why do we need both?
-						gi.grouprows = [];
-
 						var processRemoteGroups = function (grps, target, lvl, nested) {
+
 							for (var m = 0, n = grps.length; m < n; m++) {
 								group = createGroupObject(grps[m], lvl, nested ? target : null);
 
@@ -1975,10 +1975,10 @@
 								} else {
 									// Otherwise, go to main groups array
 									groups.push(group);
-
-									// This line ensures the correct group is expanded/collapsed
-									groupsByVal[group.value] = group;
 								}
+
+								// This line ensures the correct group is expanded/collapsed
+								groupsByVal[group.value] = group;
 
 								// Nested groups
 								if (grps[m].groups && grps[m].groups.length) {
@@ -1987,7 +1987,7 @@
 							}
 						};
 
-						processRemoteGroups(remote_groups);
+						processRemoteGroups(remote_groups, null, level);
 					}
 
 					// Loop through the rows in the group and create group header rows as needed
@@ -2007,33 +2007,31 @@
 							continue;
 						}
 
-						// For regular items, go ahead and generate groups for their values
-						if (!(r instanceof Placeholder)) {
-							val = typeof gi.getter === "function" ? gi.getter(r) : r[gi.getter];
-
-							// Store groups by value if the getter
-							group = groupsByVal[val];
-
-							// Create a new group header row, if it doesn't already exist for this group
-							if (!group) {
-								group = createGroupObject();
-								groups.push(group);
-								groupsByVal[val] = group;
-							}
-						}
-
 						if (r instanceof Placeholder) {
-							// For remote data Placeholders, we'll need to place them into an empty group.
-							for (var j = 0, k = groups.length; j < k; j++) {
-								if (groups[j].count > groups[j].grouprows.length) {
-									groups[j].grouprows.push(r);
+							// For placeholder rows - find an empty group's value
+							for (var key in groupsByVal) {
+								if (groupsByVal[key].count > groupsByVal[key].grouprows.length) {
+									val = key;
 									break;
 								}
 							}
 						} else {
-							// Insert row into its group
-							group.grouprows.push(r);
+							// For normal rows - get their value
+							val = typeof gi.getter === "function" ? gi.getter(r) : r[gi.getter];
 						}
+
+						// Store groups by value if the getter
+						group = groupsByVal[val];
+
+						// Create a new group header row, if it doesn't already exist for this group
+						if (!group) {
+							group = createGroupObject();
+							groups.push(group);
+							groupsByVal[val] = group;
+						}
+
+						// Insert row into its group
+						group.grouprows.push(r);
 
 						// Do not increment count for remote groups because we already have the right count
 						if (!remote) group.count++;
@@ -2048,9 +2046,8 @@
 						for (i = 0, l = groups.length; i < l; i++) {
 							gr = groups[i];
 
-							// TODO: I have no idea why this has to be here -- but without it
-							// nested groups in regular mode don't work correctly.
-							if (!remote) group = gr;
+							// TODO: This looks hacky. Why is it here?
+							group = gr;
 
 							// Do not treat aggreates as groups
 							if (gr instanceof Aggregate) continue;
@@ -3332,8 +3329,8 @@
 						var allClosed = true;
 						for (var i = 0, l = self.collection.groups.length; i < l; i++) {
 							if (!allClosed) break;
-							for (var j = 0, m = self.collection.groups[i].grouprows.length; j < m; j++) {
-								if (!self.collection.groups[i].grouprows[j].collapsed) {
+							for (var j = 0, m = self.collection.groups[i].rows.length; j < m; j++) {
+								if (!self.collection.groups[i].rows[j].collapsed) {
 									allClosed = false;
 									break;
 								}
@@ -5732,6 +5729,7 @@
 					};
 
 					remoteRequest = remote.fetch(options, function (results) {
+
 						// Add items to collection
 						self.collection.add(results, {at: newFrom, merge: true});
 
