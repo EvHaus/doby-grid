@@ -5087,7 +5087,7 @@
 		isColumnSelected = function (column_idx) {
 			if (!self.selection) return false;
 
-			var selectable_rows = self.collection.length;
+			var selectable_rows = self.collection.length - 1;
 			if (self.collection.items[self.collection.items.length - 1].__gridAggregate) selectable_rows--;
 
 			var s;
@@ -5097,6 +5097,7 @@
 					return true;
 				}
 			}
+
 			return false;
 		};
 
@@ -7794,6 +7795,7 @@
 				name: getLocale('column.deselect'),
 				fn: function () {
 					var column_idx = cache.columnsById[column.id];
+					// NOTE: This is very slow and inefficient. Build a way to bulk deselect.
 					for (var i = 0; i < cache.rows.length - 1; i++) {
 						deselectCells(i, column_idx);
 					}
