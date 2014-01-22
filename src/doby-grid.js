@@ -3836,6 +3836,8 @@
 		// Returns the width of the content in the given column. Used for auto resizing columns to their
 		// content via double-click on the resize handle.
 		//
+		// Ignores Group rows.
+		//
 		// @param	column_index	integer		Index of the column to calculate data for
 		//
 		// @return integer
@@ -3858,13 +3860,14 @@
 			cellWidths.push(headerWidth);
 
 			// Determine the width of the widest visible value
-			$canvas.find('.l' + column_index + '.r' + column_index + ':visible')
-				.removeClass('r' + column_index)
+			var rowcls = 'r' + column_index;
+			$canvas.find('.' + classrow + ':not(.' + classgroup + ') > .' + rowcls + ':visible')
+				.removeClass(rowcls)
 				.each(function () {
 					var w = $(this).outerWidth();
 					if (cellWidths.indexOf(w) < 0) cellWidths.push(w);
 				})
-				.addClass('r' + column_index);
+				.addClass(rowcls);
 
 			// If new width is smaller than min width - use min width
 			return Math.max.apply(null, cellWidths);
