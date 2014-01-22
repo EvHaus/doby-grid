@@ -281,6 +281,18 @@
   border: 2px dashed #1E7D0A;
   border: 2px dashed rgba(30, 125, 10, 0.6);
 }
+.doby-grid-range-decorator-stats {
+  background: #1E7D0A;
+  background: rgba(30, 125, 10, 0.1);
+  border-radius: 0 0 0 4px;
+  border: 1px solid #1E7D0A;
+  border: 1px solid rgba(30, 125, 10, 0.2);
+  border-top: 0;
+  border-right: 0;
+  color: #1E690A;
+  color: rgba(30, 105, 10, 0.9);
+  font-size: 11px;
+}
 /*! Popup Tooltips
 ================================================================================================== */
 .doby-grid-tooltip {

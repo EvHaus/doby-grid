@@ -117,6 +117,7 @@
 			classnoright = this.NAME + '-no-right',
 			classplaceholder = this.NAME + '-sortable-placeholder',
 			classrangedecorator = this.NAME + '-range-decorator',
+			classrangedecoratorstat = classrangedecorator + '-stats',
 			classrow = this.NAME + '-row',
 			classrowdragcontainer = this.NAME + '-row-drag-container',
 			classrowhandle = this.NAME + '-row-handle',
@@ -1234,6 +1235,8 @@
 				if (!this.$el) {
 					this.$el = $('<div class="' + classrangedecorator + '"></div>')
 						.appendTo($canvas);
+					this.$stats = $('<span class="' + classrangedecoratorstat + '"></span>')
+						.appendTo(this.$el);
 				}
 
 				var from = getCellNodeBox(range.fromRow, range.fromCell),
@@ -1250,6 +1253,15 @@
 						height: to.bottom - from.top - borderBottom - borderTop,
 						width: to.right - from.left - borderLeft - borderRight
 					});
+
+					// Calculate number of selected cells
+					var selected = (Math.abs(range.toCell - range.fromCell) + 1) * (Math.abs(range.toRow - range.fromRow) + 1);
+
+					this.$stats.html([
+						'<strong>Selection:</strong> ', selected, ' cells',
+						' <strong>From:</strong> ', (range.fromRow + 1), ':', (range.fromCell + 1),
+						' <strong>To:</strong> ', (range.toRow + 1), ':', (range.toCell + 1)
+					].join(''));
 				}
 
 				return this.$el;
