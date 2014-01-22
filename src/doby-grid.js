@@ -98,6 +98,7 @@
 			classdropdownarrow = classdropdown + '-arrow',
 			classdropdownicon = classdropdown + '-icon',
 			classdropdownleft = classdropdown + '-left',
+			classeditor = this.NAME + '-editor',
 			classexpanded = 'expanded',
 			classgroup = this.NAME + '-group',
 			classgrouptitle = this.NAME + '-group-title',
@@ -338,6 +339,7 @@
 					add_group:			'Add Grouping By "{{name}}"',
 					add_sort_asc:		'Add Sort By "{{name}}" (Ascending)',
 					add_sort_desc:		'Add Sort By "{{name}}" (Descending)',
+					add_quick_filter:	'Add Quick Filter...',
 					aggregators:		'Aggregators',
 					deselect:			'Deselect Column',
 					filter:				'Quick Filter on "{{name}}"',
@@ -2892,7 +2894,7 @@
 				var value = this.currentValue;
 				if (value === null || value === undefined) value = "";
 
-				this.$input = $('<input type="text" class="editor" value="' + value + '"/>')
+				this.$input = $('<input type="text" class="' + classeditor + '" value="' + value + '"/>')
 					.appendTo(options.cell)
 					.on("keydown", function (event) {
 						// Escape out of here on 'Tab', 'Enter', 'Home, 'End', 'Page Up' and 'Page Down'
@@ -7261,9 +7263,10 @@
 					cell.appendTo($headerFilter);
 
 					// Create input as a reference in the column definition
-					column.quickFilterInput = $('<input class="editor" type="text"/>')
+					column.quickFilterInput = $('<input class="' + classeditor + '" type="text"/>')
 						.appendTo(cell)
 						.data('column_id', column.id)
+						.attr('placeholder', getLocale('column.add_quick_filter'))
 						.on('keyup', onKeyUp);
 
 					// Focus input
@@ -7275,6 +7278,8 @@
 				// Just focus
 				focus.quickFilterInput.select().focus();
 			}
+
+			console.log(self.filter)
 
 			// Set column widths
 			applyColumnHeaderWidths();

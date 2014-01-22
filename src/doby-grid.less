@@ -225,6 +225,10 @@
 		height: 30px;
 		margin: -1px 0 -1px -1px;
 		padding: 0 8px;
+
+		.doby-grid-editor {
+			.calc(width, ~'100% - 20px');
+		}
 	}
 
 
@@ -331,20 +335,19 @@
 // ==================================================================================================
 
 
-.doby-grid {
-	// Input field
-	.editor {
-		background: none;
-		border: 0;
-		box-shadow: none;
-		height: 100%;
-		margin: 0;
-		outline: none;
-		padding: 0;
-		text-indent: 0;
-		text-shadow: none;
-		width: 100%;
-	}
+// Input field
+.doby-grid-editor {
+	background: none;
+	border: 0;
+	box-shadow: none;
+	font-size: 12px;
+	height: 100%;
+	margin: 0;
+	outline: none;
+	padding: 0;
+	text-indent: 0;
+	text-shadow: none;
+	width: 100%;
 }
 
 // Cell range decorator

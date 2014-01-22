@@ -122,6 +122,7 @@
   box-shadow: rgba(0, 0, 0, 0.2) 0 4px 6px inset;
 }
 .doby-grid-header-filter-cell {
+  background: url("../../../assets/img/magnifier-left.png") no-repeat right 6px center;
   border-color: #EEE;
   border-color: rgba(0, 0, 0, 0.05);
 }

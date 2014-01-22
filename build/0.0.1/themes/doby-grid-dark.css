@@ -131,10 +131,11 @@
   box-shadow: rgba(0, 0, 0, 0.3) 0 4px 10px inset;
 }
 .doby-grid-header-filter-cell {
+  background: url("../../../assets/img/magnifier-left.png") no-repeat right 6px center;
   border-color: #111;
   border-color: rgba(0, 0, 0, 0.1);
 }
-.doby-grid-header-filter-cell input.editor {
+.doby-grid-header-filter-cell input.doby-grid-editor {
   color: #FFF;
 }
 /*! Rows
@@ -263,7 +264,7 @@
 }
 /*! Editing
 ================================================================================================== */
-.doby-grid-cell input.editor {
+.doby-grid-cell input.doby-grid-editor {
   color: #FFF;
 }
 .doby-grid-cell.editable {
