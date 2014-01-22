@@ -611,7 +611,6 @@ describe("Methods and Data Manipulation", function () {
 			$header.simulate('click');
 
 			expect(grid.sorting).toEqual([{columnId: "category", sortAsc: false}]);
-			console.log(grid.$el.find('.doby-grid-group-title'))
 			expect(grid.$el.find('.doby-grid-group-title').eq(0).text()).toContain('Category: B');
 			expect(grid.$el.find('.doby-grid-group-title').eq(1).text()).toContain('Category: A');
 		});
@@ -739,6 +738,218 @@ describe("Methods and Data Manipulation", function () {
 
 			// Check er!
 			expect(result).toEqual('"ID","Name"\n"asd1","one"\n"asd2","two"');
+		});
+	});
+
+
+	// ==========================================================================================
+
+
+	describe("filter()", function () {
+		var grid;
+
+		beforeEach(function () {
+			grid = resetGrid({
+				columns: [
+					{id: 'id', name: 'ID', field: 'id'},
+					{id: 'name', name: 'Name', field: 'name'}
+				],
+				data: [{
+					id: 1,
+					data: {id: 1, name: 'one'}
+				}, {
+					id: 2,
+					data: {id: 2, name: 'two'}
+				}]
+			});
+		});
+
+
+		// ==========================================================================================
+
+
+		it("should be throw an error if attempting to filter() using an invalid param", function () {
+			var tests = [
+				{test: 1, error: 'Cannot apply filter to grid because given filter must be an array or a function, but given number.'},
+				{test: 'a', error: 'Cannot apply filter to grid because given filter must be an array or a function, but given string.'},
+				{test: {}, error: 'Cannot apply filter to grid because given filter must be an array or a function, but given object.'}
+			];
+
+			_.each(tests, function (test) {
+				expect(function () {
+					grid.filter(test.test);
+				}).toThrow(test.error);
+			});
+		});
+
+
+		// ==========================================================================================
+
+
+		it("should be able to filter() grid via a function", function () {
+			// Filter using a function just to a single item
+			grid.filter(function (item) {
+				return item.id === 1;
+			});
+
+			// Verify that the grid has been filtered
+			var $rows = grid.$el.find('.doby-grid-row');
+			expect($rows.length).toEqual(1);
+			expect($rows.find('.l0')).toHaveText(1);
+		});
+
+
+		// ==========================================================================================
+
+
+		it("should be able to detect invalid filter() sets", function () {
+			var bad_filters = [
+				['a', '=', 'c'],
+				[['a', 'c']]
+			];
+
+			// Filter using a function just to a single item
+			_.each(bad_filters, function (bad_filter) {
+				expect(function () {
+					grid.filter(bad_filter);
+				}).toThrow('Cannot apply filter because the give filter set contains an invalid filter item: ' + JSON.stringify(bad_filter[0]) + '.');
+			});
+		});
+
+
+		// ==========================================================================================
+
+
+		it("should not be able to filter() by invalid columns", function () {
+			expect(function () {
+				grid.filter([['mama-mia', '=', 'a']]);
+			}).toThrow('Unable to filter by "mama-mia" because no such columns exists in the grid.');
+		});
+
+
+		// ==========================================================================================
+
+
+		it("should not be able to filter() by invalid operators", function () {
+			var bad_operators = ['a', [], '!', '0', {}];
+
+			_.each(bad_operators, function (bo) {
+				expect(function () {
+					grid.filter([['id', bo, 1]]);
+				}).toThrow('Unable to filter by "id" because "' + bo + '" is not a valid operator.');
+			});
+		});
+
+
+		// ==========================================================================================
+
+
+		it("should be able to filter() grid via an array filter set using the = operator", function () {
+			// Filter using a function just to a single item
+			grid.filter([
+				['id', '=', 2]
+			]);
+
+			// Verify that the grid has been filtered
+			var $rows = grid.$el.find('.doby-grid-row');
+			expect($rows.length).toEqual(1);
+			expect($rows.find('.l0')).toHaveText(2);
+		});
+
+
+		// ==========================================================================================
+
+
+		it("should be able to filter() grid via an array filter set using the != operator", function () {
+			// Filter using a function just to a single item
+			grid.filter([
+				['id', '!=', 2]
+			]);
+
+			// Verify that the grid has been filtered
+			var $rows = grid.$el.find('.doby-grid-row');
+			expect($rows.length).toEqual(1);
+			expect($rows.find('.l0')).toHaveText(1);
+		});
+
+
+		// ==========================================================================================
+
+
+		it("should be able to filter() grid via an array filter set using the > operator", function () {
+			// Filter using a function just to a single item
+			grid.filter([
+				['id', '>', 1]
+			]);
+
+			// Verify that the grid has been filtered
+			var $rows = grid.$el.find('.doby-grid-row');
+			expect($rows.length).toEqual(1);
+			expect($rows.find('.l0')).toHaveText(2);
+		});
+
+
+		// ==========================================================================================
+
+
+		it("should be able to filter() grid via an array filter set using the < operator", function () {
+			// Filter using a function just to a single item
+			grid.filter([
+				['id', '<', 2]
+			]);
+
+			// Verify that the grid has been filtered
+			var $rows = grid.$el.find('.doby-grid-row');
+			expect($rows.length).toEqual(1);
+			expect($rows.find('.l0')).toHaveText(1);
+		});
+
+
+		// ==========================================================================================
+
+
+		it("should be able to filter() grid via an array filter set using the >= operator", function () {
+			// Filter using a function just to a single item
+			grid.filter([
+				['id', '>=', 2]
+			]);
+
+			// Verify that the grid has been filtered
+			var $rows = grid.$el.find('.doby-grid-row');
+			expect($rows.length).toEqual(1);
+			expect($rows.find('.l0')).toHaveText(2);
+		});
+
+
+		// ==========================================================================================
+
+
+		it("should be able to filter() grid via an array filter set using the <= operator", function () {
+			// Filter using a function just to a single item
+			grid.filter([
+				['id', '<=', 1]
+			]);
+
+			// Verify that the grid has been filtered
+			var $rows = grid.$el.find('.doby-grid-row');
+			expect($rows.length).toEqual(1);
+			expect($rows.find('.l0')).toHaveText(1);
+		});
+
+
+		// ==========================================================================================
+
+
+		it("should be able to filter() grid via an array filter set using the ~ operator", function () {
+			// Filter using a function just to a single item
+			grid.filter([
+				['id', '~', '1']
+			]);
+
+			// Verify that the grid has been filtered
+			var $rows = grid.$el.find('.doby-grid-row');
+			expect($rows.length).toEqual(1);
+			expect($rows.find('.l0')).toHaveText(1);
 		});
 	});
 

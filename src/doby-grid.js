@@ -3475,12 +3475,69 @@
 		// filter()
 		// Filters the grid using a given function
 		//
-		// @param	filter	function		Function to use for filtering items
+		// @param	filter	function, array		Function or array to use for filtering data
 		//
 		// @return object
 		this.filter = function (filter) {
-			// Set collection filter
-			this.collection.filter = filter;
+			if (typeof(filter) == 'function') {
+				// Set collection filter function
+				this.collection.filter = filter;
+			} else if ($.isArray(filter)) {
+				// A filter set is given.
+				// Build a filter function from the given set
+				this.collection.filter = function (item) {
+					// TODO
+					var result = true, f, columnDef, value;
+					for (var i = 0, l = filter.length; i < l; i++) {
+						f = filter[i];
+
+						// Validate the filter item
+						if (f.length !== 3) throw new Error('Cannot apply filter because the give filter set contains an invalid filter item: ' + JSON.stringify(f) + '.');
+
+						// Get column
+						columnDef = getColumnById(f[0]);
+
+						// Validate column
+						if (!columnDef) throw new Error('Unable to filter by "' + f[0] + '" because no such columns exists in the grid.');
+
+						value = getDataItemValueForColumn(item, columnDef);
+
+						// Process operators
+						switch (f[1]) {
+						case '=':
+							result = value == f[2];
+							break;
+						case '!=':
+							result = value !== f[2];
+							break;
+						case '>':
+							result = value > f[2];
+							break;
+						case '<':
+							result = value < f[2];
+							break;
+						case '>=':
+							result = value >= f[2];
+							break;
+						case '<=':
+							result = value <= f[2];
+							break;
+						case '~':
+							result = value.toString().match(f[2].toString()) ? true : false;
+							break;
+						default:
+							throw new Error('Unable to filter by "' + f[0] + '" because "' + f[1] + '" is not a valid operator.');
+						}
+
+						// If we already failed the filter - stop filtering
+						if (!result) break;
+					}
+
+					return result;
+				};
+			} else {
+				throw new Error('Cannot apply filter to grid because given filter must be an array or a function, but given ' + typeof(filter) + '.');
+			}
 
 			// Refresh the grid with the filtered data
 			this.collection.refresh();
@@ -3905,7 +3962,7 @@
 		};
 
 
-		// getDataItemValueForColumns()
+		// getDataItemValueForColumn()
 		// Given an item object and a column definition, returns the value of the column
 		// to display in the cell.
 		//
@@ -7278,8 +7335,6 @@
 				// Just focus
 				focus.quickFilterInput.select().focus();
 			}
-
-			console.log(self.filter)
 
 			// Set column widths
 			applyColumnHeaderWidths();
