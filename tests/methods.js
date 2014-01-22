@@ -951,6 +951,54 @@ describe("Methods and Data Manipulation", function () {
 			expect($rows.length).toEqual(1);
 			expect($rows.find('.l0')).toHaveText(1);
 		});
+
+
+		// ==========================================================================================
+
+
+		it("should be able to filter() grid via an array filter set using the !~ operator", function () {
+			// Filter using a function just to a single item
+			grid.filter([
+				['id', '!~', '1']
+			]);
+
+			// Verify that the grid has been filtered
+			var $rows = grid.$el.find('.doby-grid-row');
+			expect($rows.length).toEqual(1);
+			expect($rows.find('.l0')).toHaveText(2);
+		});
+
+
+		// ==========================================================================================
+
+
+		it("should be able to filter() grid via an array filter set using the ~* operator", function () {
+			// Filter using a function just to a single item
+			grid.filter([
+				['name', '~*', 'ONE']
+			]);
+
+			// Verify that the grid has been filtered
+			var $rows = grid.$el.find('.doby-grid-row');
+			expect($rows.length).toEqual(1);
+			expect($rows.find('.l0')).toHaveText(1);
+		});
+
+
+		// ==========================================================================================
+
+
+		it("should be able to filter() grid via an array filter set using the !~* operator", function () {
+			// Filter using a function just to a single item
+			grid.filter([
+				['name', '!~*', 'ONE']
+			]);
+
+			// Verify that the grid has been filtered
+			var $rows = grid.$el.find('.doby-grid-row');
+			expect($rows.length).toEqual(1);
+			expect($rows.find('.l0')).toHaveText(2);
+		});
 	});
 
 
