@@ -16,12 +16,12 @@ define(['faker'], function (Faker) {
 					age: _.sample(_.range(1, 100))
 				},
 				columns: {
-					0: {
+					id: {
 						colspan: _.sample([1, 2, 3])
 					},
-					1: {
+					name: {
 						colspan: _.sample([1, 2])
-					},
+					}
 				}
 			});
 		}

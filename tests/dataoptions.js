@@ -97,7 +97,7 @@ describe("Data Options", function () {
 					data: {id: 1, name: 'test 0'},
 					id: 1,
 					columns: {
-						0: {
+						id: {
 							formatter: function () {
 								return "Success 0";
 							}
@@ -107,7 +107,7 @@ describe("Data Options", function () {
 					data: {id: 2, name: 'test 1'},
 					id: 2,
 					columns: {
-						0: {
+						id: {
 							formatter: function () {
 								return "Success 1";
 							}
@@ -143,7 +143,7 @@ describe("Data Options", function () {
 					data: {id: 1, name: 'test 0', city: 'asd 0', country: '123 0'},
 					id: 1,
 					columns: {
-						0: {
+						id: {
 							colspan: "*"
 						}
 					}
@@ -151,7 +151,7 @@ describe("Data Options", function () {
 					data: {id: 2, name: 'test 1', city: 'asd 1', country: '123 1'},
 					id: 2,
 					columns: {
-						0: {
+						id: {
 							colspan: "*"
 						}
 					}

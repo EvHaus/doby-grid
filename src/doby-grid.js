@@ -6165,11 +6165,13 @@
 				// Group rows do not inherit column class
 				mClass = item instanceof Group ? "" : (m.class ? typeof m.class === "function" ? m.class() : m.class : null),
 
+				column = cache.activeColumns[cell],
 				cellCss = [classcell, "l" + cell, "r" + rowI];
 
 			if (mClass) cellCss.push(mClass);
 			if (self.active && row === self.active.row && cell === self.active.cell) cellCss.push("active");
-			if (mColumns[cell] && mColumns[cell].class) cellCss.push(mColumns[cell].class);
+			if (mColumns[column.id] && mColumns[column.id].class) cellCss.push(mColumns[column.id].class);
+			else if (mColumns[cell] && mColumns[cell].class) cellCss.push(mColumns[cell].class);
 			if (isCellSelected(row, cell)) cellCss.push(self.options.selectedClass);
 
 			result.push('<div class="' + cellCss.join(" ") + '">');
