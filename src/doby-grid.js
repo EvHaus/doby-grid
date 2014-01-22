@@ -1255,14 +1255,20 @@
 						width: to.right - from.left - borderLeft - borderRight
 					});
 
+					// Only display stats box if at least 3 cells are selected
+					if (Math.abs(range.toCell - range.fromCell) >= 2) {
+
 					// Calculate number of selected cells
 					var selected = (Math.abs(range.toCell - range.fromCell) + 1) * (Math.abs(range.toRow - range.fromRow) + 1);
 
-					this.$stats.html([
+						this.$stats.show().html([
 						'<strong>Selection:</strong> ', selected, ' cells',
 						' <strong>From:</strong> ', (range.fromRow + 1), ':', (range.fromCell + 1),
 						' <strong>To:</strong> ', (range.toRow + 1), ':', (range.toCell + 1)
 					].join(''));
+					} else {
+						this.$stats.hide();
+					}
 				}
 
 				return this.$el;
