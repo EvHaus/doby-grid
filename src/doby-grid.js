@@ -320,10 +320,11 @@
 			"class":				null,
 			clipboard:				"csv",
 			columns:				[],
+			columnSpacing:			1,
+			columnWidth:			80,
 			ctrlSelect:				true,
 			data:					[],
 			dataExtractor:			null,
-			columnWidth:			80,
 			editable:				false,
 			editor:					null,
 			emptyNotice:			true,
@@ -3486,7 +3487,6 @@
 				// A filter set is given.
 				// Build a filter function from the given set
 				this.collection.filter = function (item) {
-					// TODO
 					var result = true, f, columnDef, value;
 					for (var i = 0, l = filter.length; i < l; i++) {
 						f = filter[i];
@@ -3666,8 +3666,7 @@
 
 			for (i = 0, l = cache.activeColumns.length; i < l; i++) {
 				// The 1 here is to compensate for the spacer between columns.
-				// TODO: Move this to a variable instead in case users want to modify this spacing.
-				rowWidth += cache.activeColumns[i].width - 1;
+				rowWidth += cache.activeColumns[i].width - self.options.columnSpacing;
 			}
 
 			// When fullWidthRows disable - keep canvas as big as the dat only
