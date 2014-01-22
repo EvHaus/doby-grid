@@ -98,6 +98,7 @@
 			classdropdownarrow = classdropdown + '-arrow',
 			classdropdownicon = classdropdown + '-icon',
 			classdropdownleft = classdropdown + '-left',
+			classeditor = this.NAME + '-editor',
 			classexpanded = 'expanded',
 			classgroup = this.NAME + '-group',
 			classgrouptitle = this.NAME + '-group-title',
@@ -116,6 +117,7 @@
 			classnoright = this.NAME + '-no-right',
 			classplaceholder = this.NAME + '-sortable-placeholder',
 			classrangedecorator = this.NAME + '-range-decorator',
+			classrangedecoratorstat = classrangedecorator + '-stats',
 			classrow = this.NAME + '-row',
 			classrowdragcontainer = this.NAME + '-row-drag-container',
 			classrowhandle = this.NAME + '-row-handle',
@@ -226,6 +228,7 @@
 			makeActiveCellEditable,
 			makeActiveCellNormal,
 			measureCellPadding,
+			mergeGroupSorting,
 			n,				// number of pages
 			naturalSort,
 			navigate,
@@ -254,6 +257,7 @@
 			remoteCount,
 			remoteFetch,
 			remoteFetchGroups,
+			remoteGroupRefetch,
 			remoteRequest = null,
 			remoteTimer = null,
 			removeCssRules,
@@ -318,12 +322,14 @@
 			"class":				null,
 			clipboard:				"csv",
 			columns:				[],
+			columnSpacing:			1,
+			columnWidth:			80,
 			ctrlSelect:				true,
 			data:					[],
 			dataExtractor:			null,
-			columnWidth:			80,
 			editable:				false,
 			editor:					null,
+			editorType:				'selection',
 			emptyNotice:			true,
 			exportFileName:			"doby-grid-export",
 			formatter:				null,
@@ -337,6 +343,7 @@
 					add_group:			'Add Grouping By "{{name}}"',
 					add_sort_asc:		'Add Sort By "{{name}}" (Ascending)',
 					add_sort_desc:		'Add Sort By "{{name}}" (Descending)',
+					add_quick_filter:	'Add Quick Filter...',
 					aggregators:		'Aggregators',
 					deselect:			'Deselect Column',
 					filter:				'Quick Filter on "{{name}}"',
@@ -1229,6 +1236,8 @@
 				if (!this.$el) {
 					this.$el = $('<div class="' + classrangedecorator + '"></div>')
 						.appendTo($canvas);
+					this.$stats = $('<span class="' + classrangedecoratorstat + '"></span>')
+						.appendTo(this.$el);
 				}
 
 				var from = getCellNodeBox(range.fromRow, range.fromCell),
@@ -1239,12 +1248,26 @@
 					borderTop = parseInt(this.$el.css('borderTopWidth'), 10);
 
 				if (from && to) {
+					var width = to.right - from.left - borderLeft - borderRight;
+
 					this.$el.css({
 						top: from.top,
 						left: from.left,
 						height: to.bottom - from.top - borderBottom - borderTop,
-						width: to.right - from.left - borderLeft - borderRight
+						width: width
 					});
+
+					// Only display stats box if there is enough room
+					if (width > 200) {
+						// Calculate number of selected cells
+						this.$stats.show().html([
+							'<strong>Selection:</strong> ', range.getCellCount(), ' cells',
+							' <strong>From:</strong> ', (range.fromRow + 1), ':', (range.fromCell + 1),
+							' <strong>To:</strong> ', (range.toRow + 1), ':', (range.toCell + 1)
+						].join(''));
+					} else {
+						this.$stats.hide();
+					}
 				}
 
 				return this.$el;
@@ -1450,6 +1473,20 @@
 				currentEditor.focus();
 			};
 
+			var applyEditToCell = function (item, row, cell) {
+				var column = cache.activeColumns[cell];
+
+				// Execute the operation
+				currentEditor.applyValue(item, column.id, currentEditor.serializeValue());
+				updateRow(row);
+
+				self.trigger('change', self._event, {
+					row: row,
+					cell: cell,
+					item: item
+				});
+			};
+
 			if (currentEditor.isValueChanged()) {
 				var validationResults = currentEditor.validate();
 
@@ -1461,7 +1498,7 @@
 						};
 
 						// Add row
-						currentEditor.applyValue(newItem, currentEditor.serializeValue());
+						currentEditor.applyValue(newItem, column.id, currentEditor.serializeValue());
 
 						// Make sure item has an id
 						if ((!newItem.data.id && !newItem.id) ||
@@ -1483,23 +1520,19 @@
 							column: column
 						});
 					} else {
-						// See if we have a cell range selected
-						if (self.selection) {
-							// TODO: Send multiple values to the editor for edit
+						if (self.options.editorType == 'selection' && self.selection) {
+							// Send all selected cells to the editor for changes
+							for (var i = 0, l = self.selection.length; i < l; i++) {
+								for (var j = self.selection[i].fromRow, k = self.selection[i].toRow; j <= k; j++) {
+									for (var q = self.selection[i].fromCell, m = self.selection[i].toCell; q <= m; q++) {
+										applyEditToCell(cache.rows[j], j, q);
+									}
+								}
+							}
+						} else {
+							// Only edit the active cell
+							applyEditToCell(item, self.active.row, self.active.cell);
 						}
-
-						// Execute the operation
-						currentEditor.applyValue(item, currentEditor.serializeValue());
-						updateRow(self.active.row);
-
-						// Reset active cell
-						makeActiveCellNormal();
-
-						self.trigger('change', self._event, {
-							row: self.active.row,
-							cell: self.active.cell,
-							item: item
-						});
 					}
 
 					return true;
@@ -1622,7 +1655,17 @@
 				column_id: column.id,
 
 				comparer: function (a, b) {
-					return naturalSort(a.value, b.value);
+					// Find the current sort direction for this group
+					var asc = true;
+					for (var i = 0, l = self.sorting.length; i < l; i++) {
+						if (self.sorting[i].columnId == a.predef.column_id) {
+							asc = self.sorting[i].sortAsc;
+							break;
+						}
+					}
+
+					var sorted = naturalSort(a.value, b.value);
+					return asc ? sorted : -sorted;
 				},
 
 				formatter: function (g) {
@@ -1640,7 +1683,7 @@
 					return getDataItemValueForColumn(item, column);
 				},
 
-				grouprows: []
+				rows: []
 
 			}, grouping);
 
@@ -1688,7 +1731,6 @@
 				flattenGroupedRows,
 				getFilteredAndPagedItems,
 				getRowDiffs,
-				insertEmptyAlert,
 				parse,
 				processAggregators,
 				processGroupAggregators,
@@ -1857,7 +1899,6 @@
 				}
 
 				self.refresh();
-
 				if (remote && !collapse) remoteFetch();
 			};
 
@@ -1871,9 +1912,7 @@
 			//
 			expandCollapseGroup = function (level, group_id, collapse) {
 				toggledGroupsByLevel[level][group_id] = self.groups[level].collapsed ^ collapse;
-
 				self.refresh();
-
 				if (remote && !collapse) remoteFetch();
 			};
 
@@ -1925,10 +1964,13 @@
 					val,
 					groups = [],
 					groupsByVal = {},
-					r,
+					r, gr,
 					level = parentGroup ? parentGroup.level + 1 : 0,
 					gi = self.groups[level],
 					i, l, aggregateRow, addRow;
+
+				// Reset grouping row references
+				gi.rows = [];
 
 				var processGroups = function (remote_groups) {
 
@@ -1944,18 +1986,20 @@
 						grp.id = '__group' + (parentGroup ? parentGroup.id + groupingDelimiter : '') + value;
 
 						// Remember the group rows in the grouping objects
-						gi.grouprows.push(grp);
+						self.groups[level].rows.push(grp);
 
 						return grp;
 					};
 
 					// If we are given a set of remote_groups, use them to generate new group objects
 					if (remote_groups) {
-						gi.grouprows = [];
-						for (i = 0, l = remote_groups.length; i < l; i++) {
-							group = createGroupObject(remote_groups[i]);
+						var rm_g;
+						for (var m = 0, n = remote_groups[level].groups.length; m < n; m++) {
+							rm_g = remote_groups[level].groups[m];
+							if (parentGroup && rm_g.parent != parentGroup.value) continue;
+							group = createGroupObject(rm_g);
 							groups.push(group);
-							groupsByVal[remote_groups[i].value] = group;
+							groupsByVal[group.value] = group;
 						}
 					}
 
@@ -1976,36 +2020,36 @@
 							continue;
 						}
 
-						// For regular items, go ahead and generate groups for their values
-						if (!(r instanceof Placeholder)) {
-							val = typeof gi.getter === "function" ? gi.getter(r) : r[gi.getter];
-
-							// Store groups by value if the getter
-							group = groupsByVal[val];
-
-							// Create a new group header row, if it doesn't already exist for this group
-							if (!group) {
-								group = createGroupObject();
-								groups.push(group);
-								groupsByVal[val] = group;
-							}
-						}
-
 						if (r instanceof Placeholder) {
-							// For remote data Placeholders, we'll need to place them into an empty group.
-							for (var j = 0, k = groups.length; j < k; j++) {
-								if (groups[j].count > groups[j].grouprows.length) {
-									groups[j].grouprows.push(r);
+							// For placeholder rows - find an empty group's value.
+							// This must use the 'groups' object and not the 'groupByVal' because
+							// the order of the groups is important for sorting.
+							for (var g = 0, q = groups.length; g < q; g++) {
+								if (groups[g].count > groups[g].grouprows.length) {
+									val = groups[g].value;
 									break;
 								}
 							}
 						} else {
-							// Insert row into its group
-							group.grouprows.push(r);
+							// For normal rows - get their value
+							val = typeof gi.getter === "function" ? gi.getter(r) : r[gi.getter];
 						}
 
+						// Store groups by value if the getter
+						group = groupsByVal[val];
+
+						// Create a new group header row, if it doesn't already exist for this group
+						if (!group) {
+							group = createGroupObject();
+							groups.push(group);
+							groupsByVal[val] = group;
+						}
+
+						// Insert row into its group
+						group.grouprows.push(r);
+
 						// Do not increment count for remote groups because we already have the right count
-						if (!remote_groups)	group.count++;
+						if (!remote) group.count++;
 					}
 
 					// Nest groups
@@ -2015,12 +2059,15 @@
 						};
 
 						for (i = 0, l = groups.length; i < l; i++) {
-							group = groups[i];
+							gr = groups[i];
+
+							// TODO: This looks hacky. Why is it here?
+							group = gr;
 
 							// Do not treat aggreates as groups
-							if (group instanceof Aggregate) continue;
+							if (gr instanceof Aggregate) continue;
 
-							extractGroups(group.grouprows, group, setGroups);
+							extractGroups(gr.grouprows, gr, setGroups);
 						}
 					}
 
@@ -2039,6 +2086,8 @@
 
 				// Remote groups needs to be extracted from the remote source
 				if (remote) {
+					// remoteFetchGroups will cache the results after the first request,
+					// so there is no fear of this being re-querying the server on every grouping loop
 					remoteFetchGroups(function (results) {
 						processGroups(results);
 					});
@@ -2131,7 +2180,8 @@
 			getFilteredAndPagedItems = function (items) {
 				items = items instanceof Backbone.Collection ? items.models : items;
 
-				if (self.filter) {
+				// Remote data will already be filtered
+				if (self.filter && !remote) {
 					var batchFilter = uncompiledFilter;
 					var batchFilterWithCaching = uncompiledFilterWithCaching;
 
@@ -2269,7 +2319,7 @@
 			//
 			// @param	items	array		Array of items to insert into
 			//
-			insertEmptyAlert = function (items) {
+			this.insertEmptyAlert = function (items) {
 				var obj = new NonDataItem({
 					__alert: true,
 					id: '-empty-alert-message-',
@@ -2675,20 +2725,32 @@
 
 					if (!toggledGroupsByLevel[i]) toggledGroupsByLevel[i] = {};
 
-					// Extend using a default grouping object nad add to groups
+					// Extend using a default grouping object and add to groups
 					groups.push(createGroupingObject(options[i]));
 				}
 
 				// Set groups
 				this.groups = groups;
 
+				// Now that groups are set, we need to set sorting
+				grid.sorting = mergeGroupSorting(grid.sorting);
+
 				// When we're dealing with remote groups - we might as well re-generate placeholders
 				// for everything since any data that was previously fetched is no longer in the right
 				// order anyway.
-				if (remote) generatePlaceholders();
+				if (remote) {
+					// Reset collection length to full. This ensures that when groupings are removed,
+					// the grid correctly refetches the full page of results.
+					this.length = this.remote_length;
+					generatePlaceholders();
+				}
 
 				// Reload the grid with the new grouping
 				this.refresh();
+
+				// If we're in variable row height mode - resize the canvas now since grouping changes
+				// will cause the row sizes to be changed.
+				if (variableRowHeight) resizeCanvas();
 
 				// If we're removing grouping - refetch remote data
 				if (remote && groups.length === 0) remoteFetch();
@@ -2836,7 +2898,7 @@
 			// @return array
 			validate = function (items) {
 				// If no data - add an empty alert
-				if (grid.options.emptyNotice && !items.length) insertEmptyAlert(items);
+				if (grid.options.emptyNotice && !items.length) self.insertEmptyAlert(items);
 
 				return items;
 			};
@@ -2863,7 +2925,7 @@
 				var value = this.currentValue;
 				if (value === null || value === undefined) value = "";
 
-				this.$input = $('<input type="text" class="editor" value="' + value + '"/>')
+				this.$input = $('<input type="text" class="' + classeditor + '" value="' + value + '"/>')
 					.appendTo(options.cell)
 					.on("keydown", function (event) {
 						// Escape out of here on 'Tab', 'Enter', 'Home, 'End', 'Page Up' and 'Page Down'
@@ -2897,15 +2959,18 @@
 			// This is the function that will update the data model in the grid.
 			//
 			// @param	item		object		The data model for the item being edited
+			// @param	column_id	string		The ID of the column being edited
 			// @param	value		string		The user-input value being entered
 			//
-			this.applyValue = function (item, value) {
+			this.applyValue = function (item, column_id, value) {
+				var column = getColumnById(column_id);
+
 				// Make sure we always have an id for our item
-				if (!('id' in item) && options.column.field == 'id') {
+				if (!('id' in item) && column.field == 'id') {
 					item.id = value;
 				}
 
-				item.data[options.column.field] = value;
+				item.data[column.field] = value;
 			};
 
 
@@ -3268,19 +3333,32 @@
 
 			// If remote, and not all data is fetched - sort on server
 			if (remote && !remoteAllLoaded()) {
+				// Reset collection length to full. This ensures that when groupings are removed,
+				// the grid correctly refetches the full page of results.
+				self.collection.length = self.collection.remote_length;
+
 				// Refill the collection with placeholders
 				generatePlaceholders();
 
 				// Clear the row cache to ensure when new data comes in the grid refreshes
 				cache.rows = [];
 
-				// Ask the Remote fetcher to refetch the data -- this time using the new sort settings
-				remoteFetch();
+				if (self.collection.groups.length) {
+					remoteGroupRefetch();
+				} else {
+					// Ask the Remote fetcher to refetch the data -- this time using the new sort settings
+					remoteFetch();
+				}
+
 				return;
 			}
 
 			self.collection.sort(function (dataRow1, dataRow2) {
-				var column, field, sign, value1, value2, result = 0;
+				var column, field, sign, value1, value2, result = 0, val;
+
+				// Do not attempt to sort Aggregators. They will always go to the bottom.
+				if (dataRow1 instanceof Aggregate) return 1;
+				if (dataRow2 instanceof Aggregate) return -1;
 
 				// Loops through the columns by which we are sorting
 				for (var i = 0, l = cols.length; i < l; i++) {
@@ -3288,24 +3366,22 @@
 					field = column.field;
 					sign = cols[i].sortAsc ? 1 : -1;
 
-					// Do not attempt to sort Aggregators. They will always go to the bottom.
-					if (dataRow1 instanceof Aggregate) return 1;
-					if (dataRow2 instanceof Aggregate) return -1;
-
 					value1 = getDataItemValueForColumn(dataRow1, column);
 					value2 = getDataItemValueForColumn(dataRow2, column);
 
 					// Use custom column comparer if it exists
 					if (typeof(column.comparator) === 'function') {
-						return column.comparator(value1, value2) * sign;
+						val = column.comparator(value1, value2) * sign;
+						if (val !== 0) return val;
 					} else {
 						// Always keep null values on the bottom
-						if (value1 === null && value2 === null) return 0;
+						if (value1 === null && value2 === null) continue;
 						if (value1 === null) return 1;
 						if (value2 === null) return -1;
 
 						// Use natural sort by default
-						result += naturalSort(value1, value2) * sign;
+						val = naturalSort(value1, value2) * sign;
+						if (val !== 0) return val;
 					}
 				}
 
@@ -3407,15 +3483,96 @@
 		// filter()
 		// Filters the grid using a given function
 		//
-		// @param	filter	function		Function to use for filtering items
+		// @param	filter	function, array		Function or array to use for filtering data
 		//
 		// @return object
 		this.filter = function (filter) {
-			// Set collection filter
-			this.collection.filter = filter;
+			// Remote data is filtered on the server - so just store it for reference
+			if (typeof(filter) == 'function' || remote) {
+				// Set collection filter function
+				this.collection.filter = filter;
+			} else if ($.isArray(filter)) {
 
-			// Refresh the grid with the filtered data
-			this.collection.refresh();
+				// A filter set is given.
+				// Build a filter function from the given set
+				this.collection.filter = function (item) {
+
+					var result = true, f, columnDef, value;
+					for (var i = 0, l = filter.length; i < l; i++) {
+						f = filter[i];
+
+						// Validate the filter item
+						if (f.length !== 3) throw new Error('Cannot apply filter because the give filter set contains an invalid filter item: ' + JSON.stringify(f) + '.');
+
+						// Get column
+						columnDef = getColumnById(f[0]);
+
+						// Validate column
+						if (!columnDef) throw new Error('Unable to filter by "' + f[0] + '" because no such columns exists in the grid.');
+
+						value = getDataItemValueForColumn(item, columnDef);
+
+						// Process operators
+						switch (f[1]) {
+						case '=':
+							result = value == f[2];
+							break;
+						case '!=':
+							result = value !== f[2];
+							break;
+						case '>':
+							result = value > f[2];
+							break;
+						case '<':
+							result = value < f[2];
+							break;
+						case '>=':
+							result = value >= f[2];
+							break;
+						case '<=':
+							result = value <= f[2];
+							break;
+						case '~':
+							// NOTE: Investigate the possibility of using indexOf() here. It's a bit faster
+							// according to: http://jsperf.com/exec-vs-match-vs-test-vs-search/21
+							result = value.toString().search(f[2].toString()) !== -1;
+							break;
+						case '!~':
+							result = value.toString().search(f[2].toString()) === -1;
+							break;
+						case '~*':
+							result = value.toString().toLowerCase().search(f[2].toString().toLowerCase()) !== -1;
+							break;
+						case '!~*':
+							result = value.toString().toLowerCase().search(f[2].toString().toLowerCase())  === -1;
+							break;
+						default:
+							throw new Error('Unable to filter by "' + f[0] + '" because "' + f[1] + '" is not a valid operator.');
+						}
+
+						// If we already failed the filter - stop filtering
+						if (!result) break;
+					}
+
+					return result;
+				};
+			} else {
+				throw new Error('Cannot apply filter to grid because given filter must be an array or a function, but given ' + typeof(filter) + '.');
+			}
+
+			// Remote data needs to be completely reloaded
+			if (remote) {
+				if (self.collection.groups && self.collection.groups.length) {
+					remoteGroupRefetch();
+				} else {
+					remoteCount(function () {
+						remoteFetch();
+					});
+				}
+			} else {
+				// Refresh the grid with the filtered data
+				this.collection.refresh();
+			}
 
 			return this;
 		};
@@ -3461,17 +3618,29 @@
 		// generatePlaceholders()
 		// Replaces the entire collection with Placeholder objects
 		//
+		// @param	group		object		(Optional) Group object whose placeholders should be reset.
+		//									If not specified, will reset placeholders for everything.
+		//
 		generatePlaceholders = function () {
 			// Reset the collection
 			self.collection.items = [];
 
 			// Populate the collection with placeholders
-			var phId, ph;
-			for (var i = 0, l = self.collection.length; i < l; i++) {
+			var phId, ph, i, l;
+			for (i = 0, l = self.collection.length; i < l; i++) {
 				phId = 'placeholder-' + i;
 				ph = new Placeholder({id: phId});
 				self.collection.items.push(ph);
 				cache.indexById[phId] = ph;
+			}
+
+			// Reset any row references in groups as they are no longer valid
+			if (self.collection.groups.length) {
+				for (i = 0, l = self.collection.groups.length; i < l; i++) {
+					for (var j = 0, m = self.collection.groups[i].rows.length; j < m; j++) {
+						self.collection.groups[i].rows[j].grouprows = [];
+					}
+				}
 			}
 		};
 
@@ -3520,8 +3689,7 @@
 
 			for (i = 0, l = cache.activeColumns.length; i < l; i++) {
 				// The 1 here is to compensate for the spacer between columns.
-				// TODO: Move this to a variable instead in case users want to modify this spacing.
-				rowWidth += cache.activeColumns[i].width - 1;
+				rowWidth += cache.activeColumns[i].width - self.options.columnSpacing;
 			}
 
 			// When fullWidthRows disable - keep canvas as big as the dat only
@@ -3608,7 +3776,21 @@
 		getCellNode = function (row, cell) {
 			if (cache.nodes[row]) {
 				ensureCellNodesInRowsCache(row);
-				return cache.nodes[row].cellNodesByColumnIdx[cell];
+
+				// Calculate colspan offset
+				var nodecell = cell;
+				if (!cache.nodes[row].cellColSpans[cell]) {
+					for (var i = 0, l = cell; i <= l; i++) {
+						if (cache.nodes[row].cellColSpans[i] && cache.nodes[row].cellColSpans[i] > 1) {
+							nodecell -= cache.nodes[row].cellColSpans[i] - 1;
+						}
+					}
+				}
+
+				// Do not allow negative values
+				nodecell = nodecell < 0 ? 0 : nodecell;
+
+				return cache.nodes[row].cellNodesByColumnIdx[nodecell];
 			}
 			return null;
 		};
@@ -3758,6 +3940,8 @@
 		// Returns the width of the content in the given column. Used for auto resizing columns to their
 		// content via double-click on the resize handle.
 		//
+		// Ignores Group rows.
+		//
 		// @param	column_index	integer		Index of the column to calculate data for
 		//
 		// @return integer
@@ -3780,13 +3964,14 @@
 			cellWidths.push(headerWidth);
 
 			// Determine the width of the widest visible value
-			$canvas.find('.l' + column_index + '.r' + column_index + ':visible')
-				.removeClass('r' + column_index)
+			var rowcls = 'r' + column_index;
+			$canvas.find('.' + classrow + ':not(.' + classgroup + ') > .' + rowcls + ':visible')
+				.removeClass(rowcls)
 				.each(function () {
 					var w = $(this).outerWidth();
 					if (cellWidths.indexOf(w) < 0) cellWidths.push(w);
 				})
-				.addClass('r' + column_index);
+				.addClass(rowcls);
 
 			// If new width is smaller than min width - use min width
 			return Math.max.apply(null, cellWidths);
@@ -3822,7 +4007,7 @@
 		};
 
 
-		// getDataItemValueForColumns()
+		// getDataItemValueForColumn()
 		// Given an item object and a column definition, returns the value of the column
 		// to display in the cell.
 		//
@@ -4433,7 +4618,7 @@
 					var indent = item.level * 15;
 					return [(indent ? '<span style="margin-left:' + indent + 'px">' : ''),
 						'<span class="icon"></span>',
-						'<span class="' + classgrouptitle + '" level="' + item.level + '">',
+						'<span class="' + classgrouptitle + '">',
 						item.title,
 						'</span>',
 						(indent ? '</span>' : '')
@@ -4783,8 +4968,8 @@
 				if (Math.abs(lastRenderedScrollTop - scrollTop) > 20 ||
 					Math.abs(lastRenderedScrollLeft - scrollLeft) > 20) {
 
-					// If virtual scroll is disabled, or viewing something that is already rendered --
-					// re-render immediately
+					// If virtual scroll is disabled, or viewing something that is already rendered
+					// -- re-render immediately
 					if (!self.options.virtualScroll || (
 						Math.abs(lastRenderedScrollTop - scrollTop) < viewportH &&
 						Math.abs(lastRenderedScrollLeft - scrollLeft) < viewportW)) {
@@ -4921,7 +5106,7 @@
 		isColumnSelected = function (column_idx) {
 			if (!self.selection) return false;
 
-			var selectable_rows = self.collection.length;
+			var selectable_rows = self.collection.length - 1;
 			if (self.collection.items[self.collection.items.length - 1].__gridAggregate) selectable_rows--;
 
 			var s;
@@ -4931,6 +5116,7 @@
 					return true;
 				}
 			}
+
 			return false;
 		};
 
@@ -5155,6 +5341,46 @@
 			r.remove();
 
 			absoluteColumnMinWidth = Math.max(headerColumnWidthDiff, cellWidthDiff);
+		};
+
+
+		// mergeGroupSorting()
+		// Given a sorting object generated by addGrouping(), will merge those sorting options
+		// with the existing sorting options in the grid to ensure groups are always sorted first.
+		//
+		// @param	user_sorting	array		List of sorting options as requested by the user
+		//
+		mergeGroupSorting = function (user_sorting) {
+			var sorting = [],
+				groupSortById = {},
+				i, l;
+
+			// Process group sorts first
+			for (i = 0, l = self.collection.groups.length; i < l; i++) {
+				sorting.push({
+					columnId: self.collection.groups[i].column_id,
+					sortAsc: true,
+					group: true
+				});
+				groupSortById[self.collection.groups[i].column_id] = sorting[i];
+			}
+
+			// Now add any remaining user sorting configs at the end
+			var gsort;
+			for (i = 0, l = user_sorting.length; i < l; i++) {
+				if (user_sorting[i].group) continue;
+
+				gsort = groupSortById[user_sorting[i].columnId];
+				if (!gsort) {
+					sorting.push(user_sorting[i]);
+				} else {
+					delete gsort.group;
+					gsort.sortAsc = user_sorting[i].sortAsc;
+				}
+			}
+
+			// Set new sorting options
+			return sorting;
 		};
 
 
@@ -5385,6 +5611,24 @@
 		};
 
 
+		// getCellCount()
+		// Returns the number of cells in this selection range
+		//
+		// @return integer
+		Range.prototype.getCellCount = function () {
+			var count = 0, rownodes;
+			for (var r = this.fromRow; r <= this.toRow; r++) {
+				rownodes = cache.nodes[r];
+				for (var c = this.fromCell; c <= this.toCell; c++) {
+					if (rownodes.cellColSpans.length && rownodes.cellColSpans[c]) {
+						count++;
+					}
+				}
+			}
+			return count;
+		};
+
+
 		// isExcludedCell()
 		// Returns whether a cell is excluded in this range
 		//
@@ -5404,6 +5648,7 @@
 		//
 		// @return boolean
 		Range.prototype.isSingleCell = function () {
+			// TODO: This needs to take colspans into account
 			return this.fromRow == this.toRow && this.fromCell == this.toCell;
 		};
 
@@ -5480,6 +5725,12 @@
 			for (var i = 0, l = cache.rows.length; i < l; i++) {
 				if (cache.rows[i] instanceof Placeholder) {
 					return false;
+				} else if (cache.rows[i] instanceof Group) {
+					for (var j = 0, m = cache.rows[i].grouprows.length; j < m; j++) {
+						if (cache.rows[i].grouprows[j] instanceof Placeholder) {
+							return false;
+						}
+					}
 				}
 			}
 			return true;
@@ -5493,15 +5744,24 @@
 		// @param	callback	function	Callback function
 		//
 		remoteCount = function (callback) {
-			var options = {};
+			var options = {
+				filters: typeof(self.collection.filter) != 'function' ? self.collection.filter : null
+			};
 
-			// TODO: Add an options.filters variable in here
 			remote.count(options, function (result) {
-				// Set collection length
+				// Sets the current collection length
 				self.collection.length = result;
 
-				// Fill the collection with placeholders
-				generatePlaceholders();
+				// Sets the total remote collection length
+				self.collection.remote_length = result;
+
+				if (result === 0) {
+					// When there are no results insert an empty row
+					self.collection.insertEmptyAlert(self.collection.items);
+				} else {
+					// Fill the collection with placeholders
+					generatePlaceholders();
+				}
 
 				// Updating the row count here will ensure the scrollbar is rendered the right size
 				updateRowCount();
@@ -5546,11 +5806,9 @@
 
 				// When encountering Group rows - keep in mind how many collapsed rows
 				// we need to skip over
-				if (r && r instanceof Group && r.collapsed) {
-					if (newFrom === undefined) {
-						collapsedOffset += r.count;
-						nonDataOffset++;
-					}
+				if (r && r instanceof Group && r.collapsed && newFrom === undefined) {
+					collapsedOffset += r.count;
+					nonDataOffset++;
 					continue;
 				}
 
@@ -5587,28 +5845,13 @@
 					// Fire onLoading callback
 					if (typeof remote.onLoading === 'function') remote.onLoading();
 
-					// Define order
-					var order = [];
-
-					// If we have any groups, we need to sort by them first
-					if (self.collection.groups) {
-						for (var j = 0, k = self.collection.groups.length; j < k; j++) {
-							order.push({
-								columnId: self.collection.groups[j].column_id,
-								sortAsc: true
-							});
-						}
-					}
-
-					if (self.sorting) order = order.concat(self.sorting);
-
 					// Builds the options we need to give the fetcher
 					var options = {
 						columns: cache.activeColumns,
-						//filters: null, TODO: Enable remote filtering here
+						filters: typeof(self.collection.filter) != 'function' ? self.collection.filter : null,
 						limit: newTo - newFrom + 1,
 						offset: newFrom,
-						order: order
+						order: self.sorting
 					};
 
 					remoteRequest = remote.fetch(options, function (results) {
@@ -5619,8 +5862,7 @@
 						remoteRequest = null;
 
 						// Fire loaded function to process the changes
-
-						remoteLoaded((newFrom + nonDataOffset - collapsedOffset), (newTo + nonDataOffset - collapsedOffset));
+						remoteLoaded((newFrom - collapsedOffset), (newTo + nonDataOffset - collapsedOffset));
 
 						// Fire onLoaded callback
 						if (typeof remote.onLoaded === 'function') remote.onLoaded();
@@ -5638,6 +5880,8 @@
 		// @param	callback	function	Callback function
 		//
 		remoteFetchGroups = function (callback) {
+			callback = callback || function () {};
+
 			// If grouping fast, abort pending requests
 			if (remoteRequest && typeof remoteRequest.abort === 'function') {
 				remoteRequest.abort();
@@ -5648,7 +5892,9 @@
 				callback(cache.remoteGroups);
 			} else {
 				var options = {
-					groups: self.collection.groups
+					filters: typeof(self.collection.filter) != 'function' ? self.collection.filter : null,
+					groups: self.collection.groups,
+					order: self.sorting
 				};
 
 				// Fire onLoading callback
@@ -5665,10 +5911,47 @@
 					// Return results via callback
 					callback(results);
 
+					self.trigger('remotegroupsloaded', {});
+
 					// Fire onLoaded callback
 					if (typeof remote.onLoaded === 'function') remote.onLoaded();
 				});
 			}
+		};
+
+
+		// remoteGroupRefetch()
+		// Sometimes we need to refetch remote groups (like after a sort or a filter).
+		// This function will correctly refetch the groups and then reload the grid if necessary.
+		//
+		remoteGroupRefetch = function () {
+			// Clear the grouping cache
+			cache.remoteGroups = null;
+
+			// Subscribe to an event that will tell us once the refresh
+			// (and group fetching is done)
+			var waitForGroups = function () {
+				// Only call remoteFetch if at least 1 group is open
+				var allClosed = true;
+				for (var i = 0, l = self.collection.groups.length; i < l; i++) {
+					if (!allClosed) break;
+					for (var j = 0, m = self.collection.groups[i].rows.length; j < m; j++) {
+						if (!self.collection.groups[i].rows[j].collapsed) {
+							allClosed = false;
+							break;
+						}
+					}
+				}
+
+				if (!allClosed) remoteFetch();
+			};
+
+			self.once('remotegroupsloaded', waitForGroups);
+
+			// If we're grouped, we need to refetch groups in the right order again.
+			// For this we call 'refresh' which will refetch the groups and auto-render the grid
+			// for us.
+			self.collection.refresh();
 		};
 
 
@@ -5679,25 +5962,15 @@
 		// @param	to		integer		Row index until when to fetch
 		//
 		remoteLoaded = function (from, to) {
-			// Invalidate edited rows
+			// Invalidate updated rows
 			for (var i = from; i <= to; i++) {
 				invalidateRow(i);
 			}
 
-//			// TODO: Display alert if empty
-//			if (self.options.alertOnEmpty && self.dataView.getLength() === 0) {
-//				// Need to clear cache to reset dataview lengths
-//				self.loader.clearCache()
-//
-//				// Insert row
-//				insertEmptyAlert()
-//
-//				// Manually tell collection it's 1 units long
-//				self.dataView.setLength(1)
-//			}
-
 			updateRowCount();
 			render();
+
+			self.trigger('remoteloaded', {});
 		};
 
 
@@ -5892,11 +6165,13 @@
 				// Group rows do not inherit column class
 				mClass = item instanceof Group ? "" : (m.class ? typeof m.class === "function" ? m.class() : m.class : null),
 
+				column = cache.activeColumns[cell],
 				cellCss = [classcell, "l" + cell, "r" + rowI];
 
 			if (mClass) cellCss.push(mClass);
 			if (self.active && row === self.active.row && cell === self.active.cell) cellCss.push("active");
-			if (mColumns[cell] && mColumns[cell].class) cellCss.push(mColumns[cell].class);
+			if (mColumns[column.id] && mColumns[column.id].class) cellCss.push(mColumns[column.id].class);
+			else if (mColumns[cell] && mColumns[cell].class) cellCss.push(mColumns[cell].class);
 			if (isCellSelected(row, cell)) cellCss.push(self.options.selectedClass);
 
 			result.push('<div class="' + cellCss.join(" ") + '">');
@@ -6116,7 +6391,7 @@
 					// Can also be used for checking whether a cell has been rendered.
 					cellColSpans: [],
 
-					// Cell nodes (by column idx).  Lazy-populated by ensureCellNodesInRowsCache().
+					// Cell nodes (by column idx). Lazy-populated by ensureCellNodesInRowsCache().
 					cellNodesByColumnIdx: [],
 
 					// Column indices of cell nodes that have been rendered, but not yet indexed in
@@ -6687,45 +6962,68 @@
 				throw new Error('Doby Grid cannot set the sorting because the "options" parameter must be an array of objects.');
 			}
 
+			var old_sorting = JSON.parse(JSON.stringify(this.sorting)), i, l;
+
 			if (!this.options.multiColumnSort && options.length > 1) {
 				throw new Error('Doby Grid cannot set the sorting given because "multiColumnSort" is disabled and the given sorting options contain multiple columns.');
 			}
 
-			// Make sure all selected columns are sortable
-			// NOTE: This can be optimized
-			var colDef = null;
-			_.each(options, function (opt) {
-				_.each(cache.activeColumns, function (col) {
-					if (opt.columnId === col.id) {
-						colDef = col;
-						if (col.sortable === false) {
-							throw new Error('Doby Grid cannot sort by "' + col.id + '" because that column is not sortable.');
-						}
-					}
-				});
-			}.bind(this));
+			// Make sure all selected columns are sortable, and make sure
+			// every column has a sort direction set
+			var colDef;
+			for (i = 0, l = options.length; i < l; i++) {
+				colDef = getColumnById(options[i].columnId);
+				if (colDef.sortable === false) {
+					throw new Error([
+						'Doby Grid cannot sort by "', colDef.id,
+						'" because that column is not sortable.'
+					].join(''));
+				}
+				if (options[i].sortAsc === null || options[i].sortAsc === undefined) {
+					options[i].sortAsc = colDef.sortAsc !== null || colDef.sortAsc !== undefined ? colDef.sortAsc : true;
+				}
+			}
 
-			// Updating the sorting dictionary
-			this.sorting = options;
+			// Updating the sorting dictionary. Groups are always sorted first.
+			this.sorting = mergeGroupSorting(options);
 
 			// Update the sorting data
 			styleSortColumns();
 
-			// Re-process column args into something the execute sorter can understand
-			var args = {
-				multiColumnSort: true,
-				sortCols: []
-			};
+			// Check to see if the sorting has actually changed
+			var changed = old_sorting.length != this.sorting.length;
+			if (!changed) {
+				for (i = 0, l = old_sorting.length; i < l; i++) {
+					if (old_sorting[i].columnId != this.sorting[i].columnId	|| old_sorting[i].sortAsc != this.sorting[i].sortAsc) {
+						changed = true;
+						break;
+					}
+				}
+			}
 
-			_.each(options, function (col) {
-				args.sortCols.push({
-					sortCol: getColumnById(col.columnId),
-					sortAsc: col.sortAsc !== null && col.sortAsc !== undefined ? col.sortAsc : colDef.sortAsc
+			if (changed) {
+
+				// Re-process column args into something the execute sorter can understand
+				var args = {
+					multiColumnSort: this.sorting.length > 1,
+					sortCols: []
+				};
+
+				_.each(this.sorting, function (col) {
+					colDef = getColumnById(col.columnId);
+					args.sortCols.push({
+						sortCol: colDef,
+						sortAsc: col.sortAsc
+					});
 				});
-			});
 
-			// Manually execute the sorter that will actually re-draw the table
-			executeSorter(args);
+				// Manually execute the sorter that will actually re-draw the table
+				executeSorter(args);
+
+				// Fire event
+				self.trigger('sort', this._event, args);
+
+			}
 
 			return this;
 		};
@@ -7000,10 +7298,12 @@
 
 
 		// setupColumnSort()
-		// Allows columns to be sortable via click
+		// Allows columns to be sortable via click.
 		//
 		setupColumnSort = function () {
 			$headers.click(function (e) {
+				self._event = e;
+
 				// If clicking on drag handle - stop
 				var handle = $(e.target).closest("." + classhandle);
 				if (handle.length) return;
@@ -7013,59 +7313,49 @@
 
 				var sortOpts = null;
 				for (var i = 0, l = self.sorting.length; i < l; i++) {
-					if (self.sorting[i].columnId == column.id) {
-						sortOpts = self.sorting[i];
+					if (self.sorting[i].columnId == column.id && !self.sorting[i].group) {
+						sortOpts = JSON.parse(JSON.stringify(self.sorting[i]));
 						sortOpts.sortAsc = !sortOpts.sortAsc;
 						break;
 					}
 				}
 
-				if (e.metaKey && self.options.multiColumnSort) {
+				var sorting = [];
+				// On Shift+Click adjust multi column sort
+				if (e.shiftKey && self.options.multiColumnSort) {
+
+					// If that column is already being sorted by, remove it
 					if (sortOpts) {
-						self.sorting.splice(i, 1);
-					}
-				} else {
-					if ((!e.shiftKey && !e.metaKey) || !self.options.multiColumnSort) {
-						self.sorting = [];
-					}
-
-					if (!sortOpts) {
-						sortOpts = {
+						sorting = JSON.parse(JSON.stringify(self.sorting));
+						sorting.splice(i, 1);
+					} else {
+						sorting = JSON.parse(JSON.stringify(self.sorting));
+						sorting.push({
 							columnId: column.id,
-							sortAsc: column.sortAsc
-						};
-						self.sorting.push(sortOpts);
-					} else if (self.sorting.length === 0) {
-						self.sorting.push(sortOpts);
+							sortAsc: true
+						});
+					}
+				} else {
+					if (sortOpts) {
+						// If we're in multi-sort mode, do not reset sorted columns
+						// just flip the direction instead.
+						if (self.options.multiColumnSort) {
+							sorting = JSON.parse(JSON.stringify(self.sorting));
+							sorting[i].sortAsc = !sorting[i].sortAsc;
+						} else {
+							sorting = [sortOpts];
+						}
+					} else {
+						sorting = [{
+							columnId: column.id,
+							sortAsc: true
+						}];
 					}
 				}
 
-				styleSortColumns(self.sorting);
+				self.setSorting(sorting);
 
-				var args;
-				if (!self.options.multiColumnSort) {
-					args = {
-						multiColumnSort: false,
-						sortCol: column,
-						sortAsc: sortOpts.sortAsc
-					};
-				} else {
-					args = {
-						multiColumnSort: true,
-						sortCols: $.map(self.sorting, function (col) {
-							return {
-								sortCol: cache.activeColumns[cache.columnsById[col.columnId]],
-								sortAsc: col.sortAsc
-							};
-						})
-					};
-				}
-
-				// Execute sort
-				executeSorter(args);
-
-				// Fire event
-				self.trigger('sort', e, args);
+				self._event = null;
 			});
 		};
 
@@ -7095,23 +7385,18 @@
 			var onKeyUp = function () {
 				if (keyTimer) clearTimeout(keyTimer);
 				keyTimer = setTimeout(function () {
-					self.filter(function (item) {
-						// Get the values of all column fields
-						var result = true, c, c_value, i_value;
-						for (var i = 0, l = cache.activeColumns.length; i < l; i++) {
-							c = cache.activeColumns[i];
-							if (result && c.quickFilterInput) {
-								i_value = c.quickFilterInput.val();
-								c_value = getDataItemValueForColumn(item, c);
-
-								if (c_value !== undefined && c_value !== null) c_value = c_value.toString();
-
-								result *= i_value && c_value ? c_value.toLowerCase().indexOf(i_value.toLowerCase()) >= 0 : true;
-							}
+					// Build a filter set
+					var filterset = [], c, i_value;
+					for (var i = 0, l = cache.activeColumns.length; i < l; i++) {
+						c = cache.activeColumns[i];
+						if (c.quickFilterInput) {
+							i_value = c.quickFilterInput.val();
+							if (i_value.length) filterset.push([c.id, '~*', i_value]);
 						}
+					}
 
-						return result;
-					});
+					// Submit filter
+					self.filter(filterset);
 				}, 150);
 			};
 
@@ -7134,9 +7419,10 @@
 					cell.appendTo($headerFilter);
 
 					// Create input as a reference in the column definition
-					column.quickFilterInput = $('<input class="editor" type="text"/>')
+					column.quickFilterInput = $('<input class="' + classeditor + '" type="text"/>')
 						.appendTo(cell)
 						.data('column_id', column.id)
+						.attr('placeholder', getLocale('column.add_quick_filter'))
 						.on('keyup', onKeyUp);
 
 					// Focus input
@@ -7305,7 +7591,7 @@
 					col.sortAsc = true;
 				}
 				var columnIndex = cache.columnsById[col.columnId];
-				if (columnIndex !== null) {
+				if (columnIndex !== null && !col.group) {
 					headerColumnEls.eq(columnIndex)
 						.addClass(classheadercolumnsorted)
 						.find("." + classsortindicator)
@@ -7449,12 +7735,14 @@
 					name: column ? getLocale('column.sort_asc', {name: column.name}) : '',
 					fn: function () {
 						self.sortBy(column.id, true);
+						dropdown.hide();
 					}
 				}, {
 					enabled: !hasSorting(column.id),
 					name: column ? getLocale('column.sort_desc', {name: column.name}) : '',
 					fn: function () {
 						self.sortBy(column.id, false);
+						dropdown.hide();
 					}
 				}, {
 					enabled: self.isSorted() && !hasSorting(column.id),
@@ -7462,6 +7750,7 @@
 					fn: function () {
 						self.sorting.push({columnId: column.id, sortAsc: true});
 						self.setSorting(self.sorting);
+						dropdown.hide();
 					}
 				}, {
 					enabled: self.isSorted() && !hasSorting(column.id),
@@ -7469,15 +7758,16 @@
 					fn: function () {
 						self.sorting.push({columnId: column.id, sortAsc: false});
 						self.setSorting(self.sorting);
+						dropdown.hide();
 					}
 				}, {
 					enabled: hasSorting(column.id),
 					name: column ? getLocale('column.remove_sort', {name: column.name}) : '',
 					fn: function () {
-						self.sorting = _.filter(self.sorting, function (s) {
+						self.setSorting(_.filter(self.sorting, function (s) {
 							return s.columnId != column.id;
-						});
-						self.setSorting(self.sorting);
+						}));
+						dropdown.hide();
 					}
 				}]
 			}, {
@@ -7545,6 +7835,7 @@
 				name: getLocale('column.deselect'),
 				fn: function () {
 					var column_idx = cache.columnsById[column.id];
+					// NOTE: This is very slow and inefficient. Build a way to bulk deselect.
 					for (var i = 0; i < cache.rows.length - 1; i++) {
 						deselectCells(i, column_idx);
 					}
