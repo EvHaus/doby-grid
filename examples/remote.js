@@ -3,10 +3,56 @@
 define(['faker'], function (Faker) {
 	"use strict";
 
+	// Replicates a server's database filter
+	var remote_filter = function (options, item) {
+		var result = true;
+		if (!options.filters) return result;
+		var f, value;
+		for (var i = 0, l = options.filters.length; i < l; i++) {
+			f = options.filters[i];
+			value = item.data[f[0]];
+			switch (f[1]) {
+			case '=':
+				result = value == f[2];
+				break;
+			case '!=':
+				result = value !== f[2];
+				break;
+			case '>':
+				result = value > f[2];
+				break;
+			case '<':
+				result = value < f[2];
+				break;
+			case '>=':
+				result = value >= f[2];
+				break;
+			case '<=':
+				result = value <= f[2];
+				break;
+			case '~':
+				result = value.toString().search(f[2].toString()) !== -1;
+				break;
+			case '!~':
+				result = value.toString().search(f[2].toString()) === -1;
+				break;
+			case '~*':
+				result = value.toString().toLowerCase().search(f[2].toString().toLowerCase()) !== -1;
+				break;
+			case '!~*':
+				result = value.toString().toLowerCase().search(f[2].toString().toLowerCase()) === -1;
+				break;
+			}
+			if (!result) break;
+		}
+
+		return result;
+	};
+
 	return [function () {
 
 		var data = [];
-		for (var i = 0; i < 10000; i++) {
+		for (var i = 0; i < 1000; i++) {
 			data.push({
 				id: i,
 				data: {
@@ -53,7 +99,9 @@ define(['faker'], function (Faker) {
 				this.count = function (options, callback) {
 					// Fake AJAX delay
 					setTimeout(function () {
-						callback(data.length);
+						callback(_.filter(data, function (item) {
+							return remote_filter(options, item);
+						}).length);
 					}, 100);
 				};
 
@@ -79,6 +127,11 @@ define(['faker'], function (Faker) {
 					// Fake AJAX delay
 					return setTimeout(function () {
 						var mydata = JSON.parse(JSON.stringify(data));
+
+						// Apply filter
+						mydata = _.filter(mydata, function (item) {
+							return remote_filter(options, item);
+						});
 
 						// Apply fake sort
 						if (options.order.length) {

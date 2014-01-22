@@ -2151,7 +2151,8 @@
 			getFilteredAndPagedItems = function (items) {
 				items = items instanceof Backbone.Collection ? items.models : items;
 
-				if (self.filter) {
+				// Remote data will already be filtered
+				if (self.filter && !remote) {
 					var batchFilter = uncompiledFilter;
 					var batchFilterWithCaching = uncompiledFilterWithCaching;
 
@@ -3480,13 +3481,16 @@
 		//
 		// @return object
 		this.filter = function (filter) {
-			if (typeof(filter) == 'function') {
+			// Remote data is filtered on the server - so just store it for reference
+			if (typeof(filter) == 'function' || remote) {
 				// Set collection filter function
 				this.collection.filter = filter;
 			} else if ($.isArray(filter)) {
+
 				// A filter set is given.
 				// Build a filter function from the given set
 				this.collection.filter = function (item) {
+
 					var result = true, f, columnDef, value;
 					for (var i = 0, l = filter.length; i < l; i++) {
 						f = filter[i];
@@ -3523,16 +3527,18 @@
 							result = value <= f[2];
 							break;
 						case '~':
-							result = value.toString().match(f[2].toString()) ? true : false;
+							// NOTE: Investigate the possibility of using indexOf() here. It's a bit faster
+							// according to: http://jsperf.com/exec-vs-match-vs-test-vs-search/21
+							result = value.toString().search(f[2].toString()) !== -1;
 							break;
 						case '!~':
-							result = value.toString().match(f[2].toString()) ? false : true;
+							result = value.toString().search(f[2].toString()) === -1;
 							break;
 						case '~*':
-							result = value.toString().toLowerCase().match(f[2].toString().toLowerCase()) ? true : false;
+							result = value.toString().toLowerCase().search(f[2].toString().toLowerCase()) !== -1;
 							break;
 						case '!~*':
-							result = value.toString().toLowerCase().match(f[2].toString().toLowerCase()) ? false : true;
+							result = value.toString().toLowerCase().search(f[2].toString().toLowerCase())  === -1;
 							break;
 						default:
 							throw new Error('Unable to filter by "' + f[0] + '" because "' + f[1] + '" is not a valid operator.');
@@ -3548,8 +3554,19 @@
 				throw new Error('Cannot apply filter to grid because given filter must be an array or a function, but given ' + typeof(filter) + '.');
 			}
 
-			// Refresh the grid with the filtered data
-			this.collection.refresh();
+			// Remote data needs to be completely reloaded
+			if (remote) {
+				if (self.collection.groups) {
+					// TODO: Add filtering group support
+				}
+
+				remoteCount(function () {
+					remoteFetch();
+				});
+			} else {
+				// Refresh the grid with the filtered data
+				this.collection.refresh();
+			}
 
 			return this;
 		};
@@ -5687,9 +5704,10 @@
 		// @param	callback	function	Callback function
 		//
 		remoteCount = function (callback) {
-			var options = {};
+			var options = {
+				filters: typeof(self.collection.filter) != 'function' ? self.collection.filter : null
+			};
 
-			// TODO: Add an options.filters variable in here
 			remote.count(options, function (result) {
 				// Sets the current collection length
 				self.collection.length = result;
@@ -5790,7 +5808,7 @@
 					// Builds the options we need to give the fetcher
 					var options = {
 						columns: cache.activeColumns,
-						//filters: null, TODO: Enable remote filtering here
+						filters: typeof(self.collection.filter) != 'function' ? self.collection.filter : null,
 						limit: newTo - newFrom + 1,
 						offset: newFrom,
 						order: self.sorting
@@ -5834,6 +5852,7 @@
 				callback(cache.remoteGroups);
 			} else {
 				var options = {
+					filters: typeof(self.collection.filter) != 'function' ? self.collection.filter : null,
 					groups: self.collection.groups,
 					order: self.sorting
 				};
@@ -7289,23 +7308,18 @@
 			var onKeyUp = function () {
 				if (keyTimer) clearTimeout(keyTimer);
 				keyTimer = setTimeout(function () {
-					self.filter(function (item) {
-						// Get the values of all column fields
-						var result = true, c, c_value, i_value;
-						for (var i = 0, l = cache.activeColumns.length; i < l; i++) {
-							c = cache.activeColumns[i];
-							if (result && c.quickFilterInput) {
-								i_value = c.quickFilterInput.val();
-								c_value = getDataItemValueForColumn(item, c);
-
-								if (c_value !== undefined && c_value !== null) c_value = c_value.toString();
-
-								result *= i_value && c_value ? c_value.toLowerCase().indexOf(i_value.toLowerCase()) >= 0 : true;
-							}
+					// Build a filter set
+					var filterset = [], c, i_value;
+					for (var i = 0, l = cache.activeColumns.length; i < l; i++) {
+						c = cache.activeColumns[i];
+						if (c.quickFilterInput) {
+							i_value = c.quickFilterInput.val();
+							if (i_value.length) filterset.push([c.id, '~*', i_value]);
 						}
+					}
 
-						return result;
-					});
+					// Submit filter
+					self.filter(filterset);
 				}, 150);
 			};
 

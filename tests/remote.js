@@ -11,6 +11,52 @@ describe("Remote Data", function () {
 
 	var grid;
 
+	// Replicates a server's database filter
+	var remote_filter = function (options, item) {
+		var result = true;
+		if (!options.filters) return result;
+		var f, value;
+		for (var i = 0, l = options.filters.length; i < l; i++) {
+			f = options.filters[i];
+			value = item.data[f[0]];
+			switch (f[1]) {
+			case '=':
+				result = value == f[2];
+				break;
+			case '!=':
+				result = value !== f[2];
+				break;
+			case '>':
+				result = value > f[2];
+				break;
+			case '<':
+				result = value < f[2];
+				break;
+			case '>=':
+				result = value >= f[2];
+				break;
+			case '<=':
+				result = value <= f[2];
+				break;
+			case '~':
+				result = value.toString().search(f[2].toString()) !== -1;
+				break;
+			case '!~':
+				result = value.toString().search(f[2].toString()) === -1;
+				break;
+			case '~*':
+				result = value.toString().toLowerCase().search(f[2].toString().toLowerCase()) !== -1;
+				break;
+			case '!~*':
+				result = value.toString().toLowerCase().search(f[2].toString().toLowerCase()) === -1;
+				break;
+			}
+			if (!result) break;
+		}
+
+		return result;
+	};
+
 
 	// ==========================================================================================
 
@@ -57,7 +103,9 @@ describe("Remote Data", function () {
 					if (empty) {
 						callback(0);
 					} else {
-						callback(count);
+						callback(_.filter(data, function (item) {
+							return remote_filter(options, item);
+						}).length);
 					}
 				};
 
@@ -67,6 +115,9 @@ describe("Remote Data", function () {
 							callback([]);
 						} else {
 							var mydata = JSON.parse(JSON.stringify(data));
+							mydata = _.filter(mydata, function (item) {
+								return remote_filter(options, item);
+							});
 							if (options.order.length) {
 								mydata.sort(function (dataRow1, dataRow2) {
 									var result = 0, column, value1, value2, val;
@@ -829,6 +880,46 @@ describe("Remote Data", function () {
 				});
 			});
 		});
+	});
 
+
+	// ==========================================================================================
+
+
+	describe("Filtering", function () {
+
+		it("should be able to filter remote results", function () {
+			var column_id = "city",
+				value = 'Vancouver',
+				updated = 0;
+
+			// Add grouping
+			runs(function () {
+				grid.on('remoteloaded', function () {
+					updated++;
+				});
+
+				grid.filter([[column_id, '=', value]]);
+			});
+
+			// Wait for data to be refetched
+			waitsFor(function () {
+				return updated;
+			});
+
+			runs(function () {
+				// Verify that only Vancouver rows are left visible
+				var $rows = grid.$el.find('.doby-grid-row'), $cell;
+				$rows.each(function () {
+					$cell = $(this).children('.doby-grid-cell.l3');
+					if ($cell.text() !== '') {
+						expect($cell).toHaveText(value);
+					}
+				});
+			});
+		});
+
+
+		// ==========================================================================================
 	});
 });
