@@ -3525,6 +3525,15 @@
 						case '~':
 							result = value.toString().match(f[2].toString()) ? true : false;
 							break;
+						case '!~':
+							result = value.toString().match(f[2].toString()) ? false : true;
+							break;
+						case '~*':
+							result = value.toString().toLowerCase().match(f[2].toString().toLowerCase()) ? true : false;
+							break;
+						case '!~*':
+							result = value.toString().toLowerCase().match(f[2].toString().toLowerCase()) ? false : true;
+							break;
 						default:
 							throw new Error('Unable to filter by "' + f[0] + '" because "' + f[1] + '" is not a valid operator.');
 						}
