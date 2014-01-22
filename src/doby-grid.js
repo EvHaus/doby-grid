@@ -329,6 +329,7 @@
 			dataExtractor:			null,
 			editable:				false,
 			editor:					null,
+			editorType:				'selection',
 			emptyNotice:			true,
 			exportFileName:			"doby-grid-export",
 			formatter:				null,
@@ -1467,6 +1468,20 @@
 				currentEditor.focus();
 			};
 
+			var applyEditToCell = function (item, row, cell) {
+				var column = cache.activeColumns[cell];
+
+				// Execute the operation
+				currentEditor.applyValue(item, column.id, currentEditor.serializeValue());
+				updateRow(row);
+
+				self.trigger('change', self._event, {
+					row: row,
+					cell: cell,
+					item: item
+				});
+			};
+
 			if (currentEditor.isValueChanged()) {
 				var validationResults = currentEditor.validate();
 
@@ -1478,7 +1493,7 @@
 						};
 
 						// Add row
-						currentEditor.applyValue(newItem, currentEditor.serializeValue());
+						currentEditor.applyValue(newItem, column.id, currentEditor.serializeValue());
 
 						// Make sure item has an id
 						if ((!newItem.data.id && !newItem.id) ||
@@ -1500,23 +1515,19 @@
 							column: column
 						});
 					} else {
-						// See if we have a cell range selected
-						if (self.selection) {
-							// TODO: Send multiple values to the editor for edit
+						if (self.options.editorType == 'selection' && self.selection) {
+							// Send all selected cells to the editor for changes
+							for (var i = 0, l = self.selection.length; i < l; i++) {
+								for (var j = self.selection[i].fromRow, k = self.selection[i].toRow; j <= k; j++) {
+									for (var q = self.selection[i].fromCell, m = self.selection[i].toCell; q <= m; q++) {
+										applyEditToCell(cache.rows[j], j, q);
+									}
+								}
+							}
+						} else {
+							// Only edit the active cell
+							applyEditToCell(item, self.active.row, self.active.cell);
 						}
-
-						// Execute the operation
-						currentEditor.applyValue(item, currentEditor.serializeValue());
-						updateRow(self.active.row);
-
-						// Reset active cell
-						makeActiveCellNormal();
-
-						self.trigger('change', self._event, {
-							row: self.active.row,
-							cell: self.active.cell,
-							item: item
-						});
 					}
 
 					return true;
@@ -2943,15 +2954,18 @@
 			// This is the function that will update the data model in the grid.
 			//
 			// @param	item		object		The data model for the item being edited
+			// @param	column_id	string		The ID of the column being edited
 			// @param	value		string		The user-input value being entered
 			//
-			this.applyValue = function (item, value) {
+			this.applyValue = function (item, column_id, value) {
+				var column = getColumnById(column_id);
+
 				// Make sure we always have an id for our item
-				if (!('id' in item) && options.column.field == 'id') {
+				if (!('id' in item) && column.field == 'id') {
 					item.id = value;
 				}
 
-				item.data[options.column.field] = value;
+				item.data[column.field] = value;
 			};
 
 

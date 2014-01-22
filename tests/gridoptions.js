@@ -955,6 +955,81 @@ describe("Grid Options", function () {
 	// ==========================================================================================
 
 
+	describe("options.editorType", function () {
+		it("should edit all selected cells when set to 'selection' (default setting)", function () {
+			var grid = resetGrid($.extend(defaultData(), {editable: true}));
+
+			var value = 'testing';
+
+			// Select some cells
+			grid.selectCells(0, 0, 1, 1);
+
+			// Activate a cell
+			grid.activate(1, 1);
+
+			// Type something into the editor and hit Enter
+			$(grid.active.node).simulate('click', {});
+			var $input = $(grid.active.node).children('input');
+			$input.attr('value', value);
+			$input.simulate('keydown', {keyCode: 13});
+
+			// Deactivate
+			grid.activate();
+
+			// All cells should say "testing".
+			grid.$el.find('.doby-grid-cell').each(function () {
+				expect($(this)).toHaveText(value);
+			});
+		});
+
+
+		// ==========================================================================================
+
+
+		it("should only edit the active cell when set to 'active'", function () {
+			var grid = resetGrid($.extend(defaultData(), {editable: true, editorType: 'active'}));
+
+			var value = 'testing';
+
+			// Select some cells
+			grid.selectCells(0, 0, 1, 1);
+
+			// Activate a cell
+			grid.activate(1, 1);
+
+			// Type something into the editor and hit Enter
+			$(grid.active.node).simulate('click', {});
+			var $input = $(grid.active.node).children('input');
+			$input.attr('value', value);
+			$input.simulate('keydown', {keyCode: 13});
+
+			// Deactivate
+			grid.activate();
+
+			// All cells should say "testing".
+			grid.$el.find('.doby-grid-row').each(function (i) {
+				var $cells = $(this).find('.doby-grid-cell');
+				if (i === 0) {
+					$cells.each(function () {
+						expect($(this)).not.toHaveText(value);
+					});
+				} else {
+					$cells.each(function (i) {
+						if (i === 0) {
+							expect($(this)).not.toHaveText(value);
+						} else {
+							expect($(this)).toHaveText(value);
+						}
+					});
+				}
+			});
+		});
+	});
+
+
+	// ==========================================================================================
+
+
 	describe("options.emptyNotice", function () {
 		it("should be enabled by default", function () {
 			var grid = resetGrid(defaultData());
