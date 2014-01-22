@@ -151,6 +151,7 @@ describe("Remote Data", function () {
 							grouped = _.groupBy(data, function (item) {
 								return item.data[column_id];
 							});
+
 							_.each(_.keys(grouped).sort(), function (group) {
 								groups.push({
 									_rows: grouped[group],
@@ -182,10 +183,13 @@ describe("Remote Data", function () {
 								};
 							}
 						};
+						var main_filter = function (item) {
+							return remote_filter(options, item);
+						};
 						for (var i = 0, l = options.groups.length; i < l; i++) {
 							column_id = options.groups[i].column_id;
 							if (i === 0) {
-								generateGroup(column_id, data, i);
+								generateGroup(column_id, _.filter(data, main_filter), i);
 							} else {
 								for (var j = 0, m = results[i - 1].groups.length; j < m; j++) {
 									generateGroup(column_id, results[i - 1].groups[j]._rows, i, results[i - 1].groups[j].value);
@@ -893,7 +897,7 @@ describe("Remote Data", function () {
 				value = 'Vancouver',
 				updated = 0;
 
-			// Add grouping
+			// Filter
 			runs(function () {
 				grid.on('remoteloaded', function () {
 					updated++;
@@ -921,5 +925,45 @@ describe("Remote Data", function () {
 
 
 		// ==========================================================================================
+
+
+		it("should be able to filter remote results when results are grouped", function () {
+			var column_id = "city",
+				value = 'Vancouver',
+				updated = false;
+
+			// Add grouping
+			runs(function () {
+				grid.setGrouping([{column_id: column_id}]);
+			});
+
+			// Wait for the groups to be fetched and calculated
+			waitsFor(function () {
+				return grid.collection.groups.length == 1 && grid.collection.groups[0].rows.length;
+			});
+
+			// Filter
+			runs(function () {
+				grid.on('remotegroupsloaded', function () {
+					updated = true;
+				});
+
+				grid.filter([[column_id, '=', value]]);
+			});
+
+			// Wait for data to be refetched
+			waitsFor(function () {
+				return updated;
+			});
+
+			runs(function () {
+				// Verify that only Vancouver rows are left visible
+				var $rows = grid.$el.find('.doby-grid-row'), $cell;
+				$rows.each(function () {
+					$cell = $(this).find('.doby-grid-group-title:first').text();
+					expect($cell).toContain(value);
+				});
+			});
+		});
 	});
 });

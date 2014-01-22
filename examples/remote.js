@@ -246,10 +246,13 @@ define(['faker'], function (Faker) {
 							}
 						};
 
+						var main_filter = function (item) {
+							return remote_filter(options, item);
+						};
 						for (var i = 0, l = options.groups.length; i < l; i++) {
 							column_id = options.groups[i].column_id;
 							if (i === 0) {
-								generateGroup(column_id, data, i);
+								generateGroup(column_id, _.filter(data, main_filter), i);
 							} else {
 								for (var j = 0, m = results[i - 1].groups.length; j < m; j++) {
 									generateGroup(column_id, results[i - 1].groups[j]._rows, i, results[i - 1].groups[j].value);

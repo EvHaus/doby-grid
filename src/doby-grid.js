@@ -256,6 +256,7 @@
 			remoteCount,
 			remoteFetch,
 			remoteFetchGroups,
+			remoteGroupRefetch,
 			remoteRequest = null,
 			remoteTimer = null,
 			removeCssRules,
@@ -3312,33 +3313,7 @@
 				cache.rows = [];
 
 				if (self.collection.groups.length) {
-					// Clear the grouping cache
-					cache.remoteGroups = null;
-
-					// Subscribe to an event that will tell us once the refresh
-					// (and group fetching is done)
-					var waitForGroups = function () {
-						// Only call remoteFetch if at least 1 group is open
-						var allClosed = true;
-						for (var i = 0, l = self.collection.groups.length; i < l; i++) {
-							if (!allClosed) break;
-							for (var j = 0, m = self.collection.groups[i].rows.length; j < m; j++) {
-								if (!self.collection.groups[i].rows[j].collapsed) {
-									allClosed = false;
-									break;
-								}
-							}
-						}
-
-						if (!allClosed) remoteFetch();
-					};
-
-					self.once('remotegroupsloaded', waitForGroups);
-
-					// If we're grouped, we need to refetch groups in the right order again.
-					// For this we call 'refresh' which will refetch the groups and auto-render the grid
-					// for us.
-					self.collection.refresh();
+					remoteGroupRefetch();
 				} else {
 					// Ask the Remote fetcher to refetch the data -- this time using the new sort settings
 					remoteFetch();
@@ -3556,13 +3531,13 @@
 
 			// Remote data needs to be completely reloaded
 			if (remote) {
-				if (self.collection.groups) {
-					// TODO: Add filtering group support
+				if (self.collection.groups && self.collection.groups.length) {
+					remoteGroupRefetch();
+				} else {
+					remoteCount(function () {
+						remoteFetch();
+					});
 				}
-
-				remoteCount(function () {
-					remoteFetch();
-				});
 			} else {
 				// Refresh the grid with the filtered data
 				this.collection.refresh();
@@ -5877,6 +5852,41 @@
 					if (typeof remote.onLoaded === 'function') remote.onLoaded();
 				});
 			}
+		};
+
+
+		// remoteGroupRefetch()
+		// Sometimes we need to refetch remote groups (like after a sort or a filter).
+		// This function will correctly refetch the groups and then reload the grid if necessary.
+		//
+		remoteGroupRefetch = function () {
+			// Clear the grouping cache
+			cache.remoteGroups = null;
+
+			// Subscribe to an event that will tell us once the refresh
+			// (and group fetching is done)
+			var waitForGroups = function () {
+				// Only call remoteFetch if at least 1 group is open
+				var allClosed = true;
+				for (var i = 0, l = self.collection.groups.length; i < l; i++) {
+					if (!allClosed) break;
+					for (var j = 0, m = self.collection.groups[i].rows.length; j < m; j++) {
+						if (!self.collection.groups[i].rows[j].collapsed) {
+							allClosed = false;
+							break;
+						}
+					}
+				}
+
+				if (!allClosed) remoteFetch();
+			};
+
+			self.once('remotegroupsloaded', waitForGroups);
+
+			// If we're grouped, we need to refetch groups in the right order again.
+			// For this we call 'refresh' which will refetch the groups and auto-render the grid
+			// for us.
+			self.collection.refresh();
 		};
 
 
