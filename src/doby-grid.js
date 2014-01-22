@@ -1248,24 +1248,23 @@
 					borderTop = parseInt(this.$el.css('borderTopWidth'), 10);
 
 				if (from && to) {
+					var width = to.right - from.left - borderLeft - borderRight;
+
 					this.$el.css({
 						top: from.top,
 						left: from.left,
 						height: to.bottom - from.top - borderBottom - borderTop,
-						width: to.right - from.left - borderLeft - borderRight
+						width: width
 					});
 
-					// Only display stats box if at least 3 cells are selected
-					if (Math.abs(range.toCell - range.fromCell) >= 2) {
-
-					// Calculate number of selected cells
-					var selected = (Math.abs(range.toCell - range.fromCell) + 1) * (Math.abs(range.toRow - range.fromRow) + 1);
-
+					// Only display stats box if there is enough room
+					if (width > 200) {
+						// Calculate number of selected cells
 						this.$stats.show().html([
-						'<strong>Selection:</strong> ', selected, ' cells',
-						' <strong>From:</strong> ', (range.fromRow + 1), ':', (range.fromCell + 1),
-						' <strong>To:</strong> ', (range.toRow + 1), ':', (range.toCell + 1)
-					].join(''));
+							'<strong>Selection:</strong> ', range.getCellCount(), ' cells',
+							' <strong>From:</strong> ', (range.fromRow + 1), ':', (range.fromCell + 1),
+							' <strong>To:</strong> ', (range.toRow + 1), ':', (range.toCell + 1)
+						].join(''));
 					} else {
 						this.$stats.hide();
 					}
@@ -3777,7 +3776,21 @@
 		getCellNode = function (row, cell) {
 			if (cache.nodes[row]) {
 				ensureCellNodesInRowsCache(row);
-				return cache.nodes[row].cellNodesByColumnIdx[cell];
+
+				// Calculate colspan offset
+				var nodecell = cell;
+				if (!cache.nodes[row].cellColSpans[cell]) {
+					for (var i = 0, l = cell; i <= l; i++) {
+						if (cache.nodes[row].cellColSpans[i] && cache.nodes[row].cellColSpans[i] > 1) {
+							nodecell -= cache.nodes[row].cellColSpans[i] - 1;
+						}
+					}
+				}
+
+				// Do not allow negative values
+				nodecell = nodecell < 0 ? 0 : nodecell;
+
+				return cache.nodes[row].cellNodesByColumnIdx[nodecell];
 			}
 			return null;
 		};
@@ -5598,6 +5611,24 @@
 		};
 
 
+		// getCellCount()
+		// Returns the number of cells in this selection range
+		//
+		// @return integer
+		Range.prototype.getCellCount = function () {
+			var count = 0, rownodes;
+			for (var r = this.fromRow; r <= this.toRow; r++) {
+				rownodes = cache.nodes[r];
+				for (var c = this.fromCell; c <= this.toCell; c++) {
+					if (rownodes.cellColSpans.length && rownodes.cellColSpans[c]) {
+						count++;
+					}
+				}
+			}
+			return count;
+		};
+
+
 		// isExcludedCell()
 		// Returns whether a cell is excluded in this range
 		//
@@ -5617,6 +5648,7 @@
 		//
 		// @return boolean
 		Range.prototype.isSingleCell = function () {
+			// TODO: This needs to take colspans into account
 			return this.fromRow == this.toRow && this.fromCell == this.toCell;
 		};
 
