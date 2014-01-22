@@ -103,6 +103,43 @@
 				right: 10px;
 				top: 60px;
 			}
+
+			.myloader {
+				bottom: 0;
+				display: table;
+				height: 100%;
+				left: 0;
+				opacity: 0;
+				pointer-events: none;
+				position: absolute;
+				right: 0;
+				text-align: center;
+				top: 0;
+				transition: 0.1s opacity ease-in-out;
+				z-index: 10;
+				width: 100%;
+			}
+
+			.myloader div {
+				display: table-cell;
+				vertical-align: middle;
+			}
+
+			.myloader span {
+				border-radius: 8px;
+				box-shadow: rgba(0,0,0,0.1) 5px 5px 5px;
+				padding: 10px 20px;
+			}
+
+			.light .myloader span {
+				background: rgba(255,255,255,0.9);
+				border: 1px solid rgba(0,0,0,0.2);
+			}
+
+			.dark .myloader span {
+				background: #222;
+				border: 1px solid rgba(120,120,120,0.2);
+			}
 		</style>
 		<script>
 		// Require.js Config

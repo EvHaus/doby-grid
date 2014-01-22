@@ -123,11 +123,11 @@
 /*! Header Quick Filter
 ================================================================================================== */
 .doby-grid-header-filter {
-  background-image: url(data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiA/PjxzdmcgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIiB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiB2aWV3Qm94PSIwIDAgMSAxIiBwcmVzZXJ2ZUFzcGVjdFJhdGlvPSJub25lIj48bGluZWFyR3JhZGllbnQgaWQ9Imxlc3NoYXQtZ2VuZXJhdGVkIiBncmFkaWVudFVuaXRzPSJ1c2VyU3BhY2VPblVzZSIgeDE9IjAlIiB5MT0iMCUiIHgyPSIwJSIgeTI9IjEwMCUiPjxzdG9wIG9mZnNldD0iMCUiIHN0b3AtY29sb3I9IiM1NTU1NTUiIHN0b3Atb3BhY2l0eT0iMSIvPjxzdG9wIG9mZnNldD0iMTAwJSIgc3RvcC1jb2xvcj0iIzJlMmUyZSIgc3RvcC1vcGFjaXR5PSIxIi8+PC9saW5lYXJHcmFkaWVudD48cmVjdCB4PSIwIiB5PSIwIiB3aWR0aD0iMSIgaGVpZ2h0PSIxIiBmaWxsPSJ1cmwoI2xlc3NoYXQtZ2VuZXJhdGVkKSIgLz48L3N2Zz4=);
-  background-image: -webkit-linear-gradient(top, #555555 0%, #2e2e2e 100%);
-  background-image: -moz-linear-gradient(top, #555555 0%, #2e2e2e 100%);
-  background-image: -o-linear-gradient(top, #555555 0%, #2e2e2e 100%);
-  background-image: linear-gradient(to bottom, #555555 0%, #2e2e2e 100%);
+  background-image: url(data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiA/PjxzdmcgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIiB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiB2aWV3Qm94PSIwIDAgMSAxIiBwcmVzZXJ2ZUFzcGVjdFJhdGlvPSJub25lIj48bGluZWFyR3JhZGllbnQgaWQ9Imxlc3NoYXQtZ2VuZXJhdGVkIiBncmFkaWVudFVuaXRzPSJ1c2VyU3BhY2VPblVzZSIgeDE9IjAlIiB5MT0iMCUiIHgyPSIwJSIgeTI9IjEwMCUiPjxzdG9wIG9mZnNldD0iMCUiIHN0b3AtY29sb3I9IiMyZTJlMmUiIHN0b3Atb3BhY2l0eT0iMSIvPjxzdG9wIG9mZnNldD0iMTAwJSIgc3RvcC1jb2xvcj0iIzMzMzMzMyIgc3RvcC1vcGFjaXR5PSIxIi8+PC9saW5lYXJHcmFkaWVudD48cmVjdCB4PSIwIiB5PSIwIiB3aWR0aD0iMSIgaGVpZ2h0PSIxIiBmaWxsPSJ1cmwoI2xlc3NoYXQtZ2VuZXJhdGVkKSIgLz48L3N2Zz4=);
+  background-image: -webkit-linear-gradient(top, #2e2e2e 0%, #333333 100%);
+  background-image: -moz-linear-gradient(top, #2e2e2e 0%, #333333 100%);
+  background-image: -o-linear-gradient(top, #2e2e2e 0%, #333333 100%);
+  background-image: linear-gradient(to bottom, #2e2e2e 0%, #333333 100%);
   box-shadow: rgba(0, 0, 0, 0.3) 0 4px 10px inset;
 }
 .doby-grid-header-filter-cell {
@@ -214,7 +214,6 @@
   background-image: -moz-linear-gradient(top, #333333 0%, #222222 100%);
   background-image: -o-linear-gradient(top, #333333 0%, #222222 100%);
   background-image: linear-gradient(to bottom, #333333 0%, #222222 100%);
-  border-bottom-color: #111;
 }
 .doby-grid-group .doby-grid-cell {
   padding-top: 1px;
@@ -264,6 +263,18 @@
 }
 /*! Editing
 ================================================================================================== */
+.doby-grid-editor::-webkit-input-placeholder {
+  color: #999999;
+}
+.doby-grid-editor:-moz-placeholder {
+  color: #999999;
+}
+.doby-grid-editor::-moz-placeholder {
+  color: #999999;
+}
+.doby-grid-editor:-ms-input-placeholder {
+  color: #999999;
+}
 .doby-grid-cell input.doby-grid-editor {
   color: #FFF;
 }

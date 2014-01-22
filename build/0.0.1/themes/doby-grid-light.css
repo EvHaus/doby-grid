@@ -253,6 +253,18 @@
 }
 /*! Editing
 ================================================================================================== */
+.doby-grid-editor::-webkit-input-placeholder {
+  color: #666666;
+}
+.doby-grid-editor:-moz-placeholder {
+  color: #666666;
+}
+.doby-grid-editor::-moz-placeholder {
+  color: #666666;
+}
+.doby-grid-editor:-ms-input-placeholder {
+  color: #666666;
+}
 .doby-grid-cell.editable {
   background: #0A46C8;
   background: rgba(10, 70, 200, 0.1);
