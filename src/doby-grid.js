@@ -8159,13 +8159,6 @@
 					c.id = c.field ? c.field + '_' + i : c.name ? c.name + '_' + i : null;
 				}
 
-				// Convert "tooltip" param to a Cumul8-friendly tooltip
-				if (c.tooltip) {
-					var cssClass = c.headerClass ? c.headerClass + " tooltip" : "tooltip";
-					c.headerClass = cssClass;
-					c.toolTip = c.tooltip;
-				}
-
 				// If any columns require asyncPostRender, enable it on the grid
 				if (c.postprocess) enableAsyncPostRender = true;
 
