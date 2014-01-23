@@ -825,9 +825,10 @@
 						var node = cacheEntry.cellNodesByColumnIdx[columnIdx];
 						if (node) {
 							postprocess({
-								cell: $(node),
+								$cell: $(node),
 								column: col,
 								data: getDataItem(row),
+								grid: self,
 								rowIndex: row
 							}, cb.bind(col));
 						}
@@ -6170,8 +6171,11 @@
 
 			if (mClass) cellCss.push(mClass);
 			if (self.active && row === self.active.row && cell === self.active.cell) cellCss.push("active");
-			if (mColumns[column.id] && mColumns[column.id].class) cellCss.push(mColumns[column.id].class);
-			else if (mColumns[cell] && mColumns[cell].class) cellCss.push(mColumns[cell].class);
+			if (mColumns[column.id] && mColumns[column.id].class) {
+				cellCss.push(mColumns[column.id].class);
+			} else if (mColumns[cell] && mColumns[cell].class) {
+				cellCss.push(mColumns[cell].class);
+			}
 			if (isCellSelected(row, cell)) cellCss.push(self.options.selectedClass);
 
 			result.push('<div class="' + cellCss.join(" ") + '">');

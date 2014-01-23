@@ -325,7 +325,7 @@ describe("Grid Options", function () {
 					name: 'postprocess',
 					postprocess: function (data, callback) {
 						var img = new Image();
-						data.cell.html(img);
+						data.$cell.html(img);
 						callback();
 					}
 				}]

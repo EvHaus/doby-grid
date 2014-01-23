@@ -53,10 +53,10 @@ define(['faker'], function (Faker) {
 					var img = new Image();
 					img.src = '../assets/img/' + icon + '.png';
 					img.onload = function () {
-						data.cell.empty();
+						data.$cell.empty();
 						$(img)
 							.hide()
-							.appendTo(data.cell)
+							.appendTo(data.$cell)
 							.fadeIn(250, function () {
 								callback();
 							});
@@ -73,10 +73,10 @@ define(['faker'], function (Faker) {
 					var img = new Image();
 					img.src = '../assets/img/' + icon + '.png';
 					img.onload = function () {
-						data.cell.empty();
+						data.$cell.empty();
 						$(img)
 							.hide()
-							.appendTo(data.cell)
+							.appendTo(data.$cell)
 							.fadeIn(250, function () {
 								callback();
 							});

@@ -728,13 +728,13 @@ describe("Column Options", function () {
 					name: 'id',
 					cache: true,
 					postprocess: function (data, callback) {
-						data.cell.html("I'm a little teapot");
+						data.$cell.html("I'm a little teapot");
 						callback();
 					}
 				}, {
 					name: 'name',
 					postprocess: function (data, callback) {
-						data.cell.html("S & S");
+						data.$cell.html("S & S");
 						callback();
 					}
 				}]

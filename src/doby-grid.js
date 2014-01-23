@@ -825,9 +825,10 @@
 						var node = cacheEntry.cellNodesByColumnIdx[columnIdx];
 						if (node) {
 							postprocess({
-								cell: $(node),
+								$cell: $(node),
 								column: col,
 								data: getDataItem(row),
+								grid: self,
 								rowIndex: row
 							}, cb.bind(col));
 						}
