@@ -318,6 +318,54 @@ describe("Column Options", function () {
 	// ==========================================================================================
 
 
+	describe("options.category", function () {
+		it("should be null by default", function () {
+			var grid = resetGrid(defaultData());
+			_.each(grid.options.columns, function (col) {
+				expect(col.category).toEqual(null);
+			});
+		});
+
+
+		// ==========================================================================================
+
+
+		it("should groups columns by their category in the context menu", function () {
+			var category_a = "Default",
+				category_b = "Another";
+
+			var grid = resetGrid($.extend(defaultData(), {
+				columns: [
+					{id: 'id', field: 'id', name: 'id', category: category_a},
+					{id: 'name', field: 'name', name: 'name', category: category_a},
+					{id: 'id2', field: 'id2', name: 'id2', category: category_b},
+					{id: 'name2', field: 'name2', name: 'name2', category: category_b}
+				]
+			}));
+
+			// Bring up the context menu
+			grid.$el.find('.doby-grid-cell').simulate('contextmenu');
+
+			waitsFor(function () {
+				// I'm not sure why this is necessary, but without it we see like 16 context menus come up
+				return grid.$el.find('.doby-grid-dropdown').length === 1;
+			});
+
+			runs(function () {
+				var item_a = grid.$el.find('.doby-grid-dropdown-item .doby-grid-dropdown-item:contains(\'' + category_a + '\')'),
+					item_b = grid.$el.find('.doby-grid-dropdown-item .doby-grid-dropdown-item:contains(\'' + category_b + '\')');
+
+				// Find a dropdown item for all the cagetories
+				expect(item_a.length).toEqual(1);
+				expect(item_b.length).toEqual(1);
+			});
+		});
+	});
+
+
+	// ==========================================================================================
+
+
 	describe("options.class", function () {
 		it("should be null by default", function () {
 			var grid = resetGrid(defaultData());

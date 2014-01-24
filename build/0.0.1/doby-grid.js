@@ -7690,18 +7690,49 @@
 
 			// Builds a list of all available columns for the user to choose from
 			var columns_menu = [],
-				sorted = _.sortBy(self.options.columns, function (c) { return c.name; });
+				undefined_key = '--UNDEFINED--',
+				sorted_grouped = _.chain(self.options.columns)
+					.sortBy(function (c) { return c.name; })
+					.groupBy(function (c) { return c.category !== undefined && c.category !== null ? c.category : undefined_key; })
+					.value(),
+				category_keys = Object.keys(sorted_grouped),
+				category, category_item;
 
-			_.each(sorted, function (c) {
+			var buildColumnsMenu = function (c, target) {
 				// Non-removable columns do not appear in the list
 				if (!c.removable) return;
-
-				columns_menu.push({
+				target = target || columns_menu;
+				target.push({
 					name: c.name !== undefined && c.name !== null ? c.name : c.id,
 					fn: cFn(c),
 					value: c.visible
 				});
-			});
+			};
+
+			// Process category columns first
+			for (var k in category_keys.sort()) {
+				category = category_keys[k];
+				if (category == undefined_key) continue;
+
+				// Create the group item
+				category_item = {
+					name: category,
+					menu: []
+				};
+
+				for (var i = 0, l = sorted_grouped[category].length; i < l; i++) {
+					buildColumnsMenu(sorted_grouped[category][i], category_item.menu);
+				}
+
+				columns_menu.push(category_item);
+			}
+
+			// Process non-category columns last
+			if (sorted_grouped[undefined_key]) {
+				_.each(sorted_grouped[undefined_key], function (c) {
+					buildColumnsMenu(c);
+				});
+			}
 
 			// When an aggregator is chosen from the menu
 			var aFn = function (column, aggr_index) {

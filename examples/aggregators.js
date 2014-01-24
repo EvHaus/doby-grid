@@ -67,32 +67,40 @@ define([], function () {
 			id: "id",
 			name: "ID",
 			field: "id",
-			sortable: true
+			sortable: true,
+			removable: true
 		}, {
 			id: "city",
 			name: "City",
 			field: "city",
 			minWidth: 160,
-			sortable: true
+			sortable: true,
+			removable: true
 		}, {
+			category: "Statistical",
 			aggregators: default_aggregators,
 			id: "elevation",
 			name: "Elevation",
 			field: "elevation",
 			minWidth: 100,
-			sortable: true
+			sortable: true,
+			removable: true
 		}, {
+			category: "Statistical",
 			aggregators: default_aggregators,
 			id: "population",
 			name: "Population",
 			field: "population",
 			minWidth: 100,
-			sortable: true
+			sortable: true,
+			removable: true
 		}, {
+			category: "Statistical",
 			id: "language",
 			name: "Language",
 			field: "language",
-			sortable: true
+			sortable: true,
+			removable: true
 		}];
 
 		return {
