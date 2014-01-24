@@ -1792,6 +1792,51 @@ describe("Grid Options", function () {
 				expect(col.width).toBeLessThan(colwidths[i] + padding - weirdoffset + marginoferror);
 			});
 		});
+
+
+		// ==========================================================================================
+
+
+		it("should now allow grid to go beyond 100% width when double-clicking a column resize handle when autoColumnWidth is set", function () {
+
+			// Create grid with some specific width items
+			var grid = resetGrid({
+				autoColumnWidth: true,
+				columns: [{
+					id: 'wide-column-a',
+					field: 'wide-column-a',
+					formatter: function () {
+						return '<div style="width:500px"></div>';
+					},
+					width: 50
+				}, {
+					"class": 'nopad',
+					id: 'wide-column-a',
+					field: 'wide-column-b',
+					formatter: function () {
+						return '<div style="width:500px"></div>';
+					},
+					width: 50
+				}],
+				data: [{
+					id: 1,
+					data: {
+						id: 1
+					}
+				}]
+			});
+
+			// Auto resize first column
+			grid.$el.find('.doby-grid-header-column:first .doby-grid-resizable-handle').each(function () {
+				$(this).simulate('dblclick');
+			});
+
+			var viewport_width = grid.$el.find('.doby-grid-viewport').width(),
+				canvas_width = grid.$el.find('.doby-grid-canvas').width();
+
+			// Make sure the canvas width didn't grow to be bigger than the viewport width
+			expect(viewport_width).toEqual(canvas_width);
+		});
 	});
 
 

@@ -7290,12 +7290,20 @@
 				// Do nothing if width isn't changed
 				if (currentWidth == newWidth) return;
 
+				pageX = event.pageX;
+
+				lockColumnWidths(column_index);
+
+				// Calculate resize diff
 				var diff = newWidth - currentWidth;
 
 				// Duplicate the drag functionality
-				lockColumnWidths(column_index);
 				prepareLeeway(column_index, pageX);
-				resizeColumn(column_index, diff);
+
+				// This will ensure you can't resize beyond the maximum allowed width
+				var delta = Math.min(maxPageX, Math.max(minPageX, pageX + diff)) - pageX;
+
+				resizeColumn(column_index, delta);
 				applyColWidths();
 				submitColResize();
 			});
