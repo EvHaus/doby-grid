@@ -40,17 +40,16 @@
 			color: #EEE;
 			.transition(background 0.2s ease-in-out, box-shadow 0.2s ease-in-out);
 
-			&.sortable:hover {
+			&.sortable:hover,
+			&.ui-sortable-helper {
 				background: #DDD;
 				background: rgba(255,255,255,0.05);
 				box-shadow: rgba(0,0,0,0.1) 2px 2px 2px inset;
 			}
 
 			&.ui-sortable-helper {
-				.background-image(linear-gradient(to bottom, #4F4F4F 0%, #3F3F3F 100%));
-				background: #999;
-				border-left: 1px solid #999;
-				border-left: 1px solid rgba(255,255,255,0.2);
+				border-left: 1px solid #DDD;
+				border-left: 1px solid rgba(255,255,255,0.1);
 			}
 
 			// Sorted
