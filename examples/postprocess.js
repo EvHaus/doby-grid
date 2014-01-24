@@ -48,7 +48,7 @@ define(['faker'], function (Faker) {
 				name: "RSVP",
 				field: "rsvp",
 				sortable: true,
-				postprocess: function (data, callback) {
+				postprocess: function (data) {
 					var icon = data.data.data.rsvp ? 'plus-small' : 'minus-small';
 					var img = new Image();
 					img.src = '../assets/img/' + icon + '.png';
@@ -57,9 +57,7 @@ define(['faker'], function (Faker) {
 						$(img)
 							.hide()
 							.appendTo(data.$cell)
-							.fadeIn(250, function () {
-								callback();
-							});
+							.fadeIn(250);
 					};
 				}
 			}, {

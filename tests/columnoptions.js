@@ -208,8 +208,111 @@ describe("Column Options", function () {
 		// ==========================================================================================
 
 
-		// TODO: Find a way to test this. I think the only way is to register some new grid events, ie:
-		// postProcessingStarted and postProcessingDone
+		it("should cache the HTML value of cells when enabled and postprocessing is on", function () {
+			var grid = resetGrid($.extend(defaultData(), {
+				columns: [{
+					cache: true,
+					id: 'id',
+					name: 'id',
+					postprocess: function (data, callback) {
+						data.$cell.html("I'm a little teapot");
+						callback();
+					}
+				}, {
+					cache: false,
+					id: 'name',
+					name: 'name',
+					sortable: true,
+					postprocess: function (data) {
+						data.$cell.html("S & S");
+					}
+				}]
+			}));
+
+			// Check to see if all cells are loaded
+			var cells = grid.$el.find('.doby-grid-cell');
+
+			// Expect everything to be empty
+			cells.each(function () {
+				expect($(this).text()).toEqual('');
+			});
+
+			// Wait until postprocessing has rendered everything
+			waitsFor(function () {
+				var result = true;
+				cells.each(function () {
+					if ($(this).text() === '') result = false;
+				});
+				return result;
+			});
+
+			runs(function () {
+				// Expect cells to have new data
+				cells.each(function (i) {
+					expect($(this).text()).toEqual(["I'm a little teapot", "S & S"][i % 2]);
+				});
+
+				// Force the grid to be re-render via resize(). This is a big of a hack.
+				grid.resize();
+
+				// All 'id' column cells should still have data, but 'name' column cells should be empty
+				cells = grid.$el.find('.doby-grid-cell');
+				cells.each(function (i) {
+					expect($(this).text()).toEqual(["I'm a little teapot", ""][i % 2]);
+				});
+			});
+		});
+
+
+		// ==========================================================================================
+
+
+		it("should recache when the grid is re-ordered", function () {
+			var grid = resetGrid({
+				columns: [{
+					cache: true,
+					id: 'id',
+					name: 'id',
+					field: 'id',
+					postprocess: function (data, callback) {
+						console.log(data.$cell)
+						data.$cell.html('post-' + data.data.id);
+						callback();
+					}
+				}],
+				data: _.map(_.range(0, 100), function (i) {
+					return {
+						id: i,
+						data: {
+							id: i
+						}
+					};
+				})
+			});
+
+			// Wait until postprocessing has rendered at least the first row
+			waitsFor(function () {
+				return grid.$el.find('.doby-grid-cell').eq(0).text() == 'post-0' && grid.$el.find('.doby-grid-cell').eq(1).text() == 'post-1';
+			});
+
+			runs(function () {
+				// Expect cells to have data in the right order
+				grid.$el.find('.doby-grid-cell').each(function (i) {
+					if ($(this).text().indexOf('post-') >= 0) {
+						expect($(this).text()).toEqual('post-' + i);
+					}
+				});
+
+				// Reverse grid sort
+				grid.sortBy('id', false);
+			});
+
+			// Wait until postprocessing has rendered at least the first row
+			// in the right order!
+			waitsFor(function () {
+				return grid.$el.find('.doby-grid-cell:first').text() === '99';
+			}, "the grid to update the cache after sorting");
+		});
 	});
 
 
@@ -711,10 +814,10 @@ describe("Column Options", function () {
 
 
 	describe("options.postprocess", function () {
-		it("should be false default", function () {
+		it("should be null by default", function () {
 			var grid = resetGrid(defaultData());
 			_.each(grid.options.columns, function (col) {
-				expect(col.cache).toEqual(false);
+				expect(col.postprocess).toEqual(null);
 			});
 		});
 
@@ -722,19 +825,12 @@ describe("Column Options", function () {
 		// ==========================================================================================
 
 
-		it("should cache the HTML value of cells when enabled and postprocessing is on", function () {
+		it("should execute postprocessing on column cells when enabled", function () {
 			var grid = resetGrid($.extend(defaultData(), {
 				columns: [{
 					name: 'id',
-					cache: true,
 					postprocess: function (data, callback) {
 						data.$cell.html("I'm a little teapot");
-						callback();
-					}
-				}, {
-					name: 'name',
-					postprocess: function (data, callback) {
-						data.$cell.html("S & S");
 						callback();
 					}
 				}]
@@ -760,8 +856,8 @@ describe("Column Options", function () {
 
 			runs(function () {
 				// Expect cells to have new data
-				cells.each(function (i) {
-					expect($(this).text()).toEqual(["I'm a little teapot", "S & S"][i % 2]);
+				cells.each(function () {
+					expect($(this).text()).toEqual("I'm a little teapot");
 				});
 			});
 		});

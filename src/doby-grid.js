@@ -787,6 +787,7 @@
 				cb = function () {
 					var columnIdx = cache.columnsById[this.id];
 					if (this.cache) {
+						if (!cache.postprocess[row]) cache.postprocess[row] = {};
 						cache.postprocess[row][columnIdx] = $(node).html();
 					}
 				};
@@ -2673,6 +2674,9 @@
 				// rows with 'id' values that previously existed
 				if (recache) cache.rows = [];
 
+				// Reset postprocess cache
+				cache.postprocess = {};
+
 				// Parse data
 				parse(models);
 
@@ -2712,6 +2716,9 @@
 
 				// Reset remote grouping cache
 				if (cache.remoteGroups) cache.remoteGroups = null;
+
+				// Clear the post-processing cache. It is no longer valid.
+				cache.postprocess = {};
 
 				// Reset group cache
 				var i, l, groups = [], col;
@@ -6977,6 +6984,12 @@
 			var colDef;
 			for (i = 0, l = options.length; i < l; i++) {
 				colDef = getColumnById(options[i].columnId);
+				if (!colDef) {
+					throw new Error([
+						'Doby Grid cannot sort by "', options[i].columnId,
+						'" because that column does not exist.'
+					].join(''));
+				}
 				if (colDef.sortable === false) {
 					throw new Error([
 						'Doby Grid cannot sort by "', colDef.id,
@@ -7006,6 +7019,9 @@
 			}
 
 			if (changed) {
+
+				// Clear the post-processing cache. It is no longer valid.
+				cache.postprocess = {};
 
 				// Re-process column args into something the execute sorter can understand
 				var args = {
