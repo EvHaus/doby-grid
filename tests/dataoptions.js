@@ -488,6 +488,69 @@ describe("Data Options", function () {
 			expect(rows.first().children('.doby-grid-cell').first().html()).toEqual("test1");
 			expect(rows.last().children('.doby-grid-cell').last().html()).toEqual("c");
 		});
+
+
+		// ==========================================================================================
+
+
+		it("should corretly render recursively nested rows", function () {
+			// Build an appropriate data set
+			var data = [],
+				formatter1 = function () {
+					return '-Nested Level 1';
+				},
+				formatter2 = function () {
+					return '--Nested Level 2';
+				};
+
+			for (var i = 0; i < 10; i++) {
+				data.push({
+					id: 'test_' + i,
+					data: {
+						id: 'test_' + i
+					},
+					rows: {
+						0: {
+							columns: {
+								0: {
+									colspan: "*",
+									formatter: formatter1
+								}
+							},
+							rows: {
+								0: {
+									colspan: "*",
+									formatter: formatter2
+								}
+							}
+						}
+					}
+				});
+			}
+
+			var grid = resetGrid($.extend(defaultData(), {
+				columns: [{
+					id: 'id',
+					field: 'id'
+				}],
+				data: data
+			}));
+
+			// Check to make sure rows are rendered in the right order.
+			var rows = _.sortBy(grid.$el.find('.doby-grid-row'), function (row) {
+				return parseInt($(row).attr('style').replace('top:', ''), 10);
+			});
+
+			_.each(rows, function (row, i) {
+				if (i === 0) {
+					expect($(row).children('.l0')).toHaveText('test_0');
+				} else if (i == 1) {
+					expect($(row).children('.l0')).toHaveText('-Nested Level 1');
+				} else if (i == 2) {
+					expect($(row).children('.l0')).toHaveText('--Nested Level 2');
+				}
+			});
+		});
 	});
 
 
