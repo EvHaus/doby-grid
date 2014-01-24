@@ -760,6 +760,9 @@ describe("Methods and Data Manipulation", function () {
 				}, {
 					id: 2,
 					data: {id: 2, name: 'two'}
+				}, {
+					id: 3,
+					data: {id: null, name: null}
 				}]
 			});
 		});
@@ -868,8 +871,9 @@ describe("Methods and Data Manipulation", function () {
 
 			// Verify that the grid has been filtered
 			var $rows = grid.$el.find('.doby-grid-row');
-			expect($rows.length).toEqual(1);
-			expect($rows.find('.l0')).toHaveText(1);
+			expect($rows.length).toEqual(2);
+			expect($rows.eq(0).find('.l0')).toHaveText(1);
+			expect($rows.eq(1).find('.l0')).toHaveText('');
 		});
 
 
@@ -964,8 +968,9 @@ describe("Methods and Data Manipulation", function () {
 
 			// Verify that the grid has been filtered
 			var $rows = grid.$el.find('.doby-grid-row');
-			expect($rows.length).toEqual(1);
-			expect($rows.find('.l0')).toHaveText(2);
+			expect($rows.length).toEqual(2);
+			expect($rows.eq(0).find('.l0')).toHaveText(2);
+			expect($rows.eq(1).find('.l0')).toHaveText('');
 		});
 
 
@@ -996,8 +1001,9 @@ describe("Methods and Data Manipulation", function () {
 
 			// Verify that the grid has been filtered
 			var $rows = grid.$el.find('.doby-grid-row');
-			expect($rows.length).toEqual(1);
-			expect($rows.find('.l0')).toHaveText(2);
+			expect($rows.length).toEqual(2);
+			expect($rows.eq(0).find('.l0')).toHaveText(2);
+			expect($rows.eq(1).find('.l0')).toHaveText('');
 		});
 	});
 

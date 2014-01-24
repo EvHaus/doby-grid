@@ -275,7 +275,6 @@ describe("Column Options", function () {
 					name: 'id',
 					field: 'id',
 					postprocess: function (data, callback) {
-						console.log(data.$cell)
 						data.$cell.html('post-' + data.data.id);
 						callback();
 					}

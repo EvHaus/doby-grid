@@ -290,7 +290,7 @@
 			styleSortColumns,
 			tabbingDirection = 1,
 			th,				// virtual height
-			toggleHeaderContextMenu,
+			toggleContextMenu,
 			uid = this.NAME + "-" + Math.round(1000000 * Math.random()),
 			updateCanvasWidth,
 			updateCellCssStylesOnRenderedRows,
@@ -324,6 +324,7 @@
 			columns:				[],
 			columnSpacing:			1,
 			columnWidth:			80,
+			contextMenu:			'all',
 			ctrlSelect:				true,
 			data:					[],
 			dataExtractor:			null,
@@ -335,7 +336,6 @@
 			formatter:				null,
 			fullWidthRows:			true,
 			groupable:				true,
-			headerMenu:				true,
 			keyboardNavigation:		true,
 			lineHeightOffset:		-1,
 			locale: {
@@ -688,9 +688,10 @@
 					.on("dblclick", handleDblClick)
 					.on("contextmenu", handleContextMenu)
 					.on("mouseenter", function () {
-						// Focus on the canvas when the mouse is in it
+						// Focus on the canvas when the mouse is in it.
+						// Only as long as the Quick Filter isn't focused.
 						var ae = document.activeElement;
-						if (ae != this && !$(this).has($(ae)).length) {
+						if (ae != this && !$(this).has($(ae)).length && (self.options.quickFilter && !$(ae).closest('.' + classheaderfiltercell).length)) {
 							$(this).focus();
 						}
 					});
@@ -703,10 +704,12 @@
 				if (console.error) console.error(e);
 			}
 
-			// Enable header menu
-			if (this.options.headerMenu) {
-				// Subscribe to header menu context clicks
-				this.on('headercontextmenu', toggleHeaderContextMenu);
+			// Enable context menu
+			if (this.options.contextMenu == 'header') {
+				this.on('headercontextmenu', toggleContextMenu);
+			} else if (this.options.contextMenu == 'all') {
+				this.on('headercontextmenu', toggleContextMenu);
+				this.on('contextmenu', toggleContextMenu);
 			}
 
 			// Resize grid when window is changed
@@ -3505,7 +3508,7 @@
 				// Build a filter function from the given set
 				this.collection.filter = function (item) {
 
-					var result = true, f, columnDef, value;
+					var result = true, f, columnDef, value, test;
 					for (var i = 0, l = filter.length; i < l; i++) {
 						f = filter[i];
 
@@ -3529,30 +3532,36 @@
 							result = value !== f[2];
 							break;
 						case '>':
-							result = value > f[2];
+							test = value === null ? undefined : value;
+							result = test > f[2];
 							break;
 						case '<':
-							result = value < f[2];
+							test = value === null ? undefined : value;
+							result = test < f[2];
 							break;
 						case '>=':
-							result = value >= f[2];
+							test = value === null ? undefined : value;
+							result = test >= f[2];
 							break;
 						case '<=':
-							result = value <= f[2];
+							test = value === null ? undefined : value;
+							result = test <= f[2];
 							break;
 						case '~':
-							// NOTE: Investigate the possibility of using indexOf() here. It's a bit faster
-							// according to: http://jsperf.com/exec-vs-match-vs-test-vs-search/21
-							result = value.toString().search(f[2].toString()) !== -1;
+							test = value === null ? '' : value;
+							result = test.toString().search(f[2].toString()) !== -1;
 							break;
 						case '!~':
-							result = value.toString().search(f[2].toString()) === -1;
+							test = value === null ? '' : value;
+							result = test.toString().search(f[2].toString()) === -1;
 							break;
 						case '~*':
-							result = value.toString().toLowerCase().search(f[2].toString().toLowerCase()) !== -1;
+							test = value === null ? '' : value;
+							result = test.toString().toLowerCase().search(f[2].toString().toLowerCase()) !== -1;
 							break;
 						case '!~*':
-							result = value.toString().toLowerCase().search(f[2].toString().toLowerCase())  === -1;
+							test = value === null ? '' : value;
+							result = test.toString().toLowerCase().search(f[2].toString().toLowerCase())  === -1;
 							break;
 						default:
 							throw new Error('Unable to filter by "' + f[0] + '" because "' + f[1] + '" is not a valid operator.');
@@ -3993,8 +4002,17 @@
 		//
 		// @return object
 		getColumnFromEvent = function (event) {
-			var $column = $(event.target).closest("." + classheadercolumn + ':not(.' + classplaceholder + ')'),
-				column_id = $column && $column.length ? $column.attr('id').replace(uid, '') : null;
+			// Attempt to find column in header
+			var $column = $(event.target).closest("." + classheadercolumn + ':not(.' + classplaceholder + ')');
+
+
+			// Attempt to find column in body
+			if (!$column.length) {
+				var cell = getCellFromEvent(event);
+				return cell ? cache.activeColumns[cell.cell] : null;
+			}
+
+			var column_id = $column && $column.length ? $column.attr('id').replace(uid, '') : null;
 
 			return column_id ? getColumnById(column_id) : null;
 		};
@@ -4733,7 +4751,10 @@
 			// Are we editing this cell?
 			if (self.active && self.active.node === $cell[0] && currentEditor !== null) return;
 
-			self.trigger('contextmenu', e);
+			var column = getColumnFromEvent(e);
+			self.trigger('contextmenu', e, {
+				column: column
+			});
 		};
 
 
@@ -7396,13 +7417,22 @@
 				// Update viewport
 				viewportH = getViewportHeight();
 				$viewport.height(viewportH);
+
+				// Re-focus on the canvas
+				$canvas.focus();
 				return;
 			}
 
 			// This is called when user types into any of the input boxes.
 			// It's on a 150ms timeout so that fast typing doesn't search really large grid immediately
 			var keyTimer;
-			var onKeyUp = function () {
+			var onKeyUp = function (event) {
+				// Esc closes the quick filter
+				if (event.keyCode == 27) {
+					showQuickFilter();
+					return;
+				}
+
 				if (keyTimer) clearTimeout(keyTimer);
 				keyTimer = setTimeout(function () {
 					// Build a filter set
@@ -7628,14 +7658,14 @@
 		this.toString = function () { return "DobyGrid"; };
 
 
-		// toggleHeaderContextMenu()
+		// toggleContextMenu()
 		// Toggles the display of the context menu that appears when the column headers are
 		// right-clicked.
 		//
 		// @param	event		object		Javascript event object
 		// @param	args		object		Event object data
 		//
-		toggleHeaderContextMenu = function (event, args) {
+		toggleContextMenu = function (event, args) {
 			event.preventDefault();
 
 			var column = args.column || false,
@@ -7730,13 +7760,13 @@
 					showQuickFilter(column);
 				}
 			}, {
-				enabled: $headerFilter !== undefined,
+				enabled: column && $headerFilter !== undefined,
 				name: getLocale('global.hide_filter'),
 				fn: function () {
 					showQuickFilter();
 				}
 			}, {
-				enabled: self.options.quickFilter || $headerFilter !== undefined,
+				enabled: column && (self.options.quickFilter || $headerFilter !== undefined),
 				divider: true
 			}, {
 				enabled: column && column.removable,
