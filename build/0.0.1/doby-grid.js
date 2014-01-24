@@ -7695,7 +7695,7 @@
 					.sortBy(function (c) { return c.name; })
 					.groupBy(function (c) { return c.category !== undefined && c.category !== null ? c.category : undefined_key; })
 					.value(),
-				category_keys = Object.keys(sorted_grouped),
+				category_keys = Object.keys(sorted_grouped).sort(),
 				category, category_item;
 
 			var buildColumnsMenu = function (c, target) {
@@ -7710,7 +7710,7 @@
 			};
 
 			// Process category columns first
-			for (var k in category_keys.sort()) {
+			for (var k = 0, m = category_keys.length; k < m; k++) {
 				category = category_keys[k];
 				if (category == undefined_key) continue;
 
