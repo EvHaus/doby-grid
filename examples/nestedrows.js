@@ -45,7 +45,7 @@ define(['dobygrid'], function (DobyGrid) {
 										});
 									}
 
-									data.cell.empty();
+									data.$cell.empty();
 									new DobyGrid({
 										columns: [
 											{
@@ -66,7 +66,7 @@ define(['dobygrid'], function (DobyGrid) {
 											}
 										],
 										data: subdata
-									}).appendTo(data.cell);
+									}).appendTo(data.$cell);
 								}
 							}
 						}
