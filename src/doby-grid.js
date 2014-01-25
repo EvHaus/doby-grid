@@ -2301,7 +2301,8 @@
 								(
 									self.groups.length && eitherIsNonData &&
 									(item && item instanceof Group) && (item[idProperty] != r[idProperty]) ||
-									(item && item instanceof Group) && (item.collapsed != r.collapsed)
+									(item && item instanceof Group) && (item.collapsed != r.collapsed) ||
+									(item && item instanceof Group) && (item.count != r.count)
 								) ||
 								// Compare between different non-data types
 								(

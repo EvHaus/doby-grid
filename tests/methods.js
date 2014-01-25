@@ -1005,6 +1005,44 @@ describe("Methods and Data Manipulation", function () {
 			expect($rows.eq(0).find('.l0')).toHaveText(2);
 			expect($rows.eq(1).find('.l0')).toHaveText('');
 		});
+
+
+		// ==========================================================================================
+
+
+		it("should show the correct count in group rows when using filters", function () {
+			// Need a special data set
+			grid.setOptions({
+				columns: [{
+					name: 'name',
+					field: 'name',
+					id: 'name'
+				}, {
+					name: 'foo',
+					field: 'foo',
+					id: 'foo'
+				}],
+				data: [{
+					id: 1,
+					data: {id: 1, name: 'one', foo: 'bar'}
+				}, {
+					id: 2,
+					data: {id: 2, name: 'one', foo: 'non-bar'}
+				}]
+			});
+
+			// Add grouping
+			grid.addGrouping('name');
+
+			// Add filter
+			grid.filter([
+				['foo', '=', 'bar']
+			]);
+
+			// Verify that the grid has been filtered
+			var $rows = grid.$el.find('.doby-grid-group .count');
+			expect($rows.text()).toEqual('(1 item)');
+		});
 	});
 
 
