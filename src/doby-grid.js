@@ -3515,6 +3515,11 @@
 		//
 		// @return object
 		this.filter = function (filter) {
+			// If this is a filter set -  remember it
+			if ($.isArray(filter)) {
+				this.collection.filterset = filter;
+			}
+
 			// Remote data is filtered on the server - so just store it for reference
 			if (typeof(filter) == 'function' || remote) {
 				// Set collection filter function
@@ -7497,11 +7502,23 @@
 					cell = $(html.join(''));
 					cell.appendTo($headerFilter);
 
+					// Check if there is already a quick filter value for this column
+					var filterValue = null;
+					if (self.collection.filterset) {
+						for (var j = 0, m = self.collection.filterset.length; j < m; j++) {
+							if (self.collection.filterset[j][0] == column.id) {
+								filterValue = self.collection.filterset[j][2];
+								break;
+							}
+						}
+					}
+
 					// Create input as a reference in the column definition
 					column.quickFilterInput = $('<input class="' + classeditor + '" type="text"/>')
 						.appendTo(cell)
 						.data('column_id', column.id)
 						.attr('placeholder', getLocale('column.add_quick_filter'))
+						.val(filterValue)
 						.on('keyup', onKeyUp);
 
 					// Focus input
