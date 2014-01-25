@@ -7980,9 +7980,7 @@
 				}, {
 					name: getLocale('selection.deselect_all', {name: column.name}),
 					fn: function () {
-						for (var i = 0, l = self.selection.length; i < l; i++) {
-							self.selection[i].deselect();
-						}
+						deselectCells();
 						dropdown.hide();
 					}
 				}, {
