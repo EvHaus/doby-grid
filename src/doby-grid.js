@@ -345,8 +345,8 @@
 					add_sort_desc:		'Add Sort By "{{name}}" (Descending)',
 					add_quick_filter:	'Add Quick Filter...',
 					aggregators:		'Aggregators',
-					deselect:			'Deselect Column',
-					filter:				'Quick Filter on "{{name}}"',
+					filter:				'Quick Filter by "{{name}}"',
+					filtering:			'Filtering',
 					group:				'Group By "{{name}}"',
 					grouping:			'Grouping',
 					groups_clear:		'Clear All Grouping',
@@ -355,7 +355,6 @@
 					remove:				'Remove "{{name}}" Column',
 					remove_group:		'Remove Grouping By "{{name}}"',
 					remove_sort:		'Remove Sort By "{{name}}"',
-					select:				'Select Column',
 					sorting:			'Sorting',
 					sort_asc:			'Sort By "{{name}}" (Ascending)',
 					sort_desc:			'Sort By "{{name}}" (Descending)'
@@ -372,6 +371,15 @@
 					export_csv:			'Export Table to CSV',
 					export_html:		'Export Table to HTML',
 					hide_filter:		'Hide Quick Filter'
+				},
+				selection: {
+					deselect_all:		'Deselect All',
+					deselect_cell:		'Deselect This Cell',
+					deselect_column:	'Deselect "{{name}}" Column',
+					selection:			'Selection',
+					select_all:			'Select All',
+					select_cell:		'Select This Cell',
+					select_column:		'Select "{{name}}" Column'
 				}
 			},
 			nestedAggregators:		true,
@@ -3264,17 +3272,25 @@
 				var top = event.clientY - this.$parent.offset().top,
 					left = event.clientX - this.$parent.offset().left,
 					menu_width = this.$el.outerWidth(),
-					required_space = left + menu_width,
-					available_space = this.$el.parent().width();
+					menu_height = this.$el.outerHeight(),
+					required_width = left + menu_width,
+					required_height = top + menu_height,
+					available_width = this.$el.parent().width(),
+					available_height = this.$el.parent().height();
 
 				// If no room on the right side, throw dropdown to the left
-				if (available_space < required_space) {
+				if (available_width < required_width) {
 					left -= menu_width;
 				}
 
 				// If no room on the right side for submenu, throw submenus to the left
-				if (available_space < required_space + menu_width) {
+				if (available_width < required_width + menu_width) {
 					this.$el.addClass(classdropdownleft);
+				}
+
+				// If no room on the bottom, throw dropdown upwards
+				if (available_height < required_height) {
+					top -= menu_height;
 				}
 
 				this.$el.css({
@@ -4752,9 +4768,13 @@
 			// Are we editing this cell?
 			if (self.active && self.active.node === $cell[0] && currentEditor !== null) return;
 
-			var column = getColumnFromEvent(e);
+			var column = getColumnFromEvent(e),
+				cell = getCellFromEvent(e);
+
 			self.trigger('contextmenu', e, {
-				column: column
+				cell: cell.cell || null,
+				column: column,
+				row: cell.row || null
 			});
 		};
 
@@ -7794,21 +7814,6 @@
 			// @param	fn			function	Function to execute when item clicked
 			//
 			var menuData = [{
-				enabled: column && self.options.quickFilter,
-				name: column ? getLocale('column.filter', {name: column.name}) : '',
-				fn: function () {
-					showQuickFilter(column);
-				}
-			}, {
-				enabled: column && $headerFilter !== undefined,
-				name: getLocale('global.hide_filter'),
-				fn: function () {
-					showQuickFilter();
-				}
-			}, {
-				enabled: column && (self.options.quickFilter || $headerFilter !== undefined),
-				divider: true
-			}, {
 				enabled: column && column.removable,
 				name: column ? getLocale('column.remove', {name: column.name}) : '',
 				fn: function () {
@@ -7817,6 +7822,23 @@
 			}, {
 				enabled: column && column.removable,
 				divider: true
+			}, {
+				enabled: column && self.options.quickFilter,
+				name: getLocale('column.filtering'),
+				menu: [{
+					name: column ? getLocale('column.filter', {name: column.name}) : '',
+					fn: function () {
+						showQuickFilter(column);
+						dropdown.hide();
+					}
+				}, {
+					enabled: $headerFilter !== undefined,
+					name: getLocale('global.hide_filter'),
+					fn: function () {
+						showQuickFilter();
+						dropdown.hide();
+					}
+				}]
 			}, {
 				enabled: column && column.sortable,
 				name: getLocale('column.sorting'),
@@ -7914,22 +7936,56 @@
 				name: getLocale('column.aggregators'),
 				menu: aggregator_menu
 			}, {
-				enabled: column && !isColumnSelected(cache.columnsById[column.id]),
-				name: getLocale('column.select'),
-				fn: function () {
-					var column_idx = cache.columnsById[column.id];
-					self.selectCells(0, column_idx, (cache.rows.length - 1), column_idx);
-				}
-			}, {
-				enabled: column && isColumnSelected(cache.columnsById[column.id]),
-				name: getLocale('column.deselect'),
-				fn: function () {
-					var column_idx = cache.columnsById[column.id];
-					// NOTE: This is very slow and inefficient. Build a way to bulk deselect.
-					for (var i = 0; i < cache.rows.length - 1; i++) {
-						deselectCells(i, column_idx);
+				name: getLocale('selection.selection'),
+				menu: [{
+					name: getLocale('selection.select_all', {name: column.name}),
+					fn: function () {
+						self.selectCells(0, 0, (cache.rows.length - 1), (cache.activeColumns.length - 1));
+						dropdown.hide();
 					}
-				}
+				}, {
+					enabled: column && !isColumnSelected(cache.columnsById[column.id]),
+					name: getLocale('selection.select_column', {name: column.name}),
+					fn: function () {
+						var column_idx = cache.columnsById[column.id];
+						self.selectCells(0, column_idx, (cache.rows.length - 1), column_idx);
+						dropdown.hide();
+					}
+				}, {
+					enabled: args.cell !== undefined && args.cell !== null && !isCellSelected(args.row, args.cell),
+					name: getLocale('selection.select_cell'),
+					fn: function () {
+						self.selectCells(args.row, args.cell, args.row, args.cell);
+						dropdown.hide();
+					}
+				}, {
+					divider: true
+				}, {
+					name: getLocale('selection.deselect_all', {name: column.name}),
+					fn: function () {
+						for (var i = 0, l = self.selection.length; i < l; i++) {
+							self.selection[i].deselect();
+						}
+						dropdown.hide();
+					}
+				}, {
+					enabled: column && isColumnSelected(cache.columnsById[column.id]),
+					name: getLocale('selection.deselect_column', {name: column.name}),
+					fn: function () {
+						var column_idx = cache.columnsById[column.id];
+						// NOTE: This is very slow and inefficient. Build a way to bulk deselect.
+						for (var i = 0; i < cache.rows.length - 1; i++) {
+							deselectCells(i, column_idx);
+						}
+					}
+				}, {
+					enabled: args.cell !== undefined && args.cell !== null && isCellSelected(args.row, args.cell),
+					name: getLocale('selection.deselect_cell'),
+					fn: function () {
+						deselectCells(args.row, args.cell);
+						dropdown.hide();
+					}
+				}]
 			}, {
 				enabled: column && (column.sortable || column.removable || column.groupable || column.aggregators),
 				divider: true
