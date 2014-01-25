@@ -1,5 +1,5 @@
 // doby-grid.js 0.0.1
-// (c) 2013 Evgueni Naverniouk, Globex Designs, Inc.
+// (c) 2014 Evgueni Naverniouk, Globex Designs, Inc.
 // Doby may be freely distributed under the MIT license.
 // For all details and documentation:
 // https://github.com/globexdesigns/doby-grid
@@ -2524,9 +2524,10 @@
 
 				var processChildRows = function () {
 					// Insert child rows
-					var cRow, ri = 0;
+					var cRow, ri;
 					for (var i = 0, l = newRows.length; i < l; i++) {
 						if (newRows[i].rows) {
+							ri = 0;
 							for (var r in newRows[i].rows) {
 								if (newRows[i].rows[r].collapsed) continue;
 								cRow = new NonDataItem(newRows[i].rows[r]);
@@ -7290,12 +7291,20 @@
 				// Do nothing if width isn't changed
 				if (currentWidth == newWidth) return;
 
+				pageX = event.pageX;
+
+				lockColumnWidths(column_index);
+
+				// Calculate resize diff
 				var diff = newWidth - currentWidth;
 
 				// Duplicate the drag functionality
-				lockColumnWidths(column_index);
 				prepareLeeway(column_index, pageX);
-				resizeColumn(column_index, diff);
+
+				// This will ensure you can't resize beyond the maximum allowed width
+				var delta = Math.min(maxPageX, Math.max(minPageX, pageX + diff)) - pageX;
+
+				resizeColumn(column_index, delta);
 				applyColWidths();
 				submitColResize();
 			});

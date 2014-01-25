@@ -2527,7 +2527,7 @@
 					var cRow, ri;
 					for (var i = 0, l = newRows.length; i < l; i++) {
 						if (newRows[i].rows) {
-							ri = 0
+							ri = 0;
 							for (var r in newRows[i].rows) {
 								if (newRows[i].rows[r].collapsed) continue;
 								cRow = new NonDataItem(newRows[i].rows[r]);
