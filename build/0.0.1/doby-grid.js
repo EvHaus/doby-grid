@@ -6294,7 +6294,7 @@
 					result.push(getFormatter(row, m)(row, cell, value, m, item));
 				} catch (e) {
 					result.push('');
-					if (console.error) console.error("Cell failed to render due to failed column formatter. Error: " + e.message, e);
+					if (console.error) console.error("Cell failed to render due to failed '" + column.id + "' column formatter. Error: " + e.message, e);
 				}
 			}
 
