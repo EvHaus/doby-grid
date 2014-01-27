@@ -4109,7 +4109,10 @@
 		//
 		// @return string
 		getDataItemValueForColumn = function (item, columnDef) {
-			// If a custom extractor is specified -- use that
+			// If a custom column extractor is specified -- use that
+			if (columnDef.dataExtractor) return columnDef.dataExtractor(item, columnDef);
+
+			// If a custom grid extractor is specified -- use that
 			if (self.options.dataExtractor) return self.options.dataExtractor(item, columnDef);
 
 			// Backbone Model

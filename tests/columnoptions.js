@@ -432,6 +432,52 @@ describe("Column Options", function () {
 	// ==========================================================================================
 
 
+	describe("options.dataExtractor", function () {
+		it("should be null by default", function () {
+			var grid = resetGrid(defaultData());
+			_.each(grid.options.columns, function (col) {
+				expect(col.dataExtractor).toEqual(null);
+			});
+		});
+
+
+		// ==========================================================================================
+
+
+		it("should use the defined dataExtractor for that column", function () {
+			var used = false;
+			var grid = resetGrid($.extend(defaultData(), {
+				columns: [{
+					id: 'id',
+					field: 'id'
+				}, {
+					id: 'name',
+					field: 'name',
+					dataExtractor: function (item) {
+						used = true;
+						return item.data.id;
+					}
+				}]
+			}));
+
+			// Make sure function is called
+			expect(used).toEqual(true);
+
+			// Make sure the data is extracted correction
+			var $cells;
+			grid.$el.find('.doby-grid-row').each(function () {
+				$cells = $(this).children('.doby-grid-cell');
+				$cells.each(function () {
+					expect($(this).text()).toEqual($cells.eq(0).text());
+				});
+			});
+		});
+	});
+
+
+	// ==========================================================================================
+
+
 	describe("options.editable", function () {
 		it("should be null by default", function () {
 			var grid = resetGrid(defaultData());
