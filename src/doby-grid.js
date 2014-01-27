@@ -6937,11 +6937,6 @@
 		this.setOptions = function (options) {
 			makeActiveCellNormal();
 
-			// If setting new data
-			if (options.data) {
-				this.reset(options.data);
-			}
-
 			// If toggling "addRow"
 			if (options.addRow !== undefined && self.options.addRow !== options.addRow) {
 				// Insert if enabling
@@ -6963,11 +6958,16 @@
 				render();
 			}
 
+			// If setting new data - this needs to be executed after column changes to ensure
+			// additions to aggregators are picked up.
+			if (options.data) {
+				this.reset(options.data);
+			}
+
 			// If toggling auto column width - resize
 			if ('autoColumnWidth' in options) {
 				// Also make sure that the right resize handles are drawn
 				setupColumnResize();
-
 				autosizeColumns();
 			}
 		};

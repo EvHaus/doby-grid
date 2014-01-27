@@ -1547,6 +1547,63 @@ describe("Methods and Data Manipulation", function () {
 			expect(cells.eq(2).html()).toEqual('two');
 			expect(cells.eq(3).html()).toEqual('2');
 		});
+
+
+		// ==========================================================================================
+
+
+		it("should re-render aggregators if they are change via setOptions()", function () {
+			var grid = resetGrid({
+				columns: [{id: 'id', field: 'id'}],
+				data: [
+					{id: 3, data: {id: 3, name: 'asd'}},
+					{id: 4, data: {id: 4, name: 'dsa'}}
+				]
+			});
+
+			// Ensure there are no aggregator rows
+			expect(grid.$el.find('.doby-grid-row-total').length).toEqual(0);
+
+			// Change data, columns and aggregators
+			grid.setOptions({
+				columns: [{
+					name: 'name',
+					field: 'name',
+					id: 'name'
+				}, {
+					name: 'quantity',
+					field: 'quantity',
+					id: 'quantity',
+					aggregators: [{
+						active: true,
+						name: "Average",
+						fn: function (column) {
+							this.average = 0;
+							this.formatter = function () {
+								return this.average;
+							};
+							this.process = function (item) {
+								this.average += (item.data[column.field] || 0);
+							};
+							return this;
+						}
+					}]
+				}],
+				data: [{
+					id: 1,
+					data: {id: 1, name: 'one', quantity: 1}
+				}, {
+					id: 2,
+					data: {id: 2, name: 'one', quantity: 2}
+				}]
+			});
+
+			// Make sure there is 1 aggregator
+			expect(grid.$el.find('.doby-grid-row-total').length).toEqual(1);
+		});
+
+
+
 	});
 
 
