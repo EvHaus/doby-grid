@@ -107,9 +107,6 @@ describe("Column Options", function () {
 			}));
 
 			// Check for a rendered aggregate row at the bottom
-			var lastItem = grid.collection.items[grid.collection.items.length - 1];
-			expect(lastItem.toString()).toEqual('Aggregate');
-
 			var lastRow = grid.$el.find('.doby-grid-row').last();
 			expect(lastRow.hasClass('doby-grid-row-total')).toEqual(true);
 
@@ -149,9 +146,6 @@ describe("Column Options", function () {
 			}));
 
 			// Check for a rendered aggregate row at the bottom
-			var lastItem = grid.collection.items[grid.collection.items.length - 1];
-			expect(lastItem.toString()).toEqual('Aggregate');
-
 			var lastRow = grid.$el.find('.doby-grid-row').last();
 			expect(lastRow.hasClass('doby-grid-row-total')).toEqual(true);
 

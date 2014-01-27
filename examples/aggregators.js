@@ -5,9 +5,28 @@ define([], function () {
 	"use strict";
 
 	var default_aggregators = [{
+		name: "Total",
+		fn: function (column) {
+			this.exporter = function () {
+				return (this.total || "");
+			};
+			this.formatter = function () {
+				//console.log('formatting', this.total);
+				return "Total: <strong>" + this.total + "</strong>";
+			};
+			this.process = function (item) {
+				//console.log('process', item, this.total)
+				this.total += (item.data[column.field] || 0);
+			};
+			this.reset = function () {
+				//console.log('reset')
+				this.total = 0;
+			};
+			return this;
+		}
+	}, {
 		name: "Average",
 		fn: function (column) {
-			this.total = [];
 			this.exporter = function () {
 				var avg;
 				if (this.total.length) {
@@ -25,20 +44,8 @@ define([], function () {
 			this.process = function (item) {
 				this.total.push(item.data[column.field]);
 			};
-			return this;
-		},
-	}, {
-		name: "Total",
-		fn: function (column) {
-			this.total = 0;
-			this.exporter = function () {
-				return (this.total || "");
-			};
-			this.formatter = function () {
-				return "Total: <strong>" + this.total + "</strong>";
-			};
-			this.process = function (item) {
-				this.total += (item.data[column.field] || 0);
+			this.reset = function () {
+				this.total = [];
 			};
 			return this;
 		}

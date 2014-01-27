@@ -507,7 +507,6 @@ describe("Methods and Data Manipulation", function () {
 					field: "rating",
 					aggregators: [{
 						fn: function () {
-							this.total = [];
 							this.exporter = function () {
 								var avg = this.total.reduce(function (a, b) { return a + b; });
 								return Math.round(avg / this.total.length);
@@ -518,6 +517,9 @@ describe("Methods and Data Manipulation", function () {
 							};
 							this.process = function (item) {
 								this.total.push(item.data.rating);
+							};
+							this.reset = function () {
+								this.total = [];
 							};
 							return this;
 						}
@@ -1042,6 +1044,57 @@ describe("Methods and Data Manipulation", function () {
 			// Verify that the grid has been filtered
 			var $rows = grid.$el.find('.doby-grid-group .count');
 			expect($rows.text()).toEqual('(1 item)');
+		});
+
+
+		// ==========================================================================================
+
+
+		it("should correctly update aggregators to use filtered data", function () {
+			// Need a special data set
+			grid.setOptions({
+				columns: [{
+					name: 'name',
+					field: 'name',
+					id: 'name'
+				}, {
+					name: 'quantity',
+					field: 'quantity',
+					id: 'quantity',
+					aggregators: [{
+						active: true,
+						name: "Sum",
+						fn: function (column) {
+							this.formatter = function () {
+								return this.sum;
+							};
+							this.process = function (item) {
+								this.sum += (item.data[column.field] || 0);
+							};
+							this.reset = function () {
+								this.sum = 0;
+							};
+							return this;
+						}
+					}]
+				}],
+				data: [{
+					id: 1,
+					data: {id: 1, name: 'one', quantity: 1}
+				}, {
+					id: 2,
+					data: {id: 2, name: 'one', quantity: 2}
+				}]
+			});
+
+			// Aggregator should display correct value
+			expect(grid.$el.find('.doby-grid-row-total .l1')).toHaveText(3);
+
+			// Now filter the data
+			grid.filter([['quantity', '=', 1]]);
+
+			// Aggregator should display correct value
+			expect(grid.$el.find('.doby-grid-row-total .l1')).toHaveText(1);
 		});
 	});
 
@@ -1576,14 +1629,16 @@ describe("Methods and Data Manipulation", function () {
 					id: 'quantity',
 					aggregators: [{
 						active: true,
-						name: "Average",
+						name: "Sum",
 						fn: function (column) {
-							this.average = 0;
 							this.formatter = function () {
-								return this.average;
+								return this.sum;
 							};
 							this.process = function (item) {
-								this.average += (item.data[column.field] || 0);
+								this.sum += (item.data[column.field] || 0);
+							};
+							this.reset = function () {
+								this.sum = 0;
 							};
 							return this;
 						}

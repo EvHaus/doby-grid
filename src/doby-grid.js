@@ -755,7 +755,7 @@
 				if (qHeaders && qHeaders[i]) $(qHeaders[i]).attr('style', styl);
 			}
 
-			updateColumnCaches();
+			updateColumnCaches(false);
 		};
 
 
@@ -2022,7 +2022,7 @@
 
 						// The global grid aggregate should at the very end of the grid. Remember it here
 						// And then we'll add it at the very end.
-						if (r instanceof Aggregate && r.__gridAggregate) {
+						if (r instanceof Aggregate && r.id == '__gridAggregate') {
 							aggregateRow = r;
 							continue;
 						}
@@ -2415,38 +2415,65 @@
 			// processAggregators()
 			// Processes any aggregrators that are enabled and caches their results.
 			// Then inserts new Aggregate rows that are needed.
+			//
 			processAggregators = function () {
-				var item, i, l, active_aggregator;
+				var item, i, l, active_aggregator, agg_keys,
+					column_id, aggreg_idx,
+					items = filteredItems;
 
 				// Loop through the data and process the aggregators
-				for (i = 0, l = self.items.length; i < l; i++) {
-					if (self.items instanceof Backbone.Collection) {
-						item = self.items.at(i);
+				for (i = 0, l = items.length; i < l; i++) {
+					if (items instanceof Backbone.Collection) {
+						item = items.at(i);
 					} else {
-						item = self.items[i];
+						item = items[i];
 					}
 
 					// Skip existing Aggregator rows
 					if (item instanceof Aggregate) continue;
 
-					for (var column_id in cache.aggregatorsByColumnId) {
-						active_aggregator = null;
-						for (var aggreg_idx in cache.aggregatorsByColumnId[column_id]) {
-							if (typeof cache.aggregatorsByColumnId[column_id][aggreg_idx].process === 'function') {
-								if (active_aggregator === null && cache.aggregatorsByColumnId[column_id][aggreg_idx].active) {
-									active_aggregator = aggreg_idx;
-								}
+					for (column_id in cache.aggregatorsByColumnId) {
 
-								cache.aggregatorsByColumnId[column_id][aggreg_idx].process(item);
-							} else {
-								throw new Error('The column aggregator for "' + column_id + '" is missing a valid \'process\' function.');
+						// Make sure only one aggregator is active
+						active_aggregator = null;
+						for (aggreg_idx in cache.aggregatorsByColumnId[column_id]) {
+							if (cache.aggregatorsByColumnId[column_id][aggreg_idx].active) {
+								if (active_aggregator === null) {
+									active_aggregator = cache.aggregatorsByColumnId[column_id][aggreg_idx];
+								} else {
+									// Disable duplicate active aggregators
+									cache.aggregatorsByColumnId[column_id][aggreg_idx].active = false;
+								}
 							}
 						}
 
-						// If no active aggregator specified - enable the first one
-						if (active_aggregator === null) {
-							active_aggregator = 0;
-							cache.aggregatorsByColumnId[column_id][active_aggregator].active = true;
+						// If no active aggregator found - use first one
+						agg_keys = Object.keys(cache.aggregatorsByColumnId[column_id]);
+						if (active_aggregator === null && agg_keys.length) {
+
+							active_aggregator = cache.aggregatorsByColumnId[column_id][agg_keys[0]];
+							active_aggregator.active = true;
+						}
+
+						if (active_aggregator === null) continue;
+
+						// Do not re-process aggregators
+						if (active_aggregator._processed) continue;
+
+						// Now process the active aggregator
+						if (typeof(active_aggregator.process) == 'function') {
+							active_aggregator.process(item);
+						} else {
+							throw new Error('The column aggregator for "' + column_id + '" is missing a valid \'process\' function.');
+						}
+					}
+				}
+
+				// Mark aggregators as 'processed'
+				for (column_id in cache.aggregatorsByColumnId) {
+					for (aggreg_idx in cache.aggregatorsByColumnId[column_id]) {
+						if (cache.aggregatorsByColumnId[column_id].active) {
+							cache.aggregatorsByColumnId[column_id]._processed = true;
 						}
 					}
 				}
@@ -2455,12 +2482,13 @@
 				var gridAggregate = new Aggregate(cache.aggregatorsByColumnId);
 
 				// Mark this is the grid-level aggregate
-				gridAggregate.__gridAggregate = true;
+				gridAggregate.id = '__gridAggregate';
 
-				if (self.items instanceof Backbone.Collection) {
-					self.items.models.push(gridAggregate);
+				// Insert new Aggregate row
+				if (items instanceof Backbone.Collection) {
+					items.models.push(gridAggregate);
 				} else {
-					self.items.push(gridAggregate);
+					items.push(gridAggregate);
 				}
 			};
 
@@ -2486,6 +2514,9 @@
 						group.aggregators[column_id] = {};
 						for (aggreg_idx in cache.aggregatorsByColumnId[column_id]) {
 							group.aggregators[column_id][aggreg_idx] = new column.aggregators[aggreg_idx].fn(column);
+							if (typeof(group.aggregators[column_id][aggreg_idx].reset) == 'function') {
+								group.aggregators[column_id][aggreg_idx].reset();
+							}
 
 							if (cache.aggregatorsByColumnId[column_id][aggreg_idx].active) {
 								group.aggregators[column_id][aggreg_idx].active = true;
@@ -2504,7 +2535,9 @@
 					}
 
 					// Insert grid totals row
-					group.grouprows.push(new Aggregate(group.aggregators));
+					var groupAggregate = new Aggregate(group.aggregators);
+					groupAggregate.id = '__gridAggregate-group-' + group.id;
+					group.grouprows.push(groupAggregate);
 
 					// Process nested groups
 					if (group.groups && group.groups.length) processGroupAggregators(group.groups);
@@ -2530,6 +2563,11 @@
 				var filteredItems = getFilteredAndPagedItems(_items);
 				totalRows = filteredItems.totalRows;
 				var newRows = filteredItems.rows;
+
+				// Process aggregators
+				if (Object.keys(cache.aggregatorsByColumnId).length) {
+					processAggregators();
+				}
 
 				var processChildRows = function () {
 					// Insert child rows
@@ -2695,11 +2733,6 @@
 
 				// Load items and validate
 				this.items = filteredItems = validate(models);
-
-				// Process aggregators
-				if (Object.keys(cache.aggregatorsByColumnId).length) {
-					processAggregators();
-				}
 
 				if (recache) {
 					cacheRows();
@@ -2876,7 +2909,8 @@
 					idx = 0;
 
 				for (var i = 0, ii = items.length; i < ii; i++) {
-					if (self.filter(items[i])) {
+					// Only filter out data rows
+					if (items[i].__nonDataRow || self.filter(items[i])) {
 						retval[idx++] = items[i];
 					}
 				}
@@ -2901,7 +2935,7 @@
 					item = items[i];
 					if (cache[i]) {
 						retval[idx++] = item;
-					} else if (self.filter(item)) {
+					} else if (items[i].__nonDataRow || self.filter(item)) {
 						retval[idx++] = item;
 						cache[i] = true;
 					}
@@ -3610,6 +3644,16 @@
 					});
 				}
 			} else {
+				// Reset aggregator values
+				for (var column_id in cache.aggregatorsByColumnId) {
+					for (var i in cache.aggregatorsByColumnId[column_id]) {
+						cache.aggregatorsByColumnId[column_id][i]._processed = false;
+						if (typeof(cache.aggregatorsByColumnId[column_id][i].reset) == 'function') {
+							cache.aggregatorsByColumnId[column_id][i].reset();
+						}
+					}
+				}
+
 				// Refresh the grid with the filtered data
 				this.collection.refresh();
 			}
@@ -5163,7 +5207,7 @@
 			if (!self.selection) return false;
 
 			var selectable_rows = self.collection.length - 1;
-			if (self.collection.items[self.collection.items.length - 1].__gridAggregate) selectable_rows--;
+			if (self.collection.items[self.collection.items.length - 1].id == '__gridAggregate') selectable_rows--;
 
 			var s;
 			for (var i = 0, l = self.selection.length; i < l; i++) {
@@ -8146,13 +8190,17 @@
 
 
 		// updateColumnCaches()
-		// Recalculates the widths of columns.
+		// Recalculates the columns caches
 		//
-		updateColumnCaches = function () {
+		// @param	resetAggregators	boolean		Reset the aggregator cache too?
+		//
+		updateColumnCaches = function (resetAggregators) {
+			if (resetAggregators === null || resetAggregators === undefined) resetAggregators = true;
+
 			// Pre-calculate cell boundaries.
 			cache.columnPosLeft = [];
 			cache.columnPosRight = [];
-			cache.aggregatorsByColumnId = {};
+			if (resetAggregators) cache.aggregatorsByColumnId = {};
 
 			var x = 0, column;
 			for (var i = 0, l = cache.activeColumns.length; i < l; i++) {
@@ -8163,7 +8211,7 @@
 				x += column.width;
 
 				// Cache aggregators
-				if (column.aggregators) {
+				if (resetAggregators && column.aggregators) {
 					for (var j = 0, m = column.aggregators.length; j < m; j++) {
 						if (!cache.aggregatorsByColumnId[column.id]) {
 							cache.aggregatorsByColumnId[column.id] = {};
@@ -8171,6 +8219,9 @@
 
 						// Create new aggregator instance
 						cache.aggregatorsByColumnId[column.id][j] = new column.aggregators[j].fn(column);
+						if (typeof(cache.aggregatorsByColumnId[column.id][j].reset) == 'function') {
+							cache.aggregatorsByColumnId[column.id][j].reset();
+						}
 					}
 				}
 			}
