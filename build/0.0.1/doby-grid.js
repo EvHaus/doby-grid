@@ -3315,16 +3315,26 @@
 				}
 
 				// Clicking outside - closes the dropdown
-				var bodyEscape;
-				bodyEscape = function (e) {
+				var bodyClose;
+				bodyClose = function (e) {
 					if (e.target == event.target) return;
 					this.hide();
-					$(document).off('click', bodyEscape);
-					$(document).off('context', bodyEscape);
+					$(document).off('click', bodyClose);
+					$(document).off('context', bodyClose);
 				}.bind(this);
 
-				$(document).on('click', bodyEscape);
-				$(document).on('contextmenu', bodyEscape);
+				$(document).on('click', bodyClose);
+				$(document).on('contextmenu', bodyClose);
+
+				// Esc - closes the dropdown
+				var bodyEscape;
+				bodyEscape = function (e) {
+					if (e.keyCode == 27) {
+						this.hide();
+						$(document).off('keydown', bodyEscape);
+					}
+				}.bind(this);
+				$(document).one('keydown', bodyEscape);
 
 				return this;
 			};
@@ -5240,7 +5250,16 @@
 			if (!self.selection) return false;
 
 			var selectable_rows = self.collection.length - 1;
-			if (self.collection.items[self.collection.items.length - 1].id == '__gridAggregate') selectable_rows--;
+
+			if (self.collection.items instanceof Backbone.Collection) {
+				if (self.collection.items.last().id == '__gridAggregate') {
+					selectable_rows--;
+				}
+			} else {
+				if (self.collection.items[self.collection.items.length - 1].id == '__gridAggregate') {
+					selectable_rows--;
+				}
+			}
 
 			var s;
 			for (var i = 0, l = self.selection.length; i < l; i++) {
@@ -5365,13 +5384,14 @@
 					self.collection.reset();
 				})
 				.on('sort', function () {
-					if (self.collection) {
-						// Tell the collection to refresh everything
-						self.collection.refresh();
+					// If sorting before we've had a chance to process the collection - skip
+					if (!self.collection) return;
 
-						// When sorting - invalidate and re-render all rows
-						invalidate();
-					}
+					// Tell the collection to refresh everything
+					self.collection.refresh();
+
+					// When sorting - invalidate and re-render all rows
+					invalidate();
 				});
 		};
 
