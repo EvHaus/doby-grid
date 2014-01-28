@@ -5250,7 +5250,16 @@
 			if (!self.selection) return false;
 
 			var selectable_rows = self.collection.length - 1;
-			if (self.collection.items[self.collection.items.length - 1].id == '__gridAggregate') selectable_rows--;
+
+			if (self.collection.items instanceof Backbone.Collection) {
+				if (self.collection.items.models[self.collection.items.length - 1].id == '__gridAggregate') {
+					selectable_rows--;
+				}
+			} else {
+				if (self.collection.items[self.collection.items.length - 1].id == '__gridAggregate') {
+					selectable_rows--;
+				}
+			}
 
 			var s;
 			for (var i = 0, l = self.selection.length; i < l; i++) {
