@@ -1824,8 +1824,14 @@
 				// Add the new models
 				if (toAdd.length) {
 					// If data used to be empty, with an alert - remove alert
-					if (grid.options.emptyNotice && this.items.length == 1 && this.items[0].__alert) {
-						this.remove(this.items[0][idProperty]);
+					if (grid.options.emptyNotice) {
+						if (this.items instanceof Backbone.Collection) {
+							if (this.items.first().get('__alert')) {
+								this.remove(this.items.first().id);
+							}
+						} else if (this.items.length && this.items[0].__alert) {
+							this.remove(this.items[0][idProperty]);
+						}
 					}
 
 					// If "addRow" is enabled, make sure we don't insert below it
@@ -1856,7 +1862,13 @@
 
 				// If not updating silently, reload grid
 				if (!options.silent) {
-					this.refresh();
+					// Call bounced refresh to ensure successive add() commands don't cause
+					// too many refreshes
+					if (options.forced) {
+						this.refresh();
+					} else {
+						this.refreshDebounced();
+					}
 				}
 
 				return this;
@@ -2254,8 +2266,8 @@
 				if (obj === null) return void 0;
 				var id = obj;
 				if (typeof obj == 'object') {
-					id = obj[idProperty] || obj.data[idProperty];
-					if (!id) return null;
+					id = obj[idProperty] || (obj.data && obj.data[idProperty]);
+					if (id === null || id === undefined) return null;
 				}
 
 				return this.items[cache.indexById[id]];
@@ -2336,22 +2348,32 @@
 			this.insertEmptyAlert = function (items) {
 				var obj = new NonDataItem({
 					__alert: true,
-					id: '-empty-alert-message-',
-					selectable: false,
-					focusable: false,
-					class: classalert,
-					columns: {
-						0: {
-							colspan: "*",
-							formatter: function () {
-								return getLocale("empty.default");
-							},
-							editor: null
+					id: '-empty-alert-message-'
+				}),
+					metadata = {
+						selectable: false,
+						focusable: false,
+						class: classalert,
+						columns: {
+							0: {
+								colspan: "*",
+								formatter: function () {
+									return getLocale("empty.default");
+								},
+								editor: null
+							}
 						}
-					}
-				});
+					};
 
-				items.push(obj);
+				// Backbone collection items need to be handled in a special way
+				if (items instanceof Backbone.Collection) {
+					var model = new items.model(obj);
+					$.extend(model, metadata);
+					items.add(model);
+				} else {
+					$.extend(obj, metadata);
+					items.push(obj);
+				}
 			};
 
 
@@ -2674,6 +2696,12 @@
 					}
 				}.bind(this));
 			};
+
+
+			// refreshDebounced()
+			// Calls the refresh function, with debounce enabled to prevent repeat calls
+			//
+			this.refreshDebounced = _.debounce(this.refresh, 10),
 
 
 			// remove()
@@ -5155,7 +5183,7 @@
 				id: '-add-row-',
 			});
 
-			self.collection.add(obj);
+			self.collection.add(obj, {forced: true});
 		};
 
 
@@ -5321,7 +5349,7 @@
 					if (model.get('__nonDataRow')) return;
 
 					// When new items are added to the collection - add them to the grid
-					self.add(model);
+					self.collection.add(model);
 				})
 				.on('change', function (model) {
 					// When items are changed - re-render the right row
@@ -5329,7 +5357,10 @@
 				})
 				.on('remove', function (model) {
 					// When items are removed - remove the right row
-					self.remove(model.id);
+					self.collection.remove(model.id);
+				})
+				.on('reset', function () {
+					self.collection.reset();
 				})
 				.on('sort', function () {
 					// Tell the collection to refresh everything

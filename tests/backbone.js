@@ -56,33 +56,45 @@ describe("Backbone Integration", function () {
 	// ==========================================================================================
 
 
-	it("should automatically insert a new row when an item is added to the collection", function () {
-		var results = resetGrid(),
-			grid = results[0],
+	it("should automatically insert a new row when an item is added to the Backbone.Collection", function () {
+		var results, grid, collection, timeout = false;
+
+		runs(function () {
+			results = resetGrid();
+			grid = results[0];
 			collection = results[1];
 
-		var rows = grid.$el.find('.doby-grid-row');
+			// Add an item to the collection
+			collection.add({
+				id: collection.length + 1,
+				name: "Bobby McFerrin",
+				age: "old",
+				city: "Somewhere"
+			});
 
-		// Add an item to the collection
-		collection.add({
-			id: collection.length + 1,
-			name: "Bobby McFerrin",
-			age: "old",
-			city: "Somewhere"
+			setTimeout(function () {
+				timeout = true;
+			}, 20);
 		});
 
-		rows = grid.$el.find('.doby-grid-row');
+		waitsFor(function () {
+			return timeout;
+		});
 
-		// New row should be inserted at the bottom of the grid
-		expect(rows.length).toEqual(collection.length);
-		expect(rows.last().children('.doby-grid-cell.l1.r1')).toHaveText('Bobby McFerrin');
+		runs(function () {
+			var rows = grid.$el.find('.doby-grid-row');
+
+			// New row should be inserted at the bottom of the grid
+			expect(rows.length).toEqual(collection.length);
+			expect(rows.last().children('.doby-grid-cell.l1.r1')).toHaveText('Bobby McFerrin');
+		});
 	});
 
 
 	// ==========================================================================================
 
 
-	it("should update the grid with the collection is sorted", function () {
+	it("should update the grid with the Backbone.Collection is sorted", function () {
 		var results = resetGrid(),
 			grid = results[0],
 			collection = results[1];
@@ -110,7 +122,7 @@ describe("Backbone Integration", function () {
 	// ==========================================================================================
 
 
-	it("should respect the given collection's comparator and insert the row into the right spot", function () {
+	it("should respect the given Backbone.Collection's comparator and insert the row into the right spot", function () {
 		var results = resetGrid(),
 			grid = results[0],
 			collection = results[1];
@@ -147,7 +159,7 @@ describe("Backbone Integration", function () {
 	// ==========================================================================================
 
 
-	it("should automatically re-draw row when the collection model is updated", function () {
+	it("should automatically re-draw row when the Backbone.Collection model is updated", function () {
 		var results = resetGrid(),
 			grid = results[0],
 			collection = results[1];
@@ -174,7 +186,7 @@ describe("Backbone Integration", function () {
 	// ==========================================================================================
 
 
-	it("should automatically remove row when it's removed from the collection", function () {
+	it("should automatically remove row when it's removed from the Backbone.Collection", function () {
 		var results = resetGrid(),
 			grid = results[0],
 			collection = results[1];
@@ -191,6 +203,63 @@ describe("Backbone Integration", function () {
 
 		// Show have removed the correct row
 		expect(newrows.first().children('.doby-grid-cell.l0.r0')).toHaveText('2');
+	});
+
+
+	// ==========================================================================================
+
+
+	it("should correctly generate an empty row when the Backbone.Collection is empty", function () {
+		var results = resetGrid({data: new Backbone.Collection()}),
+			grid = results[0];
+
+		// Should have "empty message" row, with one cell
+		var $rows = grid.$el.find('.doby-grid-row');
+		expect($rows.length).toEqual(1);
+		expect($rows.children('.doby-grid-cell').length).toEqual(1);
+		expect($rows.children('.doby-grid-cell')).toHaveText('No data available');
+	});
+
+
+	// ==========================================================================================
+
+
+	it("should correctly generate an empty row when the Backbone.Collection is reset", function () {
+		var results = resetGrid(),
+			grid = results[0],
+			collection = results[1];
+
+		// Reset collection
+		collection.reset();
+
+		// Should have "empty message" row, with one cell
+		var $rows = grid.$el.find('.doby-grid-row');
+		expect($rows.length).toEqual(1);
+		expect($rows.children('.doby-grid-cell').length).toEqual(1);
+		expect($rows.children('.doby-grid-cell')).toHaveText('No data available');
+	});
+
+
+	// ==========================================================================================
+
+
+	it("should remove empty row once an item has been added to an empty Backbone.Collection", function () {
+		var collection = new Backbone.Collection(),
+			results = resetGrid({data: collection}),
+			grid = results[0];
+
+		// Reset collection
+		collection.add({
+			id: '20',
+			name: "Bobby McFerrin",
+			age: "old",
+			city: "Somewhere"
+		});
+
+		// Should have 1 row
+		var $rows = grid.$el.find('.doby-grid-row');
+		expect($rows.length).toEqual(1);
+		expect($rows.children('.doby-grid-cell:first').first()).toHaveText(20);
 	});
 
 });

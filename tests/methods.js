@@ -100,7 +100,7 @@ describe("Methods and Data Manipulation", function () {
 			var item = {data: {id: 100, name: 'test'}, id: 100};
 			var originalItems = JSON.parse(JSON.stringify(grid.collection.items));
 			var originalDataItems = _.filter(originalItems, function (i) { return !i.__nonDataRow; });
-			grid.add(item);
+			grid.add(item, {forced: true});
 			var newItems = grid.collection.items;
 			var newDataItems = _.filter(newItems, function (i) { return !i.__nonDataRow; });
 			expect(originalDataItems.length).toEqual(0);
@@ -115,7 +115,7 @@ describe("Methods and Data Manipulation", function () {
 			var grid = resetGrid();
 
 			var item = {data: {id: 101, name: 'test'}, id: 101};
-			grid.add(item, {at: 0});
+			grid.add(item, {at: 0, forced: true});
 			var newItems = grid.collection.items;
 			var newDataItems = _.filter(newItems, function (i) { return !i.__nonDataRow; });
 			expect(newDataItems[0]).toEqual(item);
@@ -132,7 +132,7 @@ describe("Methods and Data Manipulation", function () {
 
 			// Execute
 			var item = {data: {id: 101, name: 'updated'}, id: 101};
-			grid.add(item, {merge: true});
+			grid.add(item, {merge: true, forced: true});
 
 			// Validate
 			var newItem = grid.get(101);
@@ -148,8 +148,8 @@ describe("Methods and Data Manipulation", function () {
 
 			var item = {data: {id: 101, name: 'updated'}, id: 101};
 			expect(function () {
-				grid.add(item);
-				grid.add(item);
+				grid.add(item, {forced: true});
+				grid.add(item, {forced: true});
 			}).toThrow('You are not allowed to add() items without a unique \'id\' value. A row with id \'' + item.data.id + '\' already exists.');
 		});
 
@@ -166,7 +166,7 @@ describe("Methods and Data Manipulation", function () {
 				]
 			});
 			var newrow = {data: {id: 2, name: "adding a new row", category: "oohlala"}, id: 2};
-			grid.add(newrow);
+			grid.add(newrow, {forced: true});
 			var lastcell = grid.$el.find('.doby-grid-row:last-child .doby-grid-cell:last-child').text();
 			expect(lastcell).toEqual(newrow.data.category);
 		});
@@ -182,7 +182,7 @@ describe("Methods and Data Manipulation", function () {
 			});
 
 			// Insert
-			grid.add({data: {id: 2, name: 'test'}, id: 2, height: 1500});
+			grid.add({data: {id: 2, name: 'test'}, id: 2, height: 1500}, {forced: true});
 
 			// Make sure row has the right height
 			grid.$el.find('.doby-grid-row:last-child').each(function () {

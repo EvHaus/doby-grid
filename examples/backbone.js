@@ -3,19 +3,10 @@
 define(['backbone', 'faker'], function (Backbone, Faker) {
 	"use strict";
 
+	// Generate Data
+	var collection = new Backbone.Collection();
+
 	return [function () {
-
-		// Generate Data
-		var collection = new Backbone.Collection();
-
-		for (var i = 0; i < 1000; i++) {
-			collection.add({
-				id: i,
-				name: Faker.Name.findName(),
-				city: Faker.Address.city(),
-				rating: _.sample([1, 2, 3, 4, 5, 6, 7, 8, 9])
-			});
-		}
 
 		return {
 			columns: [{
@@ -53,5 +44,15 @@ define(['backbone', 'faker'], function (Backbone, Faker) {
 			}],
 			data: collection
 		};
+	}, function () {
+
+		for (var i = 0; i < 1000; i++) {
+			collection.add({
+				id: i,
+				name: Faker.Name.findName(),
+				city: Faker.Address.city(),
+				rating: _.sample([1, 2, 3, 4, 5, 6, 7, 8, 9])
+			});
+		}
 	}];
 });
