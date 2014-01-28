@@ -3315,16 +3315,26 @@
 				}
 
 				// Clicking outside - closes the dropdown
-				var bodyEscape;
-				bodyEscape = function (e) {
+				var bodyClose;
+				bodyClose = function (e) {
 					if (e.target == event.target) return;
 					this.hide();
-					$(document).off('click', bodyEscape);
-					$(document).off('context', bodyEscape);
+					$(document).off('click', bodyClose);
+					$(document).off('context', bodyClose);
 				}.bind(this);
 
-				$(document).on('click', bodyEscape);
-				$(document).on('contextmenu', bodyEscape);
+				$(document).on('click', bodyClose);
+				$(document).on('contextmenu', bodyClose);
+
+				// Esc - closes the dropdown
+				var bodyEscape;
+				bodyEscape = function (e) {
+					if (e.keyCode == 27) {
+						this.hide();
+						$(document).off('keydown', bodyEscape);
+					}
+				}.bind(this);
+				$(document).one('keydown', bodyEscape);
 
 				return this;
 			};
