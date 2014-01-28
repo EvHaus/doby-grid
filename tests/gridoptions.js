@@ -1113,6 +1113,44 @@ describe("Grid Options", function () {
 			// Check to see if alert was rendered
 			expect(grid.$el).toContain('.doby-grid-alert');
 		});
+
+
+		// ==========================================================================================
+
+
+		it("should not group empty grids", function () {
+			// Ensure empty notice is on
+			var grid = resetGrid({
+				columns: [{id: 'test'}],
+				data: [],
+				emptyNotice: true
+			});
+
+			grid.addGrouping('test');
+
+			// Check to see if alert was rendered and no groups are rendered
+			expect(grid.$el).toContain('.doby-grid-alert');
+			expect(grid.$el).not.toContain('.doby-grid-group');
+		});
+
+
+		// ==========================================================================================
+
+
+		it("should not group empty grids when using Backbone.Collection data", function () {
+			// Ensure empty notice is on
+			var grid = resetGrid({
+				columns: [{id: 'test'}],
+				data: new Backbone.Collection(),
+				emptyNotice: true
+			});
+
+			grid.addGrouping('test');
+
+			// Check to see if alert was rendered and no groups are rendered
+			expect(grid.$el).toContain('.doby-grid-alert');
+			expect(grid.$el).not.toContain('.doby-grid-group');
+		});
 	});
 
 
