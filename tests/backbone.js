@@ -262,4 +262,32 @@ describe("Backbone Integration", function () {
 		expect($rows.children('.doby-grid-cell:first').first()).toHaveText(20);
 	});
 
+
+	// ==========================================================================================
+
+
+	it("should not fail attempting to use existing comparator of Backbone.Collection", function () {
+		var collection = new Backbone.Collection();
+
+		collection.comparator = function () {
+			return true;
+		};
+
+		var results = resetGrid({data: collection}),
+			grid = results[0];
+
+		// Reset collection
+		collection.add({
+			id: '20',
+			name: "Bobby McFerrin",
+			age: "old",
+			city: "Somewhere"
+		});
+
+		// Should have 1 row
+		var $rows = grid.$el.find('.doby-grid-row');
+		expect($rows.length).toEqual(1);
+		expect($rows.children('.doby-grid-cell:first').first()).toHaveText(20);
+	});
+
 });

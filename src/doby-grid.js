@@ -1826,9 +1826,11 @@
 					// If data used to be empty, with an alert - remove alert
 					if (grid.options.emptyNotice) {
 						if (this.items instanceof Backbone.Collection) {
-							if (this.items.first().get('__alert')) {
-								this.remove(this.items.first().id);
-							}
+							this.items.each(function (model) {
+								if (model.get('__alert')) {
+									this.remove(model.id);
+								}
+							}.bind(this));
 						} else if (this.items.length && this.items[0].__alert) {
 							this.remove(this.items[0][idProperty]);
 						}
@@ -5363,11 +5365,13 @@
 					self.collection.reset();
 				})
 				.on('sort', function () {
-					// Tell the collection to refresh everything
-					self.collection.refresh();
+					if (self.collection) {
+						// Tell the collection to refresh everything
+						self.collection.refresh();
 
-					// When sorting - invalidate and re-render all rows
-					invalidate();
+						// When sorting - invalidate and re-render all rows
+						invalidate();
+					}
 				});
 		};
 

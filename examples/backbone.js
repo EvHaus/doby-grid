@@ -6,6 +6,10 @@ define(['backbone', 'faker'], function (Backbone, Faker) {
 	// Generate Data
 	var collection = new Backbone.Collection();
 
+	collection.comparator = function () {
+		return true;
+	};
+
 	return [function () {
 
 		return {
