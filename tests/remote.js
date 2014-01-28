@@ -549,10 +549,16 @@ describe("Remote Data", function () {
 			});
 
 			runs(function () {
-				var $groups = grid.$el.find('.doby-grid-group');
-				$groups.each(function (i) {
+				var groups = _.sortBy(grid.$el.find('.doby-grid-group'), function (row) {
+					return parseInt($(row).attr('style').replace('top:', ''), 10);
+				});
+
+
+				var $group;
+				_.each(groups, function (group, i) {
+					$group = $(group);
 					if (i > 0) {
-						expect($(this).find('.doby-grid-group-title').text()).toBeLessThan($($groups[i - 1]).find('.doby-grid-group-title').text());
+						expect($group.find('.doby-grid-group-title').text()).toBeLessThan($(groups[i - 1]).find('.doby-grid-group-title').text());
 					}
 				});
 			});

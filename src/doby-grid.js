@@ -5252,7 +5252,7 @@
 			var selectable_rows = self.collection.length - 1;
 
 			if (self.collection.items instanceof Backbone.Collection) {
-				if (self.collection.items.models[self.collection.items.length - 1].id == '__gridAggregate') {
+				if (self.collection.items.last().id == '__gridAggregate') {
 					selectable_rows--;
 				}
 			} else {
@@ -5384,13 +5384,14 @@
 					self.collection.reset();
 				})
 				.on('sort', function () {
-					if (self.collection) {
-						// Tell the collection to refresh everything
-						self.collection.refresh();
+					// If sorting before we've had a chance to process the collection - skip
+					if (!self.collection) return;
 
-						// When sorting - invalidate and re-render all rows
-						invalidate();
-					}
+					// Tell the collection to refresh everything
+					self.collection.refresh();
+
+					// When sorting - invalidate and re-render all rows
+					invalidate();
 				});
 		};
 
