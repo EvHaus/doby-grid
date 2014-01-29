@@ -3391,7 +3391,7 @@
 					width = $(this).outerWidth();
 
 					// Determine whether to drop to left or right
-					leftright = off.left - pos.left + width > available_width ? 'drop-left' : 'drop-right';
+					leftright = off.left - Math.min(pos.left, 0) + width > available_width ? 'drop-left' : 'drop-right';
 					$(this).addClass(leftright);
 
 					// When dropping left - need to set correct position
@@ -3400,7 +3400,7 @@
 					}
 
 					// Determine whether to drop to up or down
-					$(this).addClass(off.top - pos.top + height > available_height ? 'drop-up' : 'drop-down');
+					$(this).addClass(off.top - Math.min(pos.top, 0) + height > available_height ? 'drop-up' : 'drop-down');
 				});
 			};
 
