@@ -3391,7 +3391,7 @@
 					width = $(this).outerWidth();
 
 					// Determine whether to drop to left or right
-					leftright = off.left - pos.left + width > available_width ? 'drop-left' : 'drop-right';
+					leftright = off.left - Math.min(pos.left, 0) + width > available_width ? 'drop-left' : 'drop-right';
 					$(this).addClass(leftright);
 
 					// When dropping left - need to set correct position
@@ -3400,7 +3400,7 @@
 					}
 
 					// Determine whether to drop to up or down
-					$(this).addClass(off.top - pos.top + height > available_height ? 'drop-up' : 'drop-down');
+					$(this).addClass(off.top - Math.min(pos.top, 0) + height > available_height ? 'drop-up' : 'drop-down');
 				});
 			};
 
@@ -3842,8 +3842,8 @@
 				rowWidth = 0, i, l;
 
 			for (i = 0, l = cache.activeColumns.length; i < l; i++) {
-				// The 1 here is to compensate for the spacer between columns.
-				rowWidth += cache.activeColumns[i].width - self.options.columnSpacing;
+				// The 2 here is to compensate for the spacing between columns
+				rowWidth += cache.activeColumns[i].width - self.options.columnSpacing + (self.options.fullWidthRows ? 2 : 0);
 			}
 
 			// When fullWidthRows disable - keep canvas as big as the dat only
