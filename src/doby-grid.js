@@ -3842,8 +3842,8 @@
 				rowWidth = 0, i, l;
 
 			for (i = 0, l = cache.activeColumns.length; i < l; i++) {
-				// The 1 here is to compensate for the spacer between columns.
-				rowWidth += cache.activeColumns[i].width - self.options.columnSpacing;
+				// The 2 here is to compensate for the spacing between columns
+				rowWidth += cache.activeColumns[i].width - self.options.columnSpacing + 2;
 			}
 
 			// When fullWidthRows disable - keep canvas as big as the dat only
