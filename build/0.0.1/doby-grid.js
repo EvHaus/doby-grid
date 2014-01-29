@@ -3348,14 +3348,17 @@
 			// Positions the dropdown in the right spot
 			//
 			this.position = function () {
-				var top = event.clientY - this.$parent.offset().top,
-					left = event.clientX - this.$parent.offset().left,
+				var pos = this.$parent.offset(),
+					top = event.clientY - pos.top,
+					left = event.clientX - pos.left,
 					menu_width = this.$el.outerWidth(),
 					menu_height = this.$el.outerHeight(),
 					required_width = left + menu_width,
 					required_height = top + menu_height,
-					available_width = this.$el.parent().width(),
-					available_height = this.$el.parent().height();
+					available_width = $viewport.width(),
+					available_height = $viewport.height();
+
+				// Determine position of main dropdown
 
 				// If no room on the right side, throw dropdown to the left
 				if (available_width < required_width) {
@@ -3375,6 +3378,29 @@
 				this.$el.css({
 					left: left,
 					top: top
+				});
+
+				// Now, loop through all of the submenus and determine which way they should drop
+				// depending on how much screen space there is
+
+				var off, height, width, leftright;
+				this.$el.children('.' + classdropdownmenu + ':first').find('.' + classdropdownmenu).each(function () {
+					pos = $(this).position();
+					off = $(this).offset();
+					height = $(this).outerHeight();
+					width = $(this).outerWidth();
+
+					// Determine whether to drop to left or right
+					leftright = off.left - pos.left + width > available_width ? 'drop-left' : 'drop-right';
+					$(this).addClass(leftright);
+
+					// When dropping left - need to set correct position
+					if (leftright == 'drop-left') {
+						$(this).css('left', -width + 'px');
+					}
+
+					// Determine whether to drop to up or down
+					$(this).addClass(off.top - pos.top + height > available_height ? 'drop-up' : 'drop-down');
 				});
 			};
 
