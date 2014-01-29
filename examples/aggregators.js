@@ -11,15 +11,12 @@ define([], function () {
 				return (this.total || "");
 			};
 			this.formatter = function () {
-				//console.log('formatting', this.total);
 				return "Total: <strong>" + this.total + "</strong>";
 			};
 			this.process = function (item) {
-				//console.log('process', item, this.total)
 				this.total += (item.data[column.field] || 0);
 			};
 			this.reset = function () {
-				//console.log('reset')
 				this.total = 0;
 			};
 			return this;

@@ -183,13 +183,15 @@
 
 		& > .doby-grid-dropdown-menu {
 			opacity: 0;
-			left: 100%;
 			pointer-events: none;
 			position: absolute;
-			top: -5px;
 			.transition(0.3s opacity ease-in-out);
-
 			z-index: 1;
+
+			&.drop-down {top: -5px}
+			&.drop-up {bottom: -5px}
+			&.drop-right {left: 100%;}
+			&.drop-left {right: 100%;}
 		}
 
 		&.open > .doby-grid-dropdown-menu {
@@ -202,11 +204,6 @@
 	.doby-grid-dropdown-divider {
 		margin: 2px 0;
 	}
-}
-
-.doby-grid-dropdown-left .doby-grid-dropdown-item > .doby-grid-dropdown-menu {
-	left: auto;
-	right: 100%;
 }
 
 
