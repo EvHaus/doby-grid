@@ -98,6 +98,7 @@
 			classdropdownarrow = classdropdown + '-arrow',
 			classdropdownicon = classdropdown + '-icon',
 			classdropdownleft = classdropdown + '-left',
+			classdropdowntitle = classdropdown + '-title',
 			classeditor = this.NAME + '-editor',
 			classexpanded = 'expanded',
 			classgroup = this.NAME + '-group',
@@ -352,6 +353,7 @@
 					groups_clear:		'Clear All Grouping',
 					groups_collapse:	'Collapse All Groups',
 					groups_expand:		'Expand All Groups',
+					options:			'Column Options',
 					remove:				'Remove "{{name}}" Column',
 					remove_group:		'Remove Grouping By "{{name}}"',
 					remove_sort:		'Remove Sort By "{{name}}"',
@@ -370,6 +372,8 @@
 					export:				'Export',
 					export_csv:			'Export Table to CSV',
 					export_html:		'Export Table to HTML',
+					extensions:			'Extensions',
+					grid_options:		'Grid Options',
 					hide_filter:		'Hide Quick Filter'
 				},
 				selection: {
@@ -383,6 +387,7 @@
 				}
 			},
 			nestedAggregators:		true,
+			menuExtensions:			null,
 			multiColumnSort:		true,
 			quickFilter:			false,
 			remoteScrollTime:		200,
@@ -6443,12 +6448,19 @@
 		//
 		// @param	menu		object		A menu data object to render
 		// @param	$parent		object		DOM object into which to insert the rendered HTML
+		// @param	args		object		List of arguments from the event that initialized the menu
 		//
-		renderMenu = function (menu, $parent) {
+		renderMenu = function (menu, $parent, args) {
 			var $menu = $(['<div class="', classdropdownmenu, '"></div>'].join(''));
 			_.each(menu, function (item) {
 				if (item.enabled !== undefined && !item.enabled) return;
-				if (item.divider) {
+				if (item.title) {
+					$menu.append([
+						'<div class="', classdropdowntitle, '">',
+						(item.name || ""),
+						'</div>'
+					].join(''));
+				} else if (item.divider) {
 					$menu.append(['<div class="', classdropdowndivider, '"></div>'].join(''));
 				} else {
 					var label = (item.name || ""),
@@ -6470,7 +6482,7 @@
 					// Click function
 					$el.click(function (event) {
 						if (typeof item.fn === 'function') {
-							item.fn.bind(this)(event);
+							item.fn.bind(this)(event, this, args);
 						} else if (item.menu) {
 							// If item has a menu - clicking should not close the dropdown
 							event.stopPropagation();
@@ -7965,13 +7977,14 @@
 			//
 			var menuData = [{
 				enabled: column && column.removable,
+				name: getLocale('column.options'),
+				title: true
+			}, {
+				enabled: column && column.removable,
 				name: column ? getLocale('column.remove', {name: column.name}) : '',
 				fn: function () {
 					self.removeColumn(column.id);
 				}
-			}, {
-				enabled: column && column.removable,
-				divider: true
 			}, {
 				enabled: column && self.options.quickFilter,
 				name: getLocale('column.filtering'),
@@ -8086,6 +8099,9 @@
 				name: getLocale('column.aggregators'),
 				menu: aggregator_menu
 			}, {
+				name: getLocale('global.grid_options'),
+				title: true
+			}, {
 				name: getLocale('selection.selection'),
 				menu: [{
 					name: getLocale('selection.select_all', {name: column.name}),
@@ -8108,8 +8124,6 @@
 						self.selectCells(args.row, args.cell, args.row, args.cell);
 						dropdown.hide();
 					}
-				}, {
-					divider: true
 				}, {
 					name: getLocale('selection.deselect_all', {name: column.name}),
 					fn: function () {
@@ -8135,15 +8149,9 @@
 					}
 				}]
 			}, {
-				enabled: column && (column.sortable || column.removable || column.groupable || column.aggregators),
-				divider: true
-			}, {
 				enabled: columns_menu.length > 0,
 				name: getLocale('global.columns'),
 				menu: columns_menu
-			}, {
-				enabled: columns_menu.length > 0,
-				divider: true
 			}, {
 				enabled: isFileSaverSupported,
 				name: getLocale('global.export'),
@@ -8167,8 +8175,6 @@
 					}
 				}]
 			}, {
-				divider: true
-			}, {
 				name: getLocale('global.auto_width'),
 				value: self.options.autoColumnWidth,
 				fn: function () {
@@ -8178,9 +8184,42 @@
 				}
 			}];
 
+			// Validates and restricts the menu extensions given by the user
+			var validateMenuExtension = function (item) {
+				// Ensure functions always close the dropdown
+				if (item.fn) {
+					item.fn = function (event, grid, args) {
+						item.fn(event, grid, args);
+						dropdown.hide();
+					};
+				}
+
+				// Validate submenus
+				if (item.menu) {
+					for (var x = 0, y = item.menu.length; x < y; x++) {
+						item.menu[x] = validateMenuExtension(item.menu[x]);
+					}
+				}
+
+				return item;
+			};
+
+			// Add menu extensions at the end
+			if (self.options.menuExtensions) {
+				// Add title
+				menuData.push({
+					name: getLocale('global.extensions'),
+					title: true
+				});
+
+				for (var q = 0, w = self.options.menuExtensions.length; q < w; q++) {
+					menuData.push(validateMenuExtension(self.options.menuExtensions[q]));
+				}
+			}
+
 			// Render Menu
 			var $menu = $('<div class="' + classcontextmenu + '"></div>');
-			renderMenu(menuData, $menu);
+			renderMenu(menuData, $menu, args);
 
 			var option_change_delay;
 
