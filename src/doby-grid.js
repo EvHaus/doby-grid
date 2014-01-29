@@ -2861,7 +2861,7 @@
 				// Update the row cache and the item
 				var idx = cache.indexById[id];
 
-				if (cache.rows[idx] instanceof Placeholder || this.items[i] instanceof Backbone.Model) {
+				if (cache.rows[idx] instanceof Placeholder || cache.rows[idx] instanceof Backbone.Model) {
 					cache.rows[idx] = data;
 				} else {
 					cache.rows[idx] = $.extend(true, cache.rows[idx], data);
