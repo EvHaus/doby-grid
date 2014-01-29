@@ -1407,6 +1407,40 @@ describe("Grid Options", function () {
 	// ==========================================================================================
 
 
+	describe("options.menuExtensions", function () {
+		it("should be null by default", function () {
+			var grid = resetGrid(defaultData());
+			expect(grid.options.menuExtensions).toEqual(null);
+		});
+
+
+		// ==========================================================================================
+
+
+		it("should correctly render the given menuExtensions items in the context menu", function () {
+			var grid = resetGrid($.extend(defaultData(), {
+				menuExtensions: [{
+					name: "Test"
+				}]
+			}));
+
+			// Simulate context click on the grid
+			grid.$el.find('.doby-grid-cell:first').simulate('contextmenu');
+
+			// Make sure the context menu comes up
+			expect(grid.$el).toContain('.doby-grid-dropdown');
+
+			var $dropdown = grid.$el.find('.doby-grid-dropdown:first');
+
+			// Make sure the extension item is displayed at the end
+			expect($dropdown.find('.doby-grid-dropdown-item').last()).toHaveText('Test');
+		});
+	});
+
+
+	// ==========================================================================================
+
+
 	describe("options.multiColumnSort", function () {
 		it("should be enabled by default", function () {
 			var grid = resetGrid(defaultData());

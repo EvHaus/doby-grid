@@ -104,7 +104,7 @@
 
 .doby-grid-dropdown {
 	.doby-grid-dropdown-menu {
-		background: #FFF;
+		background: #F9F9F9;
 		border: 1px solid;
 		border-color: #D2D2D2 #CCC #888;
 		border-radius: 5px;
@@ -113,13 +113,15 @@
 	}
 
 	.doby-grid-dropdown-item {
-		.transition(background 0.3s ease-in-out);
+		.transition(background 0.3s ease-in-out, box-shadow 0.3s ease-in-out);
 
 		.doby-grid-dropdown-arrow {border-left-color: #333}
 
 		&:hover {
 			background: #DDD;
 			background: rgba(0,0,0,0.1);
+			box-shadow: 2px 2px 6px #AAA inset;
+			box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.2) inset;
 		}
 
 		&.on .doby-grid-dropdown-icon {
@@ -129,6 +131,18 @@
 		& > .doby-grid-dropdown-menu {
 			border-radius: 0 5px 5px 5px;
 		}
+	}
+
+	.doby-grid-dropdown-title {
+		background: #EEE;
+		background: rgba(0, 0, 0, 0.05);
+		border-bottom: 1px solid #FFF;
+		box-shadow: 2px 2px 6px #AAA inset;
+		box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.2) inset;
+		color: #888;
+		font-size: 11px;
+		text-shadow: 0 1px 0 #FFF;
+		text-transform: uppercase;
 	}
 
 	.doby-grid-dropdown-divider {
