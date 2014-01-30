@@ -2633,7 +2633,7 @@
 				// Do not create groups when the grid is empty.
 				//
 				var groups = [];
-				if (self.groups.length && self.length && !(self.items instanceof Backbone.Collection ? self.items.first().get('__alert') : self.items[0].__alert)) {
+				if (self.groups.length && self.items.length && !(self.items instanceof Backbone.Collection ? self.items.first().get('__alert') : self.items[0].__alert)) {
 
 					extractGroups(newRows, null, function (result) {
 						groups = result;
