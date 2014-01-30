@@ -1441,9 +1441,11 @@ describe("Grid Options", function () {
 
 		it("should correctly render the given menuExtensions items in the context menu", function () {
 			var grid = resetGrid($.extend(defaultData(), {
-				menuExtensions: [{
-					name: "Test"
-				}]
+				menuExtensions: function () {
+					return [{
+						name: "Test"
+					}];
+				}
 			}));
 
 			// Simulate context click on the grid

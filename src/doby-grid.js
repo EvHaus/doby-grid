@@ -8189,31 +8189,32 @@
 				}
 			}];
 
-			// Validates and restricts the menu extensions given by the user
-			var validateMenuExtension = function (item) {
-				// Ensure functions always close the dropdown
-				if (item.fn) {
-					var origFn = item.fn;
-					item.fn = function (event, grid, args) {
-						var result = origFn(event, grid, args);
-						dropdown.hide();
-						return result;
-					};
-				}
-
-				// Validate submenus
-				if (item.menu) {
-					for (var x = 0, y = item.menu.length; x < y; x++) {
-						item.menu[x] = validateMenuExtension(item.menu[x]);
-					}
-				}
-
-				return item;
-			};
-
 			// Add menu extensions at the end
 			if (self.options.menuExtensions) {
-				args.item = cache.rows[args.row];
+				// Validates and restricts the menu extensions given by the user
+				var validateMenuExtension = function (item) {
+					// Ensure functions always close the dropdown
+					if (item.fn) {
+						var origFn = item.fn;
+						item.fn = function (event, grid, args) {
+							var result = origFn(event, grid, args);
+							dropdown.hide();
+							return result;
+						};
+					}
+
+					// Validate submenus
+					if (item.menu) {
+						for (var x = 0, y = item.menu.length; x < y; x++) {
+							item.menu[x] = validateMenuExtension(item.menu[x]);
+						}
+					}
+
+					return item;
+				};
+
+				// Add the currentrow item to the arguments
+				if (args.row !== undefined && args.row !== null) args.item = cache.rows[args.row];
 
 				// Add title
 				menuData.push({
@@ -8221,8 +8222,9 @@
 					title: true
 				});
 
-				for (var q = 0, w = self.options.menuExtensions.length; q < w; q++) {
-					menuData.push(validateMenuExtension(self.options.menuExtensions[q]));
+				var extensions = self.options.menuExtensions(self);
+				for (var q = 0, w = extensions.length; q < w; q++) {
+					menuData.push(validateMenuExtension(extensions[q]));
 				}
 			}
 
