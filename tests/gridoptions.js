@@ -1401,6 +1401,28 @@ describe("Grid Options", function () {
 			var grid = resetGrid(defaultData());
 			expect(grid.options.locale).toBeDefined();
 		});
+
+
+		// ==========================================================================================
+
+
+		it("should be able to override specific locale items", function () {
+			var grid = resetGrid($.extend(defaultData(), {
+				locale: {
+					global: {
+						grid_options: "Mama Mia!"
+					}
+				}
+			}));
+
+			// Simulate context click on the grid
+			grid.$el.find('.doby-grid-cell:first').simulate('contextmenu');
+
+			// Make sure the menu loaded
+			expect(grid.$el).toContain('.doby-grid-dropdown');
+			var $dropdown = grid.$el.find('.doby-grid-dropdown');
+			expect($dropdown.find('.doby-grid-dropdown-title')).toHaveText('Mama Mia!');
+		});
 	});
 
 
