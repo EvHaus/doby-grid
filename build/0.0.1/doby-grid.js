@@ -6451,9 +6451,20 @@
 		// @param	args		object		List of arguments from the event that initialized the menu
 		//
 		renderMenu = function (menu, $parent, args) {
-			var $menu = $(['<div class="', classdropdownmenu, '"></div>'].join(''));
-			_.each(menu, function (item) {
-				if (item.enabled !== undefined && !item.enabled) return;
+			var $menu = $(['<div class="', classdropdownmenu, '"></div>'].join('')),
+				item,
+				clickFn = function (event) {
+					if (typeof item.fn === 'function') {
+						item.fn.bind(this)(event, self, args);
+					} else if (item.menu) {
+						// If item has a menu - clicking should not close the dropdown
+						event.stopPropagation();
+					}
+				};
+
+			for (var i = 0, l = menu.length; i < l; i++) {
+				item = menu[i];
+				if (item.enabled !== undefined && !item.enabled) continue;
 				if (item.title) {
 					$menu.append([
 						'<div class="', classdropdowntitle, '">',
@@ -6485,16 +6496,9 @@
 					}
 
 					// Click function
-					$el.click(function (event) {
-						if (typeof item.fn === 'function') {
-							item.fn.bind(this)(event, this, args);
-						} else if (item.menu) {
-							// If item has a menu - clicking should not close the dropdown
-							event.stopPropagation();
-						}
-					});
+					$el.click(clickFn);
 				}
-			});
+			}
 			$menu.appendTo($parent);
 		};
 
