@@ -5897,6 +5897,19 @@
 		};
 
 
+		// toRows()
+		// Converts the cell range values to a list of selected row objects
+		//
+		// @return string
+		Range.prototype.toRows = function () {
+			var result = [];
+			for (var i = this.fromRow; i <= this.toRow; i++) {
+				result.push(cache.rows[i]);
+			}
+			return result;
+		};
+
+
 		// toString()
 		// Returns a readable representation of a range
 		//
@@ -6450,13 +6463,13 @@
 		// @param	$parent		object		DOM object into which to insert the rendered HTML
 		// @param	args		object		List of arguments from the event that initialized the menu
 		//
-		renderMenu = function (menu, $parent, args) {
+		renderMenu = function (menu, $parent) {
 			var $menu = $(['<div class="', classdropdownmenu, '"></div>'].join('')),
 				item,
 				clickFn = function (event) {
-					if (typeof item.fn === 'function') {
-						item.fn.bind(this)(event, self, args);
-					} else if (item.menu) {
+					if (typeof this.fn === 'function') {
+						this.fn.bind(self)(event);
+					} else if (this.menu) {
 						// If item has a menu - clicking should not close the dropdown
 						event.stopPropagation();
 					}
@@ -6496,7 +6509,7 @@
 					}
 
 					// Click function
-					$el.click(clickFn);
+					$el.click(clickFn.bind(item));
 				}
 			}
 			$menu.appendTo($parent);
@@ -8200,8 +8213,8 @@
 					// Ensure functions always close the dropdown
 					if (item.fn) {
 						var origFn = item.fn;
-						item.fn = function (event, grid, args) {
-							var result = origFn(event, grid, args);
+						item.fn = function (event) {
+							var result = origFn(event);
 							dropdown.hide();
 							return result;
 						};
@@ -8226,7 +8239,7 @@
 					title: true
 				});
 
-				var extensions = self.options.menuExtensions(self);
+				var extensions = self.options.menuExtensions(event, self, args);
 				for (var q = 0, w = extensions.length; q < w; q++) {
 					menuData.push(validateMenuExtension(extensions[q]));
 				}
@@ -8234,7 +8247,7 @@
 
 			// Render Menu
 			var $menu = $('<div class="' + classcontextmenu + '"></div>');
-			renderMenu(menuData, $menu, args);
+			renderMenu(menuData, $menu);
 
 			var option_change_delay;
 
