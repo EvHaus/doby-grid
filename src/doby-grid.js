@@ -6467,9 +6467,9 @@
 			var $menu = $(['<div class="', classdropdownmenu, '"></div>'].join('')),
 				item,
 				clickFn = function (event) {
-					if (typeof item.fn === 'function') {
-						item.fn.bind(this)(event, self, args);
-					} else if (item.menu) {
+					if (typeof this.fn === 'function') {
+						this.fn.bind(self)(event, self, args);
+					} else if (this.menu) {
 						// If item has a menu - clicking should not close the dropdown
 						event.stopPropagation();
 					}
@@ -6509,7 +6509,7 @@
 					}
 
 					// Click function
-					$el.click(clickFn);
+					$el.click(clickFn.bind(item));
 				}
 			}
 			$menu.appendTo($parent);
