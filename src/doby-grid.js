@@ -5897,6 +5897,19 @@
 		};
 
 
+		// toRows()
+		// Converts the cell range values to a list of selected row objects
+		//
+		// @return string
+		Range.prototype.toRows = function () {
+			var result = [];
+			for (var i = this.fromRow; i <= this.toRow; i++) {
+				result.push(cache.rows[i]);
+			}
+			return result;
+		};
+
+
 		// toString()
 		// Returns a readable representation of a range
 		//

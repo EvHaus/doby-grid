@@ -1469,6 +1469,33 @@ describe("Methods and Data Manipulation", function () {
 	// ==========================================================================================
 
 
+	describe("selection", function () {
+		it("should be able to convert a Range object into a list of selected items", function () {
+			var data = [
+				{data: {id: 189, name: 'test'}, id: 189},
+				{data: {id: 289, name: 'test2'}, id: 289}
+			];
+			var grid = resetGrid({
+				columns: [
+					{id: 'id', field: 'id', name: 'id'},
+					{id: 'id', field: 'name', name: 'name'}
+				],
+				data: data
+			});
+
+			// Select all cells
+			grid.selectCells(0, 0, 1, 1);
+
+			// Convert selection to rows
+			var result = grid.selection[0].toRows();
+			expect(result).toEqual(data);
+		});
+	});
+
+
+	// ==========================================================================================
+
+
 	describe("setColumns()", function () {
 		it("should be able to create columns using setColumns()", function () {
 			var grid = resetGrid({
