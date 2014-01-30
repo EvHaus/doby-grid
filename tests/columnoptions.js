@@ -203,56 +203,82 @@ describe("Column Options", function () {
 
 
 		it("should cache the HTML value of cells when enabled and postprocessing is on", function () {
-			var grid = resetGrid($.extend(defaultData(), {
-				columns: [{
-					cache: true,
-					id: 'id',
-					name: 'id',
-					postprocess: function (data, callback) {
-						data.$cell.html("I'm a little teapot");
-						callback();
-					}
-				}, {
-					cache: false,
-					id: 'name',
-					name: 'name',
-					sortable: true,
-					postprocess: function (data) {
-						data.$cell.html("S & S");
-					}
-				}]
-			}));
+			var poem = "I'm a little teapot",
+				verse1 = "S & S",
+				verse2 = "Something Something",
+				callbackcount = 0,
+				grid = resetGrid($.extend(defaultData(), {
+					columns: [{
+						cache: false,
+						id: 'id',
+						name: 'id',
+						postprocess: function (data) {
+							data.$cell.html(poem);
+						}
+					}, {
+						cache: true,
+						id: 'verse1',
+						name: 'verse1',
+						postprocess: function (data, callback) {
+							setTimeout(function () {
+								data.$cell.html(verse1);
+								callbackcount++;
+								callback();
+							}, 10);
+						}
+					}, {
+						cache: true,
+						id: 'verse2',
+						name: 'verse2',
+						postprocess: function (data, callback) {
+							setTimeout(function () {
+								data.$cell.html(verse2);
+								callbackcount++;
+								callback();
+							}, 10);
+						}
+					}]
+				}));
 
 			// Check to see if all cells are loaded
-			var cells = grid.$el.find('.doby-grid-cell');
-
-			// Expect everything to be empty
-			cells.each(function () {
+			grid.$el.find('.doby-grid-cell').each(function () {
+				// Expect everything to be empty
 				expect($(this).text()).toEqual('');
 			});
 
-			// Wait until postprocessing has rendered everything
+			// Wait until postprocessing has rendered and cached everything
 			waitsFor(function () {
-				var result = true;
-				cells.each(function () {
-					if ($(this).text() === '') result = false;
-				});
-				return result;
+				return grid.$el.find('.doby-grid-cell:empty').length === 0 && callbackcount === 4;
 			});
 
 			runs(function () {
 				// Expect cells to have new data
-				cells.each(function (i) {
-					expect($(this).text()).toEqual(["I'm a little teapot", "S & S"][i % 2]);
+				grid.$el.find('.doby-grid-row').each(function () {
+					$(this).children('.doby-grid-cell').each(function (i) {
+						if (i === 0) {
+							expect($(this).text()).toEqual(poem);
+						} else if (i == 1) {
+							expect($(this).text()).toEqual(verse1);
+						} else if (i == 2) {
+							expect($(this).text()).toEqual(verse2);
+						}
+					});
 				});
 
-				// Force the grid to be re-render via resize(). This is a big of a hack.
+				// Force the grid to be re-rendered via resize(). This is a big of a hack.
 				grid.resize();
 
-				// All 'id' column cells should still have data, but 'name' column cells should be empty
-				cells = grid.$el.find('.doby-grid-cell');
-				cells.each(function (i) {
-					expect($(this).text()).toEqual(["I'm a little teapot", ""][i % 2]);
+				// First column should be empty, but the others should be cached
+				grid.$el.find('.doby-grid-row').each(function () {
+					$(this).children('.doby-grid-cell').each(function (i) {
+						if (i === 0) {
+							expect($(this).text()).toEqual('');
+						} else if (i == 1) {
+							expect($(this).text()).toEqual(verse1);
+						} else if (i == 2) {
+							expect($(this).text()).toEqual(verse2);
+						}
+					});
 				});
 			});
 		});

@@ -801,10 +801,10 @@
 		asyncPostProcessRows = function () {
 			var dataLength = getDataLength(),
 				cb = function () {
-					var columnIdx = cache.columnsById[this.id];
-					if (this.cache) {
-						if (!cache.postprocess[row]) cache.postprocess[row] = {};
-						cache.postprocess[row][columnIdx] = $(node).html();
+					var columnIdx = cache.columnsById[this.col.id];
+					if (this.col.cache) {
+						if (!cache.postprocess[this.row]) cache.postprocess[this.row] = {};
+						cache.postprocess[this.row][columnIdx] = $(this.node).html();
 					}
 				};
 
@@ -847,7 +847,7 @@
 								data: getDataItem(row),
 								grid: self,
 								rowIndex: row
-							}, cb.bind(col));
+							}, cb.bind({node: node, col: col, row: row}));
 						}
 					}
 				}
