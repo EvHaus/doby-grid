@@ -310,7 +310,7 @@
 		NonDataItem.prototype.toString = function () { return "NonDataItem"; };
 
 		// Default Grid Options
-		this.options = $.extend({
+		this.options = $.extend(true, {
 			activeFollowsPage:		false,
 			activateSelection:		true,
 			addRow:					false,
@@ -6457,6 +6457,7 @@
 				if (item.title) {
 					$menu.append([
 						'<div class="', classdropdowntitle, '">',
+						(item.icon ? item.icon : ""),
 						(item.name || ""),
 						'</div>'
 					].join(''));
@@ -6470,8 +6471,12 @@
 						label += ['<span class="', classdropdownicon, '"></span>'].join('');
 					}
 
-					var html = ['<div class="', classdropdownitem, ' ', cls, '">', label, '</div>'].join(''),
-						$el = $(html).appendTo($menu);
+					var html = [
+						'<div class="', classdropdownitem, ' ', cls, '">',
+						(item.icon ? item.icon : ""),
+						label,
+						'</div>'
+					].join(''), $el = $(html).appendTo($menu);
 
 					// Submenus
 					if (item.menu) {
@@ -7092,7 +7097,7 @@
 				}
 			}
 
-			self.options = $.extend(self.options, options);
+			$.extend(true, self.options, options);
 			validateOptions();
 
 			// If setting new columns - it will auto-re-render
@@ -8188,9 +8193,11 @@
 			var validateMenuExtension = function (item) {
 				// Ensure functions always close the dropdown
 				if (item.fn) {
+					var origFn = item.fn;
 					item.fn = function (event, grid, args) {
-						item.fn(event, grid, args);
+						var result = origFn(event, grid, args);
 						dropdown.hide();
+						return result;
 					};
 				}
 
@@ -8206,6 +8213,8 @@
 
 			// Add menu extensions at the end
 			if (self.options.menuExtensions) {
+				args.item = cache.rows[args.row];
+
 				// Add title
 				menuData.push({
 					name: getLocale('global.extensions'),
