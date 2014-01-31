@@ -801,23 +801,24 @@
 		asyncPostProcessRows = function () {
 			var dataLength = getDataLength(),
 				cb = function () {
-					var columnIdx = cache.columnsById[this.col.id];
-					if (this.col.cache) {
-						if (!cache.postprocess[this.row]) cache.postprocess[this.row] = {};
-						cache.postprocess[this.row][columnIdx] = $(this.node).html();
+					if (this.col.cache && cache.rows[this.row]) {
+						var row_id = cache.rows[this.row].id;
+						if (!cache.postprocess[row_id]) cache.postprocess[row_id] = {};
+						cache.postprocess[row_id][this.col.id] = $(this.node).html();
 					}
 				};
 
 			while (postProcessFromRow <= postProcessToRow) {
 				var row = (vScrollDir >= 0) ? postProcessFromRow++ : postProcessToRow--,
 					cacheEntry = cache.nodes[row],
+					rowdata = cache.rows[row],
 					columnIdx;
 
 				if (!cacheEntry || row >= dataLength) {
 					continue;
 				}
 
-				if (!cache.postprocess[row]) cache.postprocess[row] = {};
+				if (!cache.postprocess[rowdata.id]) cache.postprocess[rowdata.id] = {};
 
 				ensureCellNodesInRowsCache(row);
 				for (columnIdx in cacheEntry.cellNodesByColumnIdx) {
@@ -829,7 +830,6 @@
 
 					var col = cache.activeColumns[columnIdx],
 						postprocess = col.postprocess,
-						rowdata = cache.rows[row],
 						rd_cols = rowdata.columns;
 
 					// Check to see if a row-specific column override exists
@@ -838,7 +838,7 @@
 					}
 
 					// If row has no caching set -- run the postprocessing
-					if (postprocess && !cache.postprocess[row][columnIdx]) {
+					if (postprocess && !cache.postprocess[rowdata.id][col.id]) {
 						var node = cacheEntry.cellNodesByColumnIdx[columnIdx];
 						if (node) {
 							postprocess({
@@ -1422,8 +1422,8 @@
 				cacheEntry.rowNode.removeChild(cacheEntry.cellNodesByColumnIdx[cellToRemove]);
 				delete cacheEntry.cellColSpans[cellToRemove];
 				delete cacheEntry.cellNodesByColumnIdx[cellToRemove];
-				if (cache.postprocess[row]) {
-					delete cache.postprocess[row][cellToRemove];
+				if (cache.postprocess[cache.rows[row].id]) {
+					delete cache.postprocess[cache.rows[row].i][cache.activeColumns[cellToRemove].id];
 				}
 				totalCellsRemoved++;
 			}
@@ -2801,9 +2801,6 @@
 
 				// Reset remote grouping cache
 				if (cache.remoteGroups) cache.remoteGroups = null;
-
-				// Clear the post-processing cache. It is no longer valid.
-				cache.postprocess = {};
 
 				// Reset group cache
 				var i, l, groups = [], col;
@@ -5337,7 +5334,7 @@
 		// @param	row		integer		Row index
 		//
 		invalidatePostProcessingResults = function (row) {
-			delete cache.postprocess[row];
+			delete cache.postprocess[cache.rows[row].id];
 			postProcessFromRow = Math.min(postProcessFromRow, row);
 			postProcessToRow = Math.max(postProcessToRow, row);
 			startPostProcessing();
@@ -6301,12 +6298,14 @@
 			$canvas[0].removeChild(cacheEntry.rowNode);
 			delete cache.nodes[row];
 
+			var item = cache.rows[row];
+
 			// Clear postprocessing cache (only for non-cached columns)
-			if (cache.postprocess[row]) {
-				for (var i in cache.postprocess[row]) {
-					col = cache.activeColumns[i];
+			if (item && cache.postprocess[item.id]) {
+				for (var id in cache.postprocess[item.id]) {
+					col = cache.activeColumns[cache.columnsById[id]];
 					if (!col.cache) {
-						delete cache.postprocess[row][i];
+						delete cache.postprocess[item.id][id];
 					}
 				}
 			}
@@ -6386,8 +6385,8 @@
 			result.push('<div class="' + cellCss.join(" ") + '">');
 
 			// If this is a cached, postprocessed row -- use the cache
-			if (m.cache && m.postprocess && cache.postprocess[row] && cache.postprocess[row][cell]) {
-				result.push(cache.postprocess[row][cell]);
+			if (m.cache && m.postprocess && cache.postprocess[item.id] && cache.postprocess[item.id][column.id]) {
+				result.push(cache.postprocess[item.id][column.id]);
 			} else if (item) {
 				// if there is a corresponding row (if not, this is the Add New row or
 				// this data hasn't been loaded yet)
@@ -7234,9 +7233,6 @@
 
 			if (changed) {
 
-				// Clear the post-processing cache. It is no longer valid.
-				cache.postprocess = {};
-
 				// Re-process column args into something the execute sorter can understand
 				var args = {
 					multiColumnSort: this.sorting.length > 1,
@@ -7294,10 +7290,6 @@
 						cindex = cache.columnsById[reorderedIds[i].replace(uid, "")];
 						reorderedColumns.push(cache.activeColumns[cindex]);
 					}
-
-					// Re-run postprocessing cache - it's no longer valie
-					cache.postprocess = {};
-					startPostProcessing();
 
 					self.setColumns(reorderedColumns);
 					setupColumnResize();
