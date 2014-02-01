@@ -7886,7 +7886,7 @@
 					c.visible = !c.visible;
 
 					// Toggle menu
-					c.visible ? $(this).addClass('on') : $(this).removeClass('on');
+					c.visible ? $(event.currentTarget).addClass('on') : $(event.currentTarget).removeClass('on');
 
 					// Update grid
 					self.setColumns(self.options.columns);
