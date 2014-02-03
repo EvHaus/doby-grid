@@ -332,6 +332,47 @@ describe("Column Options", function () {
 				return grid.$el.find('.doby-grid-cell:first').text() === '99';
 			}, "the grid to update the cache after sorting");
 		});
+
+
+		// ==========================================================================================
+
+
+		it("should recache when a grid's item is updated", function () {
+			var grid = resetGrid({
+				columns: [{
+					cache: true,
+					id: 'count',
+					name: 'count',
+					field: 'count',
+					postprocess: function (data, callback) {
+						data.$cell.html('post-' + data.data.data.count);
+						callback();
+					}
+				}],
+				data: [{
+					id: 1,
+					data: {
+						id: 1,
+						count: 1
+					}
+				}]
+			});
+
+			// Wait until postprocessing has rendered the row
+			waitsFor(function () {
+				return grid.$el.find('.doby-grid-cell').eq(0).text() == 'post-1';
+			});
+
+			runs(function () {
+				// Update the id of the row
+				grid.setItem(1, {data: {count: 2}});
+			});
+
+			// Wait until postprocessing has re-rendered the row with the updated value
+			waitsFor(function () {
+				return grid.$el.find('.doby-grid-cell').eq(0).text() == 'post-2';
+			}, 500);
+		});
 	});
 
 

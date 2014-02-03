@@ -2863,6 +2863,9 @@
 				// Update the row cache and the item
 				var idx = cache.indexById[id];
 
+				// Clear postprocessing cache
+				if (cache.postprocess[id]) delete cache.postprocess[id];
+
 				if (cache.rows[idx] instanceof Placeholder || cache.rows[idx] instanceof Backbone.Model) {
 					cache.rows[idx] = data;
 				} else {
@@ -2871,14 +2874,20 @@
 
 				// ID may have changed for the item so update the index by id too.
 				// This is most relevant in remote grids where real IDs replace placeholder IDs
+				if (id !== data.id) delete cache.indexById[id];
 				cache.indexById[data.id] = idx;
 
 				// Find the data item and update it
 				if (this.items instanceof Backbone.Collection) {
+					// Backbone does not support changing a model's id
+					if (data.id !== id) {
+						throw new Error("Sorry, but Backbone does not support changing a model's id value, and as a result, this is not supported in Doby Grid either.");
+					}
+
 					this.items.set(data, {add: false, remove: false});
 				} else {
 					for (var i = 0, l = this.items.length; i < l; i++) {
-						if (this.items[i].id == id) {
+						if (this.items[i].id == id || this.items[i].id == data.id) {
 							if (this.items[i] instanceof Placeholder) {
 								this.items[i] = data;
 							} else {
@@ -2897,6 +2906,7 @@
 				// Store the ids that were updated so the refresh knows which row to update
 				if (!updated) updated = {};
 				updated[id] = true;
+				if (id !== data.id) updated[data.id] = true;
 
 				this.refresh();
 			};
