@@ -199,7 +199,8 @@ describe("Remote Data", function () {
 						callback(results);
 					}, 5);
 				};
-			}
+			},
+			quickFilter: true
 		};
 
 		// Create a new grid inside a fixture
@@ -969,6 +970,54 @@ describe("Remote Data", function () {
 					$cell = $(this).find('.doby-grid-group-title:first').text();
 					expect($cell).toContain(value);
 				});
+			});
+		});
+
+
+		// ==========================================================================================
+
+
+		it("should not fire filter events when Quick Filter value has not changed", function () {
+			var updated = false,
+				manualWait = false;
+
+			runs(function () {
+				// Launch the grid context menu
+				grid.$el.find('.doby-grid-cell').simulate('contextmenu');
+
+				// Popup the Quick Filter menu
+				grid.$el.find('.doby-grid-contextmenu .doby-grid-dropdown-menu .doby-grid-dropdown-menu .doby-grid-dropdown-item:first').each(function () {
+					if ($(this).text().indexOf('Quick Filter') >= 0) {
+						$(this).simulate('click');
+					}
+				});
+
+				// Make sure the Quick Filter popped out
+				expect(grid.$el).toContain('.doby-grid-header-filter');
+
+				// Focus on the first filter input cell
+				var $firstInput = grid.$el.find('.doby-grid-header-filter-cell input:first');
+				$firstInput.simulate('click');
+
+				// Simulate pressing down arrow
+				$firstInput.simulate('keyup', {keyCode: 40});
+
+				grid.on('remoteloaded', function () {
+					updated = true;
+				});
+
+				setTimeout(function () {
+					manualWait = true;
+				}, 500);
+			});
+
+			waitsFor(function () {
+				return manualWait;
+			});
+
+			runs(function () {
+				// Grid should not has been updated
+				expect(updated).toEqual(false);
 			});
 		});
 	});

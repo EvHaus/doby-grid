@@ -7626,6 +7626,17 @@
 					return;
 				}
 
+				var value = $(this).val();
+
+				// Empty strings are treated as 'null'
+				if (value === '') value = null;
+
+				// Check if filter value has actually changed
+				if ($(this).data('old_value') == value) return;
+
+				// Remember this value
+				$(this).data('old_value', value);
+
 				if (keyTimer) clearTimeout(keyTimer);
 				keyTimer = setTimeout(function () {
 					// Build a filter set
