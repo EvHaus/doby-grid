@@ -278,6 +278,44 @@ describe("Remote Data", function () {
 	// ==========================================================================================
 
 
+	it("should allow the insertion of various row heights post initial render", function () {
+		var row;
+
+		// Insert a large row immediately as a child of the first
+		grid.setItem(0, {
+			rows: {
+				0: {
+					height: 200,
+					formatter: function () {
+						return 'test';
+					},
+					columns: {
+						0: {
+							colspan: '*'
+						}
+					}
+				}
+			}
+		});
+
+		waitsFor(function () {
+			row = grid.$el.find('.doby-grid-row:nth-child(2)').first();
+			return row.text().indexOf('test') >= 0;
+		}, 50);
+
+
+		runs(function () {
+			// Make sure the inserted row is 200 pixels high
+			row = grid.$el.find('.doby-grid-row:nth-child(2)').first();
+			expect(row.height()).toEqual(200);
+		});
+
+	});
+
+
+	// ==========================================================================================
+
+
 	describe("Grouping", function () {
 
 		it("should be able to group results", function () {
