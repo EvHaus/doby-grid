@@ -4907,9 +4907,9 @@
 				cell = getCellFromEvent(e);
 
 			self.trigger('contextmenu', e, {
-				cell: cell.cell || null,
+				cell: cell.cell !== null && cell.cell !== undefined ? cell.cell : null,
 				column: column,
-				row: cell.row || null
+				row: cell.row !== null && cell.row !== undefined ? cell.row : null
 			});
 		};
 
