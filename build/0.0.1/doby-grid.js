@@ -2880,7 +2880,7 @@
 				// Find the data item and update it
 				if (this.items instanceof Backbone.Collection) {
 					// Backbone does not support changing a model's id
-					if (data.id !== id) {
+					if (data.id !== undefined && data.id !== id) {
 						throw new Error("Sorry, but Backbone does not support changing a model's id value, and as a result, this is not supported in Doby Grid either.");
 					}
 
@@ -2908,7 +2908,7 @@
 				updated[id] = true;
 				if (id !== data.id) updated[data.id] = true;
 
-				this.refresh();
+				this.refreshDebounced();
 			};
 
 
@@ -5425,7 +5425,7 @@
 				.on('reset', function () {
 					self.collection.reset();
 				})
-				.on('sort', function () {
+				.on('sort', _.debounce(function () {
 					// If sorting before we've had a chance to process the collection - skip
 					if (!self.collection) return;
 
@@ -5434,7 +5434,7 @@
 
 					// When sorting - invalidate and re-render all rows
 					invalidate();
-				});
+				}), 10);
 		};
 
 
