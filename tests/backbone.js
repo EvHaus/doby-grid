@@ -114,8 +114,10 @@ describe("Backbone Integration", function () {
 			return parseInt($(item).css('top'), 10);
 		}));
 
-		// First row should now be the last item in the collection
-		expect(rows.first().children('.doby-grid-cell.l0.r0')).toHaveText(collection.length);
+		// First row should now be the last item in the collection, after debouncing
+		waitsFor(function () {
+			return grid.$el.find('.doby-grid-row').first().children('.doby-grid-cell.l0.r0').text().indexOf(collection.length) >= 0;
+		}, 20);
 	});
 
 
@@ -151,8 +153,20 @@ describe("Backbone Integration", function () {
 		}));
 
 		// New row should be inserted at the top of the grid
-		expect(newrows.length).toEqual(collection.length);
-		expect(newrows.first().children('.doby-grid-cell.l1.r1')).toHaveText('Robert Miles');
+		waitsFor(function () {
+			return grid.$el.find('.doby-grid-row').length == collection.length;
+		}, 20);
+
+		runs(function () {
+			newrows = grid.$el.find('.doby-grid-row');
+
+			// Make sure rows are sorted by their position
+			newrows = $(_.sortBy(newrows, function (item) {
+				return parseInt($(item).css('top'), 10);
+			}));
+
+			expect(newrows.first().children('.doby-grid-cell.l1.r1')).toHaveText('Robert Miles');
+		});
 	});
 
 
@@ -171,15 +185,17 @@ describe("Backbone Integration", function () {
 			city: "Europe?"
 		});
 
-		var rows = grid.$el.find('.doby-grid-row');
+		waitsFor(function () {
+			var rows = grid.$el.find('.doby-grid-row');
 
-		// Make sure rows are sorted by their position
-		rows = $(_.sortBy(rows, function (item) {
-			return parseInt($(item).css('top'), 10);
-		}));
+			// Make sure rows are sorted by their position
+			rows = $(_.sortBy(rows, function (item) {
+				return parseInt($(item).css('top'), 10);
+			}));
 
-		// First row should be updated with new data
-		expect(rows.first().children('.doby-grid-cell.l1.r1')).toHaveText('Houdini');
+			// First row should be updated with new data
+			return rows.first().children('.doby-grid-cell.l1.r1').text().indexOf('Houdini') >= 0;
+		}, 20);
 	});
 
 

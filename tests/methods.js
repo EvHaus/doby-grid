@@ -1592,8 +1592,10 @@ describe("Methods and Data Manipulation", function () {
 			// Change the row's id
 			grid.setItem(1, {id: 2, data: {id: 2}});
 
-			// Cell's value should be 2
-			expect(grid.$el.find('.doby-grid-cell').text()).toEqual('2');
+			// Cell's value should be 2 after debouncing
+			waitsFor(function () {
+				return grid.$el.find('.doby-grid-cell').text() == '2';
+			}, 20);
 		});
 
 
