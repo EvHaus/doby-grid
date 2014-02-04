@@ -7612,14 +7612,21 @@
 		//
 		// NOTE: Many optimizations can be done here.
 		showQuickFilter = function (focus) {
+			var handleResize = function () {
+				// Update viewport
+				viewportH = getViewportHeight();
+				$viewport.height(viewportH);
+
+				// Resize Canvas to fix the new viewport
+				resizeCanvas();
+			};
+
 			// Toggle off
 			if (focus === undefined && $headerFilter) {
 				$headerFilter.remove();
 				$headerFilter = undefined;
 
-				// Update viewport
-				viewportH = getViewportHeight();
-				$viewport.height(viewportH);
+				handleResize();
 
 				// Re-focus on the canvas
 				$canvas.focus();
@@ -7714,9 +7721,7 @@
 			// Set column widths
 			applyColumnHeaderWidths();
 
-			// Update viewport
-			viewportH = getViewportHeight();
-			$viewport.height(viewportH);
+			handleResize();
 		};
 
 
