@@ -1618,6 +1618,27 @@ describe("Methods and Data Manipulation", function () {
 				grid.setItem(1, {id: 2});
 			}).toThrow("Sorry, but Backbone does not support changing a model's id value, and as a result, this is not supported in Doby Grid either.");
 		});
+
+
+		// ==========================================================================================
+
+
+		it("should allow non-id Backbone changes via setItem()", function () {
+			var grid = resetGrid();
+
+			grid.setOptions({
+				columns: [{name: 'id', id: 'id', field: 'id'}],
+				data: new Backbone.Collection([{name: 'test', id: 1}])
+			});
+
+			// Cell's value should be 1
+			expect(grid.$el.find('.doby-grid-cell').text()).toEqual('1');
+
+			// Change the row's id
+			expect(function () {
+				grid.setItem(1, {rows: []});
+			}).not.toThrow("Sorry, but Backbone does not support changing a model's id value, and as a result, this is not supported in Doby Grid either.");
+		});
 	});
 
 

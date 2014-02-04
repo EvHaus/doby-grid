@@ -2880,7 +2880,7 @@
 				// Find the data item and update it
 				if (this.items instanceof Backbone.Collection) {
 					// Backbone does not support changing a model's id
-					if (data.id !== id) {
+					if (data.id !== undefined && data.id !== id) {
 						throw new Error("Sorry, but Backbone does not support changing a model's id value, and as a result, this is not supported in Doby Grid either.");
 					}
 
