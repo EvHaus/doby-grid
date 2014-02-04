@@ -2877,6 +2877,11 @@
 				if (id !== data.id) delete cache.indexById[id];
 				cache.indexById[data.id] = idx;
 
+				// Parse the updated data before re-rendering. This will ensure that variableRowHeight
+				// is correctly set when items are updated.
+				if (data.id === undefined || data.id === null) data.id = id;
+				parse([data]);
+
 				// Find the data item and update it
 				if (this.items instanceof Backbone.Collection) {
 					// Backbone does not support changing a model's id
