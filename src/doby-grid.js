@@ -2598,25 +2598,31 @@
 					processAggregators();
 				}
 
-				var processChildRows = function () {
-					// Insert child rows
-					var cRow, ri;
-					for (var i = 0, l = newRows.length; i < l; i++) {
-						if (newRows[i].rows) {
-							ri = 0;
-							for (var r in newRows[i].rows) {
-								if (newRows[i].rows[r].collapsed) continue;
-								cRow = newRows[i].rows[r];
-								cRow.parent = newRows[i];
-								newRows.splice((i + ri + 1), 0, cRow);
-								ri++;
-							}
+				var extractChildRows = function (parentRow, newRowsWithChildren) {
+					if (parentRow.rows) {
+						for (var r in parentRow.rows) {
+							if (parentRow.rows[r].collapsed) continue;
+
+							// Remember the child row's parent in the 'parent' attribute
+							parentRow.rows[r].parent = parentRow;
+							newRowsWithChildren.push(parentRow.rows[r]);
+
+							// Recursively scan for more children
+							extractChildRows(parentRow.rows[r], newRowsWithChildren);
 						}
 					}
+				};
 
-					var diff = getRowDiffs(cache.rows, newRows);
+				var processChildRows = function () {
+					// Insert child rows
+					var newRowsWithChildren = [];
+					for (var i = 0, l = newRows.length; i < l; i++) {
+						newRowsWithChildren.push(newRows[i]);
+						extractChildRows(newRows[i], newRowsWithChildren);
+					}
 
-					cache.rows = newRows;
+					var diff = getRowDiffs(cache.rows, newRowsWithChildren);
+					cache.rows = newRowsWithChildren;
 
 					if (diff.length) {
 						// Recache positions using the flattened group data

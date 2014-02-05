@@ -551,6 +551,86 @@ describe("Data Options", function () {
 				}
 			});
 		});
+
+
+		// ==========================================================================================
+
+
+		it("should correctly calculate row diffs when using many nested rows", function () {
+			var grid = resetGrid($.extend(defaultData(), {
+				columns: [{
+					id: 'id',
+					field: 'id'
+				}, {
+					id: 'name',
+					field: 'name'
+				}, {
+					id: 'group',
+					field: 'group'
+				}],
+				data: [{
+					id: 1,
+					data: {
+						id: 1,
+						name: 'row1',
+						group: 'a'
+					},
+					rows: {
+						0: {
+							collapsed: true,
+							id: 2,
+							data: {
+								id: 2,
+								name: 'subrow2'
+							}
+						},
+						1: {
+							id: 3,
+							data: {
+								id: 3,
+								name: 'subrow3'
+							}
+						}
+					}
+				}, {
+					id: 4,
+					data: {
+						id: 4,
+						name: 'row2',
+						group: 'a'
+					},
+					rows: {
+						0: {
+							collapsed: true,
+							id: 5,
+							data: {
+								id: 5,
+								name: 'subrow6'
+							}
+						},
+						1: {
+							id: 6,
+							data: {
+								id: 6,
+								name: 'subrow7'
+							}
+						}
+					}
+				}]
+			}));
+
+
+			// Group rows to force a row recalc
+			grid.setGrouping([{column_id: 'group', collapsed: false}]);
+
+			// Make sure all rows are rendered
+			var rowsData = [];
+			grid.$el.find('.doby-grid-row:not(.doby-grid-group) .r1').each(function () {
+				rowsData.push($(this).text());
+			});
+
+			expect(rowsData).toEqual(['row1', 'subrow3', 'row2', 'subrow7']);
+		});
 	});
 
 
