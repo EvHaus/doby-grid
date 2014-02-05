@@ -1579,9 +1579,7 @@ describe("Methods and Data Manipulation", function () {
 
 	describe("setItem()", function () {
 		it("should be to change a row's id via setItem()", function () {
-			var grid = resetGrid();
-
-			grid.setOptions({
+			var grid = resetGrid({
 				columns: [{name: 'id', id: 'id', field: 'id'}],
 				data: [{data: {id: 1, name: 'test'}, id: 1}]
 			});
@@ -1603,9 +1601,7 @@ describe("Methods and Data Manipulation", function () {
 
 
 		it("should only accept Backbone Models when using setItem() on a Backbone Collection", function () {
-			var grid = resetGrid();
-
-			grid.setOptions({
+			var grid = resetGrid({
 				columns: [{name: 'id', id: 'id', field: 'id'}],
 				data: new Backbone.Collection([{name: 'test', id: 1}])
 			});
@@ -1621,9 +1617,7 @@ describe("Methods and Data Manipulation", function () {
 
 
 		it("should correctly handle Backbone Model changes via setItem()", function () {
-			var grid = resetGrid();
-
-			grid.setOptions({
+			var grid = resetGrid({
 				columns: [{name: 'name', id: 'name', field: 'name'}],
 				data: new Backbone.Collection([{name: 'test', id: 1}])
 			});
@@ -1643,9 +1637,7 @@ describe("Methods and Data Manipulation", function () {
 
 
 		it("should not allow 'id' changes via setItem() when using Backbone Models", function () {
-			var grid = resetGrid();
-
-			grid.setOptions({
+			var grid = resetGrid({
 				columns: [{name: 'id', id: 'id', field: 'id'}],
 				data: new Backbone.Collection([{name: 'test', id: 1}])
 			});
@@ -1654,6 +1646,35 @@ describe("Methods and Data Manipulation", function () {
 			expect(function () {
 				grid.setItem(1, new Backbone.Model({id: 200}));
 			}).toThrow("Sorry, but Backbone does not support changing a model's id value, and as a result, this is not supported in Doby Grid either.");
+		});
+
+
+		// ==========================================================================================
+
+
+		it("should be able to use setItem() to update a Backbone Model object that is a row child", function () {
+			var model = new Backbone.Model({name: 'test', id: 1});
+
+			model.rows = {
+				0: new Backbone.Model({name: 'sub-test', id: 2})
+			};
+
+			var collection = new Backbone.Collection(model);
+
+			var grid = resetGrid({
+				columns: [{name: 'name', id: 'name', field: 'name'}],
+				data: collection
+			});
+
+			var update = model;
+			update.rows[0] = new Backbone.Model({name: 'NEW ONE', id: 2});
+
+			grid.setItem(1, update);
+
+			// Wait for debounce
+			waitsFor(function () {
+				return grid.$el.find('.doby-grid-cell').eq(1).text() === 'NEW ONE';
+			}, 20);
 		});
 	});
 

@@ -2606,7 +2606,7 @@
 							ri = 0;
 							for (var r in newRows[i].rows) {
 								if (newRows[i].rows[r].collapsed) continue;
-								cRow = new NonDataItem(newRows[i].rows[r]);
+								cRow = newRows[i].rows[r];
 								cRow.parent = newRows[i];
 								newRows.splice((i + ri + 1), 0, cRow);
 								ri++;
@@ -2856,7 +2856,7 @@
 			//
 			// @return object
 			this.setItem = function (id, data) {
-				if (cache.indexById[id] === undefined) {
+				if (cache.indexById[id] === undefined || (this.items instanceof Backbone.Collection && !this.items.get(id))) {
 					throw new Error("Unable to update item (id: " + id + "). Invalid or non-matching id");
 				}
 
