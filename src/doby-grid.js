@@ -8277,7 +8277,7 @@
 
 				var extensions = self.options.menuExtensions(event, self, args),
 					activeExtensions = extensions.filter(function (e) {
-						return e.active === undefined || e.active;
+						return e.enabled === undefined || e.enabled;
 					});
 
 				if (activeExtensions.length) {
