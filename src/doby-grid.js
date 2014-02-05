@@ -8266,15 +8266,21 @@
 				// Add the currentrow item to the arguments
 				if (args.row !== undefined && args.row !== null) args.item = cache.rows[args.row];
 
-				// Add title
-				menuData.push({
-					name: getLocale('global.extensions'),
-					title: true
-				});
+				var extensions = self.options.menuExtensions(event, self, args),
+					activeExtensions = extensions.filter(function (e) {
+						return e.active === undefined || e.active;
+					});
 
-				var extensions = self.options.menuExtensions(event, self, args);
-				for (var q = 0, w = extensions.length; q < w; q++) {
-					menuData.push(validateMenuExtension(extensions[q]));
+				if (activeExtensions.length) {
+					// Add title
+					menuData.push({
+						name: getLocale('global.extensions'),
+						title: true
+					});
+
+					for (var q = 0, w = activeExtensions.length; q < w; q++) {
+						menuData.push(validateMenuExtension(activeExtensions[q]));
+					}
 				}
 			}
 
