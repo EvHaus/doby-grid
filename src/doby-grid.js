@@ -2901,11 +2901,14 @@
 
 				// Find the data item and update it
 				if (this.items instanceof Backbone.Collection) {
+					// Find the index at which the old row was in the collection
+					var collectionIdx = this.items.indexOf(cache.rows[idx]);
+
 					// We can't just call this.items.set() here as that will not bring over
 					// any of the extra data attributes attached to the model. So we'll need to
 					// remove the original item in the collection, and insert a new one.
 					this.items.remove(id, {silent: true});
-					this.items.add(data, {at: idx, silent: true});
+					this.items.add(data, {at: collectionIdx, silent: true});
 				} else {
 					for (var i = 0, l = this.items.length; i < l; i++) {
 						if (this.items[i].id == id || this.items[i].id == data.id) {

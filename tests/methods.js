@@ -1676,6 +1676,86 @@ describe("Methods and Data Manipulation", function () {
 				return grid.$el.find('.doby-grid-cell').eq(1).text() === 'NEW ONE';
 			}, 20);
 		});
+
+
+		// ==========================================================================================
+
+
+		it("should correctly insert nested rows into a Backbone.Collection without re-arranging elements using setItem() while grouping is enabled", function () {
+			var collection = new Backbone.Collection();
+
+			// Add collection events
+			collection.on('add', function (model) {
+				// Once items are added to the collection, create a nested row for it
+				var subtaskModel = new Backbone.Model({
+					id: 'subrow' + model.id,
+					name: 'row' + model.id + '-subrow1'
+				});
+
+				subtaskModel.collapsed = true;
+
+				model.rows = {
+					0: subtaskModel
+				};
+			});
+
+			// Add collection data
+			collection.add([
+				{id: 1, name: 'row1', group: 'a'},
+				{id: 2, name: 'row2', group: 'a'},
+				{id: 3, name: 'row3', group: 'a'}
+			]);
+
+			var grid = resetGrid({
+				columns: [{
+					id: 'id',
+					field: 'id'
+				}, {
+					id: 'name',
+					field: 'name'
+				}, {
+					id: 'group',
+					field: 'group'
+				}],
+				data: collection
+			});
+
+			grid.setGrouping([{column_id: 'group', collapsed: false}]);
+
+			// Toggle the second row's nested column via setItem
+			var secondModel = collection.at(1);
+			secondModel.rows[0].collapsed = false;
+			grid.setItem(secondModel.id, secondModel);
+
+			// Wait for debounce to redraw the grid
+			waitsFor(function () {
+				return grid.$el.find('.doby-grid-row').length === 5;
+			});
+
+			runs(function () {
+				// Ensure that all rows are in the order expected
+				var rows = grid.$el.find('.doby-grid-row:not(.doby-grid-group)');
+
+				// Make sure rows are sorted by their top offset
+				rows = _.sortBy(rows, function (row) {
+					// For some reason jasmine-grunt doesn't like .css('top') here, which returns NaN
+					// But attr('style') seems to return the right thing. Wat?
+					return parseInt($(row).attr('style').replace('top:', ''), 10);
+				});
+
+				_.each(rows, function (row, i) {
+					if (i === 0) {
+						expect($(row).find('.l1')).toHaveText('row1');
+					} else if (i === 1) {
+						expect($(row).find('.l1')).toHaveText('row2');
+					} else if (i === 2) {
+						expect($(row).find('.l1')).toHaveText('row2-subrow1');
+					} else if (i === 3) {
+						expect($(row).find('.l1')).toHaveText('row3');
+					}
+				});
+			});
+		});
 	});
 
 
