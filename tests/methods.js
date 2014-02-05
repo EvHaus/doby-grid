@@ -1602,7 +1602,7 @@ describe("Methods and Data Manipulation", function () {
 		// ==========================================================================================
 
 
-		it("should not allow model id changes when using Backbone Collection data sets in setItem()", function () {
+		it("should only accept Backbone Models when using setItem() on a Backbone Collection", function () {
 			var grid = resetGrid();
 
 			grid.setOptions({
@@ -1610,20 +1610,39 @@ describe("Methods and Data Manipulation", function () {
 				data: new Backbone.Collection([{name: 'test', id: 1}])
 			});
 
-			// Cell's value should be 1
-			expect(grid.$el.find('.doby-grid-cell').text()).toEqual('1');
-
-			// Change the row's id
+			// Try to give setItem a non Model
 			expect(function () {
-				grid.setItem(1, {id: 2});
-			}).toThrow("Sorry, but Backbone does not support changing a model's id value, and as a result, this is not supported in Doby Grid either.");
+				grid.setItem(1, {rows: []});
+			}).toThrow("Sorry, Backbone.Collection data sets must be given a valid Backbone.Model in the setItem() method.");
 		});
 
 
 		// ==========================================================================================
 
 
-		it("should allow non-id Backbone changes via setItem()", function () {
+		it("should correctly handle Backbone Model changes via setItem()", function () {
+			var grid = resetGrid();
+
+			grid.setOptions({
+				columns: [{name: 'name', id: 'name', field: 'name'}],
+				data: new Backbone.Collection([{name: 'test', id: 1}])
+			});
+
+			expect(grid.$el.find('.doby-grid-cell').text()).toEqual('test');
+
+			grid.setItem(1, new Backbone.Model({id: 1, name: 'aloha!'}));
+
+			// Wait for debounce
+			waitsFor(function () {
+				return grid.$el.find('.doby-grid-cell').text() === 'aloha!';
+			}, 20);
+		});
+
+
+		// ==========================================================================================
+
+
+		it("should not allow 'id' changes via setItem() when using Backbone Models", function () {
 			var grid = resetGrid();
 
 			grid.setOptions({
@@ -1631,13 +1650,10 @@ describe("Methods and Data Manipulation", function () {
 				data: new Backbone.Collection([{name: 'test', id: 1}])
 			});
 
-			// Cell's value should be 1
-			expect(grid.$el.find('.doby-grid-cell').text()).toEqual('1');
-
 			// Change the row's id
 			expect(function () {
-				grid.setItem(1, {rows: []});
-			}).not.toThrow("Sorry, but Backbone does not support changing a model's id value, and as a result, this is not supported in Doby Grid either.");
+				grid.setItem(1, new Backbone.Model({id: 200}));
+			}).toThrow("Sorry, but Backbone does not support changing a model's id value, and as a result, this is not supported in Doby Grid either.");
 		});
 	});
 

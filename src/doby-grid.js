@@ -2860,6 +2860,17 @@
 					throw new Error("Unable to update item (id: " + id + "). Invalid or non-matching id");
 				}
 
+				if (this.items instanceof Backbone.Collection) {
+					if (!(data instanceof Backbone.Model)) {
+						throw new Error("Sorry, Backbone.Collection data sets must be given a valid Backbone.Model in the setItem() method.");
+					}
+
+					// Backbone does not support changing a model's id
+					if (data.id !== id) {
+						throw new Error("Sorry, but Backbone does not support changing a model's id value, and as a result, this is not supported in Doby Grid either.");
+					}
+				}
+
 				// Update the row cache and the item
 				var idx = cache.indexById[id];
 
@@ -2884,12 +2895,11 @@
 
 				// Find the data item and update it
 				if (this.items instanceof Backbone.Collection) {
-					// Backbone does not support changing a model's id
-					if (data.id !== undefined && data.id !== id) {
-						throw new Error("Sorry, but Backbone does not support changing a model's id value, and as a result, this is not supported in Doby Grid either.");
-					}
-
-					this.items.set(data, {add: false, remove: false});
+					// We can't just call this.items.set() here as that will not bring over
+					// any of the extra data attributes attached to the model. So we'll need to
+					// remove the original item in the collection, and insert a new one.
+					this.items.remove(id, {silent: true});
+					this.items.add(data, {at: idx, silent: true});
 				} else {
 					for (var i = 0, l = this.items.length; i < l; i++) {
 						if (this.items[i].id == id || this.items[i].id == data.id) {
