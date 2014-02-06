@@ -6237,7 +6237,9 @@
 		//
 		remoteLoaded = function (from, to) {
 			// Invalidate updated rows
-			invalidateRows(_.range(from, to));
+			for (var i = from; i <= to; i++) {
+				invalidateRows([i]);
+			}
 
 			updateRowCount();
 			render();
