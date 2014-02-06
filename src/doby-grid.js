@@ -2869,12 +2869,12 @@
 			//
 			// @return object
 			this.setItem = function (id, data) {
-				if (cache.indexById[id] === undefined || (this.items instanceof Backbone.Collection && !this.items.get(id))) {
-					throw new Error("Unable to update item (id: " + id + "). Invalid or non-matching id");
-				}
-
 				// Get the index of this item
 				var idx = cache.indexById[id];
+
+				if (idx === undefined || (this.items instanceof Backbone.Collection && !this.items.get(id))) {
+					throw new Error("Unable to update item (id: " + id + "). Invalid or non-matching id");
+				}
 
 				if (this.items instanceof Backbone.Collection) {
 					if (!(data instanceof Backbone.Model)) {
@@ -2904,10 +2904,10 @@
 					}
 				}
 
-				if (cache.rows[idx].__placeholder || cache.rows[idx] instanceof Backbone.Model) {
+				if (original_object.__placeholder || original_object instanceof Backbone.Model) {
 					cache.rows[idx] = data;
 				} else {
-					cache.rows[idx] = $.extend(true, cache.rows[idx], data);
+					$.extend(true, cache.rows[idx], data);
 				}
 
 				// ID may have changed for the item so update the index by id too.
@@ -3537,9 +3537,6 @@
 				// Refill the collection with placeholders
 				generatePlaceholders();
 
-				// Clear the row cache to ensure when new data comes in the grid refreshes
-				cache.rows = [];
-
 				if (self.collection.groups.length) {
 					remoteGroupRefetch();
 				} else {
@@ -3859,6 +3856,10 @@
 					self.collection.items.add(phModel, {silent: true});
 				} else {
 					self.collection.items.push(ph);
+
+					// Manually update the caches
+					cache.indexById[phId] = i;
+					cache.rows[i] = ph;
 				}
 			}
 

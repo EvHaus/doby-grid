@@ -213,8 +213,17 @@ describe("Remote Data", function () {
 
 			grid.appendTo(fixture);
 
+			var waitForRefresh;
+
+			// Manual delay to wait for refresh
+			runs(function () {
+				setTimeout(function () {
+					waitForRefresh = true;
+				}, 500);
+			});
+
 			waitsFor(function () {
-				return grid.collection.items[0].toString() !== 'Placeholder';
+				return waitForRefresh && grid.collection.items[0].toString() !== 'Placeholder';
 			}, "Fetching the first page", 2000);
 		});
 
@@ -1080,7 +1089,7 @@ describe("Remote Data", function () {
 						return parseInt($(row).attr('style').replace('top:', ''), 10);
 					});
 					return $(rows[0]).children('.l0').text() == '99';
-				}, 200);
+				}, 300, 'waiting for the grid to resort itself correctly');
 			});
 		});
 
