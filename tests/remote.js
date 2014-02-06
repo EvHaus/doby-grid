@@ -1059,6 +1059,31 @@ describe("Remote Data", function () {
 				});
 			});
 		});
+
+
+		// ==========================================================================================
+
+
+		describe("Sorting", function () {
+
+			it("should be able to sort results", function () {
+				var column_id = "id";
+
+				// Add grouping
+				runs(function () {
+					grid.sortBy(column_id, false);
+				});
+
+				// Wait for the groups to be fetched and calculated
+				waitsFor(function () {
+					var rows = _.sortBy(grid.$el.find('.doby-grid-row'), function (row) {
+						return parseInt($(row).attr('style').replace('top:', ''), 10);
+					});
+					return $(rows[0]).children('.l0').text() == '99';
+				}, 200);
+			});
+		});
+
 	});
 
 

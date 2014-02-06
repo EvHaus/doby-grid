@@ -218,7 +218,6 @@
 			invalidate,
 			invalidateAllRows,
 			invalidatePostProcessingResults,
-			invalidateRow,
 			invalidateRows,
 			isCellPotentiallyEditable,
 			isCellSelected,
@@ -5412,16 +5411,6 @@
 		};
 
 
-		// invalidateRow()
-		// Clears the caching for a specific row
-		//
-		// @param	row		integer		Row index
-		//
-		invalidateRow = function (row) {
-			invalidateRows([row]);
-		};
-
-
 		// invalidateRows()
 		// Clear the cache for a given set of rows
 		//
@@ -6248,9 +6237,7 @@
 		//
 		remoteLoaded = function (from, to) {
 			// Invalidate updated rows
-			for (var i = from; i <= to; i++) {
-				invalidateRow(i);
-			}
+			invalidateRows(_.range(from, to));
 
 			updateRowCount();
 			render();
@@ -8060,7 +8047,7 @@
 					var range = getVisibleRange();
 					for (var ci = range.top, ct = range.bottom; ci < ct; ci++) {
 						if (cache.rows[ci] instanceof Aggregate) {
-							invalidateRow(ci);
+							invalidateRows([ci]);
 						}
 					}
 
