@@ -493,7 +493,7 @@ describe("Data Options", function () {
 		// ==========================================================================================
 
 
-		it("should corretly render recursively nested rows", function () {
+		it("should correctly render recursively nested rows", function () {
 			// Build an appropriate data set
 			var data = [],
 				formatter1 = function () {

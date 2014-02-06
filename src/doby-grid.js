@@ -1810,8 +1810,14 @@
 					existing = this.get(model);
 
 					// For remote models, check if we're inserting 'at' an index with place holders
-					if (remote && at !== undefined && this.items[at + i] instanceof Placeholder) {
-						existing = this.items[at + i];
+					if (remote && at !== undefined) {
+						if (this.items instanceof Backbone.Collection) {
+							if (this.items.at(at + i).__placeholder) {
+								existing = this.items.at(at + i);
+							}
+						} else if (this.items[at + i].__placeholder) {
+							existing = this.items[at + i];
+						}
 					}
 
 					if (existing) {
@@ -2052,7 +2058,7 @@
 							continue;
 						}
 
-						if (r instanceof Placeholder) {
+						if (r.__placeholder) {
 							// For placeholder rows - find an empty group's value.
 							// This must use the 'groups' object and not the 'groupByVal' because
 							// the order of the groups is important for sorting.
@@ -2866,24 +2872,27 @@
 					throw new Error("Unable to update item (id: " + id + "). Invalid or non-matching id");
 				}
 
+				// Get the index of this item
+				var idx = cache.indexById[id];
+
 				if (this.items instanceof Backbone.Collection) {
 					if (!(data instanceof Backbone.Model)) {
 						throw new Error("Sorry, Backbone.Collection data sets must be given a valid Backbone.Model in the setItem() method.");
 					}
 
 					// Backbone does not support changing a model's id
-					if (data.id !== id) {
+					// Except if the item in there is a place holder
+					if (data.id !== id && !cache.rows[idx].__placeholder) {
 						throw new Error("Sorry, but Backbone does not support changing a model's id value, and as a result, this is not supported in Doby Grid either.");
 					}
 				}
 
-				// Update the row cache and the item
-				var idx = cache.indexById[id];
-
 				// Clear postprocessing cache
 				if (cache.postprocess[id]) delete cache.postprocess[id];
 
-				if (cache.rows[idx] instanceof Placeholder || cache.rows[idx] instanceof Backbone.Model) {
+				var original_object = cache.rows[idx];
+
+				if (cache.rows[idx].__placeholder || cache.rows[idx] instanceof Backbone.Model) {
 					cache.rows[idx] = data;
 				} else {
 					cache.rows[idx] = $.extend(true, cache.rows[idx], data);
@@ -2902,7 +2911,14 @@
 				// Find the data item and update it
 				if (this.items instanceof Backbone.Collection) {
 					// Find the index at which the old row was in the collection
-					var collectionIdx = this.items.indexOf(cache.rows[idx]);
+					var collectionIdx = this.items.indexOf(original_object);
+
+					if (collectionIdx < 0) {
+						throw new Error('Unable to setItem on item ' + id + ' because it could not be found in the current collection.');
+					}
+
+					// If replaceing a Placeholder -- id should be that of the placeholder
+					if (cache.rows[idx].__placeholder) id = cache.rows[idx].id;
 
 					// We can't just call this.items.set() here as that will not bring over
 					// any of the extra data attributes attached to the model. So we'll need to
@@ -2912,7 +2928,7 @@
 				} else {
 					for (var i = 0, l = this.items.length; i < l; i++) {
 						if (this.items[i].id == id || this.items[i].id == data.id) {
-							if (this.items[i] instanceof Placeholder) {
+							if (this.items[i].__placeholder) {
 								this.items[i] = data;
 							} else {
 								this.items[i] = $.extend(true, this.items[i], data);
@@ -3813,15 +3829,25 @@
 		//
 		generatePlaceholders = function () {
 			// Reset the collection
-			self.collection.items = [];
+			if (self.options.data instanceof Backbone.Collection) {
+				self.collection.items = self.options.data;
+				self.collection.items.reset(undefined, {silent: true});
+			} else {
+				self.collection.items = [];
+			}
 
 			// Populate the collection with placeholders
-			var phId, ph, i, l;
+			var phId, ph, phModel, i, l;
 			for (i = 0, l = self.collection.length; i < l; i++) {
 				phId = 'placeholder-' + i;
 				ph = new Placeholder({id: phId});
-				self.collection.items.push(ph);
-				cache.indexById[phId] = ph;
+				if (self.collection.items instanceof Backbone.Collection) {
+					phModel = new Backbone.Model(ph);
+					phModel.__placeholder = true;
+					self.collection.items.add(phModel, {silent: true});
+				} else {
+					self.collection.items.push(ph);
+				}
 			}
 
 			// Reset any row references in groups as they are no longer valid
@@ -5431,12 +5457,12 @@
 		//
 		bindToCollection = function () {
 			self.options.data
-				.on('add', function (model) {
+				.on('add', function (model, collection, options) {
 					// Ignore NonDataRows
 					if (model.get('__nonDataRow')) return;
 
 					// When new items are added to the collection - add them to the grid
-					self.collection.add(model);
+					self.collection.add(model, options);
 				})
 				.on('change', function (model) {
 					// When items are changed - re-render the right row
@@ -5713,6 +5739,7 @@
 		};
 
 		Placeholder.prototype = new NonDataItem();
+		Placeholder.prototype.__placeholder = true;
 		Placeholder.prototype.toString = function () { return "Placeholder"; };
 
 
@@ -5960,11 +5987,11 @@
 		remoteAllLoaded = function () {
 			// Do we have any placeholders?
 			for (var i = 0, l = cache.rows.length; i < l; i++) {
-				if (cache.rows[i] instanceof Placeholder) {
+				if (cache.rows[i].__placeholder) {
 					return false;
 				} else if (cache.rows[i] instanceof Group) {
 					for (var j = 0, m = cache.rows[i].grouprows.length; j < m; j++) {
-						if (cache.rows[i].grouprows[j] instanceof Placeholder) {
+						if (cache.rows[i].grouprows[j].__placeholder) {
 							return false;
 						}
 					}
@@ -6052,7 +6079,7 @@
 				// When encountering NonData rows - ignore them for index calculation since
 				// collection.items doesn't store such values and we need to reliably determine
 				// what collection.items index we're currently on
-				if (r && r instanceof NonDataItem && !(r instanceof Placeholder)) {
+				if (r && r instanceof NonDataItem && !r.__placeholder) {
 					nonDataOffset++;
 				}
 
@@ -6061,7 +6088,7 @@
 				// back to the current page only.
 				if (i < from) continue;
 
-				if (!r || r instanceof Placeholder) {
+				if (!r || r.__placeholder) {
 					if (newFrom === undefined) {
 						newFrom = i - nonDataOffset + collapsedOffset;
 					}
@@ -6092,8 +6119,18 @@
 					};
 
 					remoteRequest = remote.fetch(options, function (results) {
+
 						// Add items to collection
-						self.collection.add(results, {at: newFrom, merge: true});
+						if (self.options.data instanceof Backbone.Collection) {
+							for (var i = 0, l = results.length; i < l; i++) {
+								// Remove placeholder and insert new item via add (so that the add
+								// event is fired correctly)
+								self.options.data.remove(self.options.data.at(newFrom + i), {silent: true});
+								self.options.data.add(results[i], {at: newFrom + i, merge: true});
+							}
+						} else {
+							self.collection.add(results, {at: newFrom, merge: true});
+						}
 
 						// Empty the request variable so it doesn't get aborted on scroll
 						remoteRequest = null;
@@ -6426,6 +6463,7 @@
 				// this data hasn't been loaded yet)
 
 				var value = getDataItemValueForColumn(item, m);
+
 				try {
 					result.push(getFormatter(row, m)(row, cell, value, m, item));
 				} catch (e) {
@@ -8631,6 +8669,7 @@
 				throw new Error('In order to use "reorderable", you must ensure the jquery-ui.sortable module is loaded.');
 			}
 
+
 			// Ensure "columns" option is an array
 			if (!_.isArray(self.options.columns)) {
 				throw new TypeError('The "columns" option must be an array.');
@@ -8644,11 +8683,15 @@
 			) {
 				throw new TypeError('The "data" option must be an array, a function or a Backbone.Collection.');
 			} else {
-				// If array is a function - enable remote fetching by instantiating the remote class
 				if (typeof self.options.data === 'function') {
+					// If data is a function - enable remote fetching by instantiating the remote class
 					remote = new self.options.data();
-					remote.grid = self;
+				} else if (self.options.data instanceof Backbone.Collection && self.options.data.DobyGridRemote) {
+					// If data is a Backbone.Collection with a DobyGridRemote attribute - also enable remote
+					remote = self.options.data.DobyGridRemote;
 				}
+
+				if (remote) remote.grid = self;
 			}
 
 			// Ensure "tooltipType" is one of the allowed values
