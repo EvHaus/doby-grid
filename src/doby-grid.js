@@ -2684,19 +2684,21 @@
 					if (countBefore != cache.rows.length) {
 						updateRowCount();
 
-						this.trigger('onRowCountChanged', {}, {
+						// TODO: Old SlickGrid event. Still needed?
+						/*this.trigger('rowcountchanged', {}, {
 							previous: countBefore,
 							current: cache.rows.length
-						});
+						});*/
 					}
 
 					if (diff.length > 0) {
 						invalidateRows(diff);
 						render();
 
-						this.trigger('onRowsChanged', {}, {
+						// TODO: Old SlickGrid event. Still needed?
+						/*this.trigger('rowschanged', {}, {
 							rows: diff
-						});
+						});*/
 					}
 				}.bind(this);
 
