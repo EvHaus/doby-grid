@@ -429,6 +429,77 @@ describe("Column Options", function () {
 				return $firstcell.text() == 'post-1' && $secondcell.text() == 'post-2';
 			}, 500);
 		});
+
+
+		// ==========================================================================================
+
+
+		it("should recache nested rows when the parent row is updated", function () {
+			var grid = resetGrid({
+				columns: [{
+					cache: true,
+					id: 'count',
+					name: 'count',
+					field: 'count',
+					postprocess: function (data, callback) {
+						data.$cell.html('post-' + data.data.data.count);
+						callback();
+					}
+				}],
+				data: [{
+					id: 1,
+					data: {
+						id: 1,
+						count: 1
+					},
+					rows: {
+						0: {
+							id: 2,
+							data: {
+								id: 2,
+								count: 1
+							}
+						}
+					}
+				}]
+			});
+
+			// Wait until postprocessing has rendered the row
+			waitsFor(function () {
+				var $cells = grid.$el.find('.doby-grid-cell'),
+					$firstcell = $cells.eq(0),
+					$secondcell = $cells.eq(1);
+				return $firstcell.text() == 'post-1' && $secondcell.text() == 'post-1';
+			});
+
+			runs(function () {
+				// Update the value of the nested row
+				grid.setItem(1, {
+					id: 1,
+					data: {
+						id: 1,
+						count: 1
+					},
+					rows: {
+						0: {
+							id: 2,
+							data: {
+								id: 2,
+								count: 2
+							}
+						}
+					}
+				});
+			});
+
+			// Wait until postprocessing has re-rendered the row with the updated value
+			waitsFor(function () {
+				var $cells = grid.$el.find('.doby-grid-cell'),
+					$firstcell = $cells.eq(0),
+					$secondcell = $cells.eq(1);
+				return $firstcell.text() == 'post-1' && $secondcell.text() == 'post-2';
+			}, 500);
+		});
 	});
 
 

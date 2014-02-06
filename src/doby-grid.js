@@ -2887,10 +2887,21 @@
 					}
 				}
 
-				// Clear postprocessing cache
-				if (cache.postprocess[id]) delete cache.postprocess[id];
-
 				var original_object = cache.rows[idx];
+
+				// Clear postprocessing cache
+				if (cache.postprocess[id]) {
+					delete cache.postprocess[id];
+
+					// Delete postprocess cache for nested rows
+					if (original_object.rows) {
+						for (var key in original_object.rows) {
+							if (cache.postprocess[original_object.rows[key].id]) {
+								delete cache.postprocess[original_object.rows[key].id];
+							}
+						}
+					}
+				}
 
 				if (cache.rows[idx].__placeholder || cache.rows[idx] instanceof Backbone.Model) {
 					cache.rows[idx] = data;
