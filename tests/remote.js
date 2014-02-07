@@ -56,6 +56,12 @@ describe("Remote Data", function () {
 	};
 
 
+	// Make sure we close any context menus that have been opened
+	afterEach(function () {
+		$(document.body).simulate('click');
+	});
+
+
 	// ==========================================================================================
 
 	describe("Basic Data", function () {
@@ -1056,7 +1062,7 @@ describe("Remote Data", function () {
 					grid.$el.find('.doby-grid-cell').simulate('contextmenu');
 
 					// Popup the Quick Filter menu
-					grid.$el.find('.doby-grid-contextmenu .doby-grid-dropdown-menu .doby-grid-dropdown-menu .doby-grid-dropdown-item:first').each(function () {
+					$(document.body).find('.doby-grid-contextmenu .doby-grid-dropdown-menu .doby-grid-dropdown-menu .doby-grid-dropdown-item:first').each(function () {
 						if ($(this).text().indexOf('Quick Filter') >= 0) {
 							$(this).simulate('click');
 						}

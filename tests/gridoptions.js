@@ -684,16 +684,19 @@ describe("Grid Options", function () {
 				$(this).simulate('contextmenu');
 
 				// jquery.simulate doesn't actually propagate click events up the DOM
-				// so dropdowns will accumulate. But that's okey for this test.
-				expect(grid.$el.find('.doby-grid-dropdown').length).toEqual(i + 1);
+				// so dropdowns will accumulate. But that's okay for this test.
+				expect($(document.body).find('.doby-grid-dropdown').length).toEqual(i + 1);
 			});
+
+			// Remove menu
+			$(document.body).find('.doby-grid-dropdown').remove();
 		});
 
 
 		// ==========================================================================================
 
 
-		it("should not display a dropdown menu header right-click if disabled", function () {
+		it("should not display a dropdown menu header if right-click is disabled", function () {
 			// Prepare for test
 			var grid = resetGrid($.extend(defaultData(), {contextMenu: false}));
 
@@ -702,8 +705,11 @@ describe("Grid Options", function () {
 				$(this).simulate('contextmenu');
 
 				// Should be no dropdowns
-				expect(grid.$el.find('.doby-grid-dropdown').length).toEqual(0);
+				expect($(document.body).find('.doby-grid-dropdown').length).toEqual(0);
 			});
+
+			// Remove menu
+			$(document.body).find('.doby-grid-dropdown').remove();
 		});
 
 
@@ -719,8 +725,11 @@ describe("Grid Options", function () {
 				$(this).simulate('contextmenu');
 
 				// Should be no dropdowns
-				expect(grid.$el.find('.doby-grid-dropdown').length).toEqual(1);
+				expect($(document.body).find('.doby-grid-dropdown').length).toEqual(1);
 			});
+
+			// Remove menu
+			$(document.body).find('.doby-grid-dropdown').remove();
 		});
 	});
 
@@ -1419,9 +1428,12 @@ describe("Grid Options", function () {
 			grid.$el.find('.doby-grid-cell:first').simulate('contextmenu');
 
 			// Make sure the menu loaded
-			expect(grid.$el).toContain('.doby-grid-dropdown');
-			var $dropdown = grid.$el.find('.doby-grid-dropdown');
+			expect($(document.body)).toContain('.doby-grid-dropdown');
+			var $dropdown = $(document.body).find('.doby-grid-dropdown');
 			expect($dropdown.find('.doby-grid-dropdown-title')).toHaveText('Mama Mia!');
+
+			// Close dropdowns
+			$(document.body).find('.doby-grid-dropdown').remove();
 		});
 	});
 
@@ -1452,12 +1464,15 @@ describe("Grid Options", function () {
 			grid.$el.find('.doby-grid-cell:first').simulate('contextmenu');
 
 			// Make sure the context menu comes up
-			expect(grid.$el).toContain('.doby-grid-dropdown');
+			expect($(document.body)).toContain('.doby-grid-dropdown');
 
-			var $dropdown = grid.$el.find('.doby-grid-dropdown:first');
+			var $dropdown = $(document.body).find('.doby-grid-dropdown:first');
 
 			// Make sure the extension item is displayed at the end
 			expect($dropdown.find('.doby-grid-dropdown-item').last()).toHaveText('Test');
+
+			// Close dropdowns
+			$(document.body).find('.doby-grid-dropdown').remove();
 		});
 	});
 

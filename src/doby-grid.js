@@ -3414,15 +3414,15 @@
 			// Positions the dropdown in the right spot
 			//
 			this.position = function () {
-				var pos = this.$parent.offset(),
-					top = event.clientY - pos.top,
-					left = event.clientX - pos.left,
+				var top = event.clientY,
+					left = event.clientX,
 					menu_width = this.$el.outerWidth(),
 					menu_height = this.$el.outerHeight(),
 					required_width = left + menu_width,
 					required_height = top + menu_height,
-					available_width = $viewport.width(),
-					available_height = $viewport.height();
+					b = $(document.body),
+					available_width = b.width(),
+					available_height = b.height();
 
 				// Determine position of main dropdown
 
@@ -3449,15 +3449,16 @@
 				// Now, loop through all of the submenus and determine which way they should drop
 				// depending on how much screen space there is
 
-				var off, height, width, leftright;
+				var pos, off, height, width, leftright, parentWidth;
 				this.$el.children('.' + classdropdownmenu + ':first').find('.' + classdropdownmenu).each(function () {
 					pos = $(this).position();
 					off = $(this).offset();
 					height = $(this).outerHeight();
 					width = $(this).outerWidth();
+					parentWidth = $(this).parent().outerWidth();
 
 					// Determine whether to drop to left or right
-					leftright = off.left - Math.min(pos.left, 0) + width > available_width ? 'drop-left' : 'drop-right';
+					leftright = (off.left + parentWidth) - Math.min(pos.left, 0) + width > available_width ? 'drop-left' : 'drop-right';
 					$(this).addClass(leftright);
 
 					// When dropping left - need to set correct position
@@ -3480,7 +3481,7 @@
 		Dropdown.prototype.show = function () {
 			if (this.open) return;
 
-			this.$el.appendTo(this.$parent);
+			this.$el.appendTo(document.body);
 
 			this.position();
 
@@ -4968,7 +4969,7 @@
 			if (self.active && self.active.node === $cell[0] && currentEditor !== null) return;
 
 			var column = getColumnFromEvent(e),
-				cell = getCellFromEvent(e);
+				cell = getCellFromEvent(e) || {};
 
 			self.trigger('contextmenu', e, {
 				cell: cell.cell !== null && cell.cell !== undefined ? cell.cell : null,
@@ -7976,6 +7977,10 @@
 		//
 		toggleContextMenu = function (event, args) {
 			event.preventDefault();
+
+			// Prevent propagation of nested grid events
+			if (window._DobyGridDropdownEvent === event.timeStamp) return;
+			window._DobyGridDropdownEvent = event.timeStamp;
 
 			var column = args.column || false,
 				dropdown;

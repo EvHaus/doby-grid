@@ -536,16 +536,19 @@ describe("Column Options", function () {
 
 			waitsFor(function () {
 				// I'm not sure why this is necessary, but without it we see like 16 context menus come up
-				return grid.$el.find('.doby-grid-dropdown').length === 1;
+				return $(document.body).find('.doby-grid-dropdown').length === 1;
 			});
 
 			runs(function () {
-				var item_a = grid.$el.find('.doby-grid-dropdown-item .doby-grid-dropdown-item:contains(\'' + category_a + '\')'),
-					item_b = grid.$el.find('.doby-grid-dropdown-item .doby-grid-dropdown-item:contains(\'' + category_b + '\')');
+				var item_a = $(document.body).find('.doby-grid-dropdown-item .doby-grid-dropdown-item:contains(\'' + category_a + '\')'),
+					item_b = $(document.body).find('.doby-grid-dropdown-item .doby-grid-dropdown-item:contains(\'' + category_b + '\')');
 
 				// Find a dropdown item for all the cagetories
 				expect(item_a.length).toEqual(1);
 				expect(item_b.length).toEqual(1);
+
+				// Close dropdowns
+				$(document.body).find('.doby-grid-dropdown').remove();
 			});
 		});
 	});
@@ -831,9 +834,8 @@ describe("Column Options", function () {
 
 			// Toggle the Quick Filter by accessing it from the menu
 			grid.$el.find('.doby-grid-cell:first').simulate('contextmenu');
-			grid.$el.find('.doby-grid-contextmenu').find('.doby-grid-dropdown-item .doby-grid-dropdown-item ').each(function () {
+			$(document.body).find('.doby-grid-contextmenu').find('.doby-grid-dropdown-item .doby-grid-dropdown-item ').each(function () {
 				if ($(this).text().indexOf('Quick Filter by') >= 0) {
-					console.log($(this))
 					$(this).simulate('click');
 					return false;
 				}
@@ -848,6 +850,9 @@ describe("Column Options", function () {
 					expect($(this)).toContain('.doby-grid-editor');
 				}
 			});
+
+			// Close dropdowns
+			$(document.body).find('.doby-grid-dropdown').remove();
 		});
 	});
 
