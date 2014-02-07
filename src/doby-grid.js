@@ -112,7 +112,8 @@
 			classheadercolumndrag = this.NAME + '-header-column-dragging',
 			classheadercolumnsorted = this.NAME + '-header-column-sorted',
 			classheaderfilter = this.NAME + '-header-filter',
-			classheaderfiltercell = this.NAME + '-header-filter-cell',
+			classheaderfiltercell = classheaderfilter + '-cell',
+			classheaderfilterdisabled = classheaderfilter + '-disabled',
 			classheadersortable = 'sortable',
 			classinvalid = 'invalid',
 			classnoright = this.NAME + '-no-right',
@@ -408,6 +409,7 @@
 			"class":			null,
 			comparator:			null,
 			editable:			null,
+			filterable:			true,
 			focusable:			true,
 			groupable:			true,
 			headerClass:		null,
@@ -7748,10 +7750,14 @@
 					// Create cell
 					html = ['<div class="'];
 					html.push(classheaderfiltercell);
+					if (!column.filterable) html.push(' ' + classheaderfilterdisabled);
 					html.push('">');
 					html.push('</div>');
 					cell = $(html.join(''));
 					cell.appendTo($headerFilter);
+
+					// Skip non-filterable columns
+					if (!column.filterable) continue;
 
 					// Check if there is already a quick filter value for this column
 					var filterValue = null;

@@ -80,10 +80,11 @@ define(['dobygrid'], function (DobyGrid) {
 				id: "picture",
 				name: "Picture",
 				field: "picture",
+				filterable: false,
+				focusable: false,
 				formatter: function () {
 					return '<div style="background:rgba(255,0,0,0.1);box-shadow:red 0 0 0 2px inset;height:100px;width:100px"></div>';
 				},
-				focusable: false,
 				groupable: false,
 				selectable: false,
 				sortable: false,
@@ -106,14 +107,16 @@ define(['dobygrid'], function (DobyGrid) {
 			}, {
 				id: "details",
 				name: "Details",
+				filterable: false,
+				focusable: false,
 				formatter: function () {
 					return '<button class="toggler">Toggle Product Details</button>';
 				},
-				focusable: false,
 				selectable: false,
 				width: 200
 			}],
 			data: data,
+			quickFilter: true,
 			rowHeight: 100
 		};
 	}, function (grid) {

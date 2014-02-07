@@ -808,6 +808,53 @@ describe("Column Options", function () {
 	// ==========================================================================================
 
 
+	describe("options.filterable", function () {
+		it("should be true by default", function () {
+			var grid = resetGrid(defaultData());
+			_.each(grid.options.columns, function (col) {
+				expect(col.filterable).toEqual(true);
+			});
+		});
+
+
+		// ==========================================================================================
+
+
+		it("should gray out the Quick Filter section for non-filterable columns", function () {
+			var grid = resetGrid($.extend(defaultData(), {
+				columns: [
+					{id: 'id', field: 'id', name: 'id', filterable: false},
+					{id: 'name', field: 'name', name: 'name'}
+				],
+				quickFilter: true
+			}));
+
+			// Toggle the Quick Filter by accessing it from the menu
+			grid.$el.find('.doby-grid-cell:first').simulate('contextmenu');
+			grid.$el.find('.doby-grid-contextmenu').find('.doby-grid-dropdown-item .doby-grid-dropdown-item ').each(function () {
+				if ($(this).text().indexOf('Quick Filter by') >= 0) {
+					console.log($(this))
+					$(this).simulate('click');
+					return false;
+				}
+			});
+			var quickFilter = grid.$el.find('.doby-grid-header-filter');
+
+			// First field should be disabled, but not second
+			quickFilter.find('.doby-grid-header-filter-cell').each(function (i) {
+				if (i === 0) {
+					expect($(this)).toBeEmpty();
+				} else {
+					expect($(this)).toContain('.doby-grid-editor');
+				}
+			});
+		});
+	});
+
+
+	// ==========================================================================================
+
+
 	describe("options.focusable", function () {
 		it("should be true by default", function () {
 			var grid = resetGrid(defaultData());
