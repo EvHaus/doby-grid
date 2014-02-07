@@ -75,6 +75,9 @@
 }
 /*! Header Context Menu
 ================================================================================================== */
+.doby-grid-dropdown {
+  font-size: 12px;
+}
 .doby-grid-dropdown .doby-grid-dropdown-menu {
   background: #F9F9F9;
   border: 1px solid;
