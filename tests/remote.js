@@ -341,7 +341,7 @@ describe("Remote Data", function () {
 
 			waitsFor(function () {
 				return remoteloaded;
-			}, 200, 'waiting for data to be fetched');
+			}, 400, 'waiting for data to be fetched');
 		});
 
 
