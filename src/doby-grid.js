@@ -5247,7 +5247,7 @@
 		handleWindowResize = function () {
 			// Only if the object is visible
 			if (!self.$el.is(':visible')) return;
-			resizeCanvas();
+			self.resize();
 		};
 
 
@@ -6745,9 +6745,17 @@
 		//
 		// @return object
 		this.resize = function () {
+			var oldHeight = viewportH;
+
 			// Resize the grid
 			resizeCanvas();
 			invalidate();
+
+			// If viewport got bigger and we're using remote data - fetch more items to populate the grid
+			if (oldHeight < viewportH && remote) {
+				remoteFetch();
+			}
+
 			return this;
 		};
 

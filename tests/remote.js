@@ -325,6 +325,29 @@ describe("Remote Data", function () {
 		// ==========================================================================================
 
 
+		it("should refetch grid if it has been resized and gotten bigger", function () {
+			var wrapper = grid.$el.parent(),
+				remoteloaded = false;
+
+			wrapper.css('height', 800);
+
+			// Listen for refetch event
+			grid.on('remoteloaded', function () {
+				remoteloaded = true;
+			});
+
+			// Trigger resize
+			grid.resize();
+
+			waitsFor(function () {
+				return remoteloaded;
+			}, 200, 'waiting for data to be fetched');
+		});
+
+
+		// ==========================================================================================
+
+
 		describe("Grouping", function () {
 
 			it("should be able to group results", function () {
