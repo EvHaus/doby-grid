@@ -3537,6 +3537,9 @@
 				// Refill the collection with placeholders
 				generatePlaceholders();
 
+				// Refresh the grid to recalculate the cache for placeholder rows
+				self.collection.refresh();
+
 				if (self.collection.groups.length) {
 					remoteGroupRefetch();
 				} else {
@@ -3856,10 +3859,6 @@
 					self.collection.items.add(phModel, {silent: true});
 				} else {
 					self.collection.items.push(ph);
-
-					// Manually update the caches
-					cache.indexById[phId] = i;
-					cache.rows[i] = ph;
 				}
 			}
 

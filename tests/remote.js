@@ -1150,8 +1150,8 @@ describe("Remote Data", function () {
 									// Loops through the columns by which we are sorting
 									for (var i = 0, l = options.order.length; i < l; i++) {
 										column = options.order[i].columnId;
-										value1 = dataRow1.data[column];
-										value2 = dataRow2.data[column];
+										value1 = dataRow1.get(column);
+										value2 = dataRow2.get(column);
 
 										if (value1 !== value2) {
 											val = options.order[i].sortAsc ? (value1 > value2) ? 1 : -1 : (value1 < value2) ? 1 : -1;
@@ -1259,6 +1259,30 @@ describe("Remote Data", function () {
 		it("should fire 'add' Backbone.Collection events when fetching data", function () {
 			runs(function () {
 				expect(adds.length).toBeGreaterThan(0);
+			});
+		});
+
+
+		// ==========================================================================================
+
+
+		describe("Sorting", function () {
+
+			it("should be able to sort results in Backbone.Collection sets", function () {
+				var column_id = "id";
+
+				// Add grouping
+				runs(function () {
+					grid.sortBy(column_id, false);
+				});
+
+				// Wait for the groups to be fetched and calculated
+				waitsFor(function () {
+					var rows = _.sortBy(grid.$el.find('.doby-grid-row'), function (row) {
+						return parseInt($(row).attr('style').replace('top:', ''), 10);
+					});
+					return $(rows[0]).children('.l0').text() == '99';
+				}, 300, 'waiting for the grid to resort itself correctly');
 			});
 		});
 	});
