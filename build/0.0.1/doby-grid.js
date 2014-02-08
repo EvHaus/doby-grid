@@ -3442,8 +3442,8 @@
 				}
 
 				this.$el.css({
-					left: left,
-					top: top
+					left: Math.max(left, 0),
+					top: Math.max(top, 0)
 				});
 
 				// Now, loop through all of the submenus and determine which way they should drop
@@ -5284,6 +5284,28 @@
 			if (!column_id) return false;
 			var column_ids = _.pluck(self.sorting, 'columnId');
 			return column_ids.indexOf(column_id) >= 0;
+		};
+
+
+		// hideColumn()
+		// Removes a column from view, but keeps it in the grid's memory bank so
+		// that user can re-add it later.
+		//
+		// @param column_id		string		ID of the column to hide
+		this.hideColumn = function (column_id) {
+			var column = null;
+
+			// Does this column even exist?
+			if (column_id !== undefined && column_id !== null) {
+				column = getColumnById(column_id);
+			}
+
+			if (!column) {
+				throw new Error('Unable to hide column "' + column_id + '" because no such column could be found.');
+			}
+
+			column.visible = false;
+			this.setColumns(this.options.columns);
 		};
 
 
@@ -8106,7 +8128,7 @@
 				enabled: column && column.removable,
 				name: column ? getLocale('column.remove', {name: column.name}) : '',
 				fn: function () {
-					self.removeColumn(column.id);
+					self.hideColumn(column.id);
 				}
 			}, {
 				enabled: column && self.options.quickFilter,
