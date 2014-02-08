@@ -3442,8 +3442,8 @@
 				}
 
 				this.$el.css({
-					left: left,
-					top: top
+					left: Math.max(left, 0),
+					top: Math.max(top, 0)
 				});
 
 				// Now, loop through all of the submenus and determine which way they should drop
