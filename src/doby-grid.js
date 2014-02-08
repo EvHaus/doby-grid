@@ -5287,6 +5287,28 @@
 		};
 
 
+		// hideColumn()
+		// Removes a column from view, but keeps it in the grid's memory bank so
+		// that user can re-add it later.
+		//
+		// @param column_id		string		ID of the column to hide
+		this.hideColumn = function (column_id) {
+			var column = null;
+
+			// Does this column even exist?
+			if (column_id !== undefined && column_id !== null) {
+				column = getColumnById(column_id);
+			}
+
+			if (!column) {
+				throw new Error('Unable to hide column "' + column_id + '" because no such column could be found.');
+			}
+
+			column.visible = false;
+			this.setColumns(this.options.columns);
+		};
+
+
 
 		// insertAddRow()
 		// Inserts a new row to the end of the collection used for adding new rows to the grid
@@ -8106,7 +8128,7 @@
 				enabled: column && column.removable,
 				name: column ? getLocale('column.remove', {name: column.name}) : '',
 				fn: function () {
-					self.removeColumn(column.id);
+					self.hideColumn(column.id);
 				}
 			}, {
 				enabled: column && self.options.quickFilter,

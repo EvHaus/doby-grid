@@ -1134,6 +1134,51 @@ describe("Methods and Data Manipulation", function () {
 	// ==========================================================================================
 
 
+	describe("hideColumn()", function () {
+		it("should be able to hideColumn() by id", function () {
+			var grid = resetGrid({
+				columns: [{
+					id: 1,
+					name: "NO!!",
+					removable: true
+				}, {
+					id: 2,
+					name: "YES!!"
+				}]
+			});
+
+			grid.hideColumn(1);
+
+			expect(grid.options.columns.length).toEqual(2);
+			expect(grid.options.columns[0].visible).toEqual(false);
+			expect(grid.$el.find('.doby-grid-header-column').length).toEqual(1);
+			expect(grid.$el.find('.doby-grid-header-column').text()).toEqual('YES!!');
+		});
+
+
+		// ==========================================================================================
+
+
+		it("should not be able to hide columns that don't exist", function () {
+			var grid = resetGrid({
+				columns: [{
+					id: 1,
+					removable: true
+				}, {
+					id: 2
+				}]
+			});
+
+			expect(function () {
+				grid.hideColumn(3);
+			}).toThrow('Unable to hide column "3" because no such column could be found.');
+		});
+	});
+
+
+	// ==========================================================================================
+
+
 	describe("reset()", function () {
 		it("should be able to reset() the grid with a new set of data", function () {
 			var grid = resetGrid();
