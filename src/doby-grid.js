@@ -6047,8 +6047,8 @@
 				self.collection.remote_length = result;
 
 				if (result === 0) {
-					// When there are no results insert an empty row
-					self.collection.insertEmptyAlert(self.collection.items);
+					// When there are no results - reset
+					self.collection.reset();
 				} else {
 					// Fill the collection with placeholders
 					generatePlaceholders();
@@ -6146,7 +6146,6 @@
 					};
 
 					remoteRequest = remote.fetch(options, function (results) {
-
 						// Add items to collection
 						if (self.options.data instanceof Backbone.Collection) {
 							for (var i = 0, l = results.length; i < l; i++) {

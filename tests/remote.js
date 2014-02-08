@@ -55,13 +55,6 @@ describe("Remote Data", function () {
 		return result;
 	};
 
-
-	// Make sure we close any context menus that have been opened
-	afterEach(function () {
-		$(document.body).simulate('click');
-	});
-
-
 	// ==========================================================================================
 
 	describe("Basic Data", function () {
@@ -1096,6 +1089,37 @@ describe("Remote Data", function () {
 					expect(updated).toEqual(false);
 				});
 			});
+
+
+			// ==========================================================================================
+
+
+			it("should only display an 'empty' message row when filters return 0 results", function () {
+				var column_id = "city",
+					value = 'BADVALUE--NORESULS',
+					updated = 0;
+
+				// Filter
+				runs(function () {
+					grid.on('remoteloaded', function () {
+						updated++;
+					});
+
+					grid.filter([[column_id, '=', value]]);
+				});
+
+				// Wait for data to be refetched
+				waitsFor(function () {
+					return updated;
+				});
+
+				runs(function () {
+					// Verify that only 1 row is visible
+					var $rows = grid.$el.find('.doby-grid-row');
+					console.log($rows)
+					expect($rows.length).toEqual(1);
+				});
+			});
 		});
 
 
@@ -1107,7 +1131,7 @@ describe("Remote Data", function () {
 			it("should be able to sort results", function () {
 				var column_id = "id";
 
-				// Add grouping
+				// Sort
 				runs(function () {
 					grid.sortBy(column_id, false);
 				});
