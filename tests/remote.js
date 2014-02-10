@@ -1116,7 +1116,6 @@ describe("Remote Data", function () {
 				runs(function () {
 					// Verify that only 1 row is visible
 					var $rows = grid.$el.find('.doby-grid-row');
-					console.log($rows)
 					expect($rows.length).toEqual(1);
 				});
 			});
