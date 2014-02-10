@@ -5484,35 +5484,38 @@
 		// up common Collection events to the grid.
 		//
 		bindToCollection = function () {
-			self.options.data
-				.on('add', function (model, collection, options) {
-					// Ignore NonDataRows
-					if (model.get('__nonDataRow')) return;
+			self.listenTo(self.options.data, 'add', function (model, collection, options) {
+				// Ignore NonDataRows
+				if (model.get('__nonDataRow')) return;
 
-					// When new items are added to the collection - add them to the grid
-					self.collection.add(model, options);
-				})
-				.on('change', function (model) {
-					// When items are changed - re-render the right row
-					self.setItem(model.id, model);
-				})
-				.on('remove', function (model) {
-					// When items are removed - remove the right row
-					self.collection.remove(model.id);
-				})
-				.on('reset', function () {
-					self.collection.reset();
-				})
-				.on('sort', _.debounce(function () {
-					// If sorting before we've had a chance to process the collection - skip
-					if (!self.collection) return;
+				// When new items are added to the collection - add them to the grid
+				self.collection.add(model, options);
+			});
 
-					// Tell the collection to refresh everything
-					self.collection.refresh();
+			self.listenTo(self.options.data, 'change', function (model) {
+				// When items are changed - re-render the right row
+				self.setItem(model.id, model);
+			});
 
-					// When sorting - invalidate and re-render all rows
-					invalidate();
-				}), 10);
+			self.listenTo(self.options.data, 'remove', function (model) {
+				// When items are removed - remove the right row
+				self.collection.remove(model.id);
+			});
+
+			self.listenTo(self.options.data, 'reset', function () {
+				self.collection.reset();
+			});
+
+			self.listenTo(self.options.data, 'sort', _.debounce(function () {
+				// If sorting before we've had a chance to process the collection - skip
+				if (!self.collection) return;
+
+				// Tell the collection to refresh everything
+				self.collection.refresh();
+
+				// When sorting - invalidate and re-render all rows
+				invalidate();
+			}), 10);
 		};
 
 
