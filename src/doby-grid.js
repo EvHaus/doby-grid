@@ -3855,7 +3855,8 @@
 			var phId, ph, phModel, i, l;
 			for (i = 0, l = self.collection.length; i < l; i++) {
 				phId = 'placeholder-' + i;
-				ph = new Placeholder({id: phId});
+				ph = new Placeholder();
+				ph.id = phId;
 				if (self.collection.items instanceof Backbone.Collection) {
 					phModel = new Backbone.Model(ph);
 					phModel.__placeholder = true;
@@ -5761,10 +5762,7 @@
 		// Placeholder()
 		// An item object used as a placeholder for a remote item.
 		//
-		Placeholder = function (data) {
-			if (data) $.extend(this, data);
-		};
-
+		Placeholder = function () {};
 		Placeholder.prototype = new NonDataItem();
 		Placeholder.prototype.__placeholder = true;
 		Placeholder.prototype.toString = function () { return "Placeholder"; };
