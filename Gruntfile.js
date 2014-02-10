@@ -71,7 +71,7 @@ module.exports = function (grunt) {
 			options: {
 				banner: [
 					'// <%= pkg.name %>.js <%= pkg.version %>',
-					'// (c) 2013 Evgueni Naverniouk, Globex Designs, Inc.',
+					'// (c) 2014 Evgueni Naverniouk, Globex Designs, Inc.',
 					'// Doby may be freely distributed under the MIT license.',
 					'// For all details and documentation:',
 					'// https://github.com/globexdesigns/doby-grid\n'
