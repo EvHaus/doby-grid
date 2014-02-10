@@ -3,10 +3,9 @@
 define(['backbone', 'faker'], function (Backbone, Faker) {
 	"use strict";
 
-	// Generate Data
-	var collection = new Backbone.Collection();
-
 	return [function () {
+		// Generate Data
+		var collection = new Backbone.Collection();
 
 		return {
 			columns: [{
@@ -44,9 +43,9 @@ define(['backbone', 'faker'], function (Backbone, Faker) {
 			}],
 			data: collection
 		};
-	}, function () {
+	}, function (grid) {
 		for (var i = 0; i < 1000; i++) {
-			collection.add({
+			grid.options.data.add({
 				id: i,
 				name: Faker.Name.findName(),
 				city: Faker.Address.city(),
