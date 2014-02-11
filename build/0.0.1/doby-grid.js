@@ -1812,11 +1812,7 @@
 
 					// For remote models, check if we're inserting 'at' an index with place holders
 					if (remote && at !== undefined) {
-						if (this.items instanceof Backbone.Collection) {
-							if (this.items.at(at + i).__placeholder) {
-								existing = this.items.at(at + i);
-							}
-						} else if (this.items[at + i].__placeholder) {
+						if (this.items[at + i].__placeholder) {
 							existing = this.items[at + i];
 						}
 					}
@@ -1837,13 +1833,7 @@
 				if (toAdd.length) {
 					// If data used to be empty, with an alert - remove alert
 					if (grid.options.emptyNotice) {
-						if (this.items instanceof Backbone.Collection) {
-							this.items.each(function (model) {
-								if (model.get('__alert')) {
-									this.remove(model.id);
-								}
-							}.bind(this));
-						} else if (this.items.length && this.items[0].__alert) {
+						if (this.items.length && this.items[0].__alert) {
 							this.remove(this.items[0][idProperty]);
 						}
 					}
@@ -1857,20 +1847,14 @@
 						at = this.items.length - 1;
 					}
 
-					// If we're working with a Backbone.Collection - use native Backbone functions.
-					// As you can add items both to DobyGrid and the original Backbone Collection.
-					// So the items might already be there.
-					if (this.items instanceof Backbone.Collection) {
-						this.items.add(toAdd);
+					// Add to internal collection and update cache
+					if (at !== null && at !== undefined) {
+						Array.prototype.splice.apply(this.items, [at, 0].concat(toAdd));
+						cacheRows((at > 0 ? at - 1 : 0));
 					} else {
-						if (at !== null && at !== undefined) {
-							Array.prototype.splice.apply(this.items, [at, 0].concat(toAdd));
-							cacheRows((at > 0 ? at - 1 : 0));
-						} else {
-							var prevLength = this.items.length;
-							Array.prototype.push.apply(this.items, toAdd);
-							cacheRows(prevLength > 0 ? prevLength - 1 : 0);
-						}
+						var prevLength = this.items.length;
+						Array.prototype.push.apply(this.items, toAdd);
+						cacheRows(prevLength > 0 ? prevLength - 1 : 0);
 					}
 				}
 
@@ -2217,8 +2201,6 @@
 			//
 			// @return object
 			getFilteredAndPagedItems = function (items) {
-				items = items instanceof Backbone.Collection ? items.models : items;
-
 				// Remote data will already be filtered
 				if (self.filter && !remote) {
 					var batchFilter = uncompiledFilter;
@@ -2399,8 +2381,6 @@
 			//
 			// @return array
 			parse = function (items) {
-				items = items instanceof Backbone.Collection ? items.models : items;
-
 				var i, l, childrow, item;
 				for (i = 0, l = items.length; i < l; i++) {
 					item = items[i];
@@ -2782,6 +2762,9 @@
 				// Reset postprocess cache
 				cache.postprocess = {};
 
+				// If we're given a Backbone.Collection - grab just the models (as a copy)
+				if (models instanceof Backbone.Collection) models = models.models.concat();
+
 				// Parse data
 				parse(models);
 
@@ -2874,11 +2857,11 @@
 				// Get the index of this item
 				var idx = cache.indexById[id];
 
-				if (idx === undefined || (this.items instanceof Backbone.Collection && !this.items.get(id))) {
+				if (idx === undefined || (grid.options.data instanceof Backbone.Collection && !this.get(id))) {
 					throw new Error("Unable to update item (id: " + id + "). Invalid or non-matching id");
 				}
 
-				if (this.items instanceof Backbone.Collection) {
+				if (grid.options.data instanceof Backbone.Collection) {
 					if (!(data instanceof Backbone.Model)) {
 						throw new Error("Sorry, Backbone.Collection data sets must be given a valid Backbone.Model in the setItem() method.");
 					}
@@ -2923,32 +2906,14 @@
 				parse([data]);
 
 				// Find the data item and update it
-				if (this.items instanceof Backbone.Collection) {
-					// Find the index at which the old row was in the collection
-					var collectionIdx = this.items.indexOf(original_object);
-
-					if (collectionIdx < 0) {
-						throw new Error('Unable to setItem on item ' + id + ' because it could not be found in the current collection.');
-					}
-
-					// If replaceing a Placeholder -- id should be that of the placeholder
-					if (cache.rows[idx].__placeholder) id = cache.rows[idx].id;
-
-					// We can't just call this.items.set() here as that will not bring over
-					// any of the extra data attributes attached to the model. So we'll need to
-					// remove the original item in the collection, and insert a new one.
-					this.items.remove(id, {silent: true});
-					this.items.add(data, {at: collectionIdx, silent: true});
-				} else {
-					for (var i = 0, l = this.items.length; i < l; i++) {
-						if (this.items[i].id == id || this.items[i].id == data.id) {
-							if (this.items[i].__placeholder) {
-								this.items[i] = data;
-							} else {
-								this.items[i] = $.extend(true, this.items[i], data);
-							}
-							break;
+				for (var i = 0, l = this.items.length; i < l; i++) {
+					if (this.items[i].id == id || this.items[i].id == data.id) {
+						if (this.items[i].__placeholder) {
+							this.items[i] = data;
+						} else {
+							this.items[i] = $.extend(true, this.items[i], data);
 						}
+						break;
 					}
 				}
 
@@ -2980,16 +2945,9 @@
 				}
 
 				// Backbone Collection sorting is done through a defined comparator
-				if (this.items instanceof Backbone.Collection) {
-					this.items.comparator = comparer;
-					this.items.sort();
-				} else {
-					this.items.sort(comparer);
-				}
+				this.items.sort(comparer);
 
-				if (ascending === false) {
-					this.items.reverse();
-				}
+				if (ascending === false) this.items.reverse();
 
 				// TODO: This only needs to re-index ID, not recalculate positions.
 				// Maybe update cacheRows to support different modes?
@@ -3640,11 +3598,7 @@
 				if (format === 'html') row.push('<tr>');
 				for (ii = 0, ll = cache.activeColumns.length; ii < ll; ii++) {
 
-					if (this.collection.items instanceof Backbone.Collection) {
-						val = getValueFromItem(this.collection.items.at(i), cache.activeColumns[ii]);
-					} else {
-						val = getValueFromItem(this.collection.items[i], cache.activeColumns[ii]);
-					}
+					val = getValueFromItem(this.collection.items[i], cache.activeColumns[ii]);
 
 					if (format === 'csv') {
 						// Escape quotes
@@ -3844,26 +3798,20 @@
 		//
 		generatePlaceholders = function () {
 			// Reset the collection
+			self.collection.items = [];
+
+			// For Backbone Collections we need to do a data reset here too
 			if (self.options.data instanceof Backbone.Collection) {
-				self.collection.items = self.options.data;
-				self.collection.items.reset(undefined, {silent: true});
-			} else {
-				self.collection.items = [];
+				self.options.data.reset(null, {silent: true});
 			}
 
 			// Populate the collection with placeholders
-			var phId, ph, phModel, i, l;
+			var phId, ph, i, l;
 			for (i = 0, l = self.collection.length; i < l; i++) {
 				phId = 'placeholder-' + i;
 				ph = new Placeholder();
 				ph.id = phId;
-				if (self.collection.items instanceof Backbone.Collection) {
-					phModel = new Backbone.Model(ph);
-					phModel.__placeholder = true;
-					self.collection.items.add(phModel, {silent: true});
-				} else {
-					self.collection.items.push(ph);
-				}
+				self.collection.items.push(ph);
 			}
 
 			// Reset any row references in groups as they are no longer valid
@@ -5381,14 +5329,8 @@
 
 			var selectable_rows = self.collection.length - 1;
 
-			if (self.collection.items instanceof Backbone.Collection) {
-				if (self.collection.items.last().id == '__gridAggregate') {
-					selectable_rows--;
-				}
-			} else {
-				if (self.collection.items[self.collection.items.length - 1].id == '__gridAggregate') {
-					selectable_rows--;
-				}
+			if (self.collection.items[self.collection.items.length - 1].id == '__gridAggregate') {
+				selectable_rows--;
 			}
 
 			var s;
@@ -5485,9 +5427,6 @@
 		//
 		bindToCollection = function () {
 			self.listenTo(self.options.data, 'add', function (model, collection, options) {
-				// Ignore NonDataRows
-				if (model.get('__nonDataRow')) return;
-
 				// When new items are added to the collection - add them to the grid
 				self.collection.add(model, options);
 			});
@@ -5510,11 +5449,8 @@
 				// If sorting before we've had a chance to process the collection - skip
 				if (!self.collection) return;
 
-				// Tell the collection to refresh everything
-				self.collection.refresh();
-
-				// When sorting - invalidate and re-render all rows
-				invalidate();
+				// Reset collection with the new ordering in the data set
+				self.collection.reset(self.options.data);
 			}), 10);
 		};
 
@@ -6147,15 +6083,15 @@
 					};
 
 					remoteRequest = remote.fetch(options, function (results) {
-						// Add items to collection
+						// Add items to Backbone.Collection dataset
+						// TODO: We may want to make this optional as users way want to control
+						// what's added to their collections manually.
 						if (self.options.data instanceof Backbone.Collection) {
 							for (var i = 0, l = results.length; i < l; i++) {
-								// Remove placeholder and insert new item via add (so that the add
-								// event is fired correctly)
-								self.options.data.remove(self.options.data.at(newFrom + i), {silent: true});
 								self.options.data.add(results[i], {at: newFrom + i, merge: true});
 							}
 						} else {
+							// Item items to internal collection
 							self.collection.add(results, {at: newFrom, merge: true});
 						}
 
