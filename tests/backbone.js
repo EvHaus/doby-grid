@@ -107,16 +107,14 @@ describe("Backbone Integration", function () {
 		// Sort collection using the new comparator
 		collection.sort();
 
-		var rows = grid.$el.find('.doby-grid-row');
-
-		// Make sure rows are sorted by their position
-		rows = $(_.sortBy(rows, function (item) {
-			return parseInt($(item).css('top'), 10);
-		}));
-
 		// First row should now be the last item in the collection, after debouncing
 		waitsFor(function () {
-			return grid.$el.find('.doby-grid-row').first().children('.doby-grid-cell.l0.r0').text().indexOf(collection.length) >= 0;
+			// Make sure rows are sorted by their position
+			var rows = $(_.sortBy(grid.$el.find('.doby-grid-row'), function (item) {
+				return parseInt($(item).css('top'), 10);
+			}));
+
+			return $(rows[0]).children('.l0').text().indexOf(collection.length) >= 0;
 		}, 20);
 	});
 
@@ -272,10 +270,15 @@ describe("Backbone Integration", function () {
 			city: "Somewhere"
 		});
 
-		// Should have 1 row
-		var $rows = grid.$el.find('.doby-grid-row');
-		expect($rows.length).toEqual(1);
-		expect($rows.children('.doby-grid-cell:first').first()).toHaveText(20);
+		waitsFor(function () {
+			// Should have 1 row
+			var $rows = grid.$el.find(".doby-grid-row:not('.doby-grid-alert')");
+			return $rows.length == 1;
+		});
+
+		runs(function () {
+			expect(grid.$el.find('.doby-grid-row:first .doby-grid-cell:first').first()).toHaveText(20);
+		});
 	});
 
 
@@ -300,10 +303,15 @@ describe("Backbone Integration", function () {
 			city: "Somewhere"
 		});
 
-		// Should have 1 row
-		var $rows = grid.$el.find('.doby-grid-row');
-		expect($rows.length).toEqual(1);
-		expect($rows.children('.doby-grid-cell:first').first()).toHaveText(20);
+		waitsFor(function () {
+			// Should have 1 row
+			var $rows = grid.$el.find(".doby-grid-row:not('.doby-grid-alert')");
+			return $rows.length == 1;
+		});
+
+		runs(function () {
+			expect(grid.$el.find('.doby-grid-row:first .doby-grid-cell:first').first()).toHaveText(20);
+		});
 	});
 
 });

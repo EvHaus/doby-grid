@@ -1257,7 +1257,7 @@ describe("Remote Data", function () {
 				var rows = _.sortBy(grid.$el.find('.doby-grid-row'), function (row) {
 					return parseInt($(row).attr('style').replace('top:', ''), 10);
 				});
-				return $(rows[1]).children('.l0').text() != 'placeholder-1';
+				return $(rows[10]).children('.l0').text();
 			}, "Fetching the first page", 2000);
 		});
 
@@ -1265,8 +1265,11 @@ describe("Remote Data", function () {
 		// ==========================================================================================
 
 
-		it("should keep the collection as a Backbone.Collection", function () {
-			expect(grid.collection.items instanceof Backbone.Collection).toEqual(true);
+		it("should not set internal collection to a Backbone.Collection", function () {
+			// This is a reminder for devs not to try to convert the internal collection items
+			// into a Backbone.Collection because Backbone is horribly slow at generating Model objects
+			// so inserting 100,000+ placeholders will freeze up the browser.
+			expect(grid.collection.items instanceof Backbone.Collection).toEqual(false);
 		});
 
 
@@ -1291,8 +1294,8 @@ describe("Remote Data", function () {
 
 		it("should automatically load the first page", function () {
 			runs(function () {
-				expect(grid.collection.items.at(0).toString()).toEqual('[object Object]');
-				expect(grid.options.data.models.length).toEqual(count);
+				expect(grid.collection.items[0].toString()).toEqual('[object Object]');
+				expect(grid.collection.items.length).toEqual(count);
 
 				var rows = _.sortBy(grid.$el.find('.doby-grid-row'), function (row) {
 					return parseInt($(row).attr('style').replace('top:', ''), 10);
@@ -1323,17 +1326,30 @@ describe("Remote Data", function () {
 			it("should be able to sort results in Backbone.Collection sets", function () {
 				var column_id = "id";
 
-				// Add grouping
+				// Sort
 				runs(function () {
 					grid.sortBy(column_id, false);
 				});
 
-				// Wait for the groups to be fetched and calculated
+				// Wait for the sorting
 				waitsFor(function () {
 					var rows = _.sortBy(grid.$el.find('.doby-grid-row'), function (row) {
 						return parseInt($(row).attr('style').replace('top:', ''), 10);
 					});
 					return $(rows[0]).children('.l0').text() == '99';
+				}, 300, 'waiting for the grid to resort itself correctly');
+
+				// Sort back to validate collection resets
+				runs(function () {
+					grid.sortBy(column_id, true);
+				});
+
+				// Wait for the sorting
+				waitsFor(function () {
+					var rows = _.sortBy(grid.$el.find('.doby-grid-row'), function (row) {
+						return parseInt($(row).attr('style').replace('top:', ''), 10);
+					});
+					return $(rows[0]).children('.l0').text() == '0';
 				}, 300, 'waiting for the grid to resort itself correctly');
 			});
 		});
