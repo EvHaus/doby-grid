@@ -78,10 +78,6 @@ Then simply call:
 
 Doby Grid has a lot of configurable options. Full documentation is provided on the wiki here: <https://github.com/globexdesigns/doby-grid/wiki>.
 
-### Examples
-
-See Doby Grid in action at: <http://www.dobyjs.com/grid/examples/>
-
 ### Submitting Bugs and Feature Requests
 
 Please use GitHub issues: <https://github.com/globexdesigns/doby-grid/issues>
