@@ -3727,13 +3727,13 @@
 
 			// Remote data needs to be completely reloaded
 			if (remote) {
-				if (self.collection.groups && self.collection.groups.length) {
-					remoteGroupRefetch();
-				} else {
-					remoteCount(function () {
+				remoteCount(function () {
+					if (self.collection.groups && self.collection.groups.length) {
+						remoteGroupRefetch();
+					} else {
 						remoteFetch();
-					});
-				}
+					}
+				});
 			} else {
 				// Reset aggregator values
 				for (var column_id in cache.aggregatorsByColumnId) {

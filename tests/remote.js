@@ -1119,6 +1119,42 @@ describe("Remote Data", function () {
 					expect($rows.length).toEqual(1);
 				});
 			});
+
+
+			// ==========================================================================================
+
+
+			it("should be display an 'empty' message when filtering grouped results", function () {
+				var column_id = "city",
+					value = 'NoMatches';
+
+				// Add grouping
+				runs(function () {
+					grid.setGrouping([{column_id: column_id}]);
+				});
+
+				// Wait for the groups to be fetched and calculated
+				waitsFor(function () {
+					return grid.collection.groups.length == 1 && grid.collection.groups[0].rows.length;
+				});
+
+				// Filter
+				runs(function () {
+					grid.filter([[column_id, '=', value]]);
+				});
+
+				// Wait for grid to be reloaded
+				waitsFor(function () {
+					return grid.collection.remote_length === 0;
+				}, 50);
+
+				runs(function () {
+					// Verify that only 1 row is visible
+					var $rows = grid.$el.find('.doby-grid-row');
+					expect($rows.length).toEqual(1);
+					expect($rows.eq(0)).toHaveClass('doby-grid-alert');
+				});
+			});
 		});
 
 
