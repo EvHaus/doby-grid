@@ -2230,7 +2230,7 @@
 				}
 
 				// This will ensure empty row message is inserted when filters return 0 results
-				validate(filteredItems)
+				validate(filteredItems);
 
 				// get the current page
 				var paged;
