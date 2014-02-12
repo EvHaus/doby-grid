@@ -1096,6 +1096,20 @@ describe("Methods and Data Manipulation", function () {
 			// Aggregator should display correct value
 			expect(grid.$el.find('.doby-grid-row-total .l1')).toHaveText(1);
 		});
+
+
+		// ==========================================================================================
+
+
+		it("should display an 'empty' message when filters return 0 results", function () {
+			grid.filter([['id', '=', 'asd']]);
+
+			var rows = grid.$el.find('.doby-grid-row');
+
+			// Aggregator should display correct value
+			expect(rows.length).toEqual(1);
+			expect(rows.eq(0)).toHaveClass('doby-grid-alert');
+		});
 	});
 
 

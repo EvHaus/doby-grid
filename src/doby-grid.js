@@ -1990,7 +1990,7 @@
 					r, gr,
 					level = parentGroup ? parentGroup.level + 1 : 0,
 					gi = self.groups[level],
-					i, l, aggregateRow, addRow;
+					i, l, aggregateRow, addRow, alertRow;
 
 				// Reset grouping row references
 				gi.rows = [];
@@ -2040,6 +2040,12 @@
 						// Do a similar thing for the AddRow row. Keep it at the bottom of the grid.
 						if (r.__addRow) {
 							addRow = r;
+							continue;
+						}
+
+						// And again for empty message alerts
+						if (r.__alert) {
+							alertRow = r;
 							continue;
 						}
 
@@ -2097,6 +2103,9 @@
 					// Sort the groups if they're not remotely fetched. Remote groups
 					// are expected to already be in the right order.
 					if (!remote_groups) groups.sort(self.groups[level].comparer);
+
+					// If there's an add row - put it at the bottom of the grid
+					if (alertRow) groups.push(alertRow);
 
 					// If there's an add row - put it at the bottom of the grid
 					if (addRow) groups.push(addRow);
@@ -2219,6 +2228,9 @@
 					// can be caught
 					filteredItems = pagesize ? items : items.concat();
 				}
+
+				// This will ensure empty row message is inserted when filters return 0 results
+				validate(filteredItems)
 
 				// get the current page
 				var paged;
@@ -2439,14 +2451,10 @@
 
 				// Loop through the data and process the aggregators
 				for (i = 0, l = items.length; i < l; i++) {
-					if (items instanceof Backbone.Collection) {
-						item = items.at(i);
-					} else {
-						item = items[i];
-					}
+					item = items[i];
 
-					// Skip existing Aggregator rows
-					if (item instanceof Aggregate) continue;
+					// Skip nonData rows
+					if (item instanceof NonDataItem) continue;
 
 					for (column_id in cache.aggregatorsByColumnId) {
 
@@ -2501,11 +2509,7 @@
 				gridAggregate.id = '__gridAggregate';
 
 				// Insert new Aggregate row
-				if (items instanceof Backbone.Collection) {
-					items.models.push(gridAggregate);
-				} else {
-					items.push(gridAggregate);
-				}
+				items.push(gridAggregate);
 			};
 
 
@@ -2543,6 +2547,10 @@
 					// Loop through the group row data and process the aggregators
 					for (ii = 0, ll = groups[i].grouprows.length; ii < ll; ii++) {
 						item = groups[i].grouprows[ii];
+
+						// Skip NonData rows
+						if (item instanceof NonDataItem) continue;
+
 						for (column_id in group.aggregators) {
 							for (aggreg_idx in group.aggregators[column_id]) {
 								group.aggregators[column_id][aggreg_idx].process(item);
