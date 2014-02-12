@@ -37,10 +37,10 @@ For a live demo of the most recent build visit: http://dobyjs.com/grid/examples/
 - Support for column footers with data aggregators
 - Support for on-the-fly filtering of column data (and searching)
 - Support for clipboard copy operations
+- Support for Backbone.Collection objects as data sets (including remote data fetching)
 - Easily integrates with i18n libraries
 - Full keyboard navigation
 - Pixel perfect, rock solid and stress tested with hundreds of [tests](https://github.com/globexdesigns/doby-grid/tree/master/tests)
-- (TODO) Support for Backbone.Collection objects as data sets (including remote data fetching)
 - (TODO) Support for undo
 - (TODO) Support for clipboard paste operations
 
