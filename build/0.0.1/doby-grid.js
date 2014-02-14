@@ -1302,7 +1302,7 @@
 
 
 		// cleanUpAndRenderCells()
-		// Re-renders existing cells
+		// Re-renders existing cells. Makes sure that all columns in the viewport are rendered.
 		//
 		// @param		range		object		Cell range to render
 		//
@@ -1316,16 +1316,14 @@
 
 			for (var row = range.top, btm = range.bottom; row <= btm; row++) {
 				cacheEntry = cache.nodes[row];
-				if (!cacheEntry) {
-					continue;
-				}
+				if (!cacheEntry) continue;
 
 				// cellRenderQueue populated in renderRows() needs to be cleared first
 				ensureCellNodesInRowsCache(row);
 
 				cleanUpCells(range, row);
 
-				// Render missing cells.
+				// Render missing cells
 				cellsAdded = 0;
 
 				var item = self.collection.getItem(row),
@@ -1334,12 +1332,11 @@
 
 				for (var i = 0, ii = cache.activeColumns.length; i < ii; i++) {
 					// Cells to the right are outside the range.
-					if (cache.columnPosLeft[i] > range.rightPx) {
-						break;
-					}
+					if (cache.columnPosLeft[i] > range.rightPx) break;
 
-					// Already rendered.
-					if ((colspan = cacheEntry.cellColSpans[i]) !== null) {
+					// Already rendered
+					colspan = cacheEntry.cellColSpans[i];
+					if (colspan !== null && colspan !== undefined) {
 						i += (colspan > 1 ? colspan - 1 : 0);
 						continue;
 					}
@@ -1367,19 +1364,15 @@
 				}
 			}
 
-			if (!stringArray.length) {
-				return;
-			}
+			if (!stringArray.length) return;
 
 			var x = document.createElement("div");
 			x.innerHTML = stringArray.join("");
 
-			var processedRow;
-			var node;
-			while ((processedRow = processedRows.pop()) !== null) {
+			var processedRow, node, columnIdx;
+			while ((processedRow = processedRows.pop()) !== null && processedRow !== undefined) {
 				cacheEntry = cache.nodes[processedRow];
-				var columnIdx;
-				while ((columnIdx = cacheEntry.cellRenderQueue.pop()) !== null) {
+				while ((columnIdx = cacheEntry.cellRenderQueue.pop()) !== null && columnIdx !== undefined) {
 					node = x.lastChild;
 					cacheEntry.rowNode.appendChild(node);
 					cacheEntry.cellNodesByColumnIdx[columnIdx] = node;
@@ -1419,7 +1412,7 @@
 			}
 
 			var cellToRemove;
-			while ((cellToRemove = cellsToRemove.pop()) !== null && cellToRemove) {
+			while (((cellToRemove = cellsToRemove.pop()) !== null && cellToRemove !== undefined) && cellToRemove) {
 				cacheEntry.rowNode.removeChild(cacheEntry.cellNodesByColumnIdx[cellToRemove]);
 				delete cacheEntry.cellColSpans[cellToRemove];
 				delete cacheEntry.cellNodesByColumnIdx[cellToRemove];
@@ -6644,7 +6637,7 @@
 				i, ii;
 
 			for (i = range.top, ii = range.bottom; i <= ii; i++) {
-				// Don't re-render cached nodes
+				// Don't re-render cached nodes, unless they have cells which haven't been rendered yet
 				if (cache.nodes[i]) continue;
 
 				rows.push(i);
@@ -6752,6 +6745,7 @@
 
 			// Since the width has changed, force the render() to reevaluate virtually rendered cells.
 			lastRenderedScrollLeft = -1;
+
 			render();
 		};
 
