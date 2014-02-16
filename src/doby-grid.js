@@ -4253,7 +4253,7 @@
 			}
 
 			// If no column editor, use editor in the options, otherwise use defaultEditor
-			return column.editor || (self.options.editor && self.options.editor.getEditor(column)) || defaultEditor;
+			return column.editor || self.options.editor || defaultEditor;
 		};
 
 
@@ -5476,7 +5476,7 @@
 			if (!editor) self.active.node.innerHTML = "";
 
 			var CellEditor = editor || getEditor(self.active.row, self.active.cell);
-
+			
 			currentEditor = new CellEditor({
 				grid: self,
 				cell: self.active.node,
@@ -5490,6 +5490,11 @@
 					}
 				}
 			});
+			
+			// Validate editor for required methods
+			if (!currentEditor.serializeValue) {
+				throw new Error("Your editor is missing a serializeValue function.");
+			}
 
 			serializedEditorValue = currentEditor.serializeValue();
 		};
