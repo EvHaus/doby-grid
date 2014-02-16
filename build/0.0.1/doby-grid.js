@@ -4253,7 +4253,7 @@
 			}
 
 			// If no column editor, use editor in the options, otherwise use defaultEditor
-			return column.editor || (self.options.editor && self.options.editor.getEditor(column)) || defaultEditor;
+			return column.editor || self.options.editor || defaultEditor;
 		};
 
 
@@ -5476,7 +5476,7 @@
 			if (!editor) self.active.node.innerHTML = "";
 
 			var CellEditor = editor || getEditor(self.active.row, self.active.cell);
-
+			
 			currentEditor = new CellEditor({
 				grid: self,
 				cell: self.active.node,
@@ -5490,6 +5490,11 @@
 					}
 				}
 			});
+			
+			// Validate editor for required methods
+			if (!currentEditor.serializeValue) {
+				throw new Error("Your editor is missing a serializeValue function.");
+			}
 
 			serializedEditorValue = currentEditor.serializeValue();
 		};
@@ -6841,20 +6846,26 @@
 		scrollRowIntoView = function (row, doPaging) {
 
 			// Determine where the row's page is
-			var rowAtTop, rowAtBottom, pos;
+			var rowAtTop, rowAtBottom, pos,
+				rowHeight = (self.options.rowHeight + 1),
+				visible = getVisibleRange();
+
+			// If row is already in view - do nothing
+			if (visible.top < row && visible.bottom - 1 > row) return;
+
 			if (variableRowHeight) {
 				pos = cache.rowPositions[row];
 				rowAtTop = pos.top;
 				rowAtBottom = pos.bottom - viewportH + (viewportHasHScroll ? window.scrollbarDimensions.height : 0);
 			} else {
-				rowAtTop = row * self.options.rowHeight;
-				rowAtBottom = ((row + 1) * self.options.rowHeight) - viewportH + (viewportHasHScroll ? window.scrollbarDimensions.height : 0);
+				rowAtTop = row * rowHeight;
+				rowAtBottom = ((row + 1) * rowHeight) - viewportH + (viewportHasHScroll ? window.scrollbarDimensions.height : 0);
 			}
 
 			// Determine which direction we need to scroll
 			var pgdwn, pgup;
 			if (!variableRowHeight) {
-				pgdwn = (row + 1) * self.options.rowHeight > scrollTop + viewportH + offset;
+				pgdwn = row * self.options.rowHeight > scrollTop + offset;
 				pgup = row * self.options.rowHeight < scrollTop + offset;
 			} else {
 				pgdwn = pos.bottom > scrollTop + viewportH + offset;
