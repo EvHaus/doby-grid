@@ -4861,7 +4861,7 @@
 		handleClick = function (e) {
 			var cell = getCellFromEvent(e);
 
-			if ((cell.row === null || cell.row === undefined) || (
+			if ((!cell || cell.row === null || cell.row === undefined) || (
 				currentEditor !== null &&
 				(self.active && self.active.row == cell.row && self.active.cell == cell.cell)
 			)) {
