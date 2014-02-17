@@ -700,16 +700,47 @@
 					.on("keydown", handleKeyDown)
 					.on("click", handleClick)
 					.on("dblclick", handleDblClick)
-					.on("contextmenu", handleContextMenu)
-					.on("mouseenter", function () {
-						// Focus on the canvas when the mouse is in it.
-						// Only as long as the Quick Filter isn't focused.
-						var ae = document.activeElement;
-						if (ae != this && !$(this).has($(ae)).length && (self.options.quickFilter && !$(ae).closest('.' + classheaderfiltercell).length)) {
-							$(this).focus();
-						}
+					.on("contextmenu", handleContextMenu);
+
+				// Pass through common mouseevents
+				var evs = [
+					'mousedown',
+					'mouseenter',
+					'mouseleave',
+					'mousemove',
+					'mouseout',
+					'mouseover',
+					'mouseup'
+				], evHandler = function (event) {
+					var cell = getCellFromEvent(event),
+						item = cell && cell.row !== undefined && cell.row !== null ? getDataItem(cell.row) : null;
+
+					self.trigger(event.type, event, {
+						row: cell ? cell.row : null,
+						cell: cell ? cell.cell : null,
+						item: item
 					});
 
+					// Focus on the canvas when the mouse is in it.
+					// Only as long as the Quick Filter isn't focused.
+					if (event.type == 'mouseenter') {
+						var ae = document.activeElement;
+						if (ae != this && !$(this).has($(ae)).length && (
+							(self.options.quickFilter && !$(ae).closest('.' + classheaderfiltercell).length) ||
+							!self.options.quickFilter
+						)) {
+							$(this).focus();
+						}
+					}
+
+				};
+
+				for (var i = 0, l = evs.length; i < l; i++) {
+					$canvas.on(evs[i], evHandler);
+				}
+
+
+				// Enable resizable rows
 				if (this.options.resizableRows) {
 					bindRowResize();
 				}
@@ -4828,10 +4859,9 @@
 		// @param	e	object		Javascript event object
 		//
 		handleClick = function (e) {
-			var cell = getCellFromEvent(e),
-				row = getRowFromEvent(e);
+			var cell = getCellFromEvent(e);
 
-			if ((row === null || row === undefined) || (
+			if ((cell.row === null || cell.row === undefined) || (
 				currentEditor !== null &&
 				(self.active && self.active.row == cell.row && self.active.cell == cell.cell)
 			)) {
@@ -4839,7 +4869,7 @@
 			}
 
 			// Get item from cell
-			var item = getDataItem(row);
+			var item = getDataItem(cell.row);
 
 			// Handle group expand/collapse
 			if (item && item instanceof Group) {
@@ -5476,7 +5506,7 @@
 			if (!editor) self.active.node.innerHTML = "";
 
 			var CellEditor = editor || getEditor(self.active.row, self.active.cell);
-			
+
 			currentEditor = new CellEditor({
 				grid: self,
 				cell: self.active.node,
@@ -5490,7 +5520,7 @@
 					}
 				}
 			});
-			
+
 			// Validate editor for required methods
 			if (!currentEditor.serializeValue) {
 				throw new Error("Your editor is missing a serializeValue function.");
