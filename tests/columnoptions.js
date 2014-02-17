@@ -919,6 +919,35 @@ describe("Column Options", function () {
 		// ==========================================================================================
 
 
+		it("should be bound to the grid's instance", function () {
+			var scope = [],
+				grid = resetGrid($.extend(defaultData(), {
+				columns: [{
+					id: 'id',
+					field: 'id',
+					name: 'id',
+					formatter: function () {
+						scope.push(this);
+					}
+				}, {
+					id: 'name',
+					field: 'name',
+					name: 'name',
+					formatter: function () {
+						scope.push(this);
+					}
+				}]
+			}));
+
+			_.each(scope, function (s) {
+				expect(s).toEqual(grid);
+			});
+		});
+
+
+		// ==========================================================================================
+
+
 		it("should throw an exception is given something other than a function", function () {
 			_.each([1, 'test', [], {}], function (test, i) {
 				expect(function () {

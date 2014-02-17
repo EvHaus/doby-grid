@@ -1022,15 +1022,15 @@ describe("Grid Options", function () {
 			expect(firstCell.find('input').length).toEqual(1);
 		});
 	});
-	
-	
+
+
 	// ==========================================================================================
 
 
 	describe("options.editor", function () {
 		it("should be able to initialize a custom editor", function () {
 			var initialized, serialized;
-			
+
 			// Prepare for test
 			var grid = resetGrid($.extend(defaultData(), {
 				editable: true,
@@ -1046,10 +1046,10 @@ describe("Grid Options", function () {
 					return this.initialize();
 				}
 			}));
-			
+
 			var $cell = grid.$el.find('.doby-grid-cell:first');
 			$cell.simulate('click');
-			
+
 			expect($cell).toHaveText('test');
 			expect(initialized).toEqual(true);
 			expect(serialized).toEqual(true);
@@ -1226,6 +1226,24 @@ describe("Grid Options", function () {
 					value = grid.options.data[row].data[grid.options.columns[cell].id];
 					expect($(this).text()).toEqual([row, cell, value].join('-'));
 				});
+			});
+		});
+
+
+		// ==========================================================================================
+
+
+		it("should be bound to the grid's instance", function () {
+			var scope = [],
+				grid = resetGrid($.extend(defaultData(), {
+				formatter: function (row, cell, value, columnDef, data) {
+					scope.push(this);
+					return value;
+				}
+			}));
+
+			_.each(scope, function (s) {
+				expect(s).toEqual(grid);
 			});
 		});
 	});

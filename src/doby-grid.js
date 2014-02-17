@@ -4302,11 +4302,13 @@
 			var columnOverrides = item.columns && (item.columns[column.id] || item.columns[cache.columnsById[column.id]]);
 
 			// Pick formatter starting at the item formatter and working down to the default
-			return item.formatter ? item.formatter.bind(item) : null ||
+			var f = item.formatter ? item.formatter.bind(item) : null ||
 				(columnOverrides && columnOverrides.formatter) ||
 				column.formatter ||
 				self.options.formatter ||
 				defaultFormatter;
+
+			return f.bind(self);
 		};
 
 
