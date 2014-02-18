@@ -191,6 +191,55 @@ describe("Data Options", function () {
 	// ==========================================================================================
 
 
+	describe("options.editable", function () {
+		it("should be null by default", function () {
+			var grid = resetGrid(defaultData());
+			_.each(grid.collection.item, function (item) {
+				expect(item.editable).toEqual(null);
+			});
+		});
+
+
+		// ==========================================================================================
+
+
+		it("should override any grid or column editable states for the cell", function () {
+			var grid = resetGrid({
+				columns: [
+					{id: 'id', field: 'id', name: 'id', editable: true},
+					{id: 'name', field: 'name', name: 'name', editable: true}
+				],
+				data: [
+					{data: {id: 189, name: 'test'}, id: 189, editable: true},
+					{data: {id: 289, name: 'test2'}, id: 289, editable: false}
+				],
+				editable: true
+			});
+
+			var rows = grid.$el.find('.doby-grid-row');
+
+			rows.each(function (i) {
+				$(this).children('.doby-grid-cell').each(function () {
+					if (i === 0) {
+						// Make sure all cells in first row are editable
+						$(this).simulate("dblclick");
+						expect($(this)).toContain("input");
+					} else {
+						// But all cells in second row are not
+						$(this).simulate("dblclick");
+						expect($(this)).not.toContain("input");
+					}
+				});
+			});
+
+		});
+
+	});
+
+
+	// ==========================================================================================
+
+
 	describe("options.exporter", function () {
 		it("should be null by default", function () {
 			var grid = resetGrid(defaultData());

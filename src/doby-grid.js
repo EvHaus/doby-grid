@@ -5320,15 +5320,19 @@
 		//
 		// @return boolean
 		isCellPotentiallyEditable = function (row, cell) {
-			var dataLength = getDataLength();
+			var dataLength = getDataLength(),
+				item = getDataItem(row);
+
+			// Is this cell editable?
+			if (item.editable === false) return false;
 
 			// Is this column editable?
 			if (cache.activeColumns[cell].editable === false) return false;
 
 			// Is the data for this row loaded?
-			if (row < dataLength && !getDataItem(row)) return false;
+			if (row < dataLength && !item) return false;
 
-			// does this cell have an editor?
+			// Does this cell have an editor?
 			if (!getEditor(row, cell)) return false;
 
 			return true;
@@ -5497,6 +5501,9 @@
 		//
 		makeActiveCellEditable = function (editor) {
 			if (!self.active || !self.active.node || self.options.editable !== true) return;
+
+			// Is this cell editable?
+			if (!isCellPotentiallyEditable(self.active.row, self.active.cell)) return;
 
 			// Cancel pending async call if there is one
 			clearTimeout(h_editorLoader);
