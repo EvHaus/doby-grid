@@ -3122,7 +3122,7 @@
 			// Cancel the edit and return the cell to its default state
 			//
 			this.cancel = function () {
-				makeActiveCellNormal();
+
 			};
 
 
@@ -5041,6 +5041,7 @@
 					if (e.which == 27) {
 						if (self.options.editable && currentEditor) {
 							currentEditor.cancel();
+							makeActiveCellNormal();
 
 							// Return focus back to the canvas
 							$canvas.focus();

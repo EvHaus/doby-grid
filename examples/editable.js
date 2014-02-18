@@ -21,22 +21,31 @@ define(['faker'], function (Faker) {
 		}
 
 		var editor = function (options) {
-			var $input, currentValue;
 
 			// initialize()
 			// The editor is actived when an active cell in the grid is focused.
 			// This should generate any DOM elements you want to use for your editor.
 			//
 			this.initialize = function () {
-				$input = $('<input type="text" class="editor" placeholder="' + currentValue + '"/>')
+				// Will hold the current value of the item being edited
+				this.loadValue(options.item);
+
+				var value = this.currentValue;
+				if (value === null || value === undefined) value = "";
+
+				this.$input = $('<input type="text" class="doby-grid-editor" value="' + value + '"/>')
 					.appendTo(options.cell)
-							.on("keydown", function (event) {
-								// Left or right arrow keys will prevent editor from saving
-								// results and will instead, move the text cursor
-								if (event.keyCode === 37 || event.keyCode === 39) {
-									event.stopImmediatePropagation();
-								}
-							})
+					.on("keydown", function (event) {
+						// Escape out of here on 'Tab', 'Enter', 'Home, 'End', 'Page Up' and 'Page Down'
+						// so that the grid can capture that event
+						if ([9, 13, 33, 34, 35, 36].indexOf(event.which) >= 0) {
+							event.preventDefault();
+							return;
+						}
+
+						// Esc
+						if (event.which == 27) return;
+					})
 					.focus()
 					.select();
 			};
@@ -59,7 +68,7 @@ define(['faker'], function (Faker) {
 			//
 			this.cancel = function () {
 				this.destroy();
-				$(options.cell).html(currentValue);
+				$(options.cell).html(this.currentValue);
 			};
 
 
@@ -67,7 +76,7 @@ define(['faker'], function (Faker) {
 			// Destroys any elements your editor has created.
 			//
 			this.destroy = function () {
-				$input.remove();
+				this.$input.remove();
 			};
 
 
@@ -75,7 +84,7 @@ define(['faker'], function (Faker) {
 			// When the cell with an initialized editor is focused
 			//
 			this.focus = function () {
-				$input.focus();
+				this.$input.focus();
 			};
 
 
@@ -84,7 +93,7 @@ define(['faker'], function (Faker) {
 			//
 			// @return string
 			this.getValue = function () {
-				return $input.val();
+				return this.$input.val();
 			};
 
 
@@ -93,7 +102,7 @@ define(['faker'], function (Faker) {
 			//
 			// @return boolean
 			this.isValueChanged = function () {
-				return (!($input.val() === "" && currentValue === null)) && ($input.val() != currentValue);
+				return (!(this.$input.val() === "" && this.currentValue === null)) && (this.$input.val() != this.currentValue);
 			};
 
 
@@ -103,7 +112,7 @@ define(['faker'], function (Faker) {
 			// @param   item    object      Data model object that is being edited
 			//
 			this.loadValue = function (item) {
-				currentValue = item.data[options.column.field] || "";
+				this.currentValue = item.data[options.column.field] || "";
 			};
 
 
@@ -111,7 +120,7 @@ define(['faker'], function (Faker) {
 			// Process the input value before submitting it
 			//
 			this.serializeValue = function () {
-				return $input.val();
+				return this.$input.val();
 			};
 
 
@@ -122,7 +131,7 @@ define(['faker'], function (Faker) {
 			// @param   val     string      Value to set
 			//
 			this.setValue = function (val) {
-				$input.val(val);
+				this.$input.val(val);
 			};
 
 
@@ -134,7 +143,7 @@ define(['faker'], function (Faker) {
 			// @return object
 			this.validate = function () {
 				if (options.column.validator) {
-					var validationResults = options.column.validator($input.val());
+					var validationResults = options.column.validator(this.$input.val());
 					if (!validationResults.valid) {
 						return validationResults;
 					}
@@ -186,7 +195,7 @@ define(['faker'], function (Faker) {
 				removable: true
 			}],
 			data: data,
-			//editor: editor,
+			editor: editor,
 			editable: true,
 			quickFilter: true
 		};
