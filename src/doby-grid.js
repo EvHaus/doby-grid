@@ -1521,7 +1521,7 @@
 				var column = cache.activeColumns[cell];
 
 				// Execute the operation
-				currentEditor.applyValue(item, column.id, currentEditor.serializeValue());
+				currentEditor.applyValue(item, column, currentEditor.serializeValue());
 				updateRow(row);
 
 				self.trigger('change', self._event, {
@@ -1542,7 +1542,7 @@
 						};
 
 						// Add row
-						currentEditor.applyValue(newItem, column.id, currentEditor.serializeValue());
+						currentEditor.applyValue(newItem, column, currentEditor.serializeValue());
 
 						// Make sure item has an id
 						if ((!newItem.data.id && !newItem.id) ||
@@ -3105,12 +3105,10 @@
 			// This is the function that will update the data model in the grid.
 			//
 			// @param	item		object		The data model for the item being edited
-			// @param	column_id	string		The ID of the column being edited
+			// @param	column		object		The column object being edited
 			// @param	value		string		The user-input value being entered
 			//
-			this.applyValue = function (item, column_id, value) {
-				var column = getColumnById(column_id);
-
+			this.applyValue = function (item, column, value) {
 				// Make sure we always have an id for our item
 				if (!('id' in item) && column.field == 'id') {
 					item.id = value;
