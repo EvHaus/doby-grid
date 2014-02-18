@@ -45,9 +45,7 @@ define(['faker'], function (Faker) {
 
 						// Esc
 						if (event.which == 27) return;
-					})
-					.focus()
-					.select();
+					});
 			};
 
 
@@ -84,7 +82,7 @@ define(['faker'], function (Faker) {
 			// When the cell with an initialized editor is focused
 			//
 			this.focus = function () {
-				this.$input.focus();
+				this.$input.focus().select();
 			};
 
 
@@ -195,7 +193,7 @@ define(['faker'], function (Faker) {
 				removable: true
 			}],
 			data: data,
-			editor: editor,
+			//editor: editor,
 			editable: true,
 			quickFilter: true
 		};

@@ -1083,39 +1083,6 @@ describe("Grid Options", function () {
 	// ==========================================================================================
 
 
-	describe("options.editor", function () {
-		it("should be able to initialize a custom editor", function () {
-			var initialized, serialized;
-
-			// Prepare for test
-			var grid = resetGrid($.extend(defaultData(), {
-				editable: true,
-				editor: function (options) {
-					this.initialize = function () {
-						initialized = true;
-						$(options.cell).html('test');
-					};
-					this.serializeValue = function () {
-						serialized = true;
-						return 'test';
-					};
-					return this.initialize();
-				}
-			}));
-
-			var $cell = grid.$el.find('.doby-grid-cell:first');
-			$cell.simulate('click');
-
-			expect($cell).toHaveText('test');
-			expect(initialized).toEqual(true);
-			expect(serialized).toEqual(true);
-		});
-	});
-
-
-	// ==========================================================================================
-
-
 	describe("options.editorType", function () {
 		it("should edit all selected cells when set to 'selection' (default setting)", function () {
 			var grid = resetGrid($.extend(defaultData(), {editable: true}));

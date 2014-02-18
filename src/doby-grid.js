@@ -3095,9 +3095,7 @@
 						) {
 							event.stopImmediatePropagation();
 						}
-					})
-					.focus()
-					.select();
+					});
 			};
 
 
@@ -3138,7 +3136,7 @@
 			// When the cell with an initialized editor is focused
 			//
 			this.focus = function () {
-				this.$input.focus();
+				this.$input.focus().select();
 			};
 
 
@@ -5537,11 +5535,17 @@
 			});
 
 			// Validate editor for required methods
-			if (!currentEditor.serializeValue) {
-				throw new Error("Your editor is missing a serializeValue function.");
+			var editormethods = ['applyValue', 'cancel', 'destroy', 'focus', 'getValue', 'isValueChanged', 'loadValue', 'serializeValue', 'setValue', 'validate'];
+			for (var i = 0, l = editormethods.length; i < l; i++) {
+				if (!currentEditor[editormethods[i]]) {
+					throw new Error("Your editor is missing a '" + [editormethods[i]] + "' function.");
+				}
 			}
 
 			serializedEditorValue = currentEditor.serializeValue();
+
+			// Focus the editor
+			currentEditor.focus();
 		};
 
 

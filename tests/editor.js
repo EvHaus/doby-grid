@@ -11,20 +11,6 @@ describe("Editors", function () {
 	// ==========================================================================================
 
 
-	// Utilities for resetting the grid
-	var defaultData = function () {
-		return JSON.parse(JSON.stringify({
-			columns: [
-				{id: 'id', field: 'id', name: 'id'},
-				{id: 'name', field: 'name', name: 'name'}
-			],
-			data: [
-				{data: {id: 189, name: 'test'}, id: 189},
-				{data: {id: 289, name: 'test2'}, id: 289}
-			]
-		}));
-	};
-
 	var editor = function (options) {
 
 		// initialize()
@@ -50,9 +36,7 @@ describe("Editors", function () {
 
 					// Esc
 					if (event.which == 27) return;
-				})
-				.focus()
-				.select();
+				});
 		};
 
 
@@ -89,7 +73,10 @@ describe("Editors", function () {
 		// When the cell with an initialized editor is focused
 		//
 		this.focus = function () {
-			this.$input.focus();
+			this.$input
+				.addClass("focused")
+				.focus()
+				.select();
 		};
 
 
@@ -163,6 +150,25 @@ describe("Editors", function () {
 		return this.initialize();
 	};
 
+	// Utilities for resetting the grid
+	var defaultData = function () {
+		var copy = JSON.parse(JSON.stringify({
+			columns: [
+				{id: 'id', field: 'id', name: 'id'},
+				{id: 'name', field: 'name', name: 'name'}
+			],
+			data: [
+				{data: {id: 189, name: 'test'}, id: 189},
+				{data: {id: 289, name: 'test2'}, id: 289}
+			],
+			editable: true
+		}));
+
+		copy.editor = editor;
+
+		return copy;
+	};
+
 	var resetGrid = function (options) {
 		options = options || {};
 		var grid = new DobyGrid(options),
@@ -183,10 +189,7 @@ describe("Editors", function () {
 	it("should be able to initialize a custom editor", function () {
 		// Prepare grid
 		expect(function () {
-			resetGrid($.extend(defaultData(), {
-				editable: true,
-				editor: editor
-			}));
+			resetGrid(defaultData());
 		}).not.toThrow();
 	});
 
@@ -200,9 +203,7 @@ describe("Editors", function () {
 			columns: [
 				{id: 'id', field: 'id', name: 'id', formatter: function () { return "TEST"; }},
 				{id: 'name', field: 'name', name: 'name', formatter: function () { return "TEST"; }}
-			],
-			editable: true,
-			editor: editor
+			]
 		}));
 
 		var $cell = grid.$el.find('.doby-grid-cell:first');
@@ -210,7 +211,7 @@ describe("Editors", function () {
 		// Make sure formatter is set correctly
 		expect($cell).toHaveText("TEST");
 
-		$cell.simulate('dblclick');
+		$cell.simulate('click');
 
 		// Make sure editor was enabled
 		expect($cell).toHaveClass('active');
@@ -227,6 +228,22 @@ describe("Editors", function () {
 
 		// Make sure formatter was
 		expect($cell).toHaveText("TEST");
+	});
+
+
+	// ==========================================================================================
+
+
+	it("should call the focus function of the editor when an editable cell is focused", function () {
+		// Prepare grid
+		var grid = resetGrid(defaultData());
+
+		// Enable cell for editing
+		var $cell = grid.$el.find('.doby-grid-cell:first').first();
+		$cell.simulate('click');
+
+		// Make sure focus was called
+		expect($cell.children()).toHaveClass('focused');
 	});
 
 });
