@@ -5110,6 +5110,9 @@
 						if (self.options.editable && currentEditor) {
 							if (commitCurrentEdit()) {
 								handled = navigate("next");
+
+								// Return focus back to the canvas
+								$canvas.focus();
 							}
 						} else {
 							handled = navigate("next");
