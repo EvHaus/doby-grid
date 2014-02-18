@@ -980,6 +980,63 @@ describe("Grid Options", function () {
 	// ==========================================================================================
 
 
+	describe("options.deactivateOnRightClick", function () {
+		it("should be false by default", function () {
+			var grid = resetGrid(defaultData());
+			expect(grid.options.deactivateOnRightClick).toEqual(false);
+		});
+
+
+		// ==========================================================================================
+
+
+		it("should not deactivate cells on right-click when disabled", function () {
+			var grid = resetGrid($.extend(defaultData(), {
+				deactivateOnRightClick: false
+			}));
+
+			// Activate a cell
+			grid.activate(0, 0);
+
+			// Right-click on the cell
+			var $cell = grid.$el.find('.doby-grid-cell').first();
+			$cell.simulate('contextmenu');
+
+			// It should stay activated
+			expect($cell).toHaveClass('active');
+
+			// Close dropdowns
+			$(document.body).find('.doby-grid-dropdown').remove();
+		});
+
+
+		// ==========================================================================================
+
+
+		it("should deactivate cells on right-click when enabled", function () {
+			var grid = resetGrid($.extend(defaultData(), {
+				deactivateOnRightClick: true
+			}));
+
+			// Activate a cell
+			grid.activate(0, 0);
+
+			// Right-click on the cell
+			var $cell = grid.$el.find('.doby-grid-cell').first();
+			$cell.simulate('contextmenu');
+
+			// It should stay activated
+			expect($cell).not.toHaveClass('active');
+
+			// Close dropdowns
+			$(document.body).find('.doby-grid-dropdown').remove();
+		});
+	});
+
+
+	// ==========================================================================================
+
+
 	describe("options.editable", function () {
 		it("should be disabled by default", function () {
 			var grid = resetGrid(defaultData());
@@ -1236,7 +1293,7 @@ describe("Grid Options", function () {
 		it("should be bound to the grid's instance", function () {
 			var scope = [],
 				grid = resetGrid($.extend(defaultData(), {
-				formatter: function (row, cell, value, columnDef, data) {
+				formatter: function (row, cell, value) {
 					scope.push(this);
 					return value;
 				}

@@ -329,6 +329,7 @@
 			ctrlSelect:				true,
 			data:					[],
 			dataExtractor:			null,
+			deactivateOnRightClick:	false,
 			editable:				false,
 			editor:					null,
 			editorType:				'selection',
@@ -4946,6 +4947,9 @@
 		handleContextMenu = function (e) {
 			var $cell = $(e.target).closest("." + classcell, $canvas);
 			if ($cell.length === 0) return;
+
+			// Deactivate active cell
+			if (self.options.deactivateOnRightClick && self.active) self.activate();
 
 			// Are we editing this cell?
 			if (self.active && self.active.node === $cell[0] && currentEditor !== null) return;
