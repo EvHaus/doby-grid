@@ -329,6 +329,7 @@
 			ctrlSelect:				true,
 			data:					[],
 			dataExtractor:			null,
+			deactivateOnRightClick:	false,
 			editable:				false,
 			editor:					null,
 			editorType:				'selection',
@@ -1520,7 +1521,7 @@
 				var column = cache.activeColumns[cell];
 
 				// Execute the operation
-				currentEditor.applyValue(item, column.id, currentEditor.serializeValue());
+				currentEditor.applyValue(item, column, currentEditor.serializeValue());
 				updateRow(row);
 
 				self.trigger('change', self._event, {
@@ -1541,7 +1542,7 @@
 						};
 
 						// Add row
-						currentEditor.applyValue(newItem, column.id, currentEditor.serializeValue());
+						currentEditor.applyValue(newItem, column, currentEditor.serializeValue());
 
 						// Make sure item has an id
 						if ((!newItem.data.id && !newItem.id) ||
@@ -3104,12 +3105,10 @@
 			// This is the function that will update the data model in the grid.
 			//
 			// @param	item		object		The data model for the item being edited
-			// @param	column_id	string		The ID of the column being edited
+			// @param	column		object		The column object being edited
 			// @param	value		string		The user-input value being entered
 			//
-			this.applyValue = function (item, column_id, value) {
-				var column = getColumnById(column_id);
-
+			this.applyValue = function (item, column, value) {
 				// Make sure we always have an id for our item
 				if (!('id' in item) && column.field == 'id') {
 					item.id = value;
@@ -4302,11 +4301,13 @@
 			var columnOverrides = item.columns && (item.columns[column.id] || item.columns[cache.columnsById[column.id]]);
 
 			// Pick formatter starting at the item formatter and working down to the default
-			return item.formatter ? item.formatter.bind(item) : null ||
+			var f = item.formatter ? item.formatter.bind(item) : null ||
 				(columnOverrides && columnOverrides.formatter) ||
 				column.formatter ||
 				self.options.formatter ||
 				defaultFormatter;
+
+			return f.bind(self);
 		};
 
 
@@ -4945,6 +4946,9 @@
 			var $cell = $(e.target).closest("." + classcell, $canvas);
 			if ($cell.length === 0) return;
 
+			// Deactivate active cell
+			if (self.options.deactivateOnRightClick && self.active) self.activate();
+
 			// Are we editing this cell?
 			if (self.active && self.active.node === $cell[0] && currentEditor !== null) return;
 
@@ -5316,15 +5320,19 @@
 		//
 		// @return boolean
 		isCellPotentiallyEditable = function (row, cell) {
-			var dataLength = getDataLength();
+			var dataLength = getDataLength(),
+				item = getDataItem(row);
+
+			// Is this cell editable?
+			if (item.editable === false) return false;
 
 			// Is this column editable?
 			if (cache.activeColumns[cell].editable === false) return false;
 
 			// Is the data for this row loaded?
-			if (row < dataLength && !getDataItem(row)) return false;
+			if (row < dataLength && !item) return false;
 
-			// does this cell have an editor?
+			// Does this cell have an editor?
 			if (!getEditor(row, cell)) return false;
 
 			return true;
@@ -5493,6 +5501,9 @@
 		//
 		makeActiveCellEditable = function (editor) {
 			if (!self.active || !self.active.node || self.options.editable !== true) return;
+
+			// Is this cell editable?
+			if (!isCellPotentiallyEditable(self.active.row, self.active.cell)) return;
 
 			// Cancel pending async call if there is one
 			clearTimeout(h_editorLoader);
