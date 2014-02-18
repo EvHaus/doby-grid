@@ -6457,7 +6457,8 @@
 				rowI = Math.min(cache.activeColumns.length - 1, cell + colspan - 1),
 
 				// Group rows do not inherit column class
-				mClass = item instanceof Group ? "" : (m.class ? typeof m.class === "function" ? m.class() : m.class : null),
+				value = item ? getDataItemValueForColumn(item, m) : null,
+				mClass = item instanceof Group ? "" : (m.class ? typeof m.class === "function" ? m.class(row, cell, value, m, item) : m.class : null),
 
 				column = cache.activeColumns[cell],
 				cellCss = [classcell, "l" + cell, "r" + rowI];
@@ -6479,8 +6480,6 @@
 			} else if (item) {
 				// if there is a corresponding row (if not, this is the Add New row or
 				// this data hasn't been loaded yet)
-
-				var value = getDataItemValueForColumn(item, m);
 
 				try {
 					result.push(getFormatter(row, m)(row, cell, value, m, item));
@@ -6626,7 +6625,7 @@
 				top = self.options.rowHeight * row - offset + (row * 1);
 			}
 
-			if (d && d.class) rowCss += " " + (typeof d.class === 'function' ? d.class() : d.class);
+			if (d && d.class) rowCss += " " + (typeof d.class === 'function' ? d.class(row, d) : d.class);
 
 			stringArray.push("<div class='" + rowCss + "' style='top:" + top + "px");
 

@@ -582,6 +582,30 @@ describe("Column Options", function () {
 				});
 			});
 		});
+
+
+		// ==========================================================================================
+
+
+		it("should be able to use a class function", function () {
+			var myFunction = function (row, cell, value, columnDef, data) {
+				return [row, cell, value, columnDef.id, data.id].join('-');
+			}, columns = [
+				{id: 'id', field: 'id', name: 'id', class: myFunction},
+				{id: 'name', field: 'name', name: 'name', class: myFunction}
+			], grid = resetGrid($.extend(defaultData(), {
+				columns: columns
+			})), value;
+
+			grid.$el.find('.doby-grid-row').each(function (row) {
+				$(this).find('.doby-grid-cell').each(function (cell) {
+					value = grid.collection.items[row].data[columns[cell].field];
+					expect($(this)).toHaveClass([
+						row, cell, value, columns[cell].id, grid.collection.items[row].id
+					].join('-'));
+				});
+			});
+		});
 	});
 
 

@@ -68,6 +68,27 @@ describe("Data Options", function () {
 				expect($(this).attr('class')).toContain('class-' + i);
 			});
 		});
+
+
+		// ==========================================================================================
+
+
+		it("should be able to use a class function", function () {
+			var myFunction = function (row, data) {
+				return [row, data.id].join('-');
+			}, data = [
+				{data: {id: 189, name: 'test'}, id: 189, class: myFunction},
+				{data: {id: 289, name: 'test2'}, id: 289, class: myFunction}
+			], grid = resetGrid($.extend(defaultData(), {
+				data: data
+			})), value;
+
+			grid.$el.find('.doby-grid-row').each(function (row) {
+				expect($(this)).toHaveClass([
+					row, grid.collection.items[row].id
+				].join('-'));
+			});
+		});
 	});
 
 
