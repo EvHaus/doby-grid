@@ -2303,7 +2303,21 @@
 					if (id === null || id === undefined) return null;
 				}
 
-				return this.items[cache.indexById[id]];
+				// NOTE: We need a cache of collection item ids to handle this more efficiently
+				var findItem = function (set) {
+					var subitem;
+					for (var i = 0, l = set.length; i < l; i++) {
+						if (set[i].id == id) return set[i];
+						if (set[i].rows) {
+							subitem = findItem(_.values(set[i].rows));
+							if (subitem) return subitem;
+						}
+					}
+					return null;
+				}.bind(this);
+
+				// Lookup the data item in the collection
+				return findItem(this.items);
 			};
 
 
@@ -2888,9 +2902,10 @@
 			// @return object
 			this.setItem = function (id, data) {
 				// Get the index of this item
-				var idx = cache.indexById[id];
+				var idx = cache.indexById[id],
+					original_object = this.get(id);
 
-				if (idx === undefined || (grid.options.data instanceof Backbone.Collection && !this.get(id))) {
+				if (idx === undefined && original_object === null) {
 					throw new Error("Unable to update item (id: " + id + "). Invalid or non-matching id");
 				}
 
@@ -2905,8 +2920,6 @@
 						throw new Error("Sorry, but Backbone does not support changing a model's id value, and as a result, this is not supported in Doby Grid either.");
 					}
 				}
-
-				var original_object = cache.rows[idx];
 
 				// Clear postprocessing cache
 				if (cache.postprocess[id]) {

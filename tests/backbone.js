@@ -313,4 +313,51 @@ describe("Backbone Integration", function () {
 		});
 	});
 
+
+	// ==========================================================================================
+
+
+	it("should be able to update item that isn't visible on screen due to collapsed grouping", function () {
+		var data = _.map(_.range(0, 100), function (i) {
+			return {
+				id: i,
+				name: "Bobby McFerrin",
+				age: "old",
+				city: _.sample(["Somewhere", "Nowhere"])
+			};
+		}), collection = new Backbone.Collection(data),
+			results = resetGrid({
+				columns: [{
+					id: 'city',
+					name: 'City',
+					field: 'city'
+				}],
+				data: collection
+			}),
+			grid = results[0];
+
+		waitsFor(function () {
+			// Wait until rows are rendered
+			var $rows = grid.$el.find(".doby-grid-row:not('.doby-grid-alert')");
+			return $rows.length > 1;
+		}, 100);
+
+		runs(function () {
+			// Add some grouping
+			grid.addGrouping('city', {collapsed: true});
+		});
+
+		waitsFor(function () {
+			// Wait until groups are collapsed
+			var $rows = grid.$el.find(".doby-grid-row");
+			return ($rows.length == 2) && $rows.hasClass('doby-grid-group');
+		}, 100);
+
+		runs(function () {
+			// Now try to update an item
+			var model = collection.at(45);
+			model.set({age: 'veryold'});
+		});
+	});
+
 });

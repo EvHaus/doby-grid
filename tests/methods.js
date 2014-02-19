@@ -1141,6 +1141,30 @@ describe("Methods and Data Manipulation", function () {
 			var gotten = grid.get({data: {id: 103, name: 'updated'}, id: 103});
 			expect(gotten.data.id).toEqual(103);
 		});
+
+
+		// ==========================================================================================
+
+
+		it("should be able to get() an items via the id of a subrow", function () {
+			var item = {
+				data: {id: 1, name: 'one'},
+				rows: {
+					1: {
+						id: 2,
+						data: {id: 2, name: 'two'}
+					}
+				},
+				id: 1
+			};
+			var grid = resetGrid({
+				data: [item]
+			});
+
+			// Validate
+			var gotten = grid.get(2);
+			expect(gotten.data.id).toEqual(2);
+		});
 	});
 
 
