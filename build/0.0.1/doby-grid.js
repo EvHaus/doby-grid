@@ -7316,6 +7316,9 @@
 				// Also make sure that the right resize handles are drawn
 				setupColumnResize();
 				autosizeColumns();
+
+				// Fire column resize event
+				self.trigger('columnresize', {});
 			}
 		};
 

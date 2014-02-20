@@ -1979,6 +1979,40 @@ describe("Methods and Data Manipulation", function () {
 		});
 
 
+		// ==========================================================================================
+
+
+		it("should fire the 'columnresize' event when 'autoColumnWidth' is toggled via setOptions()", function () {
+			var called = 0,
+				grid = resetGrid({
+					columns: [{id: 'id', field: 'id'}, {id: 'id2', field: 'id2'}]
+				});
+
+			grid.on('columnresize', function () {
+				called++;
+			});
+
+			// Toggle
+			grid.setOptions({
+				autoColumnWidth: !grid.options.autoColumnWidth
+			});
+
+			waitsFor(function () {
+				return called === 1;
+			}, 100, 'waiting for columnresize event to be called');
+
+			runs(function () {
+				// Toggle back
+				grid.setOptions({
+					autoColumnWidth: !grid.options.autoColumnWidth
+				});
+			});
+
+			waitsFor(function () {
+				return called === 2;
+			}, 100, 'waiting for columnresize event to be called');
+		});
+
 
 	});
 
