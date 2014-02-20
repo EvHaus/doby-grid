@@ -685,10 +685,19 @@ describe("Methods and Data Manipulation", function () {
 			});
 
 			// Export
-			var result = grid.export('csv');
+			var result;
+			grid.export('csv', function (r) {
+				result = r;
+			});
 
-			// Check er!
-			expect(result).toEqual('"ID","Name"\n"1","one"\n"2","two"');
+			waitsFor(function () {
+				return result;
+			});
+
+			runs(function () {
+				// Check er!
+				expect(result).toEqual('"ID","Name"\n"1","one"\n"2","two"');
+			});
 		});
 
 
@@ -709,10 +718,19 @@ describe("Methods and Data Manipulation", function () {
 			});
 
 			// Export
-			var result = grid.export('html');
+			var result;
+			grid.export('html', function (r) {
+				result = r;
+			});
 
-			// Check er!
-			expect(result).toEqual('<table><thead><tr><th>ID</th><th>Name</th></tr></thead><tbody><tr><td>1</td><td>one</td></tr><tr><td>2</td><td>two</td></tr></tbody></table>');
+			waitsFor(function () {
+				return result;
+			});
+
+			runs(function () {
+				// Check er!
+				expect(result).toEqual('<table><thead><tr><th>ID</th><th>Name</th></tr></thead><tbody><tr><td>1</td><td>one</td></tr><tr><td>2</td><td>two</td></tr></tbody></table>');
+			});
 		});
 
 
@@ -735,10 +753,19 @@ describe("Methods and Data Manipulation", function () {
 			});
 
 			// Export
-			var result = grid.export('csv');
+			var result;
+			grid.export('csv', function (r) {
+				result = r;
+			});
 
-			// Check er!
-			expect(result).toEqual('"ID","Name"\n"asd1","one"\n"asd2","two"');
+			waitsFor(function () {
+				return result;
+			});
+
+			runs(function () {
+				// Check er!
+				expect(result).toEqual('"ID","Name"\n"asd1","one"\n"asd2","two"');
+			});
 		});
 	});
 

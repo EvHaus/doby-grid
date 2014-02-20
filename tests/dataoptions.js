@@ -81,7 +81,7 @@ describe("Data Options", function () {
 				{data: {id: 289, name: 'test2'}, id: 289, class: myFunction}
 			], grid = resetGrid($.extend(defaultData(), {
 				data: data
-			})), value;
+			}));
 
 			grid.$el.find('.doby-grid-row').each(function (row) {
 				expect($(this)).toHaveClass([
@@ -291,9 +291,18 @@ describe("Data Options", function () {
 			});
 
 			// Export
-			var csv = grid.export('csv');
+			var result;
+			grid.export('csv', function (r) {
+				result = r;
+			});
 
-			expect(csv).toEqual('"id","name"\n"My Special Value id1","My Special Value name1"\n"2","test 1"');
+			waitsFor(function () {
+				return result;
+			}, 100, 'waiting for export callback to fire');
+
+			runs(function () {
+				expect(result).toEqual('"id","name"\n"My Special Value id1","My Special Value name1"\n"2","test 1"');
+			});
 		});
 	});
 

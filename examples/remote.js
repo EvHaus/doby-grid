@@ -77,6 +77,7 @@ define(['faker', 'backbone'], function (Faker, Backbone) {
 		};
 
 		var fetch = function (options, callback) {
+
 			// Fake AJAX delay
 			return setTimeout(function () {
 				var result = new Backbone.Collection();
@@ -107,7 +108,13 @@ define(['faker', 'backbone'], function (Faker, Backbone) {
 					});
 				}
 
-				mydata = mydata.slice(options.offset, options.offset + options.limit);
+				if (options.offset !== null && options.offset !== undefined) {
+					if (options.limit !== null && options.limit !== undefined) {
+						mydata = mydata.slice(options.offset, options.offset + options.limit);
+					} else {
+						mydata = mydata.slice(options.offset);
+					}
+				}
 
 				_.each(mydata, function (i) {
 					result.add(i.data);

@@ -257,6 +257,8 @@
 			remoteLoaded,
 			remoteCount,
 			remoteFetch,
+			remoteFetchAll,
+			remoteFetcher,
 			remoteFetchGroups,
 			remoteGroupRefetch,
 			remoteRequest = null,
@@ -3592,87 +3594,105 @@
 
 		// export()
 		// Export all grid data to a format of your choice. Available formats are 'csv' and 'html'.
-		// TODO: Exporting remote grid should prompt user what to export, all data, or what's loaded.
 		//
 		// @param	format		string		Which format to export to
+		// @param	callback	function	Callback function
 		//
-		// @return string
-		this.export = function (format) {
+		// @return object
+		this.export = function (format, callback) {
 			var allowed = ['csv', 'html'];
 			if (allowed.indexOf(format) < 0) throw new Error('Sorry, "' + format + '" is not a supported format for export.');
+			callback = callback || function () {};
 
-			// First collect all the data as an array of arrays
-			var result = [], i, l, row, ii, ll, val;
+			var processExport = function () {
+				// First collect all the data as an array of arrays
+				var result = [], i, l, row, ii, ll, val;
 
-			if (format === 'html') {
-				result.push('<table><thead><tr>');
-			}
-
-			// Get header
-			var header = [];
-			for (i = 0, l = cache.activeColumns.length; i < l; i++) {
-				val = cache.activeColumns[i].name || "";
-				if (format === 'csv') {
-					// Escape quotes
-					val = val.replace(/\"/g, '\"');
-
-					header.push(['"', val, '"'].join(''));
-				} else if (format === 'html') {
-					header.push('<th>');
-					header.push(val);
-					header.push('</th>');
+				if (format === 'html') {
+					result.push('<table><thead><tr>');
 				}
-			}
 
-			if (format === 'csv') {
-				result.push(header.join(','));
-			} else if (format === 'html') {
-				result.push(header.join(''));
-				result.push('</tr></thead><tbody>');
-			}
-
-			// Get data
-			for (i = 0, l = this.collection.items.length; i < l; i++) {
-				// Don't export non-data
-				if (this.collection.items[i] instanceof NonDataItem) continue;
-
-				row = [];
-				if (format === 'html') row.push('<tr>');
-				for (ii = 0, ll = cache.activeColumns.length; ii < ll; ii++) {
-
-					val = getValueFromItem(this.collection.items[i], cache.activeColumns[ii]);
-
+				// Get header
+				var header = [];
+				for (i = 0, l = cache.activeColumns.length; i < l; i++) {
+					val = cache.activeColumns[i].name || "";
 					if (format === 'csv') {
 						// Escape quotes
-						val = val !== null && val !== undefined ? val.toString().replace(/\"/g, '\"') : '';
+						val = val.replace(/\"/g, '\"');
 
-						row.push(['"', val, '"'].join(''));
+						header.push(['"', val, '"'].join(''));
 					} else if (format === 'html') {
-						row.push('<td>');
-						row.push(val);
-						row.push('</td>');
+						header.push('<th>');
+						header.push(val);
+						header.push('</th>');
 					}
 				}
+
 				if (format === 'csv') {
-					result.push(row.join(','));
+					result.push(header.join(','));
 				} else if (format === 'html') {
-					row.push('</tr>');
-					result.push(row.join(''));
+					result.push(header.join(''));
+					result.push('</tr></thead><tbody>');
 				}
 
+				// Get data
+				for (i = 0, l = this.collection.items.length; i < l; i++) {
+					// Don't export non-data
+					if (this.collection.items[i] instanceof NonDataItem) continue;
+
+					row = [];
+					if (format === 'html') row.push('<tr>');
+					for (ii = 0, ll = cache.activeColumns.length; ii < ll; ii++) {
+
+						val = getValueFromItem(this.collection.items[i], cache.activeColumns[ii]);
+
+						if (format === 'csv') {
+							// Escape quotes
+							val = val !== null && val !== undefined ? val.toString().replace(/\"/g, '\"') : '';
+
+							row.push(['"', val, '"'].join(''));
+						} else if (format === 'html') {
+							row.push('<td>');
+							row.push(val);
+							row.push('</td>');
+						}
+					}
+					if (format === 'csv') {
+						result.push(row.join(','));
+					} else if (format === 'html') {
+						row.push('</tr>');
+						result.push(row.join(''));
+					}
+
+				}
+
+				if (format === 'html') {
+					result.push('</tbody></table>');
+				}
+
+				if (format === 'csv') {
+					result = result.join("\n");
+				} else if (format === 'html') {
+					result = result.join("");
+				}
+
+				callback(result);
+			}.bind(this);
+
+			// If this is a remote data set and we don't have all data, ask the user what to export?
+			var remoteConfirm = remote && !remoteAllLoaded() ? confirm('Are you sure you want to export all data? This will require a full data fetch on the server.') : true;
+
+			if (remoteConfirm) {
+				if (remote) {
+					remoteFetchAll(function () {
+						processExport();
+					});
+				} else {
+					processExport();
+				}
 			}
 
-			if (format === 'html') {
-				result.push('</tbody></table>');
-			}
-
-			if (format === 'csv') {
-				result = result.join("\n");
-			} else if (format === 'html') {
-				result = result.join("");
-			}
-
-			return result;
+			return this;
 		};
 
 
@@ -6134,6 +6154,73 @@
 				return;
 			}
 
+			// Run the fetcher
+			remoteFetcher({
+				columns: cache.activeColumns,
+				filters: typeof(self.collection.filter) != 'function' ? self.collection.filter : null,
+				limit: newTo - newFrom + 1,
+				offset: newFrom,
+				order: self.sorting
+			}, function (results) {
+				// Add items to Backbone.Collection dataset
+				// TODO: We may want to make this optional as users way want to control
+				// what's added to their collections manually.
+				if (self.options.data instanceof Backbone.Collection) {
+					for (var i = 0, l = results.length; i < l; i++) {
+						self.options.data.add(results[i], {at: newFrom + i, merge: true});
+					}
+				} else {
+					// Item items to internal collection
+					self.collection.add(results, {at: newFrom, merge: true});
+				}
+
+				// Fire loaded function to process the changes
+				remoteLoaded((newFrom - collapsedOffset), (newTo + nonDataOffset - collapsedOffset));
+			});
+		};
+
+
+		// remoteFetchAll()
+		// Fetches all the remote data the server has available for this grid. This is needed sometimes,
+		// like in the case where the user may want to export the full result data set.
+		//
+		// @param	callback	function	Callback function
+		//
+		remoteFetchAll = function (callback) {
+			callback = callback || function () {};
+
+			// If scrolling fast, abort pending requests
+			if (remoteRequest && typeof remoteRequest.abort === 'function') {
+				remoteRequest.abort();
+			}
+
+			// Also, cancel previous execution entirely (if refetching very quickly)
+			if (remoteTimer !== null) clearTimeout(remoteTimer);
+
+			remoteFetcher({
+				columns: cache.activeColumns,
+				order: self.sorting
+			}, function (results) {
+				self.collection.reset(results);
+				callback();
+			});
+		};
+
+
+		// remoteFetcher()
+		// Handles the processing of the remote fetch function for remoteFetch and remoteFetchAll
+		// since both of those functions share the majority of their fetching code.
+		//
+		// @param	options		object		Fetching options
+		// @param	callback	function	Callback function
+		//
+		remoteFetcher = function (options, callback) {
+			callback = callback || function () {};
+
+			// Ensure basic options are defined
+			if (!options.offset) options.offset = 0;
+			if (!options.limit) options.limit = null;
+
 			// Put the request on a timer so that when users scroll quickly they don't fire off
 			// hundreds of requests for no good reason.
 			remoteTimer = setTimeout(function () {
@@ -6141,33 +6228,11 @@
 					// Fire onLoading callback
 					if (typeof remote.onLoading === 'function') remote.onLoading();
 
-					// Builds the options we need to give the fetcher
-					var options = {
-						columns: cache.activeColumns,
-						filters: typeof(self.collection.filter) != 'function' ? self.collection.filter : null,
-						limit: newTo - newFrom + 1,
-						offset: newFrom,
-						order: self.sorting
-					};
-
 					remoteRequest = remote.fetch(options, function (results) {
-						// Add items to Backbone.Collection dataset
-						// TODO: We may want to make this optional as users way want to control
-						// what's added to their collections manually.
-						if (self.options.data instanceof Backbone.Collection) {
-							for (var i = 0, l = results.length; i < l; i++) {
-								self.options.data.add(results[i], {at: newFrom + i, merge: true});
-							}
-						} else {
-							// Item items to internal collection
-							self.collection.add(results, {at: newFrom, merge: true});
-						}
-
 						// Empty the request variable so it doesn't get aborted on scroll
 						remoteRequest = null;
 
-						// Fire loaded function to process the changes
-						remoteLoaded((newFrom - collapsedOffset), (newTo + nonDataOffset - collapsedOffset));
+						callback(results);
 
 						// Fire onLoaded callback
 						if (typeof remote.onLoaded === 'function') remote.onLoaded();
@@ -8313,20 +8378,22 @@
 				menu: [{
 					name: getLocale('global.export_csv'),
 					fn: function () {
-						var csv = self.export('csv');
-
-						// Save to file
-						var blob = new Blob([csv], {type: "text/csv;charset=utf-8"});
-						saveAs(blob, [self.options.exportFileName, ".csv"].join(''));
+						self.export('csv', function (csv) {
+							// Save to file
+							var blob = new Blob([csv], {type: "text/csv;charset=utf-8"});
+							saveAs(blob, [self.options.exportFileName, ".csv"].join(''));
+						});
+						dropdown.hide();
 					}
 				}, {
 					name: getLocale('global.export_html'),
 					fn: function () {
-						var html = self.export('html');
-
-						// Save to file
-						var blob = new Blob([html], {type: "text/html;charset=utf-8"});
-						saveAs(blob, [self.options.exportFileName, ".html"].join(''));
+						self.export('html', function (html) {
+							// Save to file
+							var blob = new Blob([html], {type: "text/html;charset=utf-8"});
+							saveAs(blob, [self.options.exportFileName, ".html"].join(''));
+						});
+						dropdown.hide();
 					}
 				}]
 			}, {
