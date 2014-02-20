@@ -135,8 +135,17 @@ describe("Remote Data", function () {
 										return result;
 									});
 								}
+
+								if (options.offset !== null && options.offset !== undefined) {
+									if (options.limit !== null && options.limit !== undefined) {
+										mydata = mydata.slice(options.offset, options.offset + options.limit);
+									} else {
+										mydata = mydata.slice(options.offset);
+									}
+								}
+
 								// Apply fake offset and fake limit
-								callback(mydata.slice(options.offset, options.offset + options.limit));
+								callback(mydata);
 							}
 						}, 5);
 					};
@@ -1249,8 +1258,17 @@ describe("Remote Data", function () {
 									return result;
 								});
 							}
+
+							if (options.offset !== null && options.offset !== undefined) {
+								if (options.limit !== null && options.limit !== undefined) {
+									mydata = mydata.slice(options.offset, options.offset + options.limit);
+								} else {
+									mydata = mydata.slice(options.offset);
+								}
+							}
+
 							// Apply fake offset and fake limit
-							callback(mydata.slice(options.offset, options.offset + options.limit));
+							callback(mydata);
 						}
 					}, 5);
 				}
@@ -1357,7 +1375,6 @@ describe("Remote Data", function () {
 
 
 		describe("Sorting", function () {
-
 			it("should be able to sort results in Backbone.Collection sets", function () {
 				var column_id = "id";
 
@@ -1388,5 +1405,36 @@ describe("Remote Data", function () {
 				}, 300, 'waiting for the grid to resort itself correctly');
 			});
 		});
+
+
+		// ==========================================================================================
+
+
+		describe("Exporting", function () {
+			it("should be able to export the full set of grid results", function () {
+				var result;
+
+				runs(function () {
+					// Automatically confirm the confirm() popup
+					spyOn(window, 'confirm').andReturn(true);
+
+					grid.export('csv', function (r) {
+						result = r;
+					});
+				});
+
+				// Wait for the export
+				waitsFor(function () {
+					return result;
+				});
+
+				runs(function () {
+					// Should have the last row exported
+					expect(result).toMatch('"99"');
+				});
+
+			});
+		});
+
 	});
 });
