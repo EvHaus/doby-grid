@@ -1865,6 +1865,30 @@ describe("Methods and Data Manipulation", function () {
 				});
 			});
 		});
+
+
+		// ==========================================================================================
+
+
+		it("should not get into a recursive loop when using setItem() on an object that references itself", function () {
+			var items = [];
+			items[0] = {
+				id: 1,
+				data: {
+					id: 1,
+				},
+				self_ref: items
+			};
+
+			var grid = resetGrid({
+				data: items
+			});
+
+			grid.setItem(1, {
+				id: 1,
+				self_ref_2: items
+			});
+		});
 	});
 
 

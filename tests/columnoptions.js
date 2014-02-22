@@ -417,7 +417,22 @@ describe("Column Options", function () {
 
 			runs(function () {
 				// Update the value of the nested row
-				grid.setItem(2, {data: {count: 2}});
+				grid.setItem(1, {
+					id: 1,
+					data: {
+						id: 1,
+						count: 1
+					},
+					rows: {
+						0: {
+							id: 2,
+							data: {
+								id: 2,
+								count: 2
+							}
+						}
+					}
+				});
 			});
 
 			// Wait until postprocessing has re-rendered the row with the updated value
