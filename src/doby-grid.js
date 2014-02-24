@@ -843,6 +843,9 @@
 		asyncPostProcessRows = function () {
 			var dataLength = getDataLength(),
 				cb = function () {
+					// Grid has been destroyed before callback fired
+					if (!cache) return;
+
 					if (this.col.cache && cache.rows[this.row]) {
 						var row_id = cache.rows[this.row].id;
 						if (!cache.postprocess[row_id]) cache.postprocess[row_id] = {};
@@ -3304,14 +3307,17 @@
 		// Destroy the grid and clean up any events that have been assigned
 		//
 		this.destroy = function () {
+			// Remove events
+			this.stopListening();
+
 			// If reorderable, destroy sortable jQuery plugin
 			if (this.options.reorderable) {
 				$headers.filter(":ui-sortable").sortable("destroy");
 			}
 
+			// Remove all events
 			if (this.$el && this.$el.length) {
-				// Prevent double destroy call when calling directly
-				this.$el.unbind('remove');
+				this.$el.off();
 				this.$el.remove();
 				this.$el = null;
 			}
@@ -3321,6 +3327,13 @@
 
 			// Remove window resize binding
 			$(window).off('resize', handleWindowResize);
+
+			// If we're in the middle of a post-process - clear the timeout
+			if (h_postrender) clearTimeout(h_postrender);
+
+			// Manually clear cache variable - which post-process callbacks will check to see
+			// if they're still relevant.
+			cache = null;
 		};
 
 
