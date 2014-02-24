@@ -125,13 +125,8 @@ define(['dobygrid'], function (DobyGrid) {
 
 			// Toggle product details
 			if ($(event.target).hasClass('toggler')) {
-				grid.setItem(args.item.id, {
-					rows: {
-						0: {
-							collapsed: !args.item.rows[0].collapsed
-						}
-					}
-				});
+				args.item.rows[0].collapsed = !args.item.rows[0].collapsed;
+				grid.setItem(args.item.id, args.item);
 			}
 		});
 	}];
