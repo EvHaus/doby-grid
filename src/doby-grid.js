@@ -4211,15 +4211,35 @@
 			$column.width(currentWidth);
 			cellWidths.push(headerWidth);
 
-			// Determine the width of the widest visible value
-			var rowcls = 'r' + column_index;
-			$canvas.find('.' + classrow + ':not(.' + classgroup + ') > .' + rowcls + ':visible')
-				.removeClass(rowcls)
-				.each(function () {
-					var w = $(this).outerWidth();
-					if (cellWidths.indexOf(w) < 0) cellWidths.push(w);
-				})
-				.addClass(rowcls);
+			// Loop through the visible row nodes
+			var rowcls = 'r' + column_index, $node;
+			for (var i in cache.nodes) {
+				// Check to see if this row's column has a colspan defined -- if it does, ignore it
+				if (
+					cache.rows[i].columns &&
+					cache.rows[i].columns[column_index] &&
+					cache.rows[i].columns[column_index].colspan &&
+					cache.rows[i].columns[column_index].colspan !== 1
+				) continue;
+
+				// Check to see if node is already in cache
+				$node = $(cache.nodes[i].cellNodesByColumnIdx[column_index]);
+
+				// If not in cache -- look up via slow jQuery
+				if ($node.length === 0) $node = $(cache.nodes[i].rowNode).children('.l' + column_index);
+
+				// Missing node, possibly a colspan column
+				if ($node.length === 0) continue;
+
+				// Remove width limit
+				$node.removeClass(rowcls);
+
+				// Get width
+				var w = $node.outerWidth();
+				if (cellWidths.indexOf(w) < 0) cellWidths.push(w);
+
+				$node.addClass(rowcls);
+			}
 
 			// If new width is smaller than min width - use min width
 			return Math.max.apply(null, cellWidths);
