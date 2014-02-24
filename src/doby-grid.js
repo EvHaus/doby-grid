@@ -843,9 +843,6 @@
 		asyncPostProcessRows = function () {
 			var dataLength = getDataLength(),
 				cb = function () {
-					// Grid has been destroyed before callback fired
-					if (!cache) return;
-
 					if (this.col.cache && cache.rows[this.row]) {
 						var row_id = cache.rows[this.row].id;
 						if (!cache.postprocess[row_id]) cache.postprocess[row_id] = {};
@@ -3330,10 +3327,6 @@
 
 			// If we're in the middle of a post-process - clear the timeout
 			if (h_postrender) clearTimeout(h_postrender);
-
-			// Manually clear cache variable - which post-process callbacks will check to see
-			// if they're still relevant.
-			cache = null;
 		};
 
 
