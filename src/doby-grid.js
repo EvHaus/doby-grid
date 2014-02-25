@@ -864,9 +864,7 @@
 
 				ensureCellNodesInRowsCache(row);
 				for (columnIdx in cacheEntry.cellNodesByColumnIdx) {
-					if (!cacheEntry.cellNodesByColumnIdx.hasOwnProperty(columnIdx)) {
-						continue;
-					}
+					if (!cacheEntry.cellNodesByColumnIdx.hasOwnProperty(columnIdx)) continue;
 
 					columnIdx = columnIdx || 0;
 
@@ -894,6 +892,7 @@
 					}
 				}
 
+				clearTimeout(h_postrender);
 				h_postrender = setTimeout(asyncPostProcessRows, self.options.asyncPostRenderDelay);
 				return;
 			}
@@ -3325,8 +3324,14 @@
 			// Remove window resize binding
 			$(window).off('resize', handleWindowResize);
 
-			// If we're in the middle of a post-process - clear the timeout
-			if (h_postrender) clearTimeout(h_postrender);
+			// If we're in the middle of a timer - clear it
+			var timers = [h_postrender, h_render, remoteTimer];
+			for (var i = 0, l = timers.length; i < l; i++) {
+				if (timers[i]) {
+					clearTimeout(timers[i]);
+					timers[i] = null;
+				}
+			}
 		};
 
 
@@ -6249,6 +6254,7 @@
 
 			// Put the request on a timer so that when users scroll quickly they don't fire off
 			// hundreds of requests for no good reason.
+			if (remoteTimer) clearTimeout(remoteTimer);
 			remoteTimer = setTimeout(function () {
 				try {
 					// Fire onLoading callback
