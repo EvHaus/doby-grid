@@ -864,9 +864,7 @@
 
 				ensureCellNodesInRowsCache(row);
 				for (columnIdx in cacheEntry.cellNodesByColumnIdx) {
-					if (!cacheEntry.cellNodesByColumnIdx.hasOwnProperty(columnIdx)) {
-						continue;
-					}
+					if (!cacheEntry.cellNodesByColumnIdx.hasOwnProperty(columnIdx)) continue;
 
 					columnIdx = columnIdx || 0;
 
@@ -894,6 +892,7 @@
 					}
 				}
 
+				clearTimeout(h_postrender);
 				h_postrender = setTimeout(asyncPostProcessRows, self.options.asyncPostRenderDelay);
 				return;
 			}
@@ -3304,14 +3303,17 @@
 		// Destroy the grid and clean up any events that have been assigned
 		//
 		this.destroy = function () {
+			// Remove events
+			this.stopListening();
+
 			// If reorderable, destroy sortable jQuery plugin
 			if (this.options.reorderable) {
 				$headers.filter(":ui-sortable").sortable("destroy");
 			}
 
+			// Remove all events
 			if (this.$el && this.$el.length) {
-				// Prevent double destroy call when calling directly
-				this.$el.unbind('remove');
+				this.$el.off();
 				this.$el.remove();
 				this.$el = null;
 			}
@@ -3321,6 +3323,15 @@
 
 			// Remove window resize binding
 			$(window).off('resize', handleWindowResize);
+
+			// If we're in the middle of a timer - clear it
+			var timers = [h_postrender, h_render, remoteTimer];
+			for (var i = 0, l = timers.length; i < l; i++) {
+				if (timers[i]) {
+					clearTimeout(timers[i]);
+					timers[i] = null;
+				}
+			}
 		};
 
 
@@ -4205,15 +4216,35 @@
 			$column.width(currentWidth);
 			cellWidths.push(headerWidth);
 
-			// Determine the width of the widest visible value
-			var rowcls = 'r' + column_index;
-			$canvas.find('.' + classrow + ':not(.' + classgroup + ') > .' + rowcls + ':visible')
-				.removeClass(rowcls)
-				.each(function () {
-					var w = $(this).outerWidth();
-					if (cellWidths.indexOf(w) < 0) cellWidths.push(w);
-				})
-				.addClass(rowcls);
+			// Loop through the visible row nodes
+			var rowcls = 'r' + column_index, $node;
+			for (var i in cache.nodes) {
+				// Check to see if this row's column has a colspan defined -- if it does, ignore it
+				if (
+					cache.rows[i].columns &&
+					cache.rows[i].columns[column_index] &&
+					cache.rows[i].columns[column_index].colspan &&
+					cache.rows[i].columns[column_index].colspan !== 1
+				) continue;
+
+				// Check to see if node is already in cache
+				$node = $(cache.nodes[i].cellNodesByColumnIdx[column_index]);
+
+				// If not in cache -- look up via slow jQuery
+				if ($node.length === 0) $node = $(cache.nodes[i].rowNode).children('.l' + column_index);
+
+				// Missing node, possibly a colspan column
+				if ($node.length === 0) continue;
+
+				// Remove width limit
+				$node.removeClass(rowcls);
+
+				// Get width
+				var w = $node.outerWidth();
+				if (cellWidths.indexOf(w) < 0) cellWidths.push(w);
+
+				$node.addClass(rowcls);
+			}
 
 			// If new width is smaller than min width - use min width
 			return Math.max.apply(null, cellWidths);
@@ -6223,6 +6254,7 @@
 
 			// Put the request on a timer so that when users scroll quickly they don't fire off
 			// hundreds of requests for no good reason.
+			if (remoteTimer) clearTimeout(remoteTimer);
 			remoteTimer = setTimeout(function () {
 				try {
 					// Fire onLoading callback
