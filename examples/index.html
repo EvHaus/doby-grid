@@ -183,6 +183,9 @@
 			env: "development"
 		};
 
+		// or "profile"
+		var profiler = 'time';
+
 		// Initialize doby
 		require([
 			'less',
@@ -193,25 +196,26 @@
 			'filesaver'
 		], function(less, DobyGrid) {
 
+			var example;
+			var loadGrid = function () {
+				var opts = example[0](),
+					size = opts.data ? opts.data.length : 0,
+					type = 'DobyGrid "' + name + '" example with ' + size + ' objects';
+
+				console[profiler](type);
+				window.grid = new DobyGrid(opts).appendTo($('#gridwrapper').empty());
+				if (example[1]) example[1](window.grid);
+				console[profiler + 'End'](type);
+			};
+
 			// Load "css" or "less" theme files
 			var theme_type = "css";
 
-			// or "profile"
-			var profiler = 'time';
-
 			// Load an example file
 			var loadExample = function(name) {
-				require(['examples/' + name], function(example) {
-					var opts = example[0](),
-						size = opts.data ? opts.data.length : 0,
-						type = 'DobyGrid "' + name + '" example with ' + size + ' objects';
-
-					console[profiler](type);
-					window.grid = new DobyGrid(opts).appendTo($('#gridwrapper').empty());
-					if (example[1]) {
-						example[1](window.grid);
-					}
-					console[profiler+'End'](type)
+				require(['examples/' + name], function(ex) {
+					example = ex;
+					loadGrid();
 				})
 			}
 
@@ -285,6 +289,16 @@
 				loadTheme(theme);
 			})
 
+			// Enable reloader
+			$('#reload').click(function () {
+				loadGrid();
+			});
+
+			// Enable clearer
+			$('#clear').click(function () {
+				window.grid.destroy();
+			});
+
 			// Set current theme
 			var currentTheme = localStorage.dobytheme || 'light';
 			loadTheme(currentTheme)
@@ -313,6 +327,9 @@
 				<option value="light">Light</option>
 				<option value="dark">Dark</option>
 			</select>
+
+			<button id="reload">Reload</button>
+			<button id="clear">Clear</button>
 		</div>
 
 		<div id="gridwrapper">Pick an example from the menu</div>
