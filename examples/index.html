@@ -198,6 +198,8 @@
 
 			var example;
 			var loadGrid = function () {
+				if (window.grid) window.grid = null;
+
 				var opts = example[0](),
 					size = opts.data ? opts.data.length : 0,
 					type = 'DobyGrid "' + name + '" example with ' + size + ' objects';
@@ -297,6 +299,7 @@
 			// Enable clearer
 			$('#clear').click(function () {
 				window.grid.destroy();
+				window.grid = null;
 			});
 
 			// Set current theme

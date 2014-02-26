@@ -448,6 +448,9 @@
 		// Stores the currently active cell
 		this.active = null;
 
+		// Is this instance destroyed?
+		this.destroyed = false;
+
 		// Stores the currently selected cell range
 		this.selection = null;
 
@@ -3303,6 +3306,8 @@
 		// Destroy the grid and clean up any events that have been assigned
 		//
 		this.destroy = function () {
+			this.destroyed = true;
+
 			// Remove events
 			this.stopListening();
 
@@ -6096,6 +6101,9 @@
 			};
 
 			remote.count(options, function (result) {
+				// Grid was destroyed before the callback finished
+				if (self.destroyed) return;
+
 				// Sets the current collection length
 				self.collection.length = result;
 
@@ -6193,6 +6201,9 @@
 				offset: newFrom,
 				order: self.sorting
 			}, function (results) {
+				// Grid was destroyed before the callback finished
+				if (self.destroyed) return;
+
 				// Add items to Backbone.Collection dataset
 				// TODO: We may want to make this optional as users way want to control
 				// what's added to their collections manually.
