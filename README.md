@@ -78,6 +78,10 @@ Then simply call:
 
 Doby Grid has a lot of configurable options. Full documentation is provided on the wiki here: <https://github.com/globexdesigns/doby-grid/wiki>.
 
+### Change Logs
+
+Change logs for our releases can be found here: <https://github.com/globexdesigns/doby-grid/releases>.
+
 ### Submitting Bugs and Feature Requests
 
 Please use GitHub issues: <https://github.com/globexdesigns/doby-grid/issues>
