@@ -7980,7 +7980,7 @@
 			el.attr('aria-describedby', tooltip_id);
 
 			// Assign removal event
-			el.one("mouseleave", function () {
+			el.one("mouseleave remove", function () {
 				// Remove tooltip
 				if ($(this).attr('aria-describedby') !== undefined) {
 					var tltp = $('#' + tooltip_id);
