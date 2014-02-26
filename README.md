@@ -64,7 +64,7 @@ For a live demo of the most recent build visit: http://dobyjs.com/grid/examples/
 
 ### How To Use
 
-Grab the latest version from <https://github.com/globexdesigns/doby-grid/tree/master/build>.
+Grab the latest version from <https://github.com/globexdesigns/doby-grid/releases>.
 
 Doby Grid is made up of two files (doby-grid.js and doby-grid.css) and well as a theme package. You can choose which theme to download and use. You may also want to grab <https://github.com/globexdesigns/doby-grid/tree/master/assets> for images.
 
