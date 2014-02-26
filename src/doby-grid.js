@@ -1531,6 +1531,9 @@
 			var applyEditToCell = function (item, row, cell) {
 				var column = cache.activeColumns[cell];
 
+				// Is this cell editable
+				if (!isCellPotentiallyEditable(row, cell)) return;
+
 				// Execute the operation
 				currentEditor.applyValue(item, column, currentEditor.serializeValue());
 				updateRow(row);
@@ -3129,7 +3132,11 @@
 					item.id = value;
 				}
 
-				item.data[column.field] = value;
+				if (item instanceof Backbone.Model) {
+					item.set(column.field, value);
+				} else {
+					item.data[column.field] = value;
+				}
 			};
 
 
@@ -3182,7 +3189,8 @@
 			//
 			this.loadValue = function (item) {
 				if (!item || !item.data) return null;
-				this.currentValue = item.data[options.column.field] || null;
+				var value = item instanceof Backbone.Model ? item.get(options.column.field) : item.data[options.column.field];
+				this.currentValue = value || "";
 				return this.currentValue;
 			};
 

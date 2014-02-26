@@ -1152,6 +1152,48 @@ describe("Grid Options", function () {
 				}
 			});
 		});
+
+
+		// ==========================================================================================
+
+
+		it("should not edit un-editable cells even if they're selected", function () {
+			var grid = resetGrid($.extend(defaultData(), {
+				columns: [
+					{id: 'id', field: 'id', name: 'id', editable: false},
+					{id: 'name', field: 'name', name: 'name'}
+				],
+				editable: true
+			}));
+
+			var value = 'testing';
+
+			// Select cells across both columns
+			grid.selectCells(0, 0, 1, 1);
+
+			// Activate a cell
+			grid.activate(1, 1);
+
+			// Type something into the editor and hit Enter
+			$(grid.active.node).simulate('click', {});
+			var $input = $(grid.active.node).children('input');
+			$input.attr('value', value);
+			$input.simulate('keydown', {keyCode: 13});
+
+			// Deactivate
+			grid.activate();
+
+			// Only second column cells should say "testing", the others should retain their id
+			grid.$el.find('.doby-grid-row').each(function (row) {
+				$(this).find('.doby-grid-cell').each(function (cell) {
+					if (cell === 0) {
+						expect($(this)).not.toHaveText(value);
+					} else {
+						expect($(this)).toHaveText(value);
+					}
+				});
+			});
+		});
 	});
 
 
