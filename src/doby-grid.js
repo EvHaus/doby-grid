@@ -5402,6 +5402,8 @@
 			var dataLength = getDataLength(),
 				item = getDataItem(row);
 
+			if (!item) return false;
+
 			// Is this cell editable?
 			if (item.editable === false) return false;
 
