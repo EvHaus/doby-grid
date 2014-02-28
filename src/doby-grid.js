@@ -2724,6 +2724,10 @@
 			this.refresh = function () {
 				if (suspend) return;
 
+				// If grid was destroyed -- leave immediated. This is needed for remote unit tests
+				// for some reason. Investigate one day.
+				if (grid.destroyed) return;
+
 				var countBefore = cache.rows.length,
 					diff;
 
