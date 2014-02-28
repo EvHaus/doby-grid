@@ -1,10 +1,10 @@
 /*global $, _, define*/
 
-define(['faker', 'backbone'], function (Faker, Backbone) {
+define(['backbone', 'dataset'], function (Backbone, dataset) {
 	"use strict";
 
 	// Use a Backbone data set?
-	var backboneset = true;
+	var backboneset = false;
 
 	// Replicates a server's database filter
 	var remote_filter = function (options, item) {
@@ -54,23 +54,13 @@ define(['faker', 'backbone'], function (Faker, Backbone) {
 
 	return [function () {
 
-		var data = [];
-		for (var i = 0; i < 10000; i++) {
-			data.push({
-				id: i,
-				data: {
-					id: i,
-					name: Faker.Name.findName(),
-					age: _.sample([18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28]),
-					city: Faker.Address.city()
-				}
-			});
-		}
+		var timer;
 
 		var count = function (options, callback) {
 			// Fake AJAX delay
-			setTimeout(function () {
-				callback(_.filter(data, function (item) {
+			if (timer) clearTimeout(timer);
+			timer = setTimeout(function () {
+				callback(_.filter(dataset, function (item) {
 					return remote_filter(options, item);
 				}).length);
 			}, 100);
@@ -79,11 +69,15 @@ define(['faker', 'backbone'], function (Faker, Backbone) {
 		var fetch = function (options, callback) {
 
 			// Fake AJAX delay
-			return setTimeout(function () {
-				var result = new Backbone.Collection();
+			if (timer) clearTimeout(timer);
+			timer = setTimeout(function () {
+				var results = [];
+				if (backboneset) {
+					results = new Backbone.Collection();
+				}
 
 				// Apply filter
-				var mydata = _.filter(JSON.parse(JSON.stringify(data)), function (item) {
+				var mydata = _.filter(dataset, function (item) {
 					return remote_filter(options, item);
 				});
 
@@ -116,18 +110,22 @@ define(['faker', 'backbone'], function (Faker, Backbone) {
 					}
 				}
 
-				_.each(mydata, function (i) {
-					result.add(i.data);
-				});
+				if (backboneset) {
+					_.each(mydata, function (i) {
+						results.add(i.data);
+					});
 
-				// Apply fake offset and fake limit
-				callback(result.models);
+					callback(results.models);
+				} else {
+					callback(mydata);
+				}
 			}, 100);
 		};
 
 		var fetchGroups = function (options, callback) {
 			// Fake AJAX delay
-			return setTimeout(function () {
+			if (timer) clearTimeout(timer);
+			timer = setTimeout(function () {
 				var results = [], column_id;
 
 				var generateGroup = function (column_id, data, level, parent_group_value) {
@@ -178,7 +176,7 @@ define(['faker', 'backbone'], function (Faker, Backbone) {
 				for (var i = 0, l = options.groups.length; i < l; i++) {
 					column_id = options.groups[i].column_id;
 					if (i === 0) {
-						generateGroup(column_id, _.filter(data, main_filter), i);
+						generateGroup(column_id, _.filter(dataset, main_filter), i);
 					} else {
 						for (var j = 0, m = results[i - 1].groups.length; j < m; j++) {
 							generateGroup(column_id, results[i - 1].groups[j]._rows, i, results[i - 1].groups[j].value);
@@ -210,11 +208,11 @@ define(['faker', 'backbone'], function (Faker, Backbone) {
 			this.loader.css('opacity', 0);
 		};
 
-		var dataset;
+		var remotedata;
 		if (backboneset) {
-			dataset = new Backbone.Collection();
+			remotedata = new Backbone.Collection();
 
-			dataset.DobyGridRemote = {
+			remotedata.DobyGridRemote = {
 				count: count,
 				fetch: fetch,
 				fetchGroups: fetchGroups,
@@ -222,7 +220,7 @@ define(['faker', 'backbone'], function (Faker, Backbone) {
 				onLoaded: onLoaded
 			};
 		} else {
-			dataset = function () {
+			remotedata = function () {
 				this.count = count;
 				this.fetch = fetch;
 				this.fetchGroups = fetchGroups;
@@ -235,7 +233,10 @@ define(['faker', 'backbone'], function (Faker, Backbone) {
 			columns: [{
 				id: "id",
 				name: "ID",
-				field: "id",
+				formatter: function (row, cell, value, columnDef, data) {
+					if (data.__placeholder) return '';
+					return data.id;
+				},
 				sortable: true
 			}, {
 				id: "name",
@@ -244,18 +245,18 @@ define(['faker', 'backbone'], function (Faker, Backbone) {
 				minWidth: 100,
 				sortable: true
 			}, {
-				id: "age",
-				name: "Age",
-				field: "age",
+				id: "email",
+				name: "Email",
+				field: "email",
 				sortable: true
 			}, {
-				id: "city",
-				name: "City",
-				field: "city",
+				id: "company",
+				name: "Company",
+				field: "company",
 				sortable: true
 			}],
 
-			data: dataset,
+			data: remotedata,
 			quickFilter: true
 		};
 	}];
