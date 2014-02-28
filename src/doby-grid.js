@@ -849,7 +849,7 @@
 		asyncPostProcessRows = function () {
 			var dataLength = getDataLength(),
 				cb = function () {
-					if (this.col.cache && cache.rows[this.row]) {
+					if (this.col.cache && cache && cache.rows[this.row]) {
 						var row_id = cache.rows[this.row].id;
 						if (!cache.postprocess[row_id]) cache.postprocess[row_id] = {};
 						cache.postprocess[row_id][this.col.id] = $(this.node).html();

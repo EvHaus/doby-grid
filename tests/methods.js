@@ -2050,6 +2050,16 @@ describe("Methods and Data Manipulation", function () {
 			grid.destroy();
 			expect(grid.$el).toEqual(null);
 		});
+
+
+		// ==========================================================================================
+
+
+		it("should not throw an error when calling destroy() more than once", function () {
+			var grid = resetGrid();
+			grid.destroy();
+			grid.destroy();
+		});
 	});
 
 });
