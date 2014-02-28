@@ -3326,6 +3326,11 @@
 		// Destroy the grid and clean up any events that have been assigned
 		//
 		this.destroy = function () {
+			if (this.destroyed) {
+				console.warn('Doby Grid instance has already been destroyed. You do not need to manually call destroy().');
+				return;
+			}
+
 			this.destroyed = true;
 
 			// Remove events
