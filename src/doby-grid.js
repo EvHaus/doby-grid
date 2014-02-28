@@ -155,6 +155,7 @@
 			executeSorter,
 			findFirstFocusableCell,
 			findLastFocusableCell,
+			garbageBin,
 			generatePlaceholders,
 			getActiveCell,
 			getBrowserData,
@@ -264,6 +265,7 @@
 			remoteRequest = null,
 			remoteTimer = null,
 			removeCssRules,
+			removeElement,
 			removeInvalidRanges,
 			removeRowFromCache,
 			render,
@@ -291,6 +293,7 @@
 			startPostProcessing,
 			stylesheet,
 			styleSortColumns,
+			suspend = false,	// suspends the refresh recalculation
 			tabbingDirection = 1,
 			th,				// virtual height
 			toggleContextMenu,
@@ -689,8 +692,8 @@
 				if (this.options.autoDestroy) {
 					this.$el.one("remove", function () {
 						// Self-destroy when the element is deleted
-						self.destroy();
-					});
+						this.destroy();
+					}.bind(this));
 				}
 
 				$viewport
@@ -1336,10 +1339,10 @@
 			};
 
 			this.hide = function () {
-				if (this.$el) {
-					this.$el.remove();
-					this.$el = null;
+				if (this.$el && this.$el.length) {
+					removeElement(this.$el[0]);
 				}
+				this.$el = null;
 			};
 		};
 
@@ -1639,7 +1642,7 @@
 					.focus()
 					.select()
 					.on('keyup', function () {
-						$(this).remove();
+						removeElement(this);
 					});
 			}
 		};
@@ -1776,7 +1779,6 @@
 				rowsById = null,	// rows by id; lazy-calculated
 				sortAsc = true,
 				sortComparer,
-				suspend = false,	// suspends the recalculation
 				toggledGroupsByLevel = [],
 				totalRows = 0,
 				updated = null,		// updated item ids
@@ -1844,10 +1846,14 @@
 				// Parse models
 				parse(models);
 
+				// Ensures setItem() does not call refresh() for each item
+				suspend = true;
+
 				// Merge existing models and collect the new ones
 				for (var i = 0, l = models.length; i < l; i++) {
 					model = models[i];
 					existing = this.get(model);
+					if (existing) existing = existing[1];
 
 					// For remote models, check if we're inserting 'at' an index with place holders
 					if (remote && at !== undefined) {
@@ -1867,6 +1873,8 @@
 						toAdd.push(model);
 					}
 				}
+
+				suspend = false;
 
 				// Add the new models
 				if (toAdd.length) {
@@ -2306,9 +2314,12 @@
 			// see model objects, but internally the grid can make use of direct item references
 			// when performance is important.
 			//
+			// Return back an array where the first key is the index of the item in the data list,
+			// and the second key is the data object itself.
+			//
 			// @param		obj		object, integer		Model reference or model id
 			//
-			// @return object
+			// @return array, or null
 			this.get = function (obj) {
 				if (obj === null) return void 0;
 				var id = obj;
@@ -2321,7 +2332,7 @@
 				var findItem = function (set) {
 					var subitem;
 					for (var i = 0, l = set.length; i < l; i++) {
-						if (set[i].id == id) return set[i];
+						if (set[i].id == id) return [i, set[i]];
 						if (set[i].rows) {
 							subitem = findItem(_.values(set[i].rows));
 							if (subitem) return subitem;
@@ -2940,10 +2951,10 @@
 					delete cache.postprocess[id];
 
 					// Delete postprocess cache for nested rows
-					if (original_object.rows) {
-						for (var key in original_object.rows) {
-							if (cache.postprocess[original_object.rows[key].id]) {
-								delete cache.postprocess[original_object.rows[key].id];
+					if (original_object[1].rows) {
+						for (var key in original_object[1].rows) {
+							if (cache.postprocess[original_object[1].rows[key].id]) {
+								delete cache.postprocess[original_object[1].rows[key].id];
 							}
 						}
 					}
@@ -2963,12 +2974,7 @@
 				parse([data]);
 
 				// Find the data item and update it
-				for (var i = 0, l = this.items.length; i < l; i++) {
-					if (this.items[i].id == id || this.items[i].id == data.id) {
-						this.items[i] = data;
-						break;
-					}
-				}
+				this.items[original_object[0]] = data;
 
 				// If the rows were changed we need to invalidate the rows below
 				if (data.rows) {
@@ -2980,6 +2986,8 @@
 				updated[id] = true;
 				if (id !== data.id) updated[data.id] = true;
 
+				// This needs to be debounced for when it's called via Backbone Events (when many
+				// collection items are changed all at once)
 				this.refreshDebounced();
 			};
 
@@ -3328,8 +3336,9 @@
 			if (this.$el && this.$el.length) {
 				this.$el.off();
 				this.$el.remove();
-				this.$el = null;
+				removeElement(this.$el[0]);
 			}
+			this.$el = null;
 
 			// Remove CSS Rules
 			removeCssRules();
@@ -3345,6 +3354,10 @@
 					timers[i] = null;
 				}
 			}
+
+			// Remove the garbage bin
+			$(garbageBin).remove();
+			garbageBin = null;
 		};
 
 
@@ -3541,7 +3554,7 @@
 
 				// Animate fade out
 				setTimeout(function () {
-					this.$el.remove();
+					removeElement(this.$el[0]);
 				}.bind(this), 150);
 
 				this.open = false;
@@ -3915,7 +3928,9 @@
 		// Entry point for collection.get(). See collection.get for more info.
 		//
 		this.get = function (id) {
-			return this.collection.get(id);
+			var result = this.collection.get(id);
+			if (result) result = result[1];
+			return result;
 		};
 
 
@@ -4456,7 +4471,7 @@
 				}
 			}
 
-			div.remove();
+			removeElement(div[0]);
 			return supportedHeight;
 		};
 
@@ -4577,7 +4592,7 @@
 					width: c.width() - c[0].clientWidth,
 					height: c.height() - c[0].clientHeight
 				};
-			c.remove();
+			removeElement(c[0]);
 			return result;
 		};
 
@@ -5675,7 +5690,7 @@
 					headerColumnHeightDiff += parseFloat(el.css(val)) || 0;
 				});
 			}
-			el.remove();
+			removeElement(el[0]);
 
 			var r = $('<div class="' + classrow + '"></div>').appendTo($canvas);
 			el = $('<div class="' + classcell + '" style="visibility:hidden">-</div>').appendTo(r);
@@ -5689,7 +5704,7 @@
 					cellHeightDiff += parseFloat(el.css(val)) || 0;
 				});
 			}
-			r.remove();
+			removeElement(r[0]);
 
 			absoluteColumnMinWidth = Math.max(headerColumnWidthDiff, cellWidthDiff);
 		};
@@ -6442,7 +6457,7 @@
 			// If column has a Quick Filter element - remove it
 			var qf;
 			if (colDef && colDef.quickFilterInput) {
-				colDef.quickFilterInput.parent().remove();
+				removeElement(colDef.quickFilterInput.parent()[0]);
 				qf = true;
 			}
 
@@ -6459,8 +6474,34 @@
 		// Removes the CSS rules specific to this grid instance
 		//
 		removeCssRules = function () {
-			if ($style) $style.remove();
+			if ($style && $style.length) {
+				removeElement($style[0]);
+				$style = null;
+			}
+
 			stylesheet = null;
+		};
+
+
+		// removeElement()
+		// This seems to be the only reliable way to remove nodes from the DOM without creating a
+		// DOM memory leak. See this post:
+		// http://stackoverflow.com/questions/768621/how-to-dispose-of-dom-elements-in-javascript-to-avoid-memory-leaks?rq=1
+		//
+		// @param	element		object		DOM node to remove
+		//
+		removeElement = function (element) {
+			garbageBin = document.getElementById('DobyGridGarbageBin');
+			if (!garbageBin) {
+				garbageBin = document.createElement('DIV');
+				garbageBin.id = 'DobyGridGarbageBin';
+				garbageBin.style.display = 'none';
+				document.body.appendChild(garbageBin);
+			}
+
+			// Move the element to the garbage bin
+			garbageBin.appendChild(element);
+			garbageBin.innerHTML = '';
 		};
 
 
@@ -7550,7 +7591,8 @@
 			var j, c, l, pageX, columnElements, minPageX, maxPageX, firstResizable, lastResizable;
 
 			columnElements = $headers.children();
-			columnElements.find("." + classhandle).remove();
+			var $handle = columnElements.find("." + classhandle);
+			if ($handle && $handle.length) removeElement($handle[0]);
 			columnElements.each(function (i) {
 				if (!cache.activeColumns[i].resizable) return;
 				if (firstResizable === undefined) firstResizable = i;
@@ -7851,7 +7893,7 @@
 
 			// Toggle off
 			if (focus === undefined && $headerFilter) {
-				$headerFilter.remove();
+				removeElement($headerFilter[0]);
 				$headerFilter = undefined;
 
 				handleResize();
@@ -7998,7 +8040,7 @@
 
 					// Animate out
 					setTimeout(function () {
-						tltp.remove();
+						if (tltp && tltp.length) removeElement(tltp[0]);
 					}, 200);
 
 					$(this).removeAttr('aria-describedby');
