@@ -3343,6 +3343,13 @@
 			// Remove CSS Rules
 			removeCssRules();
 
+			// Forcefully clean up the header DOM -- without this, we'll leak DOM nodes
+			if ($headers && $headers.length) {
+				$headers.off();
+				removeElement($headers[0]);
+			}
+			$headers = null;
+
 			// Remove window resize binding
 			$(window).off('resize', handleWindowResize);
 
@@ -3354,6 +3361,14 @@
 					timers[i] = null;
 				}
 			}
+
+			// Forcefully destroy all cached elements -- another DOM leak prevention
+			for (var row in cache.nodes) {
+				removeElement(cache.nodes[row].rowNode);
+			}
+
+			// Forcefully clear the cache variable -- to force immediate garbage collection
+			cache = null;
 
 			// Remove the garbage bin
 			$(garbageBin).remove();
