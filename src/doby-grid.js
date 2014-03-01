@@ -1,4 +1,4 @@
-// doby-grid.js 0.0.1
+// doby-grid.js 0.0.2
 // (c) 2014 Evgueni Naverniouk, Globex Designs, Inc.
 // Doby may be freely distributed under the MIT license.
 // For all details and documentation:
@@ -36,7 +36,7 @@
 		this.NAME = 'doby-grid';
 
 		// Current version of the library
-		this.VERSION = '0.0.1';
+		this.VERSION = '0.0.2';
 
 		// Ensure options are an object
 		if (typeof options !== "object" || _.isArray(options)) {
