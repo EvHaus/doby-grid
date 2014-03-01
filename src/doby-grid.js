@@ -1,4 +1,4 @@
-// doby-grid.js 0.0.2
+// doby-grid.js
 // (c) 2014 Evgueni Naverniouk, Globex Designs, Inc.
 // Doby may be freely distributed under the MIT license.
 // For all details and documentation:
@@ -2805,7 +2805,7 @@
 				if (this.items instanceof Backbone.Collection) {
 					this.items.remove(id);
 				} else {
-					this.items.splice(idx, 1);
+					this.items.splice(this.get(id)[0], 1);
 				}
 
 				// Clear cache

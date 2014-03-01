@@ -1379,6 +1379,27 @@ describe("Methods and Data Manipulation", function () {
 			// Make sure the first row is left behind
 			expect(cell.text()).toEqual('1');
 		});
+
+		// ==========================================================================================
+
+
+		it("should be able to remove() an item from a grouped grid", function () {
+			var newdata = [{data: {id: 1, name: 'test'}, id: 1}, {data: {id: 2, name: 'test2'}, id: 2}];
+			var grid = resetGrid({
+				columns: [
+					{id: 'id', field: 'id'},
+					{id: 'name', field: 'name'}
+				],
+				data: newdata
+			});
+
+			grid.addGrouping('name', {collapsed: false});
+
+			grid = grid.remove(2);
+			expect(grid.collection.items).toEqual([newdata[0]]);
+
+			expect(grid.$el.find('.doby-grid-row').length).toEqual(2);
+		});
 	});
 
 
