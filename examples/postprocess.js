@@ -25,28 +25,33 @@ define(['faker'], function (Faker) {
 				id: "id",
 				name: "ID",
 				field: "id",
+				removable: true,
 				sortable: true
 			}, {
 				id: "name",
 				name: "Name",
 				field: "name",
 				minWidth: 100,
+				removable: true,
 				sortable: true
 			}, {
 				id: "age",
 				name: "Age",
 				field: "age",
+				removable: true,
 				sortable: true
 			}, {
 				id: "city",
 				name: "City",
 				field: "city",
+				removable: true,
 				sortable: true
 			}, {
 				cache: false,
 				id: "rsvp",
 				name: "RSVP",
 				field: "rsvp",
+				removable: true,
 				sortable: true,
 				postprocess: function (data) {
 					var icon = data.data.data.rsvp ? 'plus-small' : 'minus-small';
@@ -65,6 +70,7 @@ define(['faker'], function (Faker) {
 				id: "rsvpc",
 				name: "Cached RSVP",
 				field: "rsvpc",
+				removable: true,
 				sortable: true,
 				postprocess: function (data, callback) {
 					var icon = data.data.data.rsvp ? 'plus-small' : 'minus-small';

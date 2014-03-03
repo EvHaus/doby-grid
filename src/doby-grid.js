@@ -6585,11 +6585,12 @@
 
 			var item = cache.rows[row];
 
-			// Clear postprocessing cache (only for non-cached columns)
+			// Clear postprocessing cache
 			if (item && cache.postprocess[item.id]) {
 				for (var id in cache.postprocess[item.id]) {
 					col = cache.activeColumns[cache.columnsById[id]];
-					if (!col.cache) {
+					// Remove cache if it's non-cached column, or if the column has been hidden or removed
+					if (!col || !col.cache) {
 						delete cache.postprocess[item.id][id];
 					}
 				}

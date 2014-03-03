@@ -514,6 +514,44 @@ describe("Column Options", function () {
 				return $firstcell.text() == 'post-1' && $secondcell.text() == 'post-2';
 			}, 500);
 		});
+
+
+		// ==========================================================================================
+
+
+		it("should be able to hide a cached column", function () {
+			var grid = resetGrid({
+				columns: [{
+					cache: true,
+					id: 'count',
+					name: 'count',
+					field: 'count',
+					postprocess: function (data, callback) {
+						data.$cell.html('post-' + data.data.data.count);
+						callback();
+					}
+				}],
+				data: [{
+					id: 1,
+					data: {
+						id: 1,
+						count: 1
+					}
+				}]
+			});
+
+			// Wait until postprocessing has rendered the row
+			waitsFor(function () {
+				var $cells = grid.$el.find('.doby-grid-cell'),
+					$firstcell = $cells.eq(0),
+					$secondcell = $cells.eq(1);
+				return $firstcell.text() == 'post-1';
+			}, 50);
+
+			runs(function () {
+				grid.hideColumn('count');
+			});
+		});
 	});
 
 
