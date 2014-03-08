@@ -3376,6 +3376,10 @@
 				removeElement(cache.nodes[row].rowNode);
 			}
 
+			// Clear collection items (they may be a Remote Objects)
+			this.collection.items = null;
+			this.options.data = null;
+
 			// Forcefully clear the cache variable -- to force immediate garbage collection
 			cache = null;
 
