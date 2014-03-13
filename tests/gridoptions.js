@@ -2376,6 +2376,42 @@ describe("Grid Options", function () {
 			});
 		});
 	});
+    
+    
+    // ==========================================================================================
+
+
+	describe("options.rowSpacing", function () {
+		it("should be 0 by default", function () {
+			var grid = resetGrid(defaultData());
+			expect(grid.options.rowSpacing).toEqual(0);
+		});
+
+
+		// ==========================================================================================
+
+
+		it("should correctly affect the rows spacing in the grid", function () {
+			var testSpacing = 5;
+
+			// Prepare for test
+			var grid = resetGrid($.extend(defaultData(), {rowSpacing: testSpacing})),
+                $rows = grid.$el.find('.doby-grid-row'),
+                $prevRow;
+
+			// Make sure we've got actual rows to test on
+			expect($rows.length).toBeGreaterThan(0);
+            
+			$rows.each(function (i) {
+                if (i > 0) {
+                    $prevRow = $($rows[i - 1]);
+                    
+                    // Make sure every row (except for first) is spaced correctly
+                    expect(parseInt($(this).css('top'), 10)).toEqual(parseInt($prevRow.css('top'), 10) + $prevRow.outerHeight() + testSpacing);
+                }
+			});
+		});
+	});
 
 
 	// ==========================================================================================
