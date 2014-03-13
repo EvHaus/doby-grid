@@ -409,6 +409,7 @@
 			resizeCells:			false,
 			reorderable:			true,
 			rowHeight:				28,
+            rowSpacing:             0,
 			selectable:				true,
 			selectedClass:			"selected",
 			shiftSelect:			true,
@@ -1183,7 +1184,7 @@
 				// Cache row position
 				if (!indexOnly && variableRowHeight) {
 					data = {
-						top: (cache.rowPositions[i - 1]) ? (cache.rowPositions[i - 1].bottom - offset) : 0
+						top: ((cache.rowPositions[i - 1]) ? (cache.rowPositions[i - 1].bottom - offset) : 0)
 					};
 
 					// The extra 1 is here to compesate for the 1px space between rows
@@ -1193,7 +1194,7 @@
 						data.height = item.height;
 					}
 
-					data.bottom = data.top + (data.height || self.options.rowHeight);
+					data.bottom = data.top + (data.height || self.options.rowHeight) + self.options.rowSpacing;
 
 					cache.rowPositions[i] = data;
 				}
@@ -1216,7 +1217,7 @@
 
 			// When in fixed right height mode - we can make a much faster calculation
 			} else {
-				numVisibleRows = Math.floor(viewportH / (self.options.rowHeight + 1));
+				numVisibleRows = Math.floor(viewportH / (self.options.rowHeight + 1 + self.options.rowSpacing));
 			}
 		};
 
@@ -3005,7 +3006,8 @@
 			this.sort = function (comparer, ascending) {
 				sortAsc = ascending;
 				sortComparer = comparer;
-				if (ascending === false) {
+                
+                if (ascending === false) {
 					this.items.reverse();
 				}
 
@@ -4121,8 +4123,8 @@
 				y1 = pos.top - 1;
 				y2 = y1 + (pos.height || self.options.rowHeight) + 2;
 			} else {
-				y1 = self.options.rowHeight * row - offset + row - 1;
-				y2 = y1 + self.options.rowHeight + 2;
+				y1 = (self.options.rowHeight + self.options.rowSpacing) * row - offset + row - 1;
+				y2 = y1 + self.options.rowHeight + 2 + self.options.rowSpacing;
 			}
 			var x1 = -1;
 
@@ -4514,7 +4516,7 @@
 				minBuffer = 3;
 
 			if (!variableRowHeight) {
-				buffer = Math.round(viewportH / self.options.rowHeight);
+				buffer = Math.round(viewportH / (self.options.rowHeight + self.options.rowSpacing));
 			} else {
 				buffer = Math.round(getRowFromPosition(viewportH));
 			}
@@ -4581,7 +4583,7 @@
 		// @return integer
 		getRowFromPosition = function (maxPosition) {
 			if (!variableRowHeight) {
-				return Math.floor((maxPosition + offset) / (self.options.rowHeight + 1));
+				return Math.floor((maxPosition + offset) / (self.options.rowHeight + 1 + self.options.rowSpacing));
 			}
 
 			var row = 0, rowLength = cache.rows.length,	pos, lastpos, i;
@@ -6823,7 +6825,7 @@
 				pos = cache.rowPositions[row];
 				top = (pos.top - offset);
 			} else {
-				top = self.options.rowHeight * row - offset + (row * 1);
+				top = (self.options.rowHeight * row) - offset + (row * 1) + (row * self.options.rowSpacing);
 			}
 
 			if (d && d.class) rowCss += " " + (typeof d.class === 'function' ? d.class(row, d) : d.class);
@@ -7048,7 +7050,7 @@
 				targetY = cache.rowPositions[targetRow].top;
 			} else {
 				// The extra +1 here is to compensate for the 1 pixel spacing between rows
-				targetY = targetRow * (self.options.rowHeight + 1);
+				targetY = targetRow * (self.options.rowHeight + 1 + self.options.rowSpacing);
 			}
 
 			scrollTo(targetY);
@@ -7108,14 +7110,14 @@
 				rowAtBottom = pos.bottom - viewportH + (viewportHasHScroll ? window.scrollbarDimensions.height : 0);
 			} else {
 				rowAtTop = row * rowHeight;
-				rowAtBottom = ((row + 1) * rowHeight) - viewportH + (viewportHasHScroll ? window.scrollbarDimensions.height : 0);
+				rowAtBottom = ((row + 1 + self.options.rowSpacing) * rowHeight) - viewportH + (viewportHasHScroll ? window.scrollbarDimensions.height : 0);
 			}
 
 			// Determine which direction we need to scroll
 			var pgdwn, pgup;
 			if (!variableRowHeight) {
-				pgdwn = row * self.options.rowHeight > scrollTop + offset;
-				pgup = row * self.options.rowHeight < scrollTop + offset;
+				pgdwn = row * (self.options.rowHeight + self.options.rowSpacing) > scrollTop + offset;
+				pgup = row * (self.options.rowHeight + self.options.rowSpacing) < scrollTop + offset;
 			} else {
 				pgdwn = pos.bottom > scrollTop + viewportH + offset;
 				pgup = pos.top < scrollTop + offset;
@@ -7175,7 +7177,7 @@
 		this.scrollToRow = function (row) {
 			if (!variableRowHeight) {
 				// The extra +1 here is to compensate for the spacing between rows
-				scrollTo(row * (this.options.rowHeight + 1));
+				scrollTo(row * (this.options.rowHeight + 1 + this.options.rowSpacing));
 			} else {
 				var pos = cache.rowPositions[row];
 				scrollTo(pos.top);
@@ -8767,7 +8769,7 @@
 					var rpc = cache.rowPositions[dataLength - 1];
 					viewportHasVScroll = rpc && (rpc.bottom > viewportH);
 				} else {
-					viewportHasVScroll = dataLength * self.options.rowHeight > viewportH;
+					viewportHasVScroll = dataLength * (self.options.rowHeight + self.options.rowSpacing) > viewportH;
 				}
 			}
 
@@ -8792,7 +8794,7 @@
 			} else {
 				var rowMax;
 				if (!variableRowHeight) {
-					rowMax = self.options.rowHeight * dataLength + dataLength;
+					rowMax = (self.options.rowHeight + self.options.rowSpacing) * dataLength + dataLength;
 				} else {
 					var pos = dataLength - 1,
 						rps = cache.rowPositions[pos];
