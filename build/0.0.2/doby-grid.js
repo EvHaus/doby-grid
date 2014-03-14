@@ -3006,7 +3006,7 @@
 			this.sort = function (comparer, ascending) {
 				sortAsc = ascending;
 				sortComparer = comparer;
-                
+
                 if (ascending === false) {
 					this.items.reverse();
 				}
@@ -8325,7 +8325,7 @@
 			// @param	fn			function	Function to execute when item clicked
 			//
 			var menuData = [{
-				enabled: column && column.removable,
+				enabled: column,
 				name: getLocale('column.options'),
 				title: true
 			}, {
@@ -8563,9 +8563,9 @@
 				if (args.row !== undefined && args.row !== null) args.item = cache.rows[args.row];
 
 				var extensions = self.options.menuExtensions(event, self, args),
-					activeExtensions = extensions.filter(function (e) {
+					activeExtensions = extensions ? extensions.filter(function (e) {
 						return e.enabled === undefined || e.enabled;
-					});
+					}) : [];
 
 				if (activeExtensions.length) {
 					// Add title
