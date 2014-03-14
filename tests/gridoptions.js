@@ -1184,7 +1184,7 @@ describe("Grid Options", function () {
 			grid.activate();
 
 			// Only second column cells should say "testing", the others should retain their id
-			grid.$el.find('.doby-grid-row').each(function (row) {
+			grid.$el.find('.doby-grid-row').each(function () {
 				$(this).find('.doby-grid-cell').each(function (cell) {
 					if (cell === 0) {
 						expect($(this)).not.toHaveText(value);
@@ -1546,7 +1546,9 @@ describe("Grid Options", function () {
 			// Make sure the menu loaded
 			expect($(document.body)).toContain('.doby-grid-dropdown');
 			var $dropdown = $(document.body).find('.doby-grid-dropdown');
-			expect($dropdown.find('.doby-grid-dropdown-title')).toHaveText('Mama Mia!');
+
+			expect($dropdown.find('.doby-grid-dropdown-title').eq(0)).toHaveText('Column Options');
+			expect($dropdown.find('.doby-grid-dropdown-title').eq(1)).toHaveText('Mama Mia!');
 
 			// Close dropdowns
 			$(document.body).find('.doby-grid-dropdown').remove();
@@ -1561,6 +1563,25 @@ describe("Grid Options", function () {
 		it("should be null by default", function () {
 			var grid = resetGrid(defaultData());
 			expect(grid.options.menuExtensions).toEqual(null);
+		});
+
+
+		// ==========================================================================================
+
+
+		it("should not fail to render defaults when supplied with an empty function", function () {
+			var grid = resetGrid($.extend(defaultData(), {
+				menuExtensions: function () {}
+			}));
+
+			// Simulate context click on the grid
+			grid.$el.find('.doby-grid-cell:first').simulate('contextmenu');
+
+			// Make sure the context menu comes up
+			expect($(document.body)).toContain('.doby-grid-dropdown');
+
+			// Close dropdowns
+			$(document.body).find('.doby-grid-dropdown').remove();
 		});
 
 
@@ -2376,8 +2397,8 @@ describe("Grid Options", function () {
 			});
 		});
 	});
-    
-    
+
+
     // ==========================================================================================
 
 
@@ -2401,11 +2422,11 @@ describe("Grid Options", function () {
 
 			// Make sure we've got actual rows to test on
 			expect($rows.length).toBeGreaterThan(0);
-            
+
 			$rows.each(function (i) {
                 if (i > 0) {
                     $prevRow = $($rows[i - 1]);
-                    
+
                     // Make sure every row (except for first) is spaced correctly
                     expect(parseInt($(this).css('top'), 10)).toEqual(parseInt($prevRow.css('top'), 10) + $prevRow.outerHeight() + testSpacing);
                 }
