@@ -3343,6 +3343,12 @@
 				$headers.filter(":ui-sortable").sortable("destroy");
 			}
 
+			// If Dropdown is open -- hide and destroy it
+			if (this.dropdown) {
+				this.dropdown.hide();
+				this.dropdown = null;
+			}
+
 			// Remove all events
 			if (this.$el && this.$el.length) {
 				this.$el.off();
@@ -8208,8 +8214,7 @@
 			if (window._DobyGridDropdownEvent === event.timeStamp) return;
 			window._DobyGridDropdownEvent = event.timeStamp;
 
-			var column = args.column || false,
-				dropdown;
+			var column = args.column || false;
 
 			// When a column is chosen from the menu
 			var cFn = function (column) {
@@ -8341,14 +8346,14 @@
 					name: column ? getLocale('column.filter', {name: column.name}) : '',
 					fn: function () {
 						showQuickFilter(column);
-						dropdown.hide();
+						self.dropdown.hide();
 					}
 				}, {
 					enabled: $headerFilter !== undefined,
 					name: getLocale('global.hide_filter'),
 					fn: function () {
 						showQuickFilter();
-						dropdown.hide();
+						self.dropdown.hide();
 					}
 				}]
 			}, {
@@ -8359,14 +8364,14 @@
 					name: column ? getLocale('column.sort_asc', {name: column.name}) : '',
 					fn: function () {
 						self.sortBy(column.id, true);
-						dropdown.hide();
+						self.dropdown.hide();
 					}
 				}, {
 					enabled: !hasSorting(column.id),
 					name: column ? getLocale('column.sort_desc', {name: column.name}) : '',
 					fn: function () {
 						self.sortBy(column.id, false);
-						dropdown.hide();
+						self.dropdown.hide();
 					}
 				}, {
 					enabled: self.isSorted() && !hasSorting(column.id),
@@ -8374,7 +8379,7 @@
 					fn: function () {
 						self.sorting.push({columnId: column.id, sortAsc: true});
 						self.setSorting(self.sorting);
-						dropdown.hide();
+						self.dropdown.hide();
 					}
 				}, {
 					enabled: self.isSorted() && !hasSorting(column.id),
@@ -8382,7 +8387,7 @@
 					fn: function () {
 						self.sorting.push({columnId: column.id, sortAsc: false});
 						self.setSorting(self.sorting);
-						dropdown.hide();
+						self.dropdown.hide();
 					}
 				}, {
 					enabled: hasSorting(column.id),
@@ -8391,7 +8396,7 @@
 						self.setSorting(_.filter(self.sorting, function (s) {
 							return s.columnId != column.id;
 						}));
-						dropdown.hide();
+						self.dropdown.hide();
 					}
 				}]
 			}, {
@@ -8404,28 +8409,28 @@
 						self.setGrouping([{
 							column_id: column.id
 						}]);
-						dropdown.hide();
+						self.dropdown.hide();
 					}
 				}, {
 					enabled: !hasGrouping(column.id) && self.isGrouped(),
 					name: column ? getLocale('column.add_group', {name: column.name}) : '',
 					fn: function () {
 						self.addGrouping(column.id);
-						dropdown.hide();
+						self.dropdown.hide();
 					}
 				}, {
 					enabled: hasGrouping(column.id),
 					name: column ? getLocale('column.remove_group', {name: column.name}) : '',
 					fn: function () {
 						self.removeGrouping(column.id);
-						dropdown.hide();
+						self.dropdown.hide();
 					}
 				}, {
 					enabled: self.isGrouped(),
 					name: getLocale("column.groups_clear"),
 					fn: function () {
 						self.setGrouping();
-						dropdown.hide();
+						self.dropdown.hide();
 					}
 				}, {
 					enabled: self.isGrouped(),
@@ -8456,7 +8461,7 @@
 					name: getLocale('selection.select_all', {name: column.name}),
 					fn: function () {
 						self.selectCells(0, 0, (cache.rows.length - 1), (cache.activeColumns.length - 1));
-						dropdown.hide();
+						self.dropdown.hide();
 					}
 				}, {
 					enabled: column && !isColumnSelected(cache.columnsById[column.id]),
@@ -8464,20 +8469,20 @@
 					fn: function () {
 						var column_idx = cache.columnsById[column.id];
 						self.selectCells(0, column_idx, (cache.rows.length - 1), column_idx);
-						dropdown.hide();
+						self.dropdown.hide();
 					}
 				}, {
 					enabled: args.cell !== undefined && args.cell !== null && !isCellSelected(args.row, args.cell),
 					name: getLocale('selection.select_cell'),
 					fn: function () {
 						self.selectCells(args.row, args.cell, args.row, args.cell);
-						dropdown.hide();
+						self.dropdown.hide();
 					}
 				}, {
 					name: getLocale('selection.deselect_all', {name: column.name}),
 					fn: function () {
 						deselectCells();
-						dropdown.hide();
+						self.dropdown.hide();
 					}
 				}, {
 					enabled: column && isColumnSelected(cache.columnsById[column.id]),
@@ -8494,7 +8499,7 @@
 					name: getLocale('selection.deselect_cell'),
 					fn: function () {
 						deselectCells(args.row, args.cell);
-						dropdown.hide();
+						self.dropdown.hide();
 					}
 				}]
 			}, {
@@ -8512,7 +8517,7 @@
 							var blob = new Blob([csv], {type: "text/csv;charset=utf-8"});
 							saveAs(blob, [self.options.exportFileName, ".csv"].join(''));
 						});
-						dropdown.hide();
+						self.dropdown.hide();
 					}
 				}, {
 					name: getLocale('global.export_html'),
@@ -8522,7 +8527,7 @@
 							var blob = new Blob([html], {type: "text/html;charset=utf-8"});
 							saveAs(blob, [self.options.exportFileName, ".html"].join(''));
 						});
-						dropdown.hide();
+						self.dropdown.hide();
 					}
 				}]
 			}, {
@@ -8544,7 +8549,7 @@
 						var origFn = item.fn;
 						item.fn = function (event) {
 							var result = origFn(event);
-							dropdown.hide();
+							self.dropdown.hide();
 							return result;
 						};
 					}
@@ -8603,7 +8608,7 @@
 			});
 
 			// Create dropdown
-			dropdown = new Dropdown(event, {
+			self.dropdown = new Dropdown(event, {
 				id: column.id,
 				menu: $menu,
 				parent: self.$el

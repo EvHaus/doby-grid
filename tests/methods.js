@@ -2081,6 +2081,38 @@ describe("Methods and Data Manipulation", function () {
 			grid.destroy();
 			grid.destroy();
 		});
+
+
+		// ==========================================================================================
+
+
+		it("should also destroy any open context menus", function () {
+			var grid = resetGrid({
+				columns: [
+					{id: 'id', field: 'id'},
+					{id: 'name', field: 'name'},
+				],
+				data: [
+					{id: 1, data: {id: 1, name: 'asd1'}},
+					{id: 2, data: {id: 2, name: 'asd2'}},
+					{id: 3, data: {id: 3, name: 'asd3'}}
+				]
+			});
+
+			// Simulate context click on the grid
+			grid.$el.find('.doby-grid-cell:first').simulate('contextmenu');
+
+			// Make sure the context menu comes up
+			expect($(document.body)).toContain('.doby-grid-dropdown');
+
+			// Now destroy the grid
+			grid.destroy();
+
+			// Wait for the dropdown to disappear (it's on a timeout)
+			waitsFor(function () {
+				return $(document.body).find('.doby-grid-dropdown').length === 0;
+			}, 500);
+		});
 	});
 
 });
