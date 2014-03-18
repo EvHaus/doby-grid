@@ -1243,6 +1243,20 @@ describe("Methods and Data Manipulation", function () {
 	// ==========================================================================================
 
 
+	describe("refetch()", function () {
+		it("should not allow you to refetch non-remote grids", function () {
+			var grid = resetGrid();
+
+			expect(function () {
+				grid.refetch();
+			}).toThrow('The "refetch" method can only be used with Doby Grid instances which use a remote data set.');
+		});
+	});
+
+
+	// ==========================================================================================
+
+
 	describe("reset()", function () {
 		it("should be able to reset() the grid with a new set of data", function () {
 			var grid = resetGrid();

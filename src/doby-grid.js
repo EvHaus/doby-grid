@@ -3862,13 +3862,7 @@
 
 			// Remote data needs to be completely reloaded
 			if (remote) {
-				remoteCount(function () {
-					if (self.collection.groups && self.collection.groups.length) {
-						remoteGroupRefetch();
-					} else {
-						remoteFetch();
-					}
-				});
+				self.refetch();
 			} else {
 				// Reset aggregator values
 				for (var column_id in cache.aggregatorsByColumnId) {
@@ -6127,6 +6121,28 @@
 			} else {
 				return "Range (" + this.fromRow + ":" + this.fromCell + " - " + this.toRow + ":" + this.toCell + ")";
 			}
+		};
+
+
+		// refetch()
+		// A public method that allows developers to ask the grid to fetch data using its current
+		// filters and configuration
+		//
+		// @return object
+		this.refetch = function () {
+			if (remote) {
+				remoteCount(function () {
+					if (self.collection.groups && self.collection.groups.length) {
+						remoteGroupRefetch();
+					} else {
+						remoteFetch();
+					}
+				});
+			} else {
+				throw new Error('The "refetch" method can only be used with Doby Grid instances which use a remote data set.');
+			}
+
+			return this;
 		};
 
 
