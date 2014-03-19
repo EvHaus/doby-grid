@@ -3202,8 +3202,8 @@
 			// @param	item	object		Data model object that is being edited
 			//
 			this.loadValue = function (item) {
-				if (!item || !item.data) return null;
-				var value = item instanceof Backbone.Model ? item.get(options.column.field) : item.data[options.column.field];
+				if (!item) return null;
+				var value = item instanceof Backbone.Model ? item.get(options.column.field) : item.data ? item.data[options.column.field] : null;
 				this.currentValue = value || "";
 				return this.currentValue;
 			};

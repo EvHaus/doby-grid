@@ -1,14 +1,23 @@
-/*global define */
+/*global define, Backbone */
 
 define(['faker'], function (Faker) {
 	"use strict";
 
+	// Enable this to use a Backbone Collection instead
+	var use_backbone = true;
+
 	return [function () {
+		var data, item;
 
 		// Generate Data
-		var data = [];
+		if (use_backbone) {
+			data = new Backbone.Collection();
+		} else {
+			data = [];
+		}
+
 		for (var i = 0; i < 10000; i++) {
-			data.push({
+			item = {
 				id: i,
 				data: {
 					id: i,
@@ -17,7 +26,13 @@ define(['faker'], function (Faker) {
 					city: Faker.Address.city(),
 					country: Faker.Address.ukCountry()
 				}
-			});
+			};
+
+			if (use_backbone) {
+				data.add(item.data);
+			} else {
+				data.push(item);
+			}
 		}
 
 		return {

@@ -3,7 +3,7 @@
 // For all details and documentation:
 // https://github.com/globexdesigns/doby-grid
 
-/*global $, DobyGrid*/
+/*global $, Backbone, DobyGrid*/
 
 describe("Editors", function () {
 	"use strict";
@@ -104,7 +104,11 @@ describe("Editors", function () {
 		// @param   item    object      Data model object that is being edited
 		//
 		this.loadValue = function (item) {
-			this.currentValue = item.data[options.column.field] || "";
+			if (item instanceof Backbone.Model) {
+				this.currentValue = item.get(options.column.field) || "";
+			} else {
+				this.currentValue = item.data[options.column.field] || "";
+			}
 		};
 
 
@@ -169,8 +173,17 @@ describe("Editors", function () {
 		return copy;
 	};
 
-	var resetGrid = function (options) {
+	var resetGrid = function (options, use_backbone) {
 		options = options || {};
+
+		if (use_backbone) {
+			var collection = new Backbone.Collection();
+			for (var i = 0, l = options.data.length; i < l; i++) {
+				collection.add(options.data[i].data);
+			}
+			options.data = collection;
+		}
+
 		var grid = new DobyGrid(options),
 			fixture = setFixtures();
 
@@ -244,6 +257,32 @@ describe("Editors", function () {
 
 		// Make sure focus was called
 		expect($cell.children()).toHaveClass('focused');
+	});
+
+
+	// ==========================================================================================
+
+
+	it("should not interpret arrow key navigation as editor submission events (when using Backbone Collections)", function () {
+		// Prepare grid
+		var grid = resetGrid(defaultData(), true);
+
+		// Select some cells
+		grid.selectCells(0, 0, 1, 1);
+
+		// Enable first cell for editing
+		var $cell = grid.$el.find('.doby-grid-cell:first').first();
+		$cell.simulate('click');
+
+		// Simulate down arrow
+		var $input = $cell.find('.doby-grid-editor');
+		$input.simulate('keydown', {which: 40, keyCode: 40});
+		$input.simulate('keyup', {which: 40, keyCode: 40});
+
+		// The editor's applyValue function should not be called
+		grid.$el.find('.doby-grid-cell').each(function () {
+			expect($(this)).not.toBeEmpty();
+		});
 	});
 
 });
