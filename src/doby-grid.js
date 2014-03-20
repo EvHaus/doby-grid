@@ -1513,7 +1513,7 @@
 			var item = getDataItem(self.active.row),
 				column = cache.activeColumns[self.active.cell];
 
-			var showInvalid = function () {
+			var showInvalid = function (validationResults) {
 				// Re-add the CSS class to trigger transitions, if any.
 				$(self.active.node)
 					.removeClass(classinvalid)
@@ -1550,58 +1550,58 @@
 			};
 
 			if (currentEditor.isValueChanged()) {
-				var validationResults = currentEditor.validate();
-
-				if (validationResults.valid) {
-					// If we're inside an "addRow", create a duplicate and write to that
-					if (item.__addRow) {
-						var newItem = {
-							data: {}
-						};
-
-						// Add row
-						currentEditor.applyValue(newItem, column, currentEditor.serializeValue());
-
-						// Make sure item has an id
-						if ((!newItem.data.id && !newItem.id) ||
-							newItem.id in cache.indexById ||
-							newItem.data.id in cache.indexById
-						) {
-							validationResults = {
-								valid: false,
-								msg: "Unable to create a new item without a unique 'id' value."
+				currentEditor.validate(function (validationResults) {
+					if (validationResults.valid) {
+						// If we're inside an "addRow", create a duplicate and write to that
+						if (item.__addRow) {
+							var newItem = {
+								data: {}
 							};
-							showInvalid();
-							return;
-						}
 
-						self.add(newItem);
+							// Add row
+							currentEditor.applyValue(newItem, column, currentEditor.serializeValue());
 
-						self.trigger('newrow', self._event, {
-							item: newItem,
-							column: column
-						});
-					} else {
-						if (self.options.editorType == 'selection' && self.selection) {
-							// Send all selected cells to the editor for changes
-							for (var i = 0, l = self.selection.length; i < l; i++) {
-								for (var j = self.selection[i].fromRow, k = self.selection[i].toRow; j <= k; j++) {
-									for (var q = self.selection[i].fromCell, m = self.selection[i].toCell; q <= m; q++) {
-										applyEditToCell(cache.rows[j], j, q);
+							// Make sure item has an id
+							if ((!newItem.data.id && !newItem.id) ||
+								newItem.id in cache.indexById ||
+								newItem.data.id in cache.indexById
+							) {
+								validationResults = {
+									valid: false,
+									msg: "Unable to create a new item without a unique 'id' value."
+								};
+								showInvalid(validationResults);
+								return;
+							}
+
+							self.add(newItem);
+
+							self.trigger('newrow', self._event, {
+								item: newItem,
+								column: column
+							});
+						} else {
+							if (self.options.editorType == 'selection' && self.selection) {
+								// Send all selected cells to the editor for changes
+								for (var i = 0, l = self.selection.length; i < l; i++) {
+									for (var j = self.selection[i].fromRow, k = self.selection[i].toRow; j <= k; j++) {
+										for (var q = self.selection[i].fromCell, m = self.selection[i].toCell; q <= m; q++) {
+											applyEditToCell(cache.rows[j], j, q);
+										}
 									}
 								}
+							} else {
+								// Only edit the active cell
+								applyEditToCell(item, self.active.row, self.active.cell);
 							}
-						} else {
-							// Only edit the active cell
-							applyEditToCell(item, self.active.row, self.active.cell);
 						}
-					}
 
-					return true;
-				} else {
-					showInvalid();
-					return false;
-				}
+						return true;
+					} else {
+						showInvalid(validationResults);
+						return false;
+					}
+				});
 			}
 
 			makeActiveCellNormal();
@@ -3242,22 +3242,14 @@
 			// and object with two keys: `valid` (boolean) and `msg` (string) for the error
 			// message (if any).
 			//
+			// @param	callback		function	Callback function
+			//
 			// @return object
-			this.validate = function () {
-				var value = this.getValue();
-
-				// TODO: Add support for this
-				if (options.column.validator) {
-					var validationResults = options.column.validator(value);
-					if (!validationResults.valid) {
-						return validationResults;
-					}
-				}
-
-				return {
+			this.validate = function (callback) {
+				callback({
 					valid: true,
 					msg: null
-				};
+				});
 			};
 
 			return this.initialize();

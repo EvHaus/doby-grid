@@ -147,12 +147,14 @@ describe("Editors", function () {
 		// and object with two keys: `valid` (boolean) and `msg` (string) for the error
 		// message (if any).
 		//
+		// @param   callback        function    Callback function
+		//
 		// @return object
-		this.validate = function () {
-			return {
+		this.validate = function (callback) {
+			callback({
 				valid: true,
 				msg: null
-			};
+			});
 		};
 
 		return this.initialize();
