@@ -3149,7 +3149,10 @@
 				if (item instanceof Backbone.Model) {
 					item.set(column.field, value);
 				} else {
-					item.data[column.field] = value;
+					// This might be a nested row with no data
+					if (item.data) {
+						item.data[column.field] = value;
+					}
 				}
 			};
 
@@ -3202,8 +3205,8 @@
 			// @param	item	object		Data model object that is being edited
 			//
 			this.loadValue = function (item) {
-				if (!item || !item.data) return null;
-				var value = item instanceof Backbone.Model ? item.get(options.column.field) : item.data[options.column.field];
+				if (!item) return null;
+				var value = item instanceof Backbone.Model ? item.get(options.column.field) : item.data ? item.data[options.column.field] : null;
 				this.currentValue = value || "";
 				return this.currentValue;
 			};
