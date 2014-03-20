@@ -3149,7 +3149,10 @@
 				if (item instanceof Backbone.Model) {
 					item.set(column.field, value);
 				} else {
-					item.data[column.field] = value;
+					// This might be a nested row with no data
+					if (item.data) {
+						item.data[column.field] = value;
+					}
 				}
 			};
 
