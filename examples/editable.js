@@ -4,7 +4,7 @@ define(['faker'], function (Faker) {
 	"use strict";
 
 	// Enable this to use a Backbone Collection instead
-	var use_backbone = true;
+	var use_backbone = false;
 
 	return [function () {
 		var data, item;
@@ -16,6 +16,7 @@ define(['faker'], function (Faker) {
 			data = [];
 		}
 
+		var m;
 		for (var i = 0; i < 10000; i++) {
 			item = {
 				id: i,
@@ -29,7 +30,13 @@ define(['faker'], function (Faker) {
 			};
 
 			if (use_backbone) {
-				data.add(item.data);
+				m = data.add(item.data);
+				m.rows = {
+					0: {
+						id: 'nested' + i,
+						collapsed: true
+					}
+				};
 			} else {
 				data.push(item);
 			}
@@ -73,7 +80,6 @@ define(['faker'], function (Faker) {
 				removable: true
 			}],
 			data: data,
-			//editor: editor,
 			editable: true,
 			quickFilter: true
 		};

@@ -48,7 +48,19 @@ describe("Editors", function () {
 		// @param   value       string      The user-input value being entered
 		//
 		this.applyValue = function (item, column, value) {
-			item.data[column.field] = value;
+			// Make sure we always have an id for our item
+			if (!('id' in item) && column.field == 'id') {
+				item.id = value;
+			}
+
+			if (item instanceof Backbone.Model) {
+				item.set(column.field, value);
+			} else {
+				// This might be a nested row with no data
+				if (item.data) {
+					item.data[column.field] = value;
+				}
+			}
 		};
 
 
@@ -104,11 +116,10 @@ describe("Editors", function () {
 		// @param   item    object      Data model object that is being edited
 		//
 		this.loadValue = function (item) {
-			if (item instanceof Backbone.Model) {
-				this.currentValue = item.get(options.column.field) || "";
-			} else {
-				this.currentValue = item.data[options.column.field] || "";
-			}
+			if (!item) return null;
+			var value = item instanceof Backbone.Model ? item.get(options.column.field) : item.data ? item.data[options.column.field] : null;
+			this.currentValue = value || "";
+			return this.currentValue;
 		};
 
 
@@ -138,13 +149,6 @@ describe("Editors", function () {
 		//
 		// @return object
 		this.validate = function () {
-			if (options.column.validator) {
-				var validationResults = options.column.validator(this.$input.val());
-				if (!validationResults.valid) {
-					return validationResults;
-				}
-			}
-
 			return {
 				valid: true,
 				msg: null
@@ -173,13 +177,21 @@ describe("Editors", function () {
 		return copy;
 	};
 
-	var resetGrid = function (options, use_backbone) {
+	var resetGrid = function (options, use_backbone, nested_rows) {
 		options = options || {};
 
 		if (use_backbone) {
-			var collection = new Backbone.Collection();
+			var collection = new Backbone.Collection(), m;
 			for (var i = 0, l = options.data.length; i < l; i++) {
-				collection.add(options.data[i].data);
+				m = collection.add(options.data[i].data);
+				if (nested_rows) {
+					m.rows = {
+						0: {
+							id: 'nested' + i,
+							collapsed: true
+						}
+					}
+				}
 			}
 			options.data = collection;
 		}
@@ -282,6 +294,37 @@ describe("Editors", function () {
 		// The editor's applyValue function should not be called
 		grid.$el.find('.doby-grid-cell').each(function () {
 			expect($(this)).not.toBeEmpty();
+		});
+	});
+
+
+	// ==========================================================================================
+
+
+	it("should be able to perform a batch edit on cells with nested rows (when using Backbone Collections)", function () {
+		// Prepare grid
+		var grid = resetGrid(defaultData(), true, true),
+			edit = 'edited';
+
+		// Select some cells
+		grid.selectCells(0, 1, 1, 1);
+
+		// Enable first cell for editing
+		var $cell = grid.$el.find('.doby-grid-cell:first').first();
+		$cell.simulate('click');
+
+		// Simulate edit
+		var $input = $cell.find('.doby-grid-editor');
+		$input.val(edit);
+		$input.simulate('keydown', {which: 13, keyCode: 13});
+		$input.simulate('keyup', {which: 13, keyCode: 13});
+
+		expect(grid.$el.find('.doby-grid-cell').length).toBeGreaterThan(0);
+
+		grid.$el.find('.doby-grid-cell').each(function (i) {
+			if (i % 2) {
+				expect($(this)).toHaveText(edit);
+			}
 		});
 	});
 

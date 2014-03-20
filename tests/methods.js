@@ -1796,7 +1796,7 @@ describe("Methods and Data Manipulation", function () {
 		// ==========================================================================================
 
 
-		it("should be able to use setItem() to update a Backbone Model object that is a row child", function () {
+		it("should be able to use setItem() to update a Backbone Model object that has child rows", function () {
 			var model = new Backbone.Model({name: 'test', id: 1});
 
 			model.rows = {
