@@ -2981,9 +2981,15 @@
 				// Find the data item and update it
 				this.items[original_object[0]] = data;
 
-				// If the rows were changed we need to invalidate the rows below
+				// If the rows were changed we need to invalidate the child rows
 				if (data.rows) {
-					invalidateRows(_.range(idx, cache.rows.length));
+					var child_row_idxs = _.chain(data.rows)
+						.pluck('id')
+						.map(function (id) {
+							return cache.indexById[id];
+						})
+						.value();
+					invalidateRows(child_row_idxs);
 				}
 
 				// Store the ids that were updated so the refresh knows which row to update
