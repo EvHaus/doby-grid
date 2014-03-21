@@ -5,4 +5,4 @@ Doby Grid is stand-alone module (part of the Doby JS framework) for rendering a 
 
 ---
 
-For more information visit: http://globexdesigns.github.io/doby-website/#grid
+For more information visit: http://www.dobyjs.com/#grid
