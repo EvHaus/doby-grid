@@ -151,6 +151,7 @@
 			disableSelection,
 			Dropdown,
 			enableAsyncPostRender = false,	// Does grid have any columns that require post-processing
+			enforceWidthLimits,
 			ensureCellNodesInRowsCache,
 			executeSorter,
 			findFirstFocusableCell,
@@ -3606,6 +3607,23 @@
 
 				this.open = false;
 			}
+		};
+
+
+		// enforceWidthLimits()
+		// Given a set of columns, make sure 'minWidth <= width <= maxWidth
+		//
+		// @param	columns		array		Array of columns to validate
+		//
+		// @return
+		enforceWidthLimits = function (columns) {
+			var c;
+			for (var i = 0, l = columns.length; i < l; i++) {
+				c = columns[i] = $.extend(JSON.parse(JSON.stringify(columnDefaults)), columns[i]);
+				if (c.minWidth && c.width < c.minWidth) c.width = c.minWidth;
+				if (c.maxWidth && c.width > c.maxWidth) c.width = c.maxWidth;
+			}
+			return columns;
 		};
 
 
@@ -7386,18 +7404,9 @@
 		//
 		this.setColumns = function (columns) {
 
-			this.options.columns = columns;
-
-			var c;
-			for (var i = 0, l = this.options.columns.length; i < l; i++) {
-				c = self.options.columns[i] = $.extend(JSON.parse(JSON.stringify(columnDefaults)), self.options.columns[i]);
-
-				if (c.minWidth && c.width < c.minWidth) c.width = c.minWidth;
-				if (c.maxWidth && c.width > c.maxWidth) c.width = c.maxWidth;
-			}
+			this.options.columns = enforceWidthLimits(columns);
 
 			validateColumns();
-
 			updateColumnCaches();
 
 			this.trigger('columnchange', {}, {
