@@ -5685,6 +5685,10 @@
 		// Handler for cell styling when using an editor
 		//
 		makeActiveCellNormal = function () {
+			// When an editor is destroyed, the input element loses focus and focus is given back
+			// to the 'body' element. To retain focus on the grid - we need to manually set it here first.
+			$canvas.focus();
+
 			if (!currentEditor) return;
 
 			/*self.trigger('onBeforeCellEditorDestroy', {}, {
