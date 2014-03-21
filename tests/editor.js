@@ -142,6 +142,26 @@ describe("Editors", function () {
 		};
 
 
+		// showInvalid()
+		// What to do when the validation for an edit fails. Here you can highlight the cell
+		// and show the user the error message.
+		//
+		// @param   error       string      The error string returned from the validator
+		//
+		this.showInvalid = function (error) {
+			// Add Invalid Icon
+			$(options.cell).append([
+				'<span class="doby-grid-invalid-icon" title="', error, '"></span>'
+			].join(''));
+
+			// Highlight Cell
+			$(options.cell)
+				.removeClass('invalid')
+				.width(); // Force layout
+			$(options.cell).addClass('invalid');
+		};
+
+
 		// validate()
 		// Validation step for the value before allowing a save. Should return back
 		// and object with two keys: `valid` (boolean) and `msg` (string) for the error

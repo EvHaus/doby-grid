@@ -116,6 +116,7 @@
 			classheaderfilterdisabled = classheaderfilter + '-disabled',
 			classheadersortable = 'sortable',
 			classinvalid = 'invalid',
+			classinvalidicon = this.NAME + '-invalid-icon',
 			classnoright = this.NAME + '-no-right',
 			classplaceholder = this.NAME + '-sortable-placeholder',
 			classrangedecorator = this.NAME + '-range-decorator',
@@ -1508,18 +1509,17 @@
 		// commitCurrentEdit()
 		// Processes edit operations using the current editor
 		//
-		commitCurrentEdit = function () {
-			if (!self.active || !currentEditor) return true;
+		// @param	callback	function	Callback function
+		//
+		commitCurrentEdit = function (callback) {
+			if (!self.active || !currentEditor) return callback(true);
 
 			var item = getDataItem(self.active.row),
 				column = cache.activeColumns[self.active.cell];
 
-			var showInvalid = function (validationResults) {
-				// Re-add the CSS class to trigger transitions, if any.
-				$(self.active.node)
-					.removeClass(classinvalid)
-					.width(); // force layout
-				$(self.active.node).addClass(classinvalid);
+			var showInvalidHandler = function (validationResults) {
+				// Execute the showInvalid function for the editor, if it exists
+				if (currentEditor.showInvalid) currentEditor.showInvalid(validationResults.msg);
 
 				self.trigger('validationerror', self._event, {
 					editor: currentEditor,
@@ -1571,7 +1571,7 @@
 									valid: false,
 									msg: "Unable to create a new item without a unique 'id' value."
 								};
-								showInvalid(validationResults);
+								showInvalidHandler(validationResults.msg);
 								return;
 							}
 
@@ -1606,14 +1606,13 @@
 						}
 
 						makeActiveCellNormal();
+						return callback(true);
 					} else {
-						showInvalid(validationResults);
-						return false;
+						showInvalidHandler(validationResults);
+						return callback(false);
 					}
 				});
 			}
-
-			return true;
 		};
 
 
@@ -3245,6 +3244,26 @@
 			//
 			this.setValue = function (val) {
 				this.$input.val(val);
+			};
+
+
+			// showInvalid()
+			// What to do when the validation for an edit fails. Here you can highlight the cell
+			// and show the user the error message.
+			//
+			// @param   error       string      The error string returned from the validator
+			//
+			this.showInvalid = function (error) {
+				// Add Invalid Icon
+				$(options.cell).append([
+					'<span class="', classinvalidicon, '" title="', error, '"></span>'
+				].join(''));
+
+				// Highlight Cell
+				$(options.cell)
+					.removeClass(classinvalid)
+					.width(); // Force layout
+				$(options.cell).addClass(classinvalid);
 			};
 
 
@@ -5220,57 +5239,59 @@
 					// Left Arrow
 					} else if (e.which == 37) {
 						if (self.options.editable && currentEditor) {
-							if (commitCurrentEdit()) {
-								handled = navigate("left");
-							}
+							commitCurrentEdit(function (result) {
+								if (result) handled = navigate("left");
+							});
 						} else {
 							handled = navigate("left");
 						}
 					// Right Arrow
 					} else if (e.which == 39) {
 						if (self.options.editable && currentEditor) {
-							if (commitCurrentEdit()) {
-								handled = navigate("right");
-							}
+							commitCurrentEdit(function (result) {
+								if (result) handled = navigate("right");
+							});
 						} else {
 							handled = navigate("right");
 						}
 					// Up Arrow
 					} else if (e.which == 38) {
 						if (self.options.editable && currentEditor) {
-							if (commitCurrentEdit()) {
-								handled = navigate("up");
-							}
+							commitCurrentEdit(function (result) {
+								if (result) handled = navigate("up");
+							});
 						} else {
 							handled = navigate("up");
 						}
 					// Down Arrow
 					} else if (e.which == 40) {
 						if (self.options.editable && currentEditor) {
-							if (commitCurrentEdit()) {
-								handled = navigate("down");
-							}
+							commitCurrentEdit(function (result) {
+								if (result) handled = navigate("down");
+							});
 						} else {
 							handled = navigate("down");
 						}
 					// Tab
 					} else if (e.which == 9) {
 						if (self.options.editable && currentEditor) {
-							if (commitCurrentEdit()) {
-								handled = navigate("next");
+							commitCurrentEdit(function (result) {
+								if (result) {
+									handled = navigate("next");
 
-								// Return focus back to the canvas
-								$canvas.focus();
-							}
+									// Return focus back to the canvas
+									$canvas.focus();
+								}
+							});
 						} else {
 							handled = navigate("next");
 						}
 					// Enter
 					} else if (e.which == 13) {
 						if (self.options.editable && currentEditor) {
-							if (commitCurrentEdit()) {
-								handled = navigate("down");
-							}
+							commitCurrentEdit(function (result) {
+								if (result) handled = navigate("down");
+							});
 						} else {
 							handled = navigate("down");
 						}
@@ -5278,9 +5299,9 @@
 				// Shift Tab
 				} else if (e.which == 9 && e.shiftKey && !e.ctrlKey && !e.altKey) {
 					if (self.options.editable && currentEditor) {
-						if (commitCurrentEdit()) {
-							handled = navigate("prev");
-						}
+						commitCurrentEdit(function (result) {
+							if (result) handled = navigate("prev");
+						});
 					} else {
 						handled = navigate("prev");
 					}
