@@ -1583,20 +1583,28 @@
 						} else {
 							if (self.options.editorType == 'selection' && self.selection) {
 								// Send all selected cells to the editor for changes
+								var includes_active = false;
 								for (var i = 0, l = self.selection.length; i < l; i++) {
 									for (var j = self.selection[i].fromRow, k = self.selection[i].toRow; j <= k; j++) {
 										for (var q = self.selection[i].fromCell, m = self.selection[i].toCell; q <= m; q++) {
+											if (j == self.active.row && q == self.active.cell) includes_active = true;
 											applyEditToCell(cache.rows[j], j, q);
 										}
 									}
 								}
+
+								// If active cell is not in selection - apply edit to it too
+								if (!includes_active) {
+									applyEditToCell(cache.rows[self.active.row], self.active.row, self.active.cell);
+								}
+
 							} else {
 								// Only edit the active cell
 								applyEditToCell(item, self.active.row, self.active.cell);
 							}
 						}
 
-						return true;
+						makeActiveCellNormal();
 					} else {
 						showInvalid(validationResults);
 						return false;
@@ -1604,7 +1612,6 @@
 				});
 			}
 
-			makeActiveCellNormal();
 			return true;
 		};
 
@@ -5865,16 +5872,16 @@
 			};
 			var stepFn = stepFunctions[dir];
 			var pos = stepFn(self.active ? self.active.row : null, self.active ? self.active.cell : null, activePosX);
+
 			if (pos) {
 				var isAddNewRow = (pos.row == getDataLength());
 				scrollCellIntoView(pos.row, pos.cell, !isAddNewRow);
 				setActiveCellInternal(getCellNode(pos.row, pos.cell));
 				activePosX = pos.posX;
 				return true;
-			} else {
-				setActiveCellInternal(getCellNode(self.active ? self.active.row : null, self.active ? self.active.cell : null));
-				return false;
 			}
+
+			return false;
 		};
 
 

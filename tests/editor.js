@@ -330,4 +330,42 @@ describe("Editors", function () {
 		});
 	});
 
+
+	// ==========================================================================================
+
+
+	it("should edit all selected cells as well as the active cell", function () {
+		// Prepare grid
+		var grid = resetGrid(defaultData()),
+			edit = 'strangelove potion';
+
+		// Select a cell
+		grid.selectCells(0, 1, 0, 1);
+
+		// Active a different cell
+		grid.activate(1, 1, 1, 1);
+
+		// Enable cell for editing
+		var $cell = grid.$el.find('.doby-grid-cell').last();
+		$cell.simulate('click');
+
+		// Simulate edit
+		var $input = $cell.find('.doby-grid-editor');
+		$input.val(edit);
+		$input.simulate('keydown', {which: 13, keyCode: 13});
+		$input.simulate('keyup', {which: 13, keyCode: 13});
+
+		grid.$el.find('.doby-grid-cell').each(function (i) {
+			if (i % 2) {
+				expect($(this)).toHaveText(edit);
+			}
+		});
+	});
+
+
+	// ==========================================================================================
+
+
+
+
 });
