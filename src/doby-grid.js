@@ -4327,7 +4327,6 @@
 			// Attempt to find column in header
 			var $column = $(event.target).closest("." + classheadercolumn + ':not(.' + classplaceholder + ')');
 
-
 			// Attempt to find column in body
 			if (!$column.length) {
 				var cell = getCellFromEvent(event);
@@ -8358,7 +8357,7 @@
 			// @param	fn			function	Function to execute when item clicked
 			//
 			var menuData = [{
-				enabled: column,
+				enabled: column || self.options.quickFilter,
 				name: getLocale('column.options'),
 				title: true
 			}, {
@@ -8368,9 +8367,10 @@
 					self.hideColumn(column.id);
 				}
 			}, {
-				enabled: column && self.options.quickFilter,
+				enabled: self.options.quickFilter,
 				name: getLocale('column.filtering'),
 				menu: [{
+					enabled: column,
 					name: column ? getLocale('column.filter', {name: column.name}) : '',
 					fn: function () {
 						showQuickFilter(column);

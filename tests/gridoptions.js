@@ -1930,6 +1930,94 @@ describe("Grid Options", function () {
 			var grid = resetGrid(defaultData());
 			expect(grid.options.quickFilter).toEqual(false);
 		});
+
+
+		// ==========================================================================================
+
+
+		it("should display a new 'Quick Filter' menu option when enabled", function () {
+			var grid = resetGrid($.extend(defaultData(), {
+				quickFilter: true
+			}));
+
+			// Right-click on every columns and make sure the menu comes up
+			grid.$el.find('.doby-grid-header-column:first').first().simulate('contextmenu');
+
+			var found = false;
+			$(document.body).find('.doby-grid-dropdown .doby-grid-dropdown-item .doby-grid-dropdown-item').each(function () {
+				if ($(this).text().indexOf('Quick Filter by') >= 0) {
+					found = true;
+				}
+			});
+
+			expect(found).toEqual(true);
+
+			// Close dropdowns
+			$(document.body).find('.doby-grid-dropdown').remove();
+		});
+
+
+		// ==========================================================================================
+
+
+		it("should display a 'Quick Filter' row when selected from the menu", function () {
+			var grid = resetGrid($.extend(defaultData(), {
+				quickFilter: true
+			}));
+
+			// Right-click on every columns and make sure the menu comes up
+			grid.$el.find('.doby-grid-header-column:first').first().simulate('contextmenu');
+
+			$(document.body).find('.doby-grid-dropdown .doby-grid-dropdown-item .doby-grid-dropdown-item').each(function () {
+				if ($(this).text().indexOf('Quick Filter by') >= 0) {
+					// Click on option
+					$(this).simulate('click');
+				}
+			});
+
+			expect(grid.$el).toContain('.doby-grid-header-filter');
+
+			// Close dropdowns
+			$(document.body).find('.doby-grid-dropdown').remove();
+		});
+
+
+		// ==========================================================================================
+
+
+		it("should display a 'Close Quick Filter' option when right-clicking on the Quick Filter row", function () {
+			var grid = resetGrid($.extend(defaultData(), {
+				quickFilter: true
+			}));
+
+			// Right-click on every columns and make sure the menu comes up
+			grid.$el.find('.doby-grid-header-column:first').first().simulate('contextmenu');
+
+			$(document.body).find('.doby-grid-dropdown .doby-grid-dropdown-item .doby-grid-dropdown-item').each(function () {
+				if ($(this).text().indexOf('Quick Filter by') >= 0) {
+					// Click on option
+					$(this).simulate('click');
+				}
+			});
+
+			// Close dropdowns
+			$(document.body).find('.doby-grid-dropdown').remove();
+
+			// Right-click on Quick Filter header
+			$('.doby-grid-header-filter').simulate('contextmenu');
+
+			var found = false;
+			$(document.body).find('.doby-grid-dropdown .doby-grid-dropdown-item .doby-grid-dropdown-item').each(function () {
+				if ($(this).text().indexOf('Hide Quick Filter') >= 0) {
+					found = true;
+				}
+			});
+
+			expect(found).toEqual(true);
+
+			// Close dropdowns
+			$(document.body).find('.doby-grid-dropdown').remove();
+		});
 	});
 
 
