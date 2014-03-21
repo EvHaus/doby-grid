@@ -1624,6 +1624,9 @@
 
 			// Do we have a cell range selection?
 			if (self.selection) {
+				// Are the multiple selections?
+				if (self.selection.length > 1) return alert('Sorry, you cannot copy multiple selections.');
+
 				if (self.options.clipboard == 'csv') {
 					result = self.selection[0].toCSV();
 				} else if (self.options.clipboard == 'json') {

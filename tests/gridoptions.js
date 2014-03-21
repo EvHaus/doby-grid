@@ -542,6 +542,35 @@ describe("Grid Options", function () {
 			expect(clippy.length).toEqual(1);
 			expect(clippy[0]).toEqual(document.activeElement);
 		});
+
+
+		// ==========================================================================================
+
+
+		it("should throw an alert when trying to copy multiple selections", function () {
+			// Prepare for test
+			var grid = resetGrid(defaultData());
+
+			// Select some cells
+			grid.selectCells(0, 0, 0, 1);
+
+			// Duplicate selection
+			grid.selection.push(grid.selection[0]);
+
+			// Replace 'alert' for a second
+			var oldalert = alert;
+			alert = jasmine.createSpy();
+
+			// Simulate Ctrl + C
+			var press = $.Event('keydown');
+			press.ctrlKey = true;
+			press.which = 67;
+			$(document.activeElement).trigger(press);
+
+			expect(alert).toHaveBeenCalledWith('Sorry, you cannot copy multiple selections.');
+
+			alert = oldalert;
+		});
 	});
 
 
