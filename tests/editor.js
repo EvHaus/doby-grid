@@ -151,6 +151,15 @@ describe("Editors", function () {
 		//
 		// @return object
 		this.validate = function (callback) {
+			var value = this.getValue();
+
+			if (value == 'invalid-answer') {
+				return callback({
+					valid: false,
+					msg: "This is an invalid answer"
+				});
+			}
+
 			callback({
 				valid: true,
 				msg: null
@@ -161,7 +170,7 @@ describe("Editors", function () {
 	};
 
 	// Utilities for resetting the grid
-	var defaultData = function () {
+	var defaultData = function (default_editor) {
 		var copy = JSON.parse(JSON.stringify({
 			columns: [
 				{id: 'id', field: 'id', name: 'id'},
@@ -174,7 +183,7 @@ describe("Editors", function () {
 			editable: true
 		}));
 
-		copy.editor = editor;
+		if (!default_editor) copy.editor = editor;
 
 		return copy;
 	};
@@ -208,6 +217,28 @@ describe("Editors", function () {
 		grid.appendTo(fixture);
 		return grid;
 	};
+
+
+	// ==========================================================================================
+
+
+	it("should be able to perform an edit using the default editor", function () {
+		// Prepare grid
+		var grid = resetGrid(defaultData(true)),
+			edit = 'some-edit-answer';
+
+		// Enable cell for editing
+		var $cell = grid.$el.find('.doby-grid-cell').last();
+		$cell.simulate('click');
+
+		// Simulate edit
+		var $input = $cell.find('.doby-grid-editor');
+		$input.val(edit);
+		$input.simulate('keydown', {which: 13, keyCode: 13});
+		$input.simulate('keyup', {which: 13, keyCode: 13});
+
+		expect($cell).toHaveText(edit);
+	});
 
 
 	// ==========================================================================================
@@ -366,6 +397,34 @@ describe("Editors", function () {
 	// ==========================================================================================
 
 
+	it("should highlight cells as invalid and prevent editing if validation fails", function () {
+		// Prepare grid
+		var grid = resetGrid(defaultData()),
+			edit = 'invalid-answer';
+
+		// Select a cell
+		grid.selectCells(0, 1, 0, 1);
+
+		// Active a different cell
+		grid.activate(1, 1, 1, 1);
+
+		// Enable cell for editing
+		var $cell = grid.$el.find('.doby-grid-cell').last();
+		$cell.simulate('click');
+
+		// Simulate edit
+		var $input = $cell.find('.doby-grid-editor');
+		$input.val(edit);
+		$input.simulate('keydown', {which: 13, keyCode: 13});
+		$input.simulate('keyup', {which: 13, keyCode: 13});
+
+		grid.$el.find('.doby-grid-cell').each(function (i) {
+			if (i % 2) {
+				expect($(this)).toContain('input');
+				expect($(this)).toHaveClass('invalid');
+			}
+		});
+	});
 
 
 });
