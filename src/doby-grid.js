@@ -1606,13 +1606,17 @@
 						}
 
 						makeActiveCellNormal();
-						return callback(true);
+						callback(true);
 					} else {
 						showInvalidHandler(validationResults);
-						return callback(false);
+						callback(false);
 					}
 				});
+			} else {
+				callback(true);
 			}
+
+			return true;
 		};
 
 
@@ -5239,8 +5243,8 @@
 					// Left Arrow
 					} else if (e.which == 37) {
 						if (self.options.editable && currentEditor) {
-							commitCurrentEdit(function (result) {
-								if (result) handled = navigate("left");
+							handled = commitCurrentEdit(function (result) {
+								if (result) navigate("left");
 							});
 						} else {
 							handled = navigate("left");
@@ -5248,8 +5252,8 @@
 					// Right Arrow
 					} else if (e.which == 39) {
 						if (self.options.editable && currentEditor) {
-							commitCurrentEdit(function (result) {
-								if (result) handled = navigate("right");
+							handled = commitCurrentEdit(function (result) {
+								if (result) navigate("right");
 							});
 						} else {
 							handled = navigate("right");
@@ -5257,8 +5261,8 @@
 					// Up Arrow
 					} else if (e.which == 38) {
 						if (self.options.editable && currentEditor) {
-							commitCurrentEdit(function (result) {
-								if (result) handled = navigate("up");
+							handled = commitCurrentEdit(function (result) {
+								if (result) navigate("up");
 							});
 						} else {
 							handled = navigate("up");
@@ -5266,8 +5270,8 @@
 					// Down Arrow
 					} else if (e.which == 40) {
 						if (self.options.editable && currentEditor) {
-							commitCurrentEdit(function (result) {
-								if (result) handled = navigate("down");
+							handled = commitCurrentEdit(function (result) {
+								if (result) navigate("down");
 							});
 						} else {
 							handled = navigate("down");
@@ -5275,9 +5279,9 @@
 					// Tab
 					} else if (e.which == 9) {
 						if (self.options.editable && currentEditor) {
-							commitCurrentEdit(function (result) {
+							handled = commitCurrentEdit(function (result) {
 								if (result) {
-									handled = navigate("next");
+									navigate("next");
 
 									// Return focus back to the canvas
 									$canvas.focus();
@@ -5289,8 +5293,8 @@
 					// Enter
 					} else if (e.which == 13) {
 						if (self.options.editable && currentEditor) {
-							commitCurrentEdit(function (result) {
-								if (result) handled = navigate("down");
+							handled = commitCurrentEdit(function (result) {
+								if (result) navigate("down");
 							});
 						} else {
 							handled = navigate("down");
@@ -5299,8 +5303,8 @@
 				// Shift Tab
 				} else if (e.which == 9 && e.shiftKey && !e.ctrlKey && !e.altKey) {
 					if (self.options.editable && currentEditor) {
-						commitCurrentEdit(function (result) {
-							if (result) handled = navigate("prev");
+						handled = commitCurrentEdit(function (result) {
+							if (result) navigate("prev");
 						});
 					} else {
 						handled = navigate("prev");

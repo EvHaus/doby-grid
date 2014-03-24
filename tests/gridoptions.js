@@ -1443,12 +1443,56 @@ describe("Grid Options", function () {
 		// ==========================================================================================
 
 
+		it("should activate cell on the right on 'right' click when cell is editable", function () {
+			// Prepare for test
+			var grid = resetGrid($.extend(defaultData(), {
+				editable: true,
+				keyboardNavigation: true
+			}));
+
+			// Activate the first cell
+			grid.$el.find('.doby-grid-cell:first').first().simulate('click');
+
+			// Go right
+			grid.$el.find('.doby-grid-canvas').simulate('keydown', {keyCode: 39});
+
+			expect(grid.active).toBeDefined();
+			expect(grid.active.row).toEqual(0);
+			expect(grid.active.cell).toEqual(1);
+		});
+
+
+		// ==========================================================================================
+
+
 		it("should activate cell on the left on 'left' click", function () {
 			// Prepare for test
 			var grid = resetGrid($.extend(defaultData(), {keyboardNavigation: true}));
 
 			// Activate the first cell
 			grid.activate(0, 1);
+
+			// Go right
+			grid.$el.find('.doby-grid-canvas').simulate('keydown', {keyCode: 37});
+
+			expect(grid.active).toBeDefined();
+			expect(grid.active.row).toEqual(0);
+			expect(grid.active.cell).toEqual(0);
+		});
+
+
+		// ==========================================================================================
+
+
+		it("should activate cell on the left on 'left' click when cell is editable", function () {
+			// Prepare for test
+			var grid = resetGrid($.extend(defaultData(), {
+				editable: true,
+				keyboardNavigation: true
+			}));
+
+			// Activate the second cell
+			grid.$el.find('.doby-grid-cell:nth-child(2)').first().simulate('click');
 
 			// Go right
 			grid.$el.find('.doby-grid-canvas').simulate('keydown', {keyCode: 37});
@@ -1481,12 +1525,56 @@ describe("Grid Options", function () {
 		// ==========================================================================================
 
 
+		it("should activate cell on the bottom on 'down' click when cell is editable", function () {
+			// Prepare for test
+			var grid = resetGrid($.extend(defaultData(), {
+				editable: true,
+				keyboardNavigation: true
+			}));
+
+			// Activate the second cell
+			grid.$el.find('.doby-grid-cell:first').first().simulate('click');
+
+			// Go right
+			grid.$el.find('.doby-grid-canvas').simulate('keydown', {keyCode: 40});
+
+			expect(grid.active).toBeDefined();
+			expect(grid.active.row).toEqual(1);
+			expect(grid.active.cell).toEqual(0);
+		});
+
+
+		// ==========================================================================================
+
+
 		it("should activate cell on the top on 'up' click", function () {
 			// Prepare for test
 			var grid = resetGrid($.extend(defaultData(), {keyboardNavigation: true}));
 
 			// Activate the first cell
 			grid.activate(1, 0);
+
+			// Go right
+			grid.$el.find('.doby-grid-canvas').simulate('keydown', {keyCode: 38});
+
+			expect(grid.active).toBeDefined();
+			expect(grid.active.row).toEqual(0);
+			expect(grid.active.cell).toEqual(0);
+		});
+
+
+		// ==========================================================================================
+
+
+		it("should activate cell on the top on 'up' click when cell is editable", function () {
+			// Prepare for test
+			var grid = resetGrid($.extend(defaultData(), {
+				editable: true,
+				keyboardNavigation: true
+			}));
+
+			// Activate the first cell on second row
+			grid.$el.find('.doby-grid-row:nth-child(2) .doby-grid-cell:first').first().simulate('click');
 
 			// Go right
 			grid.$el.find('.doby-grid-canvas').simulate('keydown', {keyCode: 38});
@@ -1519,6 +1607,28 @@ describe("Grid Options", function () {
 		// ==========================================================================================
 
 
+		it("should activate cell on the right on 'tab' click when cell is editable", function () {
+			// Prepare for test
+			var grid = resetGrid($.extend(defaultData(), {
+				editable: true,
+				keyboardNavigation: true
+			}));
+
+			// Activate the first cell on second row
+			grid.$el.find('.doby-grid-cell:first').first().simulate('click');
+
+			// Go right
+			grid.$el.find('.doby-grid-canvas').simulate('keydown', {keyCode: 9});
+
+			expect(grid.active).toBeDefined();
+			expect(grid.active.row).toEqual(0);
+			expect(grid.active.cell).toEqual(1);
+		});
+
+
+		// ==========================================================================================
+
+
 		it("should activate cell on the left on 'shift + tab' click", function () {
 			// Prepare for test
 			var grid = resetGrid($.extend(defaultData(), {keyboardNavigation: true}));
@@ -1527,6 +1637,28 @@ describe("Grid Options", function () {
 			grid.activate(0, 1);
 
 			// Shift+Tab
+			grid.$el.find('.doby-grid-canvas').simulate('keydown', {shiftKey: true, keyCode: 9});
+
+			expect(grid.active).toBeDefined();
+			expect(grid.active.row).toEqual(0);
+			expect(grid.active.cell).toEqual(0);
+		});
+
+
+		// ==========================================================================================
+
+
+		it("should activate cell on the left on 'shift + tab' click when cell is editable", function () {
+			// Prepare for test
+			var grid = resetGrid($.extend(defaultData(), {
+				editable: true,
+				keyboardNavigation: true
+			}));
+
+			// Activate the first cell on second row
+			grid.$el.find('.doby-grid-cell:nth-child(2)').first().simulate('click');
+
+			// Go right
 			grid.$el.find('.doby-grid-canvas').simulate('keydown', {shiftKey: true, keyCode: 9});
 
 			expect(grid.active).toBeDefined();
