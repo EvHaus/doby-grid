@@ -1588,7 +1588,13 @@
 							};
 
 							// Add row
-							currentEditor.applyValue(newItem, column, currentEditor.serializeValue());
+							currentEditor.applyValue([{
+								item: newItem,
+								column: column,
+								row: self.active.row,
+								cell: self.active.cell,
+								$cell: $(getCellNode(self.active.row, self.active.cell))
+							}], currentEditor.serializeValue());
 
 							// Make sure item has an id
 							if ((!newItem.data.id && !newItem.id) ||
@@ -1603,6 +1609,7 @@
 								}]);
 							}
 
+							// Add item to data
 							self.add(newItem);
 
 							self.trigger('newrow', self._event, {
