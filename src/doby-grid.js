@@ -1517,9 +1517,48 @@
 			var item = getDataItem(self.active.row),
 				column = cache.activeColumns[self.active.cell];
 
+			// Creates a list of all the cells that will be affected by the edit
+			var getCellsToEdit = function () {
+				var cellsToEdit = [],
+					includes_active = false;
+
+				if (self.options.editorType == 'selection' && self.selection) {
+					for (var i = 0, l = self.selection.length; i < l; i++) {
+						for (var j = self.selection[i].fromRow, k = self.selection[i].toRow; j <= k; j++) {
+							for (var q = self.selection[i].fromCell, m = self.selection[i].toCell; q <= m; q++) {
+								// Is this cell editable
+								if (!isCellPotentiallyEditable(j, q)) continue;
+
+								if (j == self.active.row && q == self.active.cell) includes_active = true;
+								cellsToEdit.push({
+									item: cache.rows[j],
+									column: cache.activeColumns[q],
+									row: j,
+									cell: q,
+									$cell: $(getCellNode(j, q))
+								});
+							}
+						}
+					}
+				}
+
+				// If active cell is not in selection - apply edit to it too
+				if (!includes_active && isCellPotentiallyEditable(self.active.row, self.active.cell)) {
+					cellsToEdit.push({
+						item: item,
+						column: column,
+						row: self.active.row,
+						cell: self.active.cell,
+						$cell: $(getCellNode(self.active.row, self.active.cell))
+					});
+				}
+
+				return cellsToEdit;
+			};
+
 			var showInvalidHandler = function (validationResults) {
 				// Execute the showInvalid function for the editor, if it exists
-				if (currentEditor.showInvalid) currentEditor.showInvalid(validationResults.msg);
+				if (currentEditor.showInvalid) currentEditor.showInvalid(validationResults);
 
 				self.trigger('validationerror', self._event, {
 					editor: currentEditor,
@@ -1533,26 +1572,15 @@
 				currentEditor.focus();
 			};
 
-			var applyEditToCell = function (item, row, cell) {
-				var column = cache.activeColumns[cell];
+			if (!currentEditor.isValueChanged()) {
+				// No changes made
+				callback(true);
+			} else {
+				var cellsToEdit = getCellsToEdit();
 
-				// Is this cell editable
-				if (!isCellPotentiallyEditable(row, cell)) return;
-
-				// Execute the operation
-				currentEditor.applyValue(item, column, currentEditor.serializeValue());
-				updateRow(row);
-
-				self.trigger('change', self._event, {
-					row: row,
-					cell: cell,
-					item: item
-				});
-			};
-
-			if (currentEditor.isValueChanged()) {
-				currentEditor.validate(function (validationResults) {
-					if (validationResults.valid) {
+				// Run validation on all the affected cells
+				currentEditor.validate(cellsToEdit, function (validationResults) {
+					if (validationResults === true) {
 						// If we're inside an "addRow", create a duplicate and write to that
 						if (item.__addRow) {
 							var newItem = {
@@ -1567,12 +1595,12 @@
 								newItem.id in cache.indexById ||
 								newItem.data.id in cache.indexById
 							) {
-								validationResults = {
-									valid: false,
+								return showInvalidHandler([{
+									row: self.active.row,
+									cell: self.active.cell,
+									$cell: $(getCellNode(self.active.row, self.active.cell)),
 									msg: "Unable to create a new item without a unique 'id' value."
-								};
-								showInvalidHandler(validationResults.msg);
-								return;
+								}]);
 							}
 
 							self.add(newItem);
@@ -1582,26 +1610,19 @@
 								column: column
 							});
 						} else {
-							if (self.options.editorType == 'selection' && self.selection) {
-								// Send all selected cells to the editor for changes
-								var includes_active = false;
-								for (var i = 0, l = self.selection.length; i < l; i++) {
-									for (var j = self.selection[i].fromRow, k = self.selection[i].toRow; j <= k; j++) {
-										for (var q = self.selection[i].fromCell, m = self.selection[i].toCell; q <= m; q++) {
-											if (j == self.active.row && q == self.active.cell) includes_active = true;
-											applyEditToCell(cache.rows[j], j, q);
-										}
-									}
-								}
 
-								// If active cell is not in selection - apply edit to it too
-								if (!includes_active) {
-									applyEditToCell(cache.rows[self.active.row], self.active.row, self.active.cell);
-								}
+							// Execute the operation
+							currentEditor.applyValue(cellsToEdit, currentEditor.serializeValue());
 
-							} else {
-								// Only edit the active cell
-								applyEditToCell(item, self.active.row, self.active.cell);
+							// Update rows
+							for (var i = 0, l = cellsToEdit.length; i < l; i++) {
+								updateRow(cellsToEdit[i].row);
+
+								self.trigger('change', self._event, {
+									row: cellsToEdit[i].row,
+									cell: cellsToEdit[i].cell,
+									item: cellsToEdit[i].item
+								});
 							}
 						}
 
@@ -1612,8 +1633,6 @@
 						callback(false);
 					}
 				});
-			} else {
-				callback(true);
 			}
 
 			return true;
@@ -3156,22 +3175,26 @@
 			// applyValue()
 			// This is the function that will update the data model in the grid.
 			//
-			// @param	item		object		The data model for the item being edited
-			// @param	column		object		The column object being edited
+			// @param	items		array		Array of row data to update
 			// @param	value		string		The user-input value being entered
 			//
-			this.applyValue = function (item, column, value) {
-				// Make sure we always have an id for our item
-				if (!('id' in item) && column.field == 'id') {
-					item.id = value;
-				}
+			this.applyValue = function (items, value) {
+				var item;
+				for (var i = 0, l = items.length; i < l; i++) {
+					item = items[i];
 
-				if (item instanceof Backbone.Model) {
-					item.set(column.field, value);
-				} else {
-					// This might be a nested row with no data
-					if (item.data) {
-						item.data[column.field] = value;
+					// Make sure we always have an id for our item
+					if (!('id' in item.item) && item.column.field == 'id') {
+						item.item.id = value;
+					}
+
+					if (item.item instanceof Backbone.Model) {
+						item.item.set(item.column.field, value);
+					} else {
+						// This might be a nested row with no data
+						if (item.item.data) {
+							item.item.data[item.column.field] = value;
+						}
 					}
 				}
 			};
@@ -3255,35 +3278,65 @@
 			// What to do when the validation for an edit fails. Here you can highlight the cell
 			// and show the user the error message.
 			//
-			// @param   error       string      The error string returned from the validator
+			// @param   results     array       Results array from your validate() function
 			//
-			this.showInvalid = function (error) {
-				// Add Invalid Icon
-				$(options.cell).append([
-					'<span class="', classinvalidicon, '" title="', error, '"></span>'
-				].join(''));
+			this.showInvalid = function (results) {
+				var result;
+				for (var i = 0, l = results.length; i < l; i++) {
+					result = results[i];
 
-				// Highlight Cell
-				$(options.cell)
-					.removeClass(classinvalid)
-					.width(); // Force layout
-				$(options.cell).addClass(classinvalid);
+					// Add Invalid Icon
+					result.$cell.append([
+						'<span class="', classinvalidicon, '" title="', result.msg, '"></span>'
+					].join(''));
+
+					// Highlight Cell
+					result.$cell
+						.removeClass(classinvalid)
+						.width(); // Force layout
+					result.$cell.addClass(classinvalid);
+				}
 			};
 
 
 			// validate()
-			// Validation step for the value before allowing a save. Should return back
-			// and object with two keys: `valid` (boolean) and `msg` (string) for the error
-			// message (if any).
+			// Validation step for the value before allowing a save. Should return back either
+			// true or an array of objects like this:
 			//
-			// @param	callback		function	Callback function
+			// [{
+			//	row: 1,
+			//	cell: 1,
+			//	$cell: $(..),
+			//	msg: 'Your failure message here.'
+			// }, {
+			//	row: 1,
+			//	cell: 2,
+			//	$cell: $(..),
+			//	msg: 'Your failure message here.'
+			// }]
 			//
-			// @return object
-			this.validate = function (callback) {
-				callback({
-					valid: true,
-					msg: null
-				});
+			// @param	items		array		Array of edits to validate
+			// @param	callback	function	Callback function
+			//
+			this.validate = function (items, callback) {
+				var results = [];
+
+				// Sample code for validation failure
+				/*
+				for (var i = 0, l = items.length; i < l; i++) {
+					results.push({
+						row: items[i].row,
+						cell: items[i].cell,
+						$cell: items[i].$cell,
+						msg: "You cannot use " + this.getValue() + " as your value."
+					});
+				}
+				*/
+
+				// No errors
+				if (results.length === 0) results = true;
+
+				callback(results);
 			};
 
 			return this.initialize();

@@ -43,22 +43,26 @@ describe("Editors", function () {
 		// applyValue()
 		// This is the function that will update the data model in the grid.
 		//
-		// @param   item        object      The data model for the item being edited
-		// @param   column		objet		The column object being edited
-		// @param   value       string      The user-input value being entered
+		// @param	items		array		Array of row data to update
+		// @param	value		string		The user-input value being entered
 		//
-		this.applyValue = function (item, column, value) {
-			// Make sure we always have an id for our item
-			if (!('id' in item) && column.field == 'id') {
-				item.id = value;
-			}
+		this.applyValue = function (items, value) {
+			var item;
+			for (var i = 0, l = items.length; i < l; i++) {
+				item = items[i];
 
-			if (item instanceof Backbone.Model) {
-				item.set(column.field, value);
-			} else {
-				// This might be a nested row with no data
-				if (item.data) {
-					item.data[column.field] = value;
+				// Make sure we always have an id for our item
+				if (!('id' in item.item) && item.column.field == 'id') {
+					item.item.id = value;
+				}
+
+				if (item.item instanceof Backbone.Model) {
+					item.item.set(item.column.field, value);
+				} else {
+					// This might be a nested row with no data
+					if (item.item.data) {
+						item.item.data[item.column.field] = value;
+					}
 				}
 			}
 		};
@@ -146,44 +150,66 @@ describe("Editors", function () {
 		// What to do when the validation for an edit fails. Here you can highlight the cell
 		// and show the user the error message.
 		//
-		// @param   error       string      The error string returned from the validator
+		// @param   results     array       Results array from your validate() function
 		//
-		this.showInvalid = function (error) {
-			// Add Invalid Icon
-			$(options.cell).append([
-				'<span class="doby-grid-invalid-icon" title="', error, '"></span>'
-			].join(''));
+		this.showInvalid = function (results) {
+			var result;
+			for (var i = 0, l = results.length; i < l; i++) {
+				result = results[i];
 
-			// Highlight Cell
-			$(options.cell)
-				.removeClass('invalid')
-				.width(); // Force layout
-			$(options.cell).addClass('invalid');
+				// Add Invalid Icon
+				result.$cell.append([
+					'<span class="invalid-icon" title="', result.msg, '"></span>'
+				].join(''));
+
+				// Highlight Cell
+				result.$cell
+					.removeClass('invalid')
+					.width(); // Force layout
+				result.$cell.addClass('invalid');
+			}
 		};
 
 
 		// validate()
-		// Validation step for the value before allowing a save. Should return back
-		// and object with two keys: `valid` (boolean) and `msg` (string) for the error
-		// message (if any).
+		// Validation step for the value before allowing a save. Should return back either
+		// true or an array of objects like this:
 		//
-		// @param   callback        function    Callback function
+		// [{
+		//	row: 1,
+		//	cell: 1,
+		//	$cell: $(..),
+		//	msg: 'Your failure message here.'
+		// }, {
+		//	row: 1,
+		//	cell: 2,
+		//	$cell: $(..),
+		//	msg: 'Your failure message here.'
+		// }]
 		//
-		// @return object
-		this.validate = function (callback) {
-			var value = this.getValue();
+		// @param	items		array		Array of edits to validate
+		// @param	callback	function	Callback function
+		//
+		this.validate = function (items, callback) {
+			var results = [],
+				value = this.getValue();
 
-			if (value == 'invalid-answer') {
-				return callback({
-					valid: false,
-					msg: "This is an invalid answer"
-				});
+			// Sample code for validation failure
+			for (var i = 0, l = items.length; i < l; i++) {
+				if (value == 'invalid-answer') {
+					results.push({
+						row: items[i].row,
+						cell: items[i].cell,
+						$cell: items[i].$cell,
+						msg: "You cannot use " + this.getValue() + " as your value."
+					});
+				}
 			}
 
-			callback({
-				valid: true,
-				msg: null
-			});
+			// No errors
+			if (results.length === 0) results = true;
+
+			callback(results);
 		};
 
 		return this.initialize();
@@ -221,7 +247,7 @@ describe("Editors", function () {
 							id: 'nested' + i,
 							collapsed: true
 						}
-					}
+					};
 				}
 			}
 			options.data = collection;
