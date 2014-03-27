@@ -1,5 +1,6 @@
 {
 	"adjoining-classes": false,
+	"box-sizing": false,
 	"outline-none": false,
 	"gradients": false
 }
