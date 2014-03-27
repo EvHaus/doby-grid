@@ -5343,8 +5343,10 @@
 								if (result) {
 									navigate("next");
 
-									// Return focus back to the canvas
-									$canvas.focus();
+									// Return focus back to the canvas (unless an inner element is focused)
+									if ($(document.activeElement).closest('.' + self.NAME).lenght === 0) {
+										$canvas.focus();
+									}
 								}
 							});
 						} else {

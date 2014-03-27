@@ -1582,6 +1582,9 @@ describe("Grid Options", function () {
 			expect(grid.active).toBeDefined();
 			expect(grid.active.row).toEqual(0);
 			expect(grid.active.cell).toEqual(0);
+
+			// Ensure cell editor is focused
+			expect($(grid.active.node).find('.doby-grid-editor')[0]).toEqual(document.activeElement);
 		});
 
 
@@ -1623,6 +1626,10 @@ describe("Grid Options", function () {
 			expect(grid.active).toBeDefined();
 			expect(grid.active.row).toEqual(0);
 			expect(grid.active.cell).toEqual(1);
+
+			// Ensure cell editor is focused
+			console.log(document.activeElement)
+			expect($(grid.active.node).find('.doby-grid-editor')[0]).toEqual(document.activeElement);
 		});
 
 
@@ -1664,6 +1671,9 @@ describe("Grid Options", function () {
 			expect(grid.active).toBeDefined();
 			expect(grid.active.row).toEqual(0);
 			expect(grid.active.cell).toEqual(0);
+
+			// Ensure cell editor is focused
+			expect($(grid.active.node).find('.doby-grid-editor')[0]).toEqual(document.activeElement);
 		});
 
 
