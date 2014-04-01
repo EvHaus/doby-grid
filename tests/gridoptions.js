@@ -2949,6 +2949,93 @@ describe("Grid Options", function () {
 	// ==========================================================================================
 
 
+	describe("options.stickyFocus", function () {
+		it("should be disabled by default", function () {
+			var grid = resetGrid(defaultData());
+			expect(grid.options.stickyFocus).toEqual(false);
+		});
+
+
+		// ==========================================================================================
+
+
+		it("should keep focus of grid cells when the option is enabled", function () {
+			var grid = resetGrid($.extend(defaultData(), {
+				stickyFocus: true
+			}));
+
+			// Make sure grid has focus
+			grid.$el.find('.doby-grid-canvas').focus();
+
+			// Activate and select some cells
+			grid.selectCells(0, 0, 1, 1);
+			grid.activate(0, 0);
+
+			// Click outside the grid
+			grid.$el.find('.doby-grid-canvas').simulate('blur');
+
+			// Wait a little bit to ensure grid isn't destroyed when the blur event fires
+			var waited = false;
+
+			setTimeout(function () {
+				waited = true;
+			}, 20);
+
+			waitsFor(function () {
+				return waited;
+			}, 50);
+
+			runs(function () {
+				expect(grid.active.cell).toEqual(0);
+				expect(grid.active.row).toEqual(0);
+				expect(grid.selection.length).toEqual(1);
+				return true;
+			});
+		});
+
+
+		// ==========================================================================================
+
+
+		it("should remove focus of grid cells when the option is enabled", function () {
+			var grid = resetGrid($.extend(defaultData(), {
+				stickyFocus: false
+			}));
+
+			// Make sure grid has focus
+			grid.$el.find('.doby-grid-canvas').focus();
+
+			// Activate and select some cells
+			grid.selectCells(0, 0, 1, 1);
+			grid.activate(0, 0);
+
+			// Click outside the grid
+			grid.$el.find('.doby-grid-canvas').simulate('blur');
+
+			// Wait a little bit to ensure grid isn't destroyed when the blur event fires
+			var waited = false;
+
+			setTimeout(function () {
+				waited = true;
+			}, 20);
+
+			waitsFor(function () {
+				return waited;
+			}, 50);
+
+			runs(function () {
+				expect(grid.active.cell).toEqual(null);
+				expect(grid.active.row).toEqual(null);
+				expect(grid.selection).toEqual(null);
+				return true;
+			});
+		});
+	});
+
+
+	// ==========================================================================================
+
+
 	describe("options.tooltipType", function () {
 		it("should be 'popup' by default", function () {
 			var grid = resetGrid(defaultData());

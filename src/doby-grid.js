@@ -202,6 +202,7 @@
 			h_editorLoader = null,
 			h_render = null,
 			h_postrender = null,
+			handleCanvasBlur,
 			handleClick,
 			handleContextMenu,
 			handleDblClick,
@@ -415,6 +416,7 @@
 			selectable:				true,
 			selectedClass:			"selected",
 			shiftSelect:			true,
+			stickyFocus:			false,
 			tooltipType:			"popup",
 			virtualScroll:			true
 		}, options);
@@ -716,6 +718,7 @@
 				}
 
 				$canvas
+					.on("blur", handleCanvasBlur)
 					.on("keydown", handleKeyDown)
 					.on("click", handleClick)
 					.on("dblclick", handleDblClick)
@@ -5083,6 +5086,30 @@
 			}
 		};
 		Group.prototype.toString = function () { return "Group"; };
+
+
+		// handleCanvasBlur()
+		// Handles the blur event for the canvas element
+		//
+		// @param	e	object		Javascript event object
+		//
+		handleCanvasBlur = function () {
+			// Wait a fraction of a second to see if another element inside the grid
+			// will steal the focus back.
+			setTimeout(function () {
+				// Was the grid destroyed by the time we go in here?
+				if (self.destroyed) return;
+
+				// If was something outside the grid was selected...
+				if ($(document.activeElement).closest(self.$el).length === 0) {
+					// And the stickyFocus is disabled - remove any active cells
+					if (!self.options.stickyFocus) {
+						self.activate(null);
+						deselectCells();
+					}
+				}
+			}, 10);
+		},
 
 
 		// handleClick()
