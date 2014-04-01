@@ -1,5 +1,4 @@
-/*jshint loopfunc: true*/
-/*global _, define*/
+/*global define*/
 
 define(['faker', 'dataset'], function (Faker, dataset) {
 	"use strict";
@@ -7,15 +6,17 @@ define(['faker', 'dataset'], function (Faker, dataset) {
 	// Generate Grid Options
 	return [function () {
 
+		var idExtractor = function (item) {
+			return item.id;
+		};
+
 		// Generate Columns
 		var columns = [];
 		for (var q = 0; q < 3; q++) {
 			columns.push({
 				id: "id" + q,
+				dataExtractor: idExtractor,
 				name: "ID",
-				formatter: function (row, cell, value, columnDef, data) {
-					return data.id;
-				},
 				maxWidth: 150,
 				sortable: true,
 				tooltip: "ID of the item"
