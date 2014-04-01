@@ -2073,6 +2073,23 @@ describe("Methods and Data Manipulation", function () {
 		});
 
 
+		// ==========================================================================================
+
+
+		it("should re-render the grid when changing 'rowHeight' via setOptions()", function () {
+			var grid = resetGrid();
+
+			// Set new row heights
+			grid.setOptions({rowHeight: 151});
+
+			// Verify row heights were re-rendered
+			grid.$el.find('.doby-grid-row').each(function () {
+				expect($(this).height()).toEqual(151);
+			});
+
+		});
+
+
 	});
 
 

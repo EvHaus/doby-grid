@@ -1628,7 +1628,6 @@ describe("Grid Options", function () {
 			expect(grid.active.cell).toEqual(1);
 
 			// Ensure cell editor is focused
-			console.log(document.activeElement)
 			expect($(grid.active.node).find('.doby-grid-editor')[0]).toEqual(document.activeElement);
 		});
 

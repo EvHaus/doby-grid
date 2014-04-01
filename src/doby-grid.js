@@ -7560,14 +7560,25 @@
 				}
 			}
 
+			// If changing row height, need to recalculate positions
+			var recalc_heights = options.rowHeight != self.options.rowHeight;
+
 			$.extend(true, self.options, options);
 			validateOptions();
 
-			// If setting new columns - it will auto-re-render
+			// If setting new columns - it will auto-re-render, so no need to manually call render
 			if (options.columns) {
 				this.setColumns(options.columns);
-			} else {
+			} else if (!recalc_heights) {
 				render();
+			}
+
+			if (recalc_heights) {
+				invalidateAllRows();
+				removeCssRules();
+				createCssRules();
+				resizeCanvas();
+				applyColumnWidths();
 			}
 
 			// If setting new data - this needs to be executed after column changes to ensure
