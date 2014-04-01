@@ -1636,6 +1636,9 @@
 							}
 						}
 
+						// Deselect any selections
+						deselectCells();
+
 						makeActiveCellNormal();
 						callback(true);
 					} else {
