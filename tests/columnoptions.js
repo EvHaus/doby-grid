@@ -543,8 +543,7 @@ describe("Column Options", function () {
 			// Wait until postprocessing has rendered the row
 			waitsFor(function () {
 				var $cells = grid.$el.find('.doby-grid-cell'),
-					$firstcell = $cells.eq(0),
-					$secondcell = $cells.eq(1);
+					$firstcell = $cells.eq(0);
 				return $firstcell.text() == 'post-1';
 			}, 50);
 
@@ -1458,6 +1457,32 @@ describe("Column Options", function () {
 
 			// Expect the first and last cells to be selected
 			expect(grid.selection).toEqual(null);
+		});
+
+
+		// ==========================================================================================
+
+
+		it("should copy non-selectable cells as empty values when selecting a range that contains them in the middle", function () {
+			// Prepare for test
+			var grid = resetGrid({
+				columns: [
+					{id: 'one', selectable: true, field: 'one'},
+					{id: 'non', selectable: false, field: 'non'},
+					{id: 'two', selectable: true, field: 'two'}
+				],
+				data: [
+					{id: 1, data: {one: "y", non: "y", two: "y"}}
+				],
+				selectable: true
+			});
+
+			// Select all cells
+			grid.selectCells(0, 0, 0, 2);
+
+			// Expect the first and last cells to be selected
+			expect(grid.selection.length).toEqual(1);
+			expect(grid.selection[0].toCSV()).toEqual('"y","","y"');
 		});
 	});
 

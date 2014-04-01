@@ -6212,7 +6212,7 @@
 				data = [];
 				for (var c = this.fromCell; c <= this.toCell; c++) {
 					// Replace excluded items with blanks
-					if (this.isExcludedCell(row, c)) {
+					if (this.isExcludedCell(i, c)) {
 						data.push(null);
 					} else {
 						column = cache.activeColumns[c];
