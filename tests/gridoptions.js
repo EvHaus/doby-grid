@@ -533,7 +533,7 @@ describe("Grid Options", function () {
 			var press = $.Event('keydown');
 			press.ctrlKey = true;
 			press.which = 67;
-			$(document.activeElement).trigger(press);
+			grid.$el.find('.doby-grid-canvas').trigger(press);
 
 			// Since we don't have access the actual clipboard, the
 			// best we can do here is check to make sure the clipboard element was created and focused
@@ -565,7 +565,7 @@ describe("Grid Options", function () {
 			var press = $.Event('keydown');
 			press.ctrlKey = true;
 			press.which = 67;
-			$(document.activeElement).trigger(press);
+			grid.$el.find('.doby-grid-canvas').trigger(press);
 
 			expect(alert).toHaveBeenCalledWith('Sorry, you cannot copy multiple selections.');
 
@@ -1690,11 +1690,13 @@ describe("Grid Options", function () {
 				keyboardNavigation: true
 			}));
 
-			// Activate the last cell
-			grid.activate(1, 1);
+			// Clucj ib editable cell to activate it and set focus on editor
+			grid.$el.find('.doby-grid-cell').last().simulate('click');
+
+			var $canvas = grid.$el.find('.doby-grid-canvas');
 
 			// Shift+Tab
-			grid.$el.find('.doby-grid-canvas').simulate('keydown', {shiftKey: true, keyCode: 9});
+			$canvas.simulate('keydown', {shiftKey: true, keyCode: 9});
 
 			// 1, 0 should be selected
 			expect(grid.active.row).toEqual(1);
