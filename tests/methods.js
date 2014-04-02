@@ -908,6 +908,51 @@ describe("Methods and Data Manipulation", function () {
 		// ==========================================================================================
 
 
+		it("should be able to filter() grid via an array filter set using the IN operator", function () {
+			// Filter using a function just to a single item
+			grid.filter([
+				['id', 'IN', [2]]
+			]);
+
+			// Verify that the grid has been filtered
+			var $rows = grid.$el.find('.doby-grid-row');
+			expect($rows.length).toEqual(1);
+			expect($rows.find('.l0')).toHaveText(2);
+		});
+
+
+		// ==========================================================================================
+
+
+		it("should be able to filter() grid via an array filter set using the in operator", function () {
+			// Filter using a function just to a single item
+			grid.filter([
+				['id', 'in', [2]]
+			]);
+
+			// Verify that the grid has been filtered
+			var $rows = grid.$el.find('.doby-grid-row');
+			expect($rows.length).toEqual(1);
+			expect($rows.find('.l0')).toHaveText(2);
+		});
+
+
+		// ==========================================================================================
+
+
+		it("should throw an error if attempting to use filter() with the IN operator and a non-array value", function () {
+			// Filter using a function just to a single item
+			_.each(['test', 1, {}, null, undefined], function (v) {
+				expect(function () {
+					grid.filter([['id', 'IN', v]]);
+				}).toThrow('The "IN" filter operator must be used with an array. ' + v + ' was given instead.')
+			});
+		});
+
+
+		// ==========================================================================================
+
+
 		it("should be able to filter() grid via an array filter set using the > operator", function () {
 			// Filter using a function just to a single item
 			grid.filter([
@@ -1032,6 +1077,27 @@ describe("Methods and Data Manipulation", function () {
 			expect($rows.length).toEqual(2);
 			expect($rows.eq(0).find('.l0')).toHaveText(2);
 			expect($rows.eq(1).find('.l0')).toHaveText('');
+		});
+
+
+		// ==========================================================================================
+
+
+		it("should be able to reset active filter() with a null param", function () {
+			// First first by something
+			grid.filter([['id', '~', '1']]);
+
+			// Verify that the grid has been filtered
+			var $rows = grid.$el.find('.doby-grid-row');
+			expect($rows.length).toEqual(1);
+			expect($rows.find('.l0')).toHaveText(1);
+
+			// Reset flter
+			grid.filter();
+
+			// Verify that the grid has been un-filtered
+			var $rows = grid.$el.find('.doby-grid-row');
+			expect($rows.length).toEqual(grid.options.data.length);
 		});
 
 

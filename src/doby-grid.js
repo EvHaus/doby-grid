@@ -3894,88 +3894,102 @@
 		//
 		// @return object
 		this.filter = function (filter) {
-			// If this is a filter set -  remember it
-			if ($.isArray(filter)) {
-				this.collection.filterset = filter;
-			}
+			// Remove existing filters
+			if (filter === null || filter === undefined) {
+				this.collection.filterset = null;
+				this.collection.filter = null;
+			} else {
 
-			// Remote data is filtered on the server - so just store it for reference
-			if (typeof(filter) == 'function' || remote) {
-				// Set collection filter function
-				this.collection.filter = filter;
-			} else if ($.isArray(filter)) {
+				// If this is a filter set -  remember it
+				if ($.isArray(filter)) {
+					this.collection.filterset = filter;
+				}
 
-				// A filter set is given.
-				// Build a filter function from the given set
-				this.collection.filter = function (item) {
+				// Remote data is filtered on the server - so just store it for reference
+				if (typeof(filter) == 'function' || remote) {
+					// Set collection filter function
+					this.collection.filter = filter;
+				} else if ($.isArray(filter)) {
 
-					var result = true, f, columnDef, value, test;
-					for (var i = 0, l = filter.length; i < l; i++) {
-						f = filter[i];
+					// A filter set is given.
+					// Build a filter function from the given set
+					this.collection.filter = function (item) {
 
-						// Validate the filter item
-						if (f.length !== 3) throw new Error('Cannot apply filter because the give filter set contains an invalid filter item: ' + JSON.stringify(f) + '.');
+						var result = true, f, columnDef, value, test;
+						for (var i = 0, l = filter.length; i < l; i++) {
+							f = filter[i];
 
-						// Get column
-						columnDef = getColumnById(f[0]);
+							// Validate the filter item
+							if (f.length !== 3) throw new Error('Cannot apply filter because the give filter set contains an invalid filter item: ' + JSON.stringify(f) + '.');
 
-						// Validate column
-						if (!columnDef) throw new Error('Unable to filter by "' + f[0] + '" because no such columns exists in the grid.');
+							// Get column
+							columnDef = getColumnById(f[0]);
 
-						value = getDataItemValueForColumn(item, columnDef);
+							// Validate column
+							if (!columnDef) throw new Error('Unable to filter by "' + f[0] + '" because no such columns exists in the grid.');
 
-						// Process operators
-						switch (f[1]) {
-						case '=':
-							result = value == f[2];
-							break;
-						case '!=':
-							result = value !== f[2];
-							break;
-						case '>':
-							test = value === null ? undefined : value;
-							result = test > f[2];
-							break;
-						case '<':
-							test = value === null ? undefined : value;
-							result = test < f[2];
-							break;
-						case '>=':
-							test = value === null ? undefined : value;
-							result = test >= f[2];
-							break;
-						case '<=':
-							test = value === null ? undefined : value;
-							result = test <= f[2];
-							break;
-						case '~':
-							test = value === null ? '' : value;
-							result = test.toString().search(f[2].toString()) !== -1;
-							break;
-						case '!~':
-							test = value === null ? '' : value;
-							result = test.toString().search(f[2].toString()) === -1;
-							break;
-						case '~*':
-							test = value === null ? '' : value;
-							result = test.toString().toLowerCase().search(f[2].toString().toLowerCase()) !== -1;
-							break;
-						case '!~*':
-							test = value === null ? '' : value;
-							result = test.toString().toLowerCase().search(f[2].toString().toLowerCase())  === -1;
-							break;
-						default:
-							throw new Error('Unable to filter by "' + f[0] + '" because "' + f[1] + '" is not a valid operator.');
+							value = getDataItemValueForColumn(item, columnDef);
+
+							// Process operators
+							switch (f[1].toString().toLowerCase()) {
+							case '=':
+								result = value == f[2];
+								break;
+							case '!=':
+								result = value !== f[2];
+								break;
+							case 'in':
+								if (!$.isArray(f[2])) {
+									throw new Error('The "IN" filter operator must be used with an array. ' + f[2] + ' was given instead.');
+								}
+
+								result = f[2].indexOf(value) >= 0;
+								break;
+							case '>':
+								test = value === null ? undefined : value;
+								result = test > f[2];
+								break;
+							case '<':
+								test = value === null ? undefined : value;
+								result = test < f[2];
+								break;
+							case '>=':
+								test = value === null ? undefined : value;
+								result = test >= f[2];
+								break;
+							case '<=':
+								test = value === null ? undefined : value;
+								result = test <= f[2];
+								break;
+							case '~':
+								test = value === null ? '' : value;
+								result = test.toString().search(f[2].toString()) !== -1;
+								break;
+							case '!~':
+								test = value === null ? '' : value;
+								result = test.toString().search(f[2].toString()) === -1;
+								break;
+							case '~*':
+								test = value === null ? '' : value;
+								result = test.toString().toLowerCase().search(f[2].toString().toLowerCase()) !== -1;
+								break;
+							case '!~*':
+								test = value === null ? '' : value;
+								result = test.toString().toLowerCase().search(f[2].toString().toLowerCase())  === -1;
+								break;
+							default:
+								throw new Error('Unable to filter by "' + f[0] + '" because "' + f[1] + '" is not a valid operator.');
+							}
+
+							// If we already failed the filter - stop filtering
+							if (!result) break;
 						}
 
-						// If we already failed the filter - stop filtering
-						if (!result) break;
-					}
-
-					return result;
-				};
-			} else {
-				throw new Error('Cannot apply filter to grid because given filter must be an array or a function, but given ' + typeof(filter) + '.');
+						return result;
+					};
+				} else {
+					throw new Error('Cannot apply filter to grid because given filter must be an array or a function, but given ' + typeof(filter) + '.');
+				}
 			}
 
 			// Remote data needs to be completely reloaded
