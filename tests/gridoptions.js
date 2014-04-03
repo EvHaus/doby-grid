@@ -3012,7 +3012,7 @@ describe("Grid Options", function () {
 			grid.activate(0, 0);
 
 			// Click outside the grid
-			grid.$el.find('.doby-grid-canvas').simulate('blur');
+			$(document.body).simulate('click');
 
 			// Wait a little bit to ensure grid isn't destroyed when the blur event fires
 			var waited = false;

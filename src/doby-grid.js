@@ -202,7 +202,7 @@
 			h_editorLoader = null,
 			h_render = null,
 			h_postrender = null,
-			handleCanvasBlur,
+			handleBodyClick,
 			handleClick,
 			handleContextMenu,
 			handleDblClick,
@@ -717,8 +717,9 @@
 						});
 				}
 
+				$(document.body).on("click contextmenu", handleBodyClick);
+
 				$canvas
-					.on("blur", handleCanvasBlur)
 					.on("keydown", handleKeyDown)
 					.on("click", handleClick)
 					.on("dblclick", handleDblClick)
@@ -3458,6 +3459,9 @@
 			}
 			this.$el = null;
 
+			// Remove body click event
+			$(document.body).off("click contextmenu", handleBodyClick);
+
 			// Remove CSS Rules
 			removeCssRules();
 
@@ -5105,27 +5109,29 @@
 		Group.prototype.toString = function () { return "Group"; };
 
 
-		// handleCanvasBlur()
-		// Handles the blur event for the canvas element
+		// handleBodyClick()
+		// Handles the click and context menu events when clicking on the entire page body.
+		// This is what will unfocus the grid, when clicking outside.
 		//
 		// @param	e	object		Javascript event object
 		//
-		handleCanvasBlur = function () {
-			// Wait a fraction of a second to see if another element inside the grid
-			// will steal the focus back.
-			setTimeout(function () {
+		handleBodyClick = function (e) {
+
+			// If we clicked inside the grid, or in the grid's context menu - do nothing
+			if (
+				self.options.stickyFocus ||
+				$(e.target).closest(self.$el).length > 0 ||
+				(self.dropdown && $(e.target).closest(self.dropdown.$el).length > 0)
+			) {
+				return;
+			}
+
 				// Was the grid destroyed by the time we go in here?
 				if (self.destroyed) return;
 
-				// If was something outside the grid was selected...
-				if ($(document.activeElement).closest(self.$el).length === 0) {
-					// And the stickyFocus is disabled - remove any active cells
-					if (!self.options.stickyFocus) {
+			// If the stickyFocus is disabled - remove any active cells
 						self.activate(null);
 						deselectCells();
-					}
-				}
-			}, 10);
 		},
 
 
