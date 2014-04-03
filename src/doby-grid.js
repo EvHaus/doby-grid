@@ -145,7 +145,6 @@
 			createCssRules,
 			createGrid,
 			createGroupingObject,
-			currentEditor = null,
 			defaultEditor,
 			defaultFormatter,
 			deselectCells,
@@ -456,6 +455,9 @@
 		// Stores the currently active cell
 		this.active = null;
 
+		// Stores the current editor instance
+		this.currentEditor = null;
+
 		// Is this instance destroyed?
 		this.destroyed = false;
 
@@ -736,11 +738,13 @@
 					'mouseup'
 				], evHandler = function (event) {
 					var cell = getCellFromEvent(event),
-						item = cell && cell.row !== undefined && cell.row !== null ? getDataItem(cell.row) : null;
+						item = cell && cell.row !== undefined && cell.row !== null ? getDataItem(cell.row) : null,
+						column = cell ? cache.activeColumns[cell.cell] : null;
 
 					self.trigger(event.type, event, {
 						row: cell ? cell.row : null,
 						cell: cell ? cell.cell : null,
+						column: column,
 						item: item
 					});
 
@@ -1516,7 +1520,7 @@
 		// @param	callback	function	Callback function
 		//
 		commitCurrentEdit = function (callback) {
-			if (!self.active || !currentEditor) return callback(true);
+			if (!self.active || !self.currentEditor) return callback(true);
 
 			var item = getDataItem(self.active.row),
 				column = cache.activeColumns[self.active.cell];
@@ -1562,10 +1566,10 @@
 
 			var showInvalidHandler = function (validationResults) {
 				// Execute the showInvalid function for the editor, if it exists
-				if (currentEditor.showInvalid) currentEditor.showInvalid(validationResults);
+				if (self.currentEditor.showInvalid) self.currentEditor.showInvalid(validationResults);
 
 				self.trigger('validationerror', self._event, {
-					editor: currentEditor,
+					editor: self.currentEditor,
 					cellNode: self.active.node,
 					validationResults: validationResults,
 					row: self.active.row,
@@ -1573,17 +1577,17 @@
 					column: column
 				});
 
-				currentEditor.focus();
+				self.currentEditor.focus();
 			};
 
-			if (!currentEditor.isValueChanged()) {
+			if (!self.currentEditor.isValueChanged()) {
 				// No changes made
 				callback(true);
 			} else {
 				var cellsToEdit = getCellsToEdit();
 
 				// Run validation on all the affected cells
-				currentEditor.validate(cellsToEdit, function (validationResults) {
+				self.currentEditor.validate(cellsToEdit, function (validationResults) {
 					if (validationResults === true) {
 						// If we're inside an "addRow", create a duplicate and write to that
 						if (item.__addRow) {
@@ -1592,13 +1596,13 @@
 							};
 
 							// Add row
-							currentEditor.applyValue([{
+							self.currentEditor.applyValue([{
 								item: newItem,
 								column: column,
 								row: self.active.row,
 								cell: self.active.cell,
 								$cell: $(getCellNode(self.active.row, self.active.cell))
-							}], currentEditor.serializeValue());
+							}], self.currentEditor.serializeValue());
 
 							// Make sure item has an id
 							if ((!newItem.data.id && !newItem.id) ||
@@ -1617,13 +1621,15 @@
 							self.add(newItem);
 
 							self.trigger('newrow', self._event, {
+								cell: self.active.cell,
+								column: column,
 								item: newItem,
-								column: column
+								row: self.active.row
 							});
 						} else {
 
 							// Execute the operation
-							currentEditor.applyValue(cellsToEdit, currentEditor.serializeValue());
+							self.currentEditor.applyValue(cellsToEdit, self.currentEditor.serializeValue());
 
 							// Update rows
 							for (var i = 0, l = cellsToEdit.length; i < l; i++) {
@@ -5126,12 +5132,12 @@
 				return;
 			}
 
-				// Was the grid destroyed by the time we go in here?
-				if (self.destroyed) return;
+			// Was the grid destroyed by the time we go in here?
+			if (self.destroyed) return;
 
 			// If the stickyFocus is disabled - remove any active cells
-						self.activate(null);
-						deselectCells();
+			self.activate(null);
+			deselectCells();
 		},
 
 
@@ -5144,7 +5150,7 @@
 			var cell = getCellFromEvent(e);
 
 			if ((!cell || cell.row === null || cell.row === undefined) || (
-				currentEditor !== null &&
+				self.currentEditor !== null &&
 				(self.active && self.active.row == cell.row && self.active.cell == cell.cell)
 			)) {
 				return;
@@ -5175,9 +5181,10 @@
 			if (!cell) return;
 
 			self.trigger('click', e, {
-				row: cell.row,
 				cell: cell.cell,
-				item: item
+				column: cache.activeColumns[cell.cell],
+				item: item,
+				row: cell.row
 			});
 
 			if (e.isImmediatePropagationStopped()) return;
@@ -5231,7 +5238,7 @@
 			if (self.options.deactivateOnRightClick && self.active) self.activate();
 
 			// Are we editing this cell?
-			if (self.active && self.active.node === $cell[0] && currentEditor !== null) return;
+			if (self.active && self.active.node === $cell[0] && self.currentEditor !== null) return;
 
 			var column = getColumnFromEvent(e),
 				cell = getCellFromEvent(e) || {};
@@ -5239,6 +5246,7 @@
 			self.trigger('contextmenu', e, {
 				cell: cell.cell !== null && cell.cell !== undefined ? cell.cell : null,
 				column: column,
+				item: getDataItem(cell.row),
 				row: cell.row !== null && cell.row !== undefined ? cell.row : null
 			});
 		};
@@ -5251,13 +5259,17 @@
 		//
 		handleDblClick = function (e) {
 			var cell = getCellFromEvent(e);
-			if (!cell || (currentEditor !== null && (self.active && self.active.row == cell.row && self.active.cell == cell.cell))) {
+			if (!cell || (self.currentEditor !== null && (self.active && self.active.row == cell.row && self.active.cell == cell.cell))) {
 				return;
 			}
 
+			var column = getColumnFromEvent(e);
+
 			self.trigger('dblclick', e, {
-				row: cell.row,
-				cell: cell.cell
+				cell: cell.cell !== null && cell.cell !== undefined ? cell.cell : null,
+				column: column,
+				item: getDataItem(cell.row),
+				row: cell.row !== null && cell.row !== undefined ? cell.row : null
 			});
 
 			if (e.isImmediatePropagationStopped()) return;
@@ -5320,8 +5332,8 @@
 				} else if (!e.shiftKey && !e.altKey && !e.ctrlKey) {
 					// Esc
 					if (e.which == 27) {
-						if (self.options.editable && currentEditor) {
-							currentEditor.cancel();
+						if (self.options.editable && self.currentEditor) {
+							self.currentEditor.cancel();
 							makeActiveCellNormal();
 
 							// Return focus back to the canvas
@@ -5352,7 +5364,7 @@
 						handled = true;
 					// Left Arrow
 					} else if (e.which == 37) {
-						if (self.options.editable && currentEditor) {
+						if (self.options.editable && self.currentEditor) {
 							handled = commitCurrentEdit(function (result) {
 								if (result) navigate("left");
 							});
@@ -5361,7 +5373,7 @@
 						}
 					// Right Arrow
 					} else if (e.which == 39) {
-						if (self.options.editable && currentEditor) {
+						if (self.options.editable && self.currentEditor) {
 							handled = commitCurrentEdit(function (result) {
 								if (result) navigate("right");
 							});
@@ -5370,7 +5382,7 @@
 						}
 					// Up Arrow
 					} else if (e.which == 38) {
-						if (self.options.editable && currentEditor) {
+						if (self.options.editable && self.currentEditor) {
 							handled = commitCurrentEdit(function (result) {
 								if (result) navigate("up");
 							});
@@ -5379,7 +5391,7 @@
 						}
 					// Down Arrow
 					} else if (e.which == 40) {
-						if (self.options.editable && currentEditor) {
+						if (self.options.editable && self.currentEditor) {
 							handled = commitCurrentEdit(function (result) {
 								if (result) navigate("down");
 							});
@@ -5388,7 +5400,7 @@
 						}
 					// Tab
 					} else if (e.which == 9) {
-						if (self.options.editable && currentEditor) {
+						if (self.options.editable && self.currentEditor) {
 							handled = commitCurrentEdit(function (result) {
 								if (result) {
 									navigate("next");
@@ -5399,7 +5411,7 @@
 						}
 					// Enter
 					} else if (e.which == 13) {
-						if (self.options.editable && currentEditor) {
+						if (self.options.editable && self.currentEditor) {
 							handled = commitCurrentEdit(function (result) {
 								if (result) navigate("down");
 							});
@@ -5409,7 +5421,7 @@
 					}
 				// Shift Tab
 				} else if (e.which == 9 && e.shiftKey && !e.ctrlKey && !e.altKey) {
-					if (self.options.editable && currentEditor) {
+					if (self.options.editable && self.currentEditor) {
 						handled = commitCurrentEdit(function (result) {
 							if (result) navigate("prev");
 						});
@@ -5445,6 +5457,8 @@
 		// @param	event		object		Javascript event object
 		//
 		handleScroll = function (event) {
+			if (event === undefined) event = null;
+
 			scrollTop = $viewport[0].scrollTop;
 			scrollLeft = $viewport[0].scrollLeft;
 
@@ -5499,7 +5513,10 @@
 						}, 50);
 					}
 
-					self.trigger('viewportchanged', event, {});
+					self.trigger('viewportchanged', event, {
+						scrollLeft: scrollLeft,
+						scrollTop: scrollTop
+					});
 				}
 			}
 
@@ -5684,7 +5701,7 @@
 		// Clears the caching for all rows caches
 		//
 		invalidateAllRows = function () {
-			if (currentEditor) {
+			if (self.currentEditor) {
 				makeActiveCellNormal();
 			}
 			for (var row in cache.nodes) {
@@ -5717,7 +5734,7 @@
 			vScrollDir = 0;
 
 			for (var i = 0, l = rows.length; i < l; i++) {
-				if (currentEditor && self.active && self.active.row === rows[i]) {
+				if (self.currentEditor && self.active && self.active.row === rows[i]) {
 					makeActiveCellNormal();
 				}
 
@@ -5804,7 +5821,7 @@
 
 			var CellEditor = editor || getEditor(self.active.row, self.active.cell);
 
-			currentEditor = new CellEditor({
+			self.currentEditor = new CellEditor({
 				grid: self,
 				cell: self.active.node,
 				column: columnDef,
@@ -5821,15 +5838,15 @@
 			// Validate editor for required methods
 			var editormethods = ['applyValue', 'cancel', 'destroy', 'focus', 'getValue', 'isValueChanged', 'loadValue', 'serializeValue', 'setValue', 'validate'];
 			for (var i = 0, l = editormethods.length; i < l; i++) {
-				if (!currentEditor[editormethods[i]]) {
+				if (!self.currentEditor[editormethods[i]]) {
 					throw new Error("Your editor is missing a '" + [editormethods[i]] + "' function.");
 				}
 			}
 
-			serializedEditorValue = currentEditor.serializeValue();
+			serializedEditorValue = self.currentEditor.serializeValue();
 
 			// Focus the editor
-			currentEditor.focus();
+			self.currentEditor.focus();
 		};
 
 
@@ -5838,20 +5855,20 @@
 		//
 		makeActiveCellNormal = function () {
 
-			if (!currentEditor) return;
+			if (!self.currentEditor) return;
 
 			/*self.trigger('onBeforeCellEditorDestroy', {}, {
-				editor: currentEditor
+				editor: self.currentEditor
 			});*/
 
 			// When an editor is destroyed, the input element loses focus and focus is given back
 			// to the 'body' element. To retain focus on the grid - we need to manually set it here first.
-			if (currentEditor.$input.is(document.activeElement)) {
+			if (self.currentEditor.$input.is(document.activeElement)) {
 				$canvas.focus();
 			}
 
-			currentEditor.destroy();
-			currentEditor = null;
+			self.currentEditor.destroy();
+			self.currentEditor = null;
 
 			if (self.active && self.active.node) {
 				var d = getDataItem(self.active.row);
@@ -6250,6 +6267,10 @@
 		//
 		// @return string
 		Range.prototype.toJSON = function () {
+			// TODO: Hacky solution to fix PhantomJS Jasmine tests. For some reason
+			// they will run this command on some tests after the grid has been destroyed.
+			if (self.destroyed) return;
+
 			var json = [], column, row, data;
 			for (var i = this.fromRow; i <= this.toRow; i++) {
 				row = cache.rows[i];
@@ -6576,7 +6597,7 @@
 					// Return results via callback
 					callback(results);
 
-					self.trigger('remotegroupsloaded', {});
+					self.trigger('remotegroupsloaded', self._event, {});
 
 					// Fire onLoaded callback
 					if (typeof remote.onLoaded === 'function') remote.onLoaded();
@@ -6635,7 +6656,7 @@
 			updateRowCount();
 			render();
 
-			self.trigger('remoteloaded', {});
+			self.trigger('remoteloaded', self._event, {});
 		};
 
 
@@ -7361,7 +7382,10 @@
 				vScrollDir = (prevScrollTop + oldOffset < newScrollTop + offset) ? 1 : -1;
 				$viewport[0].scrollTop = (lastRenderedScrollTop = scrollTop = prevScrollTop = newScrollTop);
 
-				self.trigger('viewportchanged', {});
+				self.trigger('viewportchanged', null, {
+					scrollLeft: 0,
+					scrollTop: $viewport[0].scrollTop
+				});
 			}
 		};
 
@@ -7475,7 +7499,9 @@
 			// Select cells
 			updateCellCssStylesOnRenderedRows(cellStyles);
 
-			this.trigger('selection', this._event);
+			this.trigger('selection', this._event, {
+				selection: this.selection
+			});
 		};
 
 
@@ -7535,7 +7561,9 @@
 			}
 
 			if (activeCellChanged) {
-				self.trigger('activecellchange', {}, getActiveCell());
+				var eventdata = getActiveCell();
+				eventdata.item = getDataItem(eventdata.row);
+				self.trigger('activecellchange', self._event, eventdata);
 			}
 		};
 
@@ -7552,7 +7580,7 @@
 			validateColumns();
 			updateColumnCaches();
 
-			this.trigger('columnchange', {}, {
+			this.trigger('columnchange', this._event, {
 				columns: columns
 			});
 
@@ -7760,7 +7788,9 @@
 				executeSorter(args);
 
 				// Fire event
-				self.trigger('sort', this._event, args);
+				self.trigger('sort', this._event, {
+					sort: args
+				});
 
 			}
 
@@ -7803,7 +7833,9 @@
 					self.setColumns(reorderedColumns);
 					setupColumnResize();
 
-					self.trigger('columnreorder', e);
+					self.trigger('columnreorder', e, {
+						columns: reorderedColumns
+					});
 				}
 			});
 		};
@@ -7966,7 +7998,9 @@
 
 				updateCanvasWidth(true);
 				render();
-				self.trigger('columnresize', {});
+				self.trigger('columnresize', self._event, {
+					columns: self.options.columns
+				});
 			};
 
 			// Assign double-click to auto-resize event
@@ -8939,8 +8973,8 @@
 				var m = cache.activeColumns[columnIdx],
 					node = cacheEntry.cellNodesByColumnIdx[columnIdx];
 
-				if (self.active && row === self.active.row && columnIdx === self.active.cell && currentEditor) {
-					currentEditor.loadValue(d);
+				if (self.active && row === self.active.row && columnIdx === self.active.cell && self.currentEditor) {
+					self.currentEditor.loadValue(d);
 				} else if (d) {
 					node.innerHTML = getFormatter(row, m)(row, columnIdx, getDataItemValueForColumn(d, m), m, d);
 				} else {
