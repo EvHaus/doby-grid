@@ -5127,7 +5127,9 @@
 			if (
 				self.options.stickyFocus ||
 				$(e.target).closest(self.$el).length > 0 ||
-				(self.dropdown && $(e.target).closest(self.dropdown.$el).length > 0)
+				(self.dropdown && $(e.target).closest(self.dropdown.$el).length > 0) ||
+				// Sometimes clicking on inner cell elements results in clicking on orphans
+				$(e.target).parent().length === 0
 			) {
 				return;
 			}
