@@ -5126,12 +5126,12 @@
 				return;
 			}
 
-				// Was the grid destroyed by the time we go in here?
-				if (self.destroyed) return;
+			// Was the grid destroyed by the time we go in here?
+			if (self.destroyed) return;
 
 			// If the stickyFocus is disabled - remove any active cells
-						self.activate(null);
-						deselectCells();
+			self.activate(null);
+			deselectCells();
 		},
 
 
