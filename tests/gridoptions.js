@@ -558,8 +558,7 @@ describe("Grid Options", function () {
 			grid.selection.push(grid.selection[0]);
 
 			// Replace 'alert' for a second
-			var oldalert = alert;
-			alert = jasmine.createSpy();
+			var alertSpy = spyOn(window, "alert");
 
 			// Simulate Ctrl + C
 			var press = $.Event('keydown');
@@ -567,9 +566,7 @@ describe("Grid Options", function () {
 			press.which = 67;
 			grid.$el.find('.doby-grid-canvas').trigger(press);
 
-			expect(alert).toHaveBeenCalledWith('Sorry, you cannot copy multiple selections.');
-
-			alert = oldalert;
+			expect(alertSpy).toHaveBeenCalledWith('Sorry, you cannot copy multiple selections.');
 		});
 	});
 
@@ -1407,6 +1404,42 @@ describe("Grid Options", function () {
 			expect(function () {
 				grid.setGrouping(grid.options.columns[0].id);
 			}).toThrow('Cannot execute "setGrouping" because "options.groupable" is disabled.');
+		});
+	});
+	
+	
+	// ==========================================================================================
+
+
+	describe("options.idProperty", function () {
+		it("should be 'id' by default", function () {
+			var grid = resetGrid(defaultData());
+			expect(grid.options.idProperty).toEqual('id');
+		});
+		
+		
+		// ==========================================================================================
+		
+		
+		it("should use the given idProperty to identify rows", function () {
+			// Prepare for test
+			var grid = resetGrid($.extend(defaultData(), {
+				data: [{
+					cid: 'test',
+					data: {
+						name: 'hello'	
+					}
+				}],
+				idProperty: 'cid'
+			}));
+
+			// Attempt to edit cell using setItem
+			grid.setItem('test', {
+				cid: 'test',
+				data: {
+					name: 'blah'	
+				}
+			});
 		});
 	});
 
@@ -2718,6 +2751,50 @@ describe("Grid Options", function () {
                     expect(parseInt($(this).css('top'), 10)).toEqual(parseInt($prevRow.css('top'), 10) + $prevRow.outerHeight() + testSpacing);
                 }
 			});
+		});
+	});
+	
+	
+	// ==========================================================================================
+
+
+	describe("options.scrollLoader", function () {
+		it("should be null by default", function () {
+			var grid = resetGrid(defaultData());
+			expect(grid.options.scrollLoader).toEqual(null);
+		});
+		
+		
+		// ==========================================================================================
+		
+		
+		it("should display the value when scrolling quickly", function () {
+			var data = [];
+			for (var i = 0, l = 1000; i < l; i++) {
+				data.push({
+					id: i,
+					data: {
+						id: i,
+						name: 'test' + i	
+					}
+				});
+			}
+			
+			var grid = resetGrid($.extend(defaultData(), {
+				data: data,
+				scrollLoader: function () {
+					return "Unit Testing";
+				}
+			}));
+			
+			var viewport = grid.$el.find('.doby-grid-viewport')[0];
+			viewport.scrollTop = viewport.scrollTop + 1000;
+			
+			waitsFor(function () {
+				var $scrollLoader = grid.$el.find('.doby-grid-scroll-loader');
+				return $scrollLoader.length;
+			}, 100, 'scroll loader element to appear');
+			
 		});
 	});
 

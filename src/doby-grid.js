@@ -125,6 +125,7 @@
 			classrowdragcontainer = this.NAME + '-row-drag-container',
 			classrowhandle = this.NAME + '-row-handle',
 			classrowtotal = this.NAME + '-row-total',
+			classscrollloader = this.NAME + '-scroll-loader',
 			classsortindicator = this.NAME + '-sort-indicator',
 			classsortindicatorasc = classsortindicator + '-asc',
 			classsortindicatordesc = classsortindicator + '-desc',
@@ -214,7 +215,6 @@
 			hasSorting,
 			headerColumnWidthDiff = 0,
 			headerColumnHeightDiff = 0, // border+padding
-			idProperty = "id",	// property holding a unique row id
 			isFileSaverSupported = typeof window.Blob === "function",
 			initialize,
 			initialized = false,
@@ -280,6 +280,7 @@
 			resizeCanvas,
 			scrollCellIntoView,
 			scrollLeft = 0,
+			scrollLoader,
 			scrollPage,
 			scrollRowIntoView,
 			scrollTo,
@@ -399,6 +400,7 @@
 			formatter:				null,
 			fullWidthRows:			true,
 			groupable:				true,
+			idProperty:				"id",
 			keyboardNavigation:		true,
 			lineHeightOffset:		-1,
 			nestedAggregators:		true,
@@ -412,6 +414,7 @@
 			reorderable:			true,
 			rowHeight:				28,
             rowSpacing:             0,
+			scrollLoader:			null,
 			selectable:				true,
 			selectedClass:			"selected",
 			shiftSelect:			true,
@@ -861,7 +864,7 @@
 			var dataLength = getDataLength(),
 				cb = function () {
 					if (this.col.cache && cache && cache.rows[this.row]) {
-						var row_id = cache.rows[this.row].id;
+						var row_id = cache.rows[this.row][self.options.idProperty];
 						if (!cache.postprocess[row_id]) cache.postprocess[row_id] = {};
 						cache.postprocess[row_id][this.col.id] = $(this.node).html();
 					}
@@ -877,7 +880,7 @@
 					continue;
 				}
 
-				if (!cache.postprocess[rowdata.id]) cache.postprocess[rowdata.id] = {};
+				if (!cache.postprocess[rowdata[self.options.idProperty]]) cache.postprocess[rowdata[self.options.idProperty]] = {};
 
 				ensureCellNodesInRowsCache(row);
 				for (columnIdx in cacheEntry.cellNodesByColumnIdx) {
@@ -895,7 +898,7 @@
 					}
 
 					// If row has no caching set -- run the postprocessing
-					if (postprocess && !cache.postprocess[rowdata.id][col.id]) {
+					if (postprocess && !cache.postprocess[rowdata[self.options.idProperty]][col.id]) {
 						var node = cacheEntry.cellNodesByColumnIdx[columnIdx];
 						if (node) {
 							postprocess({
@@ -1189,7 +1192,7 @@
 				// Cache by item id
 				// NOTE: This is currently the slowest part of grid initialization. Can it be done
 				// lazily since this is only used for get/add/remove.
-				cache.indexById[item[idProperty]] = i;
+				cache.indexById[item[self.options.idProperty]] = i;
 
 				// Cache row position
 				if (!indexOnly && variableRowHeight) {
@@ -1918,10 +1921,10 @@
 
 					if (existing) {
 						if (options.merge) {
-							this.setItem(existing[idProperty], model);
+							this.setItem(existing[grid.options.idProperty], model);
 						} else {
 							throw ["You are not allowed to add() items without a unique 'id' value. ",
-							"A row with id '" + existing[idProperty] + "' already exists."].join('');
+							"A row with id '" + existing[grid.options.idProperty] + "' already exists."].join('');
 						}
 					} else {
 						toAdd.push(model);
@@ -1935,7 +1938,7 @@
 					// If data used to be empty, with an alert - remove alert
 					if (grid.options.emptyNotice) {
 						if (this.items.length && this.items[0].__alert) {
-							this.remove(this.items[0][idProperty]);
+							this.remove(this.items[0][grid.options.idProperty]);
 						}
 					}
 
@@ -2378,7 +2381,7 @@
 				if (obj === null) return void 0;
 				var id = obj;
 				if (typeof obj == 'object') {
-					id = obj[idProperty] || (obj.data && obj.data[idProperty]);
+					id = obj[grid.options.idProperty] || (obj.data && obj.data[grid.options.idProperty]);
 					if (id === null || id === undefined) return null;
 				}
 
@@ -2386,7 +2389,7 @@
 				var findItem = function (set) {
 					var subitem;
 					for (var i = 0, l = set.length; i < l; i++) {
-						if (set[i].id == id) return [i, set[i]];
+						if (set[i][grid.options.idProperty] == id) return [i, set[i]];
 						if (set[i].rows) {
 							subitem = findItem(_.values(set[i].rows));
 							if (subitem) return subitem;
@@ -2438,7 +2441,7 @@
 								// Compare two groups
 								(
 									self.groups.length && eitherIsNonData &&
-									(item && item instanceof Group) && (item[idProperty] != r[idProperty]) ||
+									(item && item instanceof Group) && (item[grid.options.idProperty] != r[grid.options.idProperty]) ||
 									(item && item instanceof Group) && (item.collapsed != r.collapsed) ||
 									(item && item instanceof Group) && (item.count != r.count)
 								) ||
@@ -2452,8 +2455,8 @@
 								) ||
 								// Compare between different data object ids
 								(
-									item && item[idProperty] != r[idProperty] ||
-									(updated && updated[item[idProperty]])
+									item && item[grid.options.idProperty] != r[grid.options.idProperty] ||
+									(updated && updated[item[grid.options.idProperty]])
 								)
 							)
 						) {
@@ -2516,7 +2519,7 @@
 					item = items[i];
 
 					// Validate that idProperty exists
-					if (item[idProperty] === undefined || item[idProperty] === null) {
+					if (item[grid.options.idProperty] === undefined || item[grid.options.idProperty] === null) {
 						throw "Each data item must have a unique 'id' key. The following item is missing an 'id': " + JSON.stringify(item);
 					}
 
@@ -2624,7 +2627,7 @@
 				var gridAggregate = new Aggregate(cache.aggregatorsByColumnId);
 
 				// Mark this is the grid-level aggregate
-				gridAggregate.id = '__gridAggregate';
+				gridAggregate[grid.options.idProperty] = '__gridAggregate';
 
 				// Insert new Aggregate row
 				items.push(gridAggregate);
@@ -2678,7 +2681,7 @@
 
 					// Insert grid totals row
 					var groupAggregate = new Aggregate(group.aggregators);
-					groupAggregate.id = '__gridAggregate-group-' + group.id;
+					groupAggregate[grid.options.idProperty] = '__gridAggregate-group-' + group.id;
 					group.grouprows.push(groupAggregate);
 
 					// Process nested groups
@@ -2999,7 +3002,7 @@
 
 					// Backbone does not support changing a model's id
 					// Except if the item in there is a place holder
-					if (data.id !== id && !cache.rows[idx].__placeholder) {
+					if (data[grid.options.idProperty] !== id && !cache.rows[idx].__placeholder) {
 						throw new Error("Sorry, but Backbone does not support changing a model's id value, and as a result, this is not supported in Doby Grid either.");
 					}
 				}
@@ -3011,8 +3014,8 @@
 					// Delete postprocess cache for nested rows
 					if (original_object[1].rows) {
 						for (var key in original_object[1].rows) {
-							if (cache.postprocess[original_object[1].rows[key].id]) {
-								delete cache.postprocess[original_object[1].rows[key].id];
+							if (cache.postprocess[original_object[1].rows[key][grid.options.idProperty]]) {
+								delete cache.postprocess[original_object[1].rows[key][grid.options.idProperty]];
 							}
 						}
 					}
@@ -3023,12 +3026,12 @@
 
 				// ID may have changed for the item so update the index by id too.
 				// This is most relevant in remote grids where real IDs replace placeholder IDs
-				if (id !== data.id) delete cache.indexById[id];
-				cache.indexById[data.id] = idx;
+				if (id !== data[grid.options.idProperty]) delete cache.indexById[id];
+				cache.indexById[data[grid.options.idProperty]] = idx;
 
 				// Parse the updated data before re-rendering. This will ensure that variableRowHeight
 				// is correctly set when items are updated.
-				if (data.id === undefined || data.id === null) data.id = id;
+				if (data[grid.options.idProperty] === undefined || data[grid.options.idProperty] === null) data[grid.options.idProperty] = id;
 				parse([data]);
 
 				// Find the data item and update it
@@ -3048,7 +3051,7 @@
 				// Store the ids that were updated so the refresh knows which row to update
 				if (!updated) updated = {};
 				updated[id] = true;
-				if (id !== data.id) updated[data.id] = true;
+				if (id !== data[grid.options.idProperty]) updated[data[grid.options.idProperty]] = true;
 
 				// This needs to be debounced for when it's called via Backbone Events (when many
 				// collection items are changed all at once)
@@ -3204,10 +3207,10 @@
 					item = items[i];
 
 					// Make sure we always have an id for our item
-					if (!('id' in item.item) && item.column.field == 'id') {
-						item.item.id = value;
+					if (!(self.options.idProperty in item.item) && item.column.field == 'id') {
+						item.item[self.options.idProperty] = value;
 					}
-
+					
 					if (item.item instanceof Backbone.Model) {
 						item.item.set(item.column.field, value);
 					} else {
@@ -4081,7 +4084,7 @@
 			for (i = 0, l = self.collection.length; i < l; i++) {
 				phId = 'placeholder-' + i;
 				ph = new Placeholder();
-				ph.id = phId;
+				ph[self.options.idProperty] = phId;
 				self.collection.items.push(ph);
 			}
 
@@ -5167,9 +5170,9 @@
 
 				if (isToggler) {
 					if (item.collapsed) {
-						self.collection.expandGroup(item[idProperty]);
+						self.collection.expandGroup(item[self.options.idProperty]);
 					} else {
-						self.collection.collapseGroup(item[idProperty]);
+						self.collection.collapseGroup(item[self.options.idProperty]);
 					}
 
 					e.stopImmediatePropagation();
@@ -5451,7 +5454,7 @@
 				catch (error) {}
 			}
 		};
-
+		
 
 		// handleScroll()
 		// Handles the offsets and event that need to fire when a user is scrolling
@@ -5509,7 +5512,17 @@
 						Math.abs(lastRenderedScrollLeft - scrollLeft) < viewportW)) {
 						render();
 					} else {
+						
+						if (self.options.scrollLoader && !scrollLoader) {
+							scrollLoader = $('<div class="' + classscrollloader + '">' + self.options.scrollLoader() + '</div>').appendTo(self.$el);	
+						}
+						
 						h_render = setTimeout(function () {
+							if (scrollLoader) {
+								scrollLoader.remove();
+								scrollLoader = null;
+							}
+							
 							render();
 							h_render = null;
 						}, 50);
@@ -5673,7 +5686,7 @@
 
 			var selectable_rows = self.collection.length - 1;
 
-			if (self.collection.items[self.collection.items.length - 1].id == '__gridAggregate') {
+			if (self.collection.items[self.collection.items.length - 1][self.options.idProperty] == '__gridAggregate') {
 				selectable_rows--;
 			}
 
@@ -5718,7 +5731,7 @@
 		// @param	row		integer		Row index
 		//
 		invalidatePostProcessingResults = function (row) {
-			delete cache.postprocess[cache.rows[row].id];
+			delete cache.postprocess[cache.rows[row][self.options.idProperty]];
 			postProcessFromRow = Math.min(postProcessFromRow, row);
 			postProcessToRow = Math.max(postProcessToRow, row);
 			startPostProcessing();
@@ -5777,12 +5790,12 @@
 
 			self.listenTo(self.options.data, 'change', function (model) {
 				// When items are changed - re-render the right row
-				self.setItem(model.id, model);
+				self.setItem(model[self.options.idProperty], model);
 			});
 
 			self.listenTo(self.options.data, 'remove', function (model) {
 				// When items are removed - remove the right row
-				self.collection.remove(model.id);
+				self.collection.remove(model[self.options.idProperty]);
 			});
 
 			self.listenTo(self.options.data, 'reset', function () {
@@ -6812,12 +6825,12 @@
 			var item = cache.rows[row];
 
 			// Clear postprocessing cache
-			if (item && cache.postprocess[item.id]) {
-				for (var id in cache.postprocess[item.id]) {
+			if (item && cache.postprocess[item[self.options.idProperty]]) {
+				for (var id in cache.postprocess[item[self.options.idProperty]]) {
 					col = cache.activeColumns[cache.columnsById[id]];
 					// Remove cache if it's non-cached column, or if the column has been hidden or removed
 					if (!col || !col.cache) {
-						delete cache.postprocess[item.id][id];
+						delete cache.postprocess[item[self.options.idProperty]][id];
 					}
 				}
 			}
@@ -6898,8 +6911,8 @@
 			result.push('<div class="' + cellCss.join(" ") + '">');
 
 			// If this is a cached, postprocessed row -- use the cache
-			if (m.cache && m.postprocess && cache.postprocess[item.id] && cache.postprocess[item.id][column.id]) {
-				result.push(cache.postprocess[item.id][column.id]);
+			if (m.cache && m.postprocess && cache.postprocess[item[self.options.idProperty]] && cache.postprocess[item[self.options.idProperty]][column.id]) {
+				result.push(cache.postprocess[item[self.options.idProperty]][column.id]);
 			} else if (item) {
 				// if there is a corresponding row (if not, this is the Add New row or
 				// this data hasn't been loaded yet)
@@ -7695,7 +7708,7 @@
 			if (item instanceof Group) {
 				// For groups we need to update the grouping options since the group rows
 				// will get regenerated, losing their custom height params during re-draws
-				item.predef.grouprows[item.id] = {height: height};
+				item.predef.grouprows[item[self.options.idProperty]] = {height: height};
 
 				invalidateRows(_.range(row, cache.rows.length));
 
@@ -7706,7 +7719,7 @@
 				// Update the item which will cause the grid to re-render the right bits
 				// TODO: This is hacky. There should be a collection.set() method to
 				// extend existing data instead of replacing the whole object
-				self.collection.setItem(item[idProperty], item);
+				self.collection.setItem(item[self.options.idProperty], item);
 			}
 
 			// This will recalculate scroll heights to ensure scrolling is properly handled.
