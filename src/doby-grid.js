@@ -3211,7 +3211,7 @@
 					item = items[i];
 
 					// Make sure we always have an id for our item
-					if (!(self.options.idProperty in item.item) && item.column.field == 'id') {
+					if (!(self.options.idProperty in item.item) && item.column.field == self.options.idProperty) {
 						item.item[self.options.idProperty] = value;
 					}
 
