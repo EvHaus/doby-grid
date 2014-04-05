@@ -1923,8 +1923,12 @@
 						if (options.merge) {
 							this.setItem(existing[grid.options.idProperty], model);
 						} else {
-							throw ["You are not allowed to add() items without a unique 'id' value. ",
-							"A row with id '" + existing[grid.options.idProperty] + "' already exists."].join('');
+							throw new Error([
+								"You are not allowed to add() items without a unique '",
+								grid.options.idProperty, "' value. ",
+								"A row with id '", existing[grid.options.idProperty],
+								"' already exists."
+							].join(''));
 						}
 					} else {
 						toAdd.push(model);
@@ -2520,7 +2524,7 @@
 
 					// Validate that idProperty exists
 					if (item[grid.options.idProperty] === undefined || item[grid.options.idProperty] === null) {
-						throw "Each data item must have a unique 'id' key. The following item is missing an 'id': " + JSON.stringify(item);
+						throw new Error("Each data item must have a unique '" + grid.options.idProperty + "' key. The following item is missing an '" + grid.options.idProperty + "': " + JSON.stringify(item));
 					}
 
 					// Check for children columns
@@ -3040,7 +3044,7 @@
 				// If the rows were changed we need to invalidate the child rows
 				if (data.rows) {
 					var child_row_idxs = _.chain(data.rows)
-						.pluck('id')
+						.pluck(grid.options.idProperty)
 						.map(function (id) {
 							return cache.indexById[id];
 						})
@@ -3210,7 +3214,7 @@
 					if (!(self.options.idProperty in item.item) && item.column.field == 'id') {
 						item.item[self.options.idProperty] = value;
 					}
-					
+
 					if (item.item instanceof Backbone.Model) {
 						item.item.set(item.column.field, value);
 					} else {
@@ -5454,7 +5458,7 @@
 				catch (error) {}
 			}
 		};
-		
+
 
 		// handleScroll()
 		// Handles the offsets and event that need to fire when a user is scrolling
@@ -5512,17 +5516,17 @@
 						Math.abs(lastRenderedScrollLeft - scrollLeft) < viewportW)) {
 						render();
 					} else {
-						
+
 						if (self.options.scrollLoader && !scrollLoader) {
-							scrollLoader = $('<div class="' + classscrollloader + '">' + self.options.scrollLoader() + '</div>').appendTo(self.$el);	
+							scrollLoader = $('<div class="' + classscrollloader + '">' + self.options.scrollLoader() + '</div>').appendTo(self.$el);
 						}
-						
+
 						h_render = setTimeout(function () {
 							if (scrollLoader) {
 								scrollLoader.remove();
 								scrollLoader = null;
 							}
-							
+
 							render();
 							h_render = null;
 						}, 50);
