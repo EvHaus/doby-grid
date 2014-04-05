@@ -112,6 +112,8 @@ define(['backbone', 'dataset'], function (Backbone, dataset) {
 
 				if (backboneset) {
 					_.each(mydata, function (i) {
+						// Make sure 'id' comes along for the ride
+						i.data.id = i.id;
 						results.add(i.data);
 					});
 
