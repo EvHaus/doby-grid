@@ -1406,8 +1406,8 @@ describe("Grid Options", function () {
 			}).toThrow('Cannot execute "setGrouping" because "options.groupable" is disabled.');
 		});
 	});
-	
-	
+
+
 	// ==========================================================================================
 
 
@@ -1416,18 +1416,18 @@ describe("Grid Options", function () {
 			var grid = resetGrid(defaultData());
 			expect(grid.options.idProperty).toEqual('id');
 		});
-		
-		
+
+
 		// ==========================================================================================
-		
-		
+
+
 		it("should use the given idProperty to identify rows", function () {
 			// Prepare for test
 			var grid = resetGrid($.extend(defaultData(), {
 				data: [{
 					cid: 'test',
 					data: {
-						name: 'hello'	
+						name: 'hello'
 					}
 				}],
 				idProperty: 'cid'
@@ -1437,7 +1437,7 @@ describe("Grid Options", function () {
 			grid.setItem('test', {
 				cid: 'test',
 				data: {
-					name: 'blah'	
+					name: 'blah'
 				}
 			});
 		});
@@ -2365,6 +2365,79 @@ describe("Grid Options", function () {
 		// ==========================================================================================
 
 
+		it("should correctly resize a newly added column when double-clicking on its header handle", function () {
+
+			var colwidths = [80, 300];
+
+			var columns = [{
+				"class": 'nopad',
+				id: 'id',
+				field: 'id',
+				name: "ID",
+				formatter: function () {
+					return '<div style="width:' + colwidths[0] + 'px"></div>';
+				},
+				width: 50
+			}, {
+				"class": 'nopad',
+				id: 'width',
+				field: 'width',
+				name: "Width",
+				formatter: function (row, cell, value) {
+					return '<div style="width:' + value + 'px"></div>';
+				},
+				visible: false,
+				width: 50
+			}];
+
+			// Create grid
+			var grid = resetGrid({
+				columns: columns,
+				data: [{
+					id: 1,
+					data: {
+						id: 1,
+						width: colwidths[1]
+					}
+				}, {
+					id: 2,
+					data: {
+						id: 2,
+						width: colwidths[1]
+					}
+				}, {
+					id: 3,
+					data: {
+						id: 3,
+						width: colwidths[1]
+					}
+				}]
+			});
+
+			// Enable the hidden column
+			columns[1].visible = true;
+			grid.setColumns(columns);
+
+			// Find the handle for the last column
+			var $colheader = grid.$el.find('.doby-grid-header-column[id*="width"]:first'),
+				$handle = $colheader.find('.doby-grid-resizable-handle:first');
+
+			// Double click the handle
+			$handle.simulate('dblclick');
+
+			// Verify header width
+			expect($colheader.outerWidth()).toEqual(colwidths[1] + 2);
+
+			// Verify column widths
+			grid.$el.find('.doby-grid-cell.l1').each(function () {
+				expect($(this).width()).toEqual(colwidths[1] + 2);
+			});
+		});
+
+
+		// ==========================================================================================
+
+
 		it("should now allow grid to go beyond 100% width when double-clicking a column resize handle when autoColumnWidth is set", function () {
 
 			// Create grid with some specific width items
@@ -2753,8 +2826,8 @@ describe("Grid Options", function () {
 			});
 		});
 	});
-	
-	
+
+
 	// ==========================================================================================
 
 
@@ -2763,11 +2836,11 @@ describe("Grid Options", function () {
 			var grid = resetGrid(defaultData());
 			expect(grid.options.scrollLoader).toEqual(null);
 		});
-		
-		
+
+
 		// ==========================================================================================
-		
-		
+
+
 		it("should display the value when scrolling quickly", function () {
 			var data = [];
 			for (var i = 0, l = 1000; i < l; i++) {
@@ -2775,26 +2848,26 @@ describe("Grid Options", function () {
 					id: i,
 					data: {
 						id: i,
-						name: 'test' + i	
+						name: 'test' + i
 					}
 				});
 			}
-			
+
 			var grid = resetGrid($.extend(defaultData(), {
 				data: data,
 				scrollLoader: function () {
 					return "Unit Testing";
 				}
 			}));
-			
+
 			var viewport = grid.$el.find('.doby-grid-viewport')[0];
 			viewport.scrollTop = viewport.scrollTop + 1000;
-			
+
 			waitsFor(function () {
 				var $scrollLoader = grid.$el.find('.doby-grid-scroll-loader');
 				return $scrollLoader.length;
 			}, 100, 'scroll loader element to appear');
-			
+
 		});
 	});
 

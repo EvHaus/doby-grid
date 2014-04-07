@@ -7884,6 +7884,9 @@
 			if (firstResizable === undefined) return;
 
 			var lockColumnWidths = function () {
+				// Columns may have been changed since the last time this ran - refetch children
+				columnElements = $headers.children();
+
 				columnElements.each(function (i) {
 					// The extra 1 here is to compensate for the border separator
 					cache.activeColumns[i].previousWidth = cache.activeColumns[i].width;
