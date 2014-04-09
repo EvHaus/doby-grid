@@ -1441,6 +1441,32 @@ describe("Grid Options", function () {
 				}
 			});
 		});
+		
+		
+		// ==========================================================================================
+
+
+		it("should not affect the collapsing of groups", function () {
+			// Prepare for test
+			var grid = resetGrid($.extend(defaultData(), {
+				data: [{
+					cid: 'test',
+					data: {
+						name: 'hello'
+					}
+				}],
+				idProperty: 'cid'
+			}));
+
+			// Add grouping
+			grid.setGrouping([{
+				column_id: 'name'
+			}]);
+			
+			// Click grouping header to toggle collapsing
+			var $grouprow = grid.$el.find('.doby-grid-group .doby-grid-cell').first();
+			$grouprow.trigger('click');
+		});
 	});
 
 
