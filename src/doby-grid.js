@@ -5174,9 +5174,9 @@
 
 				if (isToggler) {
 					if (item.collapsed) {
-						self.collection.expandGroup(item[self.options.idProperty]);
+						self.collection.expandGroup(item.id);
 					} else {
-						self.collection.collapseGroup(item[self.options.idProperty]);
+						self.collection.collapseGroup(item.id);
 					}
 
 					e.stopImmediatePropagation();
