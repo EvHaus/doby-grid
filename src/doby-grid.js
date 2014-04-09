@@ -418,6 +418,7 @@
 			selectable:				true,
 			selectedClass:			"selected",
 			shiftSelect:			true,
+			showHeader:				true,
 			stickyFocus:			false,
 			tooltipType:			"popup",
 			virtualScroll:			true
@@ -672,7 +673,7 @@
 
 				// Calculate caches, dimensions and prepare layout
 				measureCellPadding();
-				disableSelection($headers);
+				if (this.options.showHeader) disableSelection($headers);
 				renderColumnHeaders();
 				setupColumnSort();
 				createCssRules();
@@ -709,17 +710,19 @@
 				$viewport
 					.on("scroll", handleScroll);
 
-				$headerScroller
-					.on("contextmenu", handleHeaderContextMenu)
-					.on("click", handleHeaderClick);
-
-				// Events for column header tooltips
-				if (self.options.tooltipType != 'title') {
+				if (this.options.showHeader) {
 					$headerScroller
-						.on("mouseover", function (event) {
-							// Show tooltips
-							showTooltip(event);
-						});
+						.on("contextmenu", handleHeaderContextMenu)
+						.on("click", handleHeaderClick);
+				
+					// Events for column header tooltips
+					if (this.options.tooltipType != 'title') {
+						$headerScroller
+							.on("mouseover", function (event) {
+								// Show tooltips
+								showTooltip(event);
+							});
+					}
 				}
 
 				$(document.body).on("click contextmenu", handleBodyClick);
@@ -800,7 +803,7 @@
 		// @param	headers		array		(Optional) Header column DOM elements to resize
 		//
 		applyColumnHeaderWidths = function (headers) {
-			if (!initialized) return;
+			if (!initialized || !self.options.showHeader) return;
 			if (!headers) headers = $headers.children();
 
 			// Auto-sizes the quick filter headers too
@@ -1737,12 +1740,14 @@
 			self.$el = $('<div class="' + cclasses.join(' ') + '" id="' + uid + '"></div>');
 
 			// Create the global grid elements
-			$headerScroller = $('<div class="' + classheader + '"></div>')
-					.appendTo(self.$el);
+			if (self.options.showHeader) {
+				$headerScroller = $('<div class="' + classheader + '"></div>')
+						.appendTo(self.$el);
 
-			$headers = $('<div class="' + classheadercolumns + '"></div>')
-				.appendTo($headerScroller)
-				.width(getHeadersWidth());
+				$headers = $('<div class="' + classheadercolumns + '"></div>')
+					.appendTo($headerScroller)
+					.width(getHeadersWidth());
+			}
 
 			$viewport = $('<div class="' + classviewport + '"></div>').appendTo(self.$el);
 
@@ -3454,7 +3459,7 @@
 			this.stopListening();
 
 			// If reorderable, destroy sortable jQuery plugin
-			if (this.options.reorderable) {
+			if (this.options.reorderable && this.options.showHeader) {
 				$headers.filter(":ui-sortable").sortable("destroy");
 			}
 
@@ -3479,7 +3484,7 @@
 			removeCssRules();
 
 			// Forcefully clean up the header DOM -- without this, we'll leak DOM nodes
-			if ($headers && $headers.length) {
+			if (this.options.showHeader && $headers && $headers.length) {
 				$headers.off();
 				removeElement($headers[0]);
 			}
@@ -4406,6 +4411,8 @@
 		//
 		// @return integer
 		getColumnContentWidth = function (column_index) {
+			if (!self.options.showHeader) return;
+			
 			var columnElements = $headers.children(),
 				$column = $(columnElements[column_index]),
 				currentWidth = $column.width(),
@@ -4822,7 +4829,7 @@
 			return parseFloat($.css(self.$el[0], "height", true)) -
 				parseFloat($.css(self.$el[0], "paddingTop", true)) -
 				parseFloat($.css(self.$el[0], "paddingBottom", true)) -
-				parseFloat($.css($headerScroller[0], "height")) - getVBoxDelta($headerScroller);
+				(self.options.showHeader ? parseFloat($.css($headerScroller[0], "height")) - getVBoxDelta($headerScroller) : 0);
 		};
 
 
@@ -5477,7 +5484,7 @@
 			// Horizontal Scroll
 			if (hScrollDist) {
 				prevScrollLeft = scrollLeft;
-				$headerScroller[0].scrollLeft = scrollLeft;
+				if (self.options.showHeader) $headerScroller[0].scrollLeft = scrollLeft;
 			}
 
 			// Vertical Scroll
@@ -5908,26 +5915,29 @@
 		//
 		measureCellPadding = function () {
 			var h = ["paddingLeft", "paddingRight"],
-				v = ["paddingTop", "paddingBottom"];
+				v = ["paddingTop", "paddingBottom"],
+				el;
 
-			var el = $('<div class="' + classheadercolumn + '" style="visibility:hidden">-</div>')
-				.appendTo($headers);
+			if (self.options.showHeader) {
+				el = $('<div class="' + classheadercolumn + '" style="visibility:hidden">-</div>')
+					.appendTo($headers);
 
-			headerColumnWidthDiff = headerColumnHeightDiff = 0;
+				headerColumnWidthDiff = headerColumnHeightDiff = 0;
 
-			if (
-				el.css("box-sizing") != "border-box" &&
-				el.css("-moz-box-sizing") != "border-box" &&
-				el.css("-webkit-box-sizing") != "border-box"
-			) {
-				$.each(h, function (n, val) {
-					headerColumnWidthDiff += parseFloat(el.css(val)) || 0;
-				});
-				$.each(v, function (n, val) {
-					headerColumnHeightDiff += parseFloat(el.css(val)) || 0;
-				});
+				if (
+					el.css("box-sizing") != "border-box" &&
+					el.css("-moz-box-sizing") != "border-box" &&
+					el.css("-webkit-box-sizing") != "border-box"
+				) {
+					$.each(h, function (n, val) {
+						headerColumnWidthDiff += parseFloat(el.css(val)) || 0;
+					});
+					$.each(v, function (n, val) {
+						headerColumnHeightDiff += parseFloat(el.css(val)) || 0;
+					});
+				}
+				removeElement(el[0]);
 			}
-			removeElement(el[0]);
 
 			var r = $('<div class="' + classrow + '"></div>').appendTo($canvas);
 			el = $('<div class="' + classcell + '" style="visibility:hidden">-</div>').appendTo(r);
@@ -6940,6 +6950,8 @@
 		// Creates the column header elements.
 		//
 		renderColumnHeaders = function () {
+			if (!self.options.showHeader) return;
+			
 			if (!$headers.is(':empty')) {
 				$headers.empty();
 				$headers.width(getHeadersWidth());
@@ -7821,6 +7833,7 @@
 		// Allows columns to be re-orderable.
 		//
 		setupColumnReorder = function () {
+			if (!self.options.showHeader) return;
 			if ($headers.filter(":ui-sortable").length) return;
 			$headers.sortable({
 				axis: "x",
@@ -7866,6 +7879,8 @@
 		// NOTE: Perhaps assign the handle events on the whole header instead of on each element
 		//
 		setupColumnResize = function () {
+			if (!self.options.showHeader) return;
+			
 			// If resizable columns are disabled -- return
 			if (!self.options.resizableColumns) return;
 
@@ -8101,6 +8116,8 @@
 		// Allows columns to be sortable via click.
 		//
 		setupColumnSort = function () {
+			if (!self.options.showHeader) return;
+			
 			$headers.click(function (e) {
 				self._event = e;
 
@@ -8168,6 +8185,8 @@
 		//
 		// NOTE: Many optimizations can be done here.
 		showQuickFilter = function (focus) {
+			if (!self.options.showHeader) return;
+			
 			var handleResize = function () {
 				// Update viewport
 				viewportH = getViewportHeight();
@@ -8420,7 +8439,8 @@
 		// Styles the column headers according to the current sorting data
 		//
 		styleSortColumns = function () {
-
+			if (!self.options.showHeader) return;
+			
 			var headerColumnEls = $headers.children();
 			headerColumnEls
 				.removeClass(classheadercolumnsorted)
@@ -8877,7 +8897,7 @@
 
 			if (canvasWidth != oldCanvasWidth) {
 				$canvas.width(canvasWidth);
-				$headers.width(getHeadersWidth());
+				if (self.options.showHeader) $headers.width(getHeadersWidth());
 				viewportHasHScroll = (canvasWidth > viewportW - window.scrollbarDimensions.width);
 			}
 

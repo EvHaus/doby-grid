@@ -3122,6 +3122,30 @@ describe("Grid Options", function () {
 			expect(grid.selection[0].toRow).toEqual(rows - 1);
 		});
 	});
+	
+	
+	// ==========================================================================================
+
+
+	describe("options.showHeader", function () {
+		it("should be enabled by default", function () {
+			var grid = resetGrid(defaultData());
+			expect(grid.options.showHeader).toEqual(true);
+		});
+		
+		
+		// ==========================================================================================
+		
+		
+		it("should be able to render a grid without a header", function () {
+			var grid = resetGrid($.extend(defaultData(), {
+				showHeader: false
+			}));
+			
+			expect(grid.$el).not.toContain('.doby-grid-header');
+		});
+		
+	});
 
 
 	// ==========================================================================================
