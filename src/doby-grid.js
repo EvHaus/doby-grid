@@ -178,6 +178,7 @@
 			getDataLength,
 			getEditor,
 			getFormatter,
+			getGroupFormatter,
 			getHeadersWidth,
 			getLocale,
 			getMaxCSSHeight,
@@ -400,6 +401,7 @@
 			formatter:				null,
 			fullWidthRows:			true,
 			groupable:				true,
+			groupFormatter:			null,
 			idProperty:				"id",
 			keyboardNavigation:		true,
 			lineHeightOffset:		-1,
@@ -4586,6 +4588,28 @@
 		};
 
 
+		// getGroupFormatter()
+		// Returns the formatter function for the group header rows
+		//
+		// @return function
+		getGroupFormatter = function () {
+			// Check if user has specified a custom one
+			if (self.options.groupFormatter) return self.options.groupFormatter;
+			
+			// Otherwise use the default
+			return function (row, cell, value, columnDef, item) {
+				var indent = item.level * 15;
+				return [(indent ? '<span style="margin-left:' + indent + 'px">' : ''),
+					'<span class="icon"></span>',
+					'<span class="' + classgrouptitle + '">',
+					item.title,
+					'</span>',
+					(indent ? '</span>' : '')
+				].join('');
+			};
+		};
+
+
 		// getHeadersWidth()
 		// Gets the total width of the column headers, or the viewport (whichever is bigger)
 		//
@@ -5114,16 +5138,7 @@
 		Group.prototype.columns = {
 			0: {
 				colspan: "*",
-				formatter: function (row, cell, value, columnDef, item) {
-					var indent = item.level * 15;
-					return [(indent ? '<span style="margin-left:' + indent + 'px">' : ''),
-						'<span class="icon"></span>',
-						'<span class="' + classgrouptitle + '">',
-						item.title,
-						'</span>',
-						(indent ? '</span>' : '')
-					].join('');
-				}
+				formatter: getGroupFormatter()
 			}
 		};
 		Group.prototype.toString = function () { return "Group"; };

@@ -1406,6 +1406,38 @@ describe("Grid Options", function () {
 			}).toThrow('Cannot execute "setGrouping" because "options.groupable" is disabled.');
 		});
 	});
+	
+	
+	// ==========================================================================================
+
+
+	describe("options.groupFormatter", function () {
+		it("should be null by default", function () {
+			var grid = resetGrid(defaultData());
+			expect(grid.options.groupFormatter).toEqual(null);
+		});
+
+
+		// ==========================================================================================
+
+
+		it("should completely control the rendering of group rows", function () {
+			// Prepare for test
+			var grid = resetGrid($.extend(defaultData(), {
+				groupable: true,
+				groupFormatter: function (row, cell, value, columnDef, item) {
+					return "Grouping By: " + item.value;
+				}
+			}));
+
+			grid.addGrouping('id');
+			
+			// Find the group rows and ensure they have the HTML we're expecting
+			grid.$el.find('.doby-grid-group').each(function (i) {
+				expect($(this).find('.doby-grid-cell')).toHaveText('Grouping By: ' + grid.options.data[i].id);
+			});
+		});
+	});
 
 
 	// ==========================================================================================
