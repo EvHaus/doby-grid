@@ -385,6 +385,7 @@
 			autoEdit:				true,
 			"class":				null,
 			clipboard:				"csv",
+			collapsable:			true,
 			columns:				[],
 			columnSpacing:			1,
 			columnWidth:			80,
@@ -5133,12 +5134,14 @@
 		Group.prototype = new NonDataItem();
 		Group.prototype.class = function () {
 			var collapseclass = (this.collapsed ? classcollapsed : classexpanded);
-			return [classgroup, classgrouptoggle, collapseclass].join(' ');
+			return [classgroup, self.options.collapsable ? classgrouptoggle : null, collapseclass].join(' ');
 		};
 		Group.prototype.columns = {
 			0: {
 				colspan: "*",
-				formatter: getGroupFormatter()
+				focusable: false,
+				formatter: getGroupFormatter(),
+				selectable: false
 			}
 		};
 		Group.prototype.toString = function () { return "Group"; };
@@ -5191,7 +5194,7 @@
 			var item = getDataItem(cell.row);
 
 			// Handle group expand/collapse
-			if (item && item instanceof Group) {
+			if (self.options.collapsable && item && item instanceof Group) {
 				var isToggler = $(e.target).hasClass(classgrouptoggle) || $(e.target).closest('.' + classgrouptoggle).length;
 
 				if (isToggler) {

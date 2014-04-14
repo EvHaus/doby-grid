@@ -569,6 +569,87 @@ describe("Grid Options", function () {
 			expect(alertSpy).toHaveBeenCalledWith('Sorry, you cannot copy multiple selections.');
 		});
 	});
+	
+	
+	// ==========================================================================================
+
+
+	describe("options.collapsable", function () {
+		it("should be true by default", function () {
+			var grid = resetGrid(defaultData());
+			expect(grid.options.collapsable).toEqual(true);
+		});
+		
+		
+		// ==========================================================================================
+		
+		
+		it("should not allow you to expand groups if disabled", function () {
+			var grid = resetGrid($.extend(defaultData(), {
+				collapsable: false,
+				columns: [{
+					id: 'id',
+					field: 'id',
+					name: 'id'
+				}, {
+					id: 'name',
+					field: 'name',
+					name: 'name'
+				}]
+			}));
+
+			// Add grouping by Name, then by Id
+			grid.addGrouping('name');
+			
+			// The group row should not have a toggle class
+			expect(grid.$el.find('.doby-grid-group')).not.toHaveClass('doby-grid-group-toggle');
+
+			// Try to expand the first group
+			var $grouptoggle = grid.$el.find('.doby-grid-group').first().children('.doby-grid-cell').first();
+			$grouptoggle.simulate('click', {
+				clientX: $grouptoggle.offset().left,
+				clientY: $grouptoggle.offset().top
+			});
+
+			// Confirm that the group did not get expanded
+			expect(grid.$el.find('.doby-grid-row:not(.doby-grid-group)').length).toEqual(0);
+		});
+		
+		
+		// ==========================================================================================
+		
+		
+		it("should allow you to expand groups if enabled", function () {
+			var grid = resetGrid($.extend(defaultData(), {
+				collapsable: true,
+				columns: [{
+					id: 'id',
+					field: 'id',
+					name: 'id'
+				}, {
+					id: 'name',
+					field: 'name',
+					name: 'name'
+				}]
+			}));
+
+			// Add grouping by Name, then by Id
+			grid.addGrouping('name');
+			
+			// The group row should not have a toggle class
+			expect(grid.$el.find('.doby-grid-group')).toHaveClass('doby-grid-group-toggle');
+
+			// Try to expand the first group
+			var $grouptoggle = grid.$el.find('.doby-grid-group').first().children('.doby-grid-cell').first();
+			$grouptoggle.simulate('click', {
+				clientX: $grouptoggle.offset().left,
+				clientY: $grouptoggle.offset().top
+			});
+
+			// Confirm that the group did not get expanded
+			expect(grid.$el.find('.doby-grid-row:not(.doby-grid-group)').length).toEqual(1);
+		});
+	});
 
 
 	// ==========================================================================================
