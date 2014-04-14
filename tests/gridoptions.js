@@ -574,10 +574,10 @@ describe("Grid Options", function () {
 	// ==========================================================================================
 
 
-	describe("options.collapsable", function () {
+	describe("options.collapsible", function () {
 		it("should be true by default", function () {
 			var grid = resetGrid(defaultData());
-			expect(grid.options.collapsable).toEqual(true);
+			expect(grid.options.collapsible).toEqual(true);
 		});
 		
 		
@@ -586,7 +586,7 @@ describe("Grid Options", function () {
 		
 		it("should not allow you to expand groups if disabled", function () {
 			var grid = resetGrid($.extend(defaultData(), {
-				collapsable: false,
+				collapsible: false,
 				columns: [{
 					id: 'id',
 					field: 'id',
@@ -621,7 +621,7 @@ describe("Grid Options", function () {
 		
 		it("should allow you to expand groups if enabled", function () {
 			var grid = resetGrid($.extend(defaultData(), {
-				collapsable: true,
+				collapsible: true,
 				columns: [{
 					id: 'id',
 					field: 'id',
