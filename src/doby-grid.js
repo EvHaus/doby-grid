@@ -403,6 +403,7 @@
 			fullWidthRows:			true,
 			groupable:				true,
 			groupFormatter:			null,
+			groupRowData:			null,
 			idProperty:				"id",
 			keyboardNavigation:		true,
 			lineHeightOffset:		-1,
@@ -2793,7 +2794,7 @@
 			this.refresh = function () {
 				if (suspend) return;
 
-				// If grid was destroyed -- leave immediated. This is needed for remote unit tests
+				// TODO: If grid was destroyed -- leave immediatele. This is needed for remote unit tests
 				// for some reason. Investigate one day.
 				if (grid.destroyed) return;
 
@@ -2976,6 +2977,12 @@
 					// the grid correctly refetches the full page of results.
 					this.length = this.remote_length;
 					generatePlaceholders();
+				}
+				
+				// Unfortunately, because group row heights may be different than regular row heights
+				// we need to completely invalidate all rows here to prevent misplaced row rendering.
+				if (variableRowHeight) {
+					invalidateAllRows();
 				}
 
 				// Reload the grid with the new grouping
@@ -5129,6 +5136,11 @@
 			this.selectable = false;	// Don't allow selecting groups
 			this.title = null;			// Formatted display value of the group
 			this.value = null;			// Grouping value
+			
+			// Extend the group row with custom options
+			if (self.options.groupRowData) {
+				$.extend(this, self.options.groupRowData);
+			}
 		};
 
 		Group.prototype = new NonDataItem();
@@ -9238,7 +9250,7 @@
 
 			// Ensure "tooltipType" is one of the allowed values
 			if (['title', 'popup'].indexOf(self.options.tooltipType) < 0) {
-				throw 'The "tooltipType" option be either "title" or "popup", not "' + self.options.tooltipType + '".';
+				throw new Error('The "tooltipType" option be either "title" or "popup", not "' + self.options.tooltipType + '".');
 			}
 
 			// Warn if "addRow" is used without "editable"
@@ -9250,6 +9262,11 @@
 			// If 'resizableRows' are enabled, turn on variableRowHeight mode
 			if (self.options.resizableRows && !variableRowHeight) {
 				variableRowHeight = true;
+			}
+			
+			// If groupRowData is added with a custom height
+			if (!variableRowHeight && self.options.groupRowData && self.options.groupRowData.height && self.options.groupRowData.height != self.options.rowHeight) {
+				variableRowHeight = true;	
 			}
 
 			// Validate and pre-process
