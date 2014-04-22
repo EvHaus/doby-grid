@@ -2120,7 +2120,7 @@
 								level: level,
 								parentGroup: (parentGroup ? parentGroup : null),
 								predef: gi,
-								sticky: true,
+								sticky: gi.sticky !== null && gi.sticky !== undefined ? gi.sticky : true,
 								value: value
 							});
 						
