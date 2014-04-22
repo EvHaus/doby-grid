@@ -248,7 +248,7 @@ describe("Column Options", function () {
 			// Wait until postprocessing has rendered and cached everything
 			waitsFor(function () {
 				return grid.$el.find('.doby-grid-cell:empty').length === 0 && callbackcount === 4;
-			});
+			}, 500);
 
 			runs(function () {
 				// Expect cells to have new data

@@ -722,7 +722,7 @@
 					$headerScroller
 						.on("contextmenu", handleHeaderContextMenu)
 						.on("click", handleHeaderClick);
-				
+
 					// Events for column header tooltips
 					if (this.options.tooltipType != 'title') {
 						$headerScroller
@@ -2116,14 +2116,14 @@
 							grp = new Group({
 								column_id: gi.column_id,
 								collapsed: gi.collapsed,
-								formatter: gi.formatter || null,
+								formatter: gi.formatter || getGroupFormatter(),
 								level: level,
 								parentGroup: (parentGroup ? parentGroup : null),
 								predef: gi,
 								sticky: gi.sticky !== null && gi.sticky !== undefined ? gi.sticky : true,
 								value: value
 							});
-						
+
 						// Assign id property
 						grp[grid.options.idProperty] = '__group' + (parentGroup ? parentGroup.id + groupingDelimiter : '') + value;
 
@@ -2966,7 +2966,7 @@
 					// Extend using a default grouping object and add to groups
 					groups.push(createGroupingObject(options[i]));
 				}
-				
+
 				// Set groups
 				this.groups = groups;
 
@@ -2982,13 +2982,13 @@
 					this.length = this.remote_length;
 					generatePlaceholders();
 				}
-				
+
 				// Unfortunately, because group row heights may be different than regular row heights
 				// we need to completely invalidate all rows here to prevent misplaced row rendering.
 				if (variableRowHeight) {
 					invalidateAllRows();
 				}
-				
+
 				// Reload the grid with the new grouping
 				this.refresh();
 
@@ -4426,7 +4426,7 @@
 		// @return integer
 		getColumnContentWidth = function (column_index) {
 			if (!self.options.showHeader) return;
-			
+
 			var columnElements = $headers.children(),
 				$column = $(columnElements[column_index]),
 				currentWidth = $column.width(),
@@ -4617,7 +4617,7 @@
 					];
 				if (item.count !== 1) h.push("s");
 				h.push(")</span>");
-				
+
 				return [(indent ? '<span style="margin-left:' + indent + 'px">' : ''),
 					'<span class="icon"></span>',
 					'<span class="' + classgrouptitle + '">',
@@ -4638,15 +4638,15 @@
 		getGroupFromRow = function (row) {
 			var result = null,
 				item = cache.rows[row];
-			
+
 			// No groups even
 			if (self.collection.groups.length === 0) return result;
-			
+
 			var checkGroupRows = function (rows) {
 				var grouprow, groupitem;
 				for (var g = 0, gl = rows.length; g < gl; g++) {
 					if (result) break;
-					
+
 					grouprow = rows[g];
 
 					// Check if the item is the group row itself
@@ -4665,15 +4665,15 @@
 							}
 						}
 					}
-					
+
 					// Check nested groups
 					if (grouprow.groups) checkGroupRows(grouprow.groups);
 				}
 			};
-			
+
 			// Process first group object only (nested groups will be done recursively)
 			checkGroupRows(self.collection.groups[0].rows);
-			
+
 			return result;
 		};
 
@@ -4918,10 +4918,8 @@
 		//
 		// @return integer
 		getViewportHeight = function () {
-			return parseFloat($.css(self.$el[0], "height", true)) -
-				parseFloat($.css(self.$el[0], "paddingTop", true)) -
-				parseFloat($.css(self.$el[0], "paddingBottom", true)) -
-				(self.options.showHeader ? parseFloat($.css($headerScroller[0], "height")) - getVBoxDelta($headerScroller) : 0);
+			// TODO: Find out why the extra 1 is needed.
+			return Math.max(self.$el.height() - (self.options.showHeader ? $headerScroller.outerHeight() - getVBoxDelta($headerScroller) : 0) - 1, 0);
 		};
 
 
@@ -5191,7 +5189,7 @@
 		//
 		Group = function (options) {
 			options = options || {};
-			
+
 			$.extend(this, {
 				count: 0,				// Number of rows in the group
 				groups: null,			// Sub-groups that are part of this group
@@ -5202,9 +5200,12 @@
 				title: null,			// Formatted display value of the group
 				value: null				// Grouping value
 			}, options, self.options.groupRowData ? self.options.groupRowData : {});
-			
-			// Process height function
-			if (typeof(this.height) === 'function') {
+
+			// If group row height was manipulated - use that value
+			if (this.predef && this.predef.height) {
+				this.height = this.predef.height;
+			// Otherwise see if we need to pocess height function
+			} else if (typeof(this.height) === 'function') {
 				this.height = this.height(this);
 			}
 		};
@@ -5602,7 +5603,7 @@
 						invalidateAllRows();
 					}
 				}
-				
+
 				// Handle sticky group headers
 				if (self.options.stickyGroupRows && self.isGrouped()) {
 					stickGroupHeaders(scrollTop);
@@ -6980,7 +6981,7 @@
 
 			// Render missing rows
 			renderRows(rendered);
-			
+
 			// Post process rows
 			postProcessFromRow = visible.top;
 			postProcessToRow = Math.min(getDataLength() - 1, visible.bottom);
@@ -6989,7 +6990,7 @@
 			// Save scroll positions
 			lastRenderedScrollTop = scrollTop;
 			lastRenderedScrollLeft = scrollLeft;
-			
+
 			// Handle sticky group headers
 			if (self.options.stickyGroupRows && self.isGrouped()) {
 				stickGroupHeaders(scrollTop);
@@ -7035,7 +7036,7 @@
 			} else if (item) {
 				// if there is a corresponding row (if not, this is the Add New row or
 				// this data hasn't been loaded yet)
-				
+
 				try {
 					result.push(getFormatter(row, m)(row, cell, value, m, item));
 				} catch (e) {
@@ -7058,7 +7059,7 @@
 		//
 		renderColumnHeaders = function () {
 			if (!self.options.showHeader) return;
-			
+
 			if (!$headers.is(':empty')) {
 				$headers.empty();
 				$headers.width(getHeadersWidth());
@@ -7176,7 +7177,7 @@
 					(self.active && row === self.active.row ? " active" : "") +
 					(row % 2 === 1 ? " odd" : ""),
 				top, pos = {};
-			
+
 			if (variableRowHeight) {
 				pos = cache.rowPositions[row];
 				top = (pos.top - offset);
@@ -7217,7 +7218,7 @@
 						// All columns to the right are outside the range.
 						break;
 					}
-					
+
 					renderCell(stringArray, row, i, colspan, d);
 				}
 
@@ -7541,9 +7542,9 @@
 				var pos = cache.rowPositions[row];
 				scrollTo(pos.top);
 			}
-			
+
 			render();
-			
+
 			return this;
 		};
 
@@ -7833,7 +7834,7 @@
 			if (item instanceof Group) {
 				// For groups we need to update the grouping options since the group rows
 				// will get regenerated, losing their custom height params during re-draws
-				item.predef.grouprows[item[self.options.idProperty]] = {height: height};
+				item.predef.height = height;
 
 				invalidateRows(_.range(row, cache.rows.length));
 
@@ -7989,7 +7990,7 @@
 		//
 		setupColumnResize = function () {
 			if (!self.options.showHeader) return;
-			
+
 			// If resizable columns are disabled -- return
 			if (!self.options.resizableColumns) return;
 
@@ -8226,7 +8227,7 @@
 		//
 		setupColumnSort = function () {
 			if (!self.options.showHeader) return;
-			
+
 			$headers.click(function (e) {
 				self._event = e;
 
@@ -8295,7 +8296,7 @@
 		// NOTE: Many optimizations can be done here.
 		showQuickFilter = function (focus) {
 			if (!self.options.showHeader) return;
-			
+
 			var handleResize = function () {
 				// Update viewport
 				viewportH = getViewportHeight();
@@ -8554,30 +8555,30 @@
 			var topRow = getRowFromPosition(scrollTop),
 				topGroup = getGroupFromRow(topRow),
 				stickyGroups = [topGroup];
-			
+
 			var buildParentGroups = function (group) {
 				if (group.parentGroup) {
 					stickyGroups.push(group.parentGroup);
 					buildParentGroups(group.parentGroup);
 				}
 			};
-			
+
 			// Build an array of nested groups to display
 			buildParentGroups(topGroup);
-			
+
 			var i = stickyGroups.length,
 				group,
 				offset = 0;
-			
+
 			// Remove existing stickies
 			$viewport.children('.' + classsticky).remove();
-			
+
 			// If we're at the very top - do nothing
 			if (scrollTop === 0) return;
-			
+
 			while (i--) {
 				group = stickyGroups[i];
-				
+
 				// Only go on if the group is expanded and sticky is enabled
 				if (group.collapsed === 0 && group.sticky) {
 
@@ -8628,7 +8629,7 @@
 		//
 		styleSortColumns = function () {
 			if (!self.options.showHeader) return;
-			
+
 			var headerColumnEls = $headers.children();
 			headerColumnEls
 				.removeClass(classheadercolumnsorted)
@@ -9421,10 +9422,10 @@
 			if (self.options.resizableRows && !variableRowHeight) {
 				variableRowHeight = true;
 			}
-			
+
 			// If groupRowData is added with a custom height
 			if (!variableRowHeight && self.options.groupRowData && self.options.groupRowData.height && self.options.groupRowData.height != self.options.rowHeight) {
-				variableRowHeight = true;	
+				variableRowHeight = true;
 			}
 
 			// Validate and pre-process

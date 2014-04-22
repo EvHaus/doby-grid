@@ -569,8 +569,8 @@ describe("Grid Options", function () {
 			expect(alertSpy).toHaveBeenCalledWith('Sorry, you cannot copy multiple selections.');
 		});
 	});
-	
-	
+
+
 	// ==========================================================================================
 
 
@@ -579,11 +579,11 @@ describe("Grid Options", function () {
 			var grid = resetGrid(defaultData());
 			expect(grid.options.collapsible).toEqual(true);
 		});
-		
-		
+
+
 		// ==========================================================================================
-		
-		
+
+
 		it("should not allow you to expand groups if disabled", function () {
 			var grid = resetGrid($.extend(defaultData(), {
 				collapsible: false,
@@ -600,7 +600,7 @@ describe("Grid Options", function () {
 
 			// Add grouping by Name, then by Id
 			grid.addGrouping('name');
-			
+
 			// The group row should not have a toggle class
 			expect(grid.$el.find('.doby-grid-group')).not.toHaveClass('doby-grid-group-toggle');
 
@@ -614,11 +614,11 @@ describe("Grid Options", function () {
 			// Confirm that the group did not get expanded
 			expect(grid.$el.find('.doby-grid-row:not(.doby-grid-group)').length).toEqual(0);
 		});
-		
-		
+
+
 		// ==========================================================================================
-		
-		
+
+
 		it("should allow you to expand groups if enabled", function () {
 			var grid = resetGrid($.extend(defaultData(), {
 				collapsible: true,
@@ -635,7 +635,7 @@ describe("Grid Options", function () {
 
 			// Add grouping by Name, then by Id
 			grid.addGrouping('name');
-			
+
 			// The group row should not have a toggle class
 			expect(grid.$el.find('.doby-grid-group')).toHaveClass('doby-grid-group-toggle');
 
@@ -1487,8 +1487,8 @@ describe("Grid Options", function () {
 			}).toThrow('Cannot execute "setGrouping" because "options.groupable" is disabled.');
 		});
 	});
-	
-	
+
+
 	// ==========================================================================================
 
 
@@ -1497,8 +1497,8 @@ describe("Grid Options", function () {
 			var grid = resetGrid(defaultData());
 			expect(grid.options.groupRowData).toEqual(null);
 		});
-		
-		
+
+
 		// ==========================================================================================
 
 
@@ -1508,19 +1508,19 @@ describe("Grid Options", function () {
 				grid = resetGrid($.extend(defaultData(), {
 					groupable: true,
 					groupRowData: {
-						class: custom_class	
+						class: custom_class
 					}
 				}));
 
 			grid.addGrouping('id');
-			
+
 			// Find the group rows and ensure they have the HTML we're expecting
 			grid.$el.find('.doby-grid-group').each(function () {
 				expect($(this)).toHaveClass(custom_class);
 			});
 		});
-		
-		
+
+
 		// ==========================================================================================
 
 
@@ -1536,7 +1536,7 @@ describe("Grid Options", function () {
 				}));
 
 			grid.addGrouping('id');
-			
+
 			// Find the group rows and ensure they have the HTML we're expecting
 			grid.$el.find('.doby-grid-group').each(function () {
 				expect($(this).height()).toEqual(100);
@@ -1578,8 +1578,8 @@ describe("Grid Options", function () {
 				}
 			});
 		});
-		
-		
+
+
 		// ==========================================================================================
 
 
@@ -1599,7 +1599,7 @@ describe("Grid Options", function () {
 			grid.setGrouping([{
 				column_id: 'name'
 			}]);
-			
+
 			// Click grouping header to toggle collapsing
 			var $grouprow = grid.$el.find('.doby-grid-group .doby-grid-cell').first();
 			$grouprow.trigger('click');
@@ -2707,6 +2707,62 @@ describe("Grid Options", function () {
 				}
 			});
 		});
+
+
+		// ==========================================================================================
+
+
+		it("should be able to resize group rows", function () {
+			// Prepare for test
+			var grid = resetGrid($.extend(defaultData(), {
+				resizableRows: true
+			}));
+
+			// Apply grouping
+			grid.addGrouping('id');
+
+			// Try to resize the first group row
+			var $grouprowhandle = grid.$el.find('.doby-grid-row-handle:first').first();
+
+			// Get previous height
+			var oldHeight = grid.$el.find('.doby-grid-group:first').first().height();
+
+			// Simulate drag
+			$grouprowhandle.simulate('drag', {dy: 20});
+
+			// Get new height
+			var newHeight = grid.$el.find('.doby-grid-group:first').first().height();
+
+			var wait = false;
+			setTimeout(function () {
+				wait = true;
+			}, 25);
+
+			// Add micro delay to wait for grid to re-draw?
+			waitsFor(function () {
+				return wait;
+			});
+
+			runs(function () {
+				// Compare heights
+				expect(newHeight).toEqual(oldHeight + 20);
+
+				// Now expand the group
+				grid.$el.find('.doby-grid-group:first .doby-grid-cell:first').simulate('click');
+			});
+
+			// Wait for group to expand
+			waitsFor(function () {
+				var $firstgroup = grid.$el.find('.doby-grid-group:first');
+				return $firstgroup.hasClass('expanded');
+			}, 500, 'group should expand');
+
+			runs(function () {
+				// Make sure the height is still the same
+				var $firstgroup = grid.$el.find('.doby-grid-group:first');
+				expect($firstgroup.height()).toEqual(newHeight);
+			});
+		});
 	});
 
 
@@ -3259,8 +3315,8 @@ describe("Grid Options", function () {
 			expect(grid.selection[0].toRow).toEqual(rows - 1);
 		});
 	});
-	
-	
+
+
 	// ==========================================================================================
 
 
@@ -3269,19 +3325,19 @@ describe("Grid Options", function () {
 			var grid = resetGrid(defaultData());
 			expect(grid.options.showHeader).toEqual(true);
 		});
-		
-		
+
+
 		// ==========================================================================================
-		
-		
+
+
 		it("should be able to render a grid without a header", function () {
 			var grid = resetGrid($.extend(defaultData(), {
 				showHeader: false
 			}));
-			
+
 			expect(grid.$el).not.toContain('.doby-grid-header');
 		});
-		
+
 	});
 
 
@@ -3370,8 +3426,8 @@ describe("Grid Options", function () {
 			});
 		});
 	});
-	
-	
+
+
 	// ==========================================================================================
 
 
@@ -3380,78 +3436,78 @@ describe("Grid Options", function () {
 			var grid = resetGrid(defaultData());
 			expect(grid.options.stickyGroupRows).toEqual(false);
 		});
-		
-		
+
+
 		// ==========================================================================================
-		
-		
+
+
 		it("should keep group headers stuck to the top of the viewport when scrolling", function () {
 			var data = [];
 			for (var i = 0; i < 50; i++) {
 				data.push({id: i, data: {id: i, name: 'test' + i}});
 			}
-			
+
 			var grid = resetGrid($.extend(defaultData(), {
 				data: data,
 				groupable: true,
 				stickyGroupRows: true
 			}));
-			
+
 			// Group grid
 			grid.addGrouping('id', {
-				collapsed: false	
+				collapsed: false
 			});
-			
+
 			// Scroll to middle
 			grid.scrollToRow(25);
-			
+
 			expect(grid.$el.find('.doby-grid-sticky').length).toEqual(1);
 			expect(grid.$el.find('.doby-grid-sticky .doby-grid-cell').length).toEqual(1);
 		});
-		
-		
+
+
 		// ==========================================================================================
-		
-		
+
+
 		it("should unstick when scrolling back to the top", function () {
 			var data = [];
 			for (var i = 0; i < 50; i++) {
 				data.push({id: i, data: {id: i, name: 'test' + i}});
 			}
-			
+
 			var grid = resetGrid($.extend(defaultData(), {
 				data: data,
 				groupable: true,
 				stickyGroupRows: true
 			}));
-			
+
 			// Group grid
 			grid.addGrouping('id', {
-				collapsed: false	
+				collapsed: false
 			});
-			
+
 			// Scroll to middle
 			grid.scrollToRow(25);
-			
+
 			expect(grid.$el.find('.doby-grid-sticky').length).toEqual(1);
 			expect(grid.$el.find('.doby-grid-sticky .doby-grid-cell').length).toEqual(1);
-			
+
 			// Scroll back to top
 			grid.scrollToRow(0);
-			
+
 			expect(grid.$el.find('.doby-grid-sticky').length).toEqual(0);
 		});
-		
-		
+
+
 		// ==========================================================================================
-		
-		
+
+
 		it("should correctly create sticky groups even when using a custom `idProperty`", function () {
 			var data = [];
 			for (var i = 0; i < 50; i++) {
 				data.push({cid: i, data: {id: i, name: 'test' + i}});
 			}
-			
+
 			var grid = resetGrid($.extend(defaultData(), {
 				columns: [
 					{id: 'test', field: 'test'},
@@ -3462,15 +3518,15 @@ describe("Grid Options", function () {
 				groupable: true,
 				stickyGroupRows: true
 			}));
-			
+
 			// Group grid
 			grid.addGrouping('test', {
-				collapsed: false	
+				collapsed: false
 			});
-			
+
 			// Scroll to middle
 			grid.scrollToRow(25);
-			
+
 			expect(grid.$el.find('.doby-grid-sticky').length).toEqual(1);
 			expect(grid.$el.find('.doby-grid-sticky .doby-grid-cell').length).toEqual(1);
 		});
