@@ -110,7 +110,8 @@ define([], function () {
 		return {
 			columns: columns,
 			data: data,
-			quickFilter: true
+			quickFilter: true,
+			stickyGroupRows: true
 		};
 	}, function (grid) {
 		grid.addGrouping('city', {collapsed: false});

@@ -483,6 +483,36 @@ describe("Data Options", function () {
 			// Check to make sure the canvas height is correct
 			expect(grid.$el.find('.doby-grid-canvas').height()).toEqual(data.length * grid.options.rowHeight + data.length - 1);
 		});
+		
+		
+		// ==========================================================================================
+
+
+		it("should be able to define a height via function", function () {
+			var grid = resetGrid({
+				columns: [
+					{id: 'id', field: 'id', name: 'id'},
+					{id: 'name', field: 'name', name: 'name'}
+				],
+				data: [{
+					data: {id: 1, name: 'test 0'},
+					id: 1,
+					height: function () {
+						return 50;
+					}
+				}, {
+					data: {id: 2, name: 'test 1'},
+					id: 2,
+					height: function () {
+						return 100;
+					}
+				}]
+			});
+
+			grid.$el.find('.doby-grid-row').each(function (row) {
+				expect($(this).height()).toEqual((row + 1) * 50);
+			});
+		});
 	});
 
 

@@ -1492,38 +1492,6 @@ describe("Grid Options", function () {
 	// ==========================================================================================
 
 
-	describe("options.groupFormatter", function () {
-		it("should be null by default", function () {
-			var grid = resetGrid(defaultData());
-			expect(grid.options.groupFormatter).toEqual(null);
-		});
-
-
-		// ==========================================================================================
-
-
-		it("should completely control the rendering of group rows", function () {
-			// Prepare for test
-			var grid = resetGrid($.extend(defaultData(), {
-				groupable: true,
-				groupFormatter: function (row, cell, value, columnDef, item) {
-					return "Grouping By: " + item.value;
-				}
-			}));
-
-			grid.addGrouping('id');
-			
-			// Find the group rows and ensure they have the HTML we're expecting
-			grid.$el.find('.doby-grid-group').each(function (i) {
-				expect($(this).find('.doby-grid-cell')).toHaveText('Grouping By: ' + grid.options.data[i].id);
-			});
-		});
-	});
-	
-	
-	// ==========================================================================================
-
-
 	describe("options.groupRowData", function () {
 		it("should be null by default", function () {
 			var grid = resetGrid(defaultData());
@@ -1549,6 +1517,29 @@ describe("Grid Options", function () {
 			// Find the group rows and ensure they have the HTML we're expecting
 			grid.$el.find('.doby-grid-group').each(function () {
 				expect($(this)).toHaveClass(custom_class);
+			});
+		});
+		
+		
+		// ==========================================================================================
+
+
+		it("should be able to set group row heights via a function", function () {
+			// Prepare for test
+			var grid = resetGrid($.extend(defaultData(), {
+					groupable: true,
+					groupRowData: {
+						height: function (item) {
+							return (item.level + 1)	* 100;
+						}
+					}
+				}));
+
+			grid.addGrouping('id');
+			
+			// Find the group rows and ensure they have the HTML we're expecting
+			grid.$el.find('.doby-grid-group').each(function () {
+				expect($(this).height()).toEqual(100);
 			});
 		});
 	});
@@ -3377,6 +3368,45 @@ describe("Grid Options", function () {
 				expect(grid.selection).toEqual(null);
 				return true;
 			});
+		});
+	});
+	
+	
+	// ==========================================================================================
+
+
+	describe("options.stickyGroupRows", function () {
+		it("should be disabled by default", function () {
+			var grid = resetGrid(defaultData());
+			expect(grid.options.stickyGroupRows).toEqual(false);
+		});
+		
+		
+		// ==========================================================================================
+		
+		
+		it("should keep group headers stuck to the top of the viewport when scrolling", function () {
+			var data = [];
+			for (var i = 0; i < 50; i++) {
+				data.push({id: i, data: {id: i, name: 'test' + i}});
+			}
+			
+			var grid = resetGrid($.extend(defaultData(), {
+				data: data,
+				groupable: true,
+				stickyGroupRows: true
+			}));
+			
+			// Group grid
+			grid.addGrouping('id', {
+				collapsed: false	
+			});
+			
+			// Scroll to middle
+			grid.scrollToRow(25);
+			
+			expect(grid.$el.find('.doby-grid-sticky').length).toEqual(1);
+			
 		});
 	});
 

@@ -129,6 +129,7 @@
 			classsortindicator = this.NAME + '-sort-indicator',
 			classsortindicatorasc = classsortindicator + '-asc',
 			classsortindicatordesc = classsortindicator + '-desc',
+			classsticky = this.NAME + '-sticky',
 			classtooltip = this.NAME + '-tooltip',
 			classtooltiparrow = this.NAME + '-tooltip-arrow',
 			classviewport = this.NAME + '-viewport',
@@ -179,6 +180,7 @@
 			getEditor,
 			getFormatter,
 			getGroupFormatter,
+			getGroupFromRow,
 			getHeadersWidth,
 			getLocale,
 			getMaxCSSHeight,
@@ -295,6 +297,8 @@
 			showQuickFilter,
 			showTooltip,
 			startPostProcessing,
+			stickGroupHeaders,
+			stickyIds = [],
 			stylesheet,
 			styleSortColumns,
 			suspend = false,	// suspends the refresh recalculation
@@ -402,7 +406,6 @@
 			formatter:				null,
 			fullWidthRows:			true,
 			groupable:				true,
-			groupFormatter:			null,
 			groupRowData:			null,
 			idProperty:				"id",
 			keyboardNavigation:		true,
@@ -424,6 +427,7 @@
 			shiftSelect:			true,
 			showHeader:				true,
 			stickyFocus:			false,
+			stickyGroupRows:		false,
 			tooltipType:			"popup",
 			virtualScroll:			true
 		}, options);
@@ -1211,7 +1215,11 @@
 					data.top += (i === 0 ? 0 : 1);
 
 					if (item.height && item.height != self.options.rowHeight) {
-						data.height = item.height;
+						if (typeof(item.height) === 'function') {
+							data.height = item.height(item);
+						} else {
+							data.height = item.height;
+						}
 					}
 
 					data.bottom = data.top + (data.height || self.options.rowHeight) + self.options.rowSpacing;
@@ -1795,17 +1803,6 @@
 					return asc ? sorted : -sorted;
 				},
 
-				formatter: function (g) {
-					var h = [
-						"<strong>" + column.name + ":</strong> ",
-						(g.value === null ? '-empty-' : g.value),
-						' <span class="count">(<strong>' + g.count + '</strong> item'
-					];
-					if (g.count !== 1) h.push("s");
-					h.push(")</span>");
-					return h.join('');
-				},
-
 				getter: function (item) {
 					return getDataItemValueForColumn(item, column);
 				},
@@ -2115,15 +2112,20 @@
 				var processGroups = function (remote_groups) {
 
 					var createGroupObject = function (g) {
-						var grp = new Group(),
-							value = g ? g.value : val;
+						var value = g ? g.value : val,
+							grp = new Group({
+								column_id: gi.column_id,
+								collapsed: gi.collapsed,
+								id: '__group' + (parentGroup ? parentGroup.id + groupingDelimiter : '') + value,
+								formatter: gi.formatter || null,
+								level: level,
+								parentGroup: (parentGroup ? parentGroup : null),
+								predef: gi,
+								sticky: true,
+								value: value
+							});
 
-						grp.collapsed = gi.collapsed;
 						if (g) grp.count = g.count;
-						grp.value = value;
-						grp.level = level;
-						grp.predef = gi;
-						grp.id = '__group' + (parentGroup ? parentGroup.id + groupingDelimiter : '') + value;
 
 						// Remember the group rows in the grouping objects
 						self.groups[level].rows.push(grp);
@@ -2266,7 +2268,7 @@
 					g = groups[idx];
 
 					g.collapsed = gi.collapsed ^ toggledGroups[g.id];
-					g.title = gi.formatter ? gi.formatter(g) : g.value;
+					g.title = g.value;
 
 					if (g.groups) {
 						finalizeGroups(g.groups, level + 1);
@@ -2962,7 +2964,7 @@
 					// Extend using a default grouping object and add to groups
 					groups.push(createGroupingObject(options[i]));
 				}
-
+				
 				// Set groups
 				this.groups = groups;
 
@@ -2984,7 +2986,7 @@
 				if (variableRowHeight) {
 					invalidateAllRows();
 				}
-
+				
 				// Reload the grid with the new grouping
 				this.refresh();
 
@@ -4590,6 +4592,7 @@
 				(columnOverrides && columnOverrides.formatter) ||
 				column.formatter ||
 				self.options.formatter ||
+				(item instanceof Group ? getGroupFormatter() : null) ||
 				defaultFormatter;
 
 			return f.bind(self);
@@ -4601,20 +4604,75 @@
 		//
 		// @return function
 		getGroupFormatter = function () {
-			// Check if user has specified a custom one
-			if (self.options.groupFormatter) return self.options.groupFormatter;
-			
 			// Otherwise use the default
 			return function (row, cell, value, columnDef, item) {
-				var indent = item.level * 15;
+				var column = getColumnById(item.column_id),
+					indent = item.level * 15,
+					h = [
+						"<strong>" + column.name + ":</strong> ",
+						(item.value === null ? '-empty-' : item.value),
+						' <span class="count">(<strong>' + item.count + '</strong> item'
+					];
+				if (item.count !== 1) h.push("s");
+				h.push(")</span>");
+				
 				return [(indent ? '<span style="margin-left:' + indent + 'px">' : ''),
 					'<span class="icon"></span>',
 					'<span class="' + classgrouptitle + '">',
-					item.title,
+					h.join(''),
 					'</span>',
 					(indent ? '</span>' : '')
 				].join('');
 			};
+		};
+
+
+		// getGroupFromRow()
+		// Given a row index, returns the grouping object which contain that row.
+		//
+		// @param	row		integer		Index of the row
+		//
+		// @return array
+		getGroupFromRow = function (row) {
+			var result = null,
+				item = cache.rows[row];
+			
+			// No groups even
+			if (self.collection.groups.length === 0) return result;
+			
+			var checkGroupRows = function (rows) {
+				var grouprow, groupitem;
+				for (var g = 0, gl = rows.length; g < gl; g++) {
+					if (result) break;
+					
+					grouprow = rows[g];
+
+					// Check if the item is the group row itself
+					if (grouprow == item) {
+						result = grouprow;
+						break;
+					}
+
+					// Check group rows
+					if (grouprow.grouprows) {
+						for (var h = 0, hl = grouprow.grouprows.length; h < hl; h++) {
+							groupitem = grouprow.grouprows[h];
+							if (groupitem == item) {
+								result = grouprow;
+								break;
+							}
+						}
+					}
+					
+					// Check nested groups
+					if (grouprow.groups) checkGroupRows(grouprow.groups);
+				}
+			};
+			
+			// Process first group object only (nested groups will be done recursively)
+			checkGroupRows(self.collection.groups[0].rows);
+			
+			return result;
 		};
 
 
@@ -5127,19 +5185,25 @@
 		// Group()
 		// Class that stores information about a group of rows.
 		//
-		Group = function () {
-			this.count = 0;				// Number of rows in the group
-			this.groups = null;			// Sub-groups that are part of this group
-			this.id = null;				// A unique key used to identify the group
-			this.level = 0;				// Grouping level, starting with 0 (for nesting groups)
-			this.grouprows = [];		// Rows that are part of this group
-			this.selectable = false;	// Don't allow selecting groups
-			this.title = null;			// Formatted display value of the group
-			this.value = null;			// Grouping value
+		// @param	options		object		Custom options for this group item
+		//
+		Group = function (options) {
+			options = options || {};
 			
-			// Extend the group row with custom options
-			if (self.options.groupRowData) {
-				$.extend(this, self.options.groupRowData);
+			$.extend(this, {
+				count: 0,				// Number of rows in the group
+				groups: null,			// Sub-groups that are part of this group
+				id: null,				// A unique key used to identify the group
+				level: 0,				// Grouping level, starting with 0 (for nesting groups)
+				grouprows: [],			// Rows that are part of this group
+				selectable: false,		// Don't allow selecting groups
+				title: null,			// Formatted display value of the group
+				value: null				// Grouping value
+			}, options, self.options.groupRowData ? self.options.groupRowData : {});
+			
+			// Process height function
+			if (typeof(this.height) === 'function') {
+				this.height = this.height(this);
 			}
 		};
 
@@ -5152,7 +5216,6 @@
 			0: {
 				colspan: "*",
 				focusable: false,
-				formatter: getGroupFormatter(),
 				selectable: false
 			}
 		};
@@ -5536,6 +5599,11 @@
 					if (oldOffset != offset) {
 						invalidateAllRows();
 					}
+				}
+				
+				// Handle sticky group headers
+				if (self.options.stickyGroupRows && self.isGrouped()) {
+					stickGroupHeaders(scrollTop);
 				}
 			}
 
@@ -6910,7 +6978,7 @@
 
 			// Render missing rows
 			renderRows(rendered);
-
+			
 			// Post process rows
 			postProcessFromRow = visible.top;
 			postProcessToRow = Math.min(getDataLength() - 1, visible.bottom);
@@ -6919,6 +6987,11 @@
 			// Save scroll positions
 			lastRenderedScrollTop = scrollTop;
 			lastRenderedScrollLeft = scrollLeft;
+			
+			// Handle sticky group headers
+			if (self.options.stickyGroupRows && self.isGrouped()) {
+				stickGroupHeaders(scrollTop);
+			}
 		};
 
 
@@ -6960,7 +7033,7 @@
 			} else if (item) {
 				// if there is a corresponding row (if not, this is the Add New row or
 				// this data hasn't been loaded yet)
-
+				
 				try {
 					result.push(getFormatter(row, m)(row, cell, value, m, item));
 				} catch (e) {
@@ -6971,8 +7044,10 @@
 
 			result.push("</div>");
 
-			cache.nodes[row].cellRenderQueue.push(cell);
-			cache.nodes[row].cellColSpans[cell] = colspan;
+			if (cache.nodes[row]) {
+				cache.nodes[row].cellRenderQueue.push(cell);
+				cache.nodes[row].cellColSpans[cell] = colspan;
+			}
 		};
 
 
@@ -7099,7 +7174,7 @@
 					(self.active && row === self.active.row ? " active" : "") +
 					(row % 2 === 1 ? " odd" : ""),
 				top, pos = {};
-
+			
 			if (variableRowHeight) {
 				pos = cache.rowPositions[row];
 				top = (pos.top - offset);
@@ -7140,7 +7215,7 @@
 						// All columns to the right are outside the range.
 						break;
 					}
-
+					
 					renderCell(stringArray, row, i, colspan, d);
 				}
 
@@ -7445,7 +7520,7 @@
 
 				self.trigger('viewportchanged', null, {
 					scrollLeft: 0,
-					scrollTop: $viewport[0].scrollTop
+					scrollTop: scrollTop
 				});
 			}
 		};
@@ -7464,7 +7539,9 @@
 				var pos = cache.rowPositions[row];
 				scrollTo(pos.top);
 			}
+			
 			render();
+			
 			return this;
 		};
 
@@ -8462,6 +8539,82 @@
 			if (!enableAsyncPostRender) return;
 			clearTimeout(h_postrender);
 			h_postrender = setTimeout(asyncPostProcessRows, self.options.asyncPostRenderDelay);
+		};
+
+
+		// stickGroupHeaders()
+		// Ensures that sticky header groups stick to the top of the viewport.
+		//
+		// @param	scrollTop	integer		Current scroll position
+		//
+		stickGroupHeaders = function (scrollTop) {
+			// Find top-most group
+			var topRow = getRowFromPosition(scrollTop),
+				topGroup = getGroupFromRow(topRow),
+				stickyGroups = [topGroup];
+			
+			var buildParentGroups = function (group) {
+				if (group.parentGroup) {
+					stickyGroups.push(group.parentGroup);
+					buildParentGroups(group.parentGroup);
+				}
+			};
+			
+			// Build an array of nested groups to display
+			buildParentGroups(topGroup);
+			
+			var i = stickyGroups.length,
+				group,
+				offset = 0;
+			
+			// Remove existing stickies
+			$viewport.children('.' + classsticky).remove();
+			
+			while (i--) {
+				group = stickyGroups[i];
+				
+				// Only go on if the group is expanded and sticky is enabled
+				if (group.collapsed === 0 && group.sticky) {
+
+					stickyIds.push(group.id);
+
+					// Check if row is already rendered
+					var child = '.' + classsticky + '[rel="' + group.id + '"]:first',
+						$clone = $viewport.children(child);
+
+					if ($clone.length) $clone.remove();
+
+					var stickyIndex = cache.indexById[group.id],
+						cacheNode = cache.nodes[stickyIndex];
+
+					// Create group row if it doesn't already exist,
+					// (due to being outside the viewport)
+					if (!cacheNode) {
+						var rowhtml = [];
+						renderRow(rowhtml, stickyIndex, {
+							bottom: stickyIndex,
+							leftPx: 0,
+							top: stickyIndex,
+							rightPx: $viewport.width()
+						});
+						$clone = $(rowhtml.join(''));
+					} else {
+						var $groupHeaderNode = $(cacheNode.rowNode);
+						$clone = $groupHeaderNode.clone();
+					}
+
+					$clone
+						.addClass(classsticky)
+						.attr('rel', group.id)
+						.removeClass(classgrouptoggle)
+						.appendTo($viewport);
+
+					// Stick a clone to the wrapper
+					$clone.css('top', scrollTop + offset);
+
+					offset += $clone.outerHeight();
+				}
+			}
 		};
 
 

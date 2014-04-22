@@ -25,7 +25,7 @@ describe("Initialization and validation", function () {
 	// ==========================================================================================
 
 
-	it("should throw a TypeError the given options param is not an object", function () {
+	it("should throw a TypeError if the given options param is not an object", function () {
 		var tp = new TypeError('The "options" param must be an object.');
 		expect(function () { new DobyGrid(1); }).toThrow(tp);
 		expect(function () { new DobyGrid('testing'); }).toThrow(tp);
