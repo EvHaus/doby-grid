@@ -2116,7 +2116,6 @@
 							grp = new Group({
 								column_id: gi.column_id,
 								collapsed: gi.collapsed,
-								id: '__group' + (parentGroup ? parentGroup.id + groupingDelimiter : '') + value,
 								formatter: gi.formatter || null,
 								level: level,
 								parentGroup: (parentGroup ? parentGroup : null),
@@ -2124,6 +2123,9 @@
 								sticky: true,
 								value: value
 							});
+						
+						// Assign id property
+						grp[grid.options.idProperty] = '__group' + (parentGroup ? parentGroup.id + groupingDelimiter : '') + value;
 
 						if (g) grp.count = g.count;
 
@@ -5274,9 +5276,9 @@
 
 				if (isToggler) {
 					if (item.collapsed) {
-						self.collection.expandGroup(item.id);
+						self.collection.expandGroup(item[self.options.idProperty]);
 					} else {
-						self.collection.collapseGroup(item.id);
+						self.collection.collapseGroup(item[self.options.idProperty]);
 					}
 
 					e.stopImmediatePropagation();
@@ -8570,21 +8572,24 @@
 			// Remove existing stickies
 			$viewport.children('.' + classsticky).remove();
 			
+			// If we're at the very top - do nothing
+			if (scrollTop === 0) return;
+			
 			while (i--) {
 				group = stickyGroups[i];
 				
 				// Only go on if the group is expanded and sticky is enabled
 				if (group.collapsed === 0 && group.sticky) {
 
-					stickyIds.push(group.id);
+					stickyIds.push(group[self.options.idProperty]);
 
 					// Check if row is already rendered
-					var child = '.' + classsticky + '[rel="' + group.id + '"]:first',
+					var child = '.' + classsticky + '[rel="' + group[self.options.idProperty] + '"]:first',
 						$clone = $viewport.children(child);
 
 					if ($clone.length) $clone.remove();
 
-					var stickyIndex = cache.indexById[group.id],
+					var stickyIndex = cache.indexById[group[self.options.idProperty]],
 						cacheNode = cache.nodes[stickyIndex];
 
 					// Create group row if it doesn't already exist,
@@ -8605,7 +8610,7 @@
 
 					$clone
 						.addClass(classsticky)
-						.attr('rel', group.id)
+						.attr('rel', group[self.options.idProperty])
 						.removeClass(classgrouptoggle)
 						.appendTo($viewport);
 

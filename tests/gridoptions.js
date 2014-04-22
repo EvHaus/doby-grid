@@ -3406,7 +3406,73 @@ describe("Grid Options", function () {
 			grid.scrollToRow(25);
 			
 			expect(grid.$el.find('.doby-grid-sticky').length).toEqual(1);
+			expect(grid.$el.find('.doby-grid-sticky .doby-grid-cell').length).toEqual(1);
+		});
+		
+		
+		// ==========================================================================================
+		
+		
+		it("should unstick when scrolling back to the top", function () {
+			var data = [];
+			for (var i = 0; i < 50; i++) {
+				data.push({id: i, data: {id: i, name: 'test' + i}});
+			}
 			
+			var grid = resetGrid($.extend(defaultData(), {
+				data: data,
+				groupable: true,
+				stickyGroupRows: true
+			}));
+			
+			// Group grid
+			grid.addGrouping('id', {
+				collapsed: false	
+			});
+			
+			// Scroll to middle
+			grid.scrollToRow(25);
+			
+			expect(grid.$el.find('.doby-grid-sticky').length).toEqual(1);
+			expect(grid.$el.find('.doby-grid-sticky .doby-grid-cell').length).toEqual(1);
+			
+			// Scroll back to top
+			grid.scrollToRow(0);
+			
+			expect(grid.$el.find('.doby-grid-sticky').length).toEqual(0);
+		});
+		
+		
+		// ==========================================================================================
+		
+		
+		it("should correctly create sticky groups even when using a custom `idProperty`", function () {
+			var data = [];
+			for (var i = 0; i < 50; i++) {
+				data.push({cid: i, data: {id: i, name: 'test' + i}});
+			}
+			
+			var grid = resetGrid($.extend(defaultData(), {
+				columns: [
+					{id: 'test', field: 'test'},
+					{id: 'id', field: 'id'}
+				],
+				data: data,
+				idProperty: 'cid',
+				groupable: true,
+				stickyGroupRows: true
+			}));
+			
+			// Group grid
+			grid.addGrouping('test', {
+				collapsed: false	
+			});
+			
+			// Scroll to middle
+			grid.scrollToRow(25);
+			
+			expect(grid.$el.find('.doby-grid-sticky').length).toEqual(1);
+			expect(grid.$el.find('.doby-grid-sticky .doby-grid-cell').length).toEqual(1);
 		});
 	});
 
