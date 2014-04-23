@@ -39,7 +39,7 @@
 		this.VERSION = '0.0.4';
 
 		// Ensure options are an object
-		if (typeof options !== "object" || _.isArray(options)) {
+		if (typeof options !== "object" || $.isArray(options)) {
 			throw new TypeError('The "options" param must be an object.');
 		}
 
@@ -1902,7 +1902,7 @@
 			//
 			// @return object
 			this.add = function (models, options) {
-				if (!_.isArray(models)) models = models ? [models] : [];
+				if (!$.isArray(models)) models = models ? [models] : [];
 				options = options || {};
 				var at = options.at, model, existing, toAdd = [];
 
@@ -2278,7 +2278,7 @@
 						// Let the non-leaf setGrouping rows get garbage-collected.
 						// Only keep Aggregate rows (when nestedAggregators option is on)
 						if (grid.options.nestedAggregators) {
-							g.grouprows = _.filter(g.grouprows, aggregateFilter);
+							g.grouprows = g.grouprows.filter(aggregateFilter);
 						} else {
 							g.grouprows = [];
 						}
@@ -4579,22 +4579,23 @@
 		// getFormatter()
 		// Given a row and column, returns the formatter function for that cell
 		//
-		// @param	row		integer		Index of the row
+		// @param	item	object		The data item to get the formatter for
 		// @param	column	object		Column data object
 		//
 		// @return function
-		getFormatter = function (row, column) {
-			var item = self.collection.getItem(row);
-
+		getFormatter = function (item, column) {
 			// Check if item has column overrides
 			var columnOverrides = item.columns && (item.columns[column.id] || item.columns[cache.columnsById[column.id]]);
 
-			// Pick formatter starting at the item formatter and working down to the default
+			// Pick formatter starting at the item formatter
 			var f = item.formatter ? item.formatter.bind(item) : null ||
+				// Then the column override formatter
 				(columnOverrides && columnOverrides.formatter) ||
+				// Then the column formatter
 				column.formatter ||
+				// Then the grid formatter as defined by the user
 				self.options.formatter ||
-				(item instanceof Group ? getGroupFormatter() : null) ||
+				// Then the default formatter
 				defaultFormatter;
 
 			return f.bind(self);
@@ -4709,10 +4710,12 @@
 			data = data || {};
 
 			// Convert "a.b.c" notation to reference in options.locale
-			var string = self.options.locale;
-			_.each(key.split('.'), function (p) {
-				string = string[p];
-			});
+			var string = self.options.locale,
+				keypieces = key.split('.');
+
+			for (var i = 0, l = keypieces.length; i < l; i++) {
+				string = string[keypieces[i]];
+			}
 
 			if (!string) {
 				throw new Error('Doby Grid does not have a locale string defined for "' + key + '"');
@@ -6002,7 +6005,7 @@
 				$(self.active.node).removeClass("editable invalid");
 				if (d) {
 					var column = cache.activeColumns[self.active.cell];
-					var formatter = getFormatter(self.active.row, column);
+					var formatter = getFormatter(d, column);
 					self.active.node.innerHTML = formatter(self.active.row, self.active.cell, getDataItemValueForColumn(d, column), column, d);
 					invalidatePostProcessingResults(self.active.row);
 				}
@@ -7038,7 +7041,7 @@
 				// this data hasn't been loaded yet)
 
 				try {
-					result.push(getFormatter(row, m)(row, cell, value, m, item));
+					result.push(getFormatter(item, m)(row, cell, value, m, item));
 				} catch (e) {
 					result.push('');
 					if (console.error) console.error("Cell failed to render due to failed '" + column.id + "' column formatter. Error: " + e.message, e);
@@ -7569,12 +7572,16 @@
 
 				return;
 			} else {
-				var args = ['startRow', 'startCell', 'endRow', 'endCell'];
-				_.each([startRow, startCell, endRow, endCell], function (param, i) {
+				var args = ['startRow', 'startCell', 'endRow', 'endCell'],
+					cells = [startRow, startCell, endRow, endCell],
+					param;
+
+				for (var c = 0, cl = cells.length; c < cl; c++) {
+					param = cells[c];
 					if (param === undefined) {
-						throw new Error('Unable to select cell range because "' + args[i] + '" param is missing.');
+						throw new Error('Unable to select cell range because "' + args[c] + '" param is missing.');
 					}
-				});
+				}
 			}
 
 			// Define a range
@@ -7915,15 +7922,16 @@
 				var args = {
 					multiColumnSort: this.sorting.length > 1,
 					sortCols: []
-				};
+				}, col;
 
-				_.each(this.sorting, function (col) {
+				for (i = 0, l = this.sorting.length; i < l; i++) {
+					col = this.sorting[i];
 					colDef = getColumnById(col.columnId);
 					args.sortCols.push({
 						sortCol: colDef,
 						sortAsc: col.sortAsc
 					});
-				});
+				}
 
 				// Manually execute the sorter that will actually re-draw the table
 				executeSorter(args);
@@ -8732,9 +8740,9 @@
 
 			// Process non-category columns last
 			if (sorted_grouped[undefined_key]) {
-				_.each(sorted_grouped[undefined_key], function (c) {
-					buildColumnsMenu(c);
-				});
+				for (var c = 0, cl = sorted_grouped[undefined_key].length; c < cl; c++) {
+					buildColumnsMenu(sorted_grouped[undefined_key][c]);
+				}
 			}
 
 			// When an aggregator is chosen from the menu
@@ -8771,13 +8779,13 @@
 			// Builds a list of all available aggregators for the user to choose from
 			var aggregator_menu = [];
 			if (column && cache.aggregatorsByColumnId[column.id]) {
-				_.each(cache.aggregatorsByColumnId[column.id], function (aggr, i) {
+				for (var ai = 0, al = cache.aggregatorsByColumnId[column.id].length; ai < al; ai++) {
 					aggregator_menu.push({
-						fn: aFn(column, i),
-						name: column.aggregators[i].name,
-						value: aggr.active
+						fn: aFn(column, ai),
+						name: column.aggregators[ai].name,
+						value: cache.aggregatorsByColumnId[column.id][ai].active
 					});
-				});
+				}
 			}
 
 			// Menu data object which will define what the menu will have
@@ -9207,7 +9215,7 @@
 				if (self.active && row === self.active.row && columnIdx === self.active.cell && self.currentEditor) {
 					self.currentEditor.loadValue(d);
 				} else if (d) {
-					node.innerHTML = getFormatter(row, m)(row, columnIdx, getDataItemValueForColumn(d, m), m, d);
+					node.innerHTML = getFormatter(d, m)(row, columnIdx, getDataItemValueForColumn(d, m), m, d);
 				} else {
 					node.innerHTML = "";
 				}
@@ -9384,13 +9392,13 @@
 
 
 			// Ensure "columns" option is an array
-			if (!_.isArray(self.options.columns)) {
+			if (!$.isArray(self.options.columns)) {
 				throw new TypeError('The "columns" option must be an array.');
 			}
 
 			// Ensure "data" option is an array or a function
 			if (
-				!_.isArray(self.options.data) &&
+				!$.isArray(self.options.data) &&
 				typeof self.options.data !== 'function' &&
 				!(self.options.data instanceof Backbone.Collection)
 			) {
