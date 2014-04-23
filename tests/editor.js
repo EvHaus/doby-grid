@@ -48,6 +48,7 @@ describe("Editors", function () {
 		//
 		this.applyValue = function (items, value) {
 			var item;
+
 			for (var i = 0, l = items.length; i < l; i++) {
 				item = items[i];
 
@@ -389,7 +390,7 @@ describe("Editors", function () {
 		grid.selectCells(0, 1, 1, 1);
 
 		// Enable first cell for editing
-		var $cell = grid.$el.find('.doby-grid-cell:first').first();
+		var $cell = grid.$el.find('.doby-grid-cell.selected:first').first();
 		$cell.simulate('click');
 
 		// Simulate edit
@@ -400,10 +401,21 @@ describe("Editors", function () {
 
 		expect(grid.$el.find('.doby-grid-cell').length).toBeGreaterThan(0);
 
-		grid.$el.find('.doby-grid-cell').each(function (i) {
-			if (i % 2) {
-				expect($(this)).toHaveText(edit);
-			}
+		var waitForRedraw = false;
+		setTimeout(function () {
+			waitForRedraw = true;
+		}, 10);
+
+		waitsFor(function () {
+			return waitForRedraw;
+		});
+
+		runs(function () {
+			grid.$el.find('.doby-grid-cell').each(function (i) {
+				if (i % 2) {
+					expect($(this)).toHaveText(edit);
+				}
+			});
 		});
 	});
 

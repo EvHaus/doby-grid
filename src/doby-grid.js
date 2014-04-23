@@ -71,6 +71,7 @@
 				columnsById: {},
 				indexById: {},
 				nodes: {},
+				modelsById: {},
 				postprocess: {},
 				rowPositions: {},
 				rows: []
@@ -1970,6 +1971,11 @@
 						Array.prototype.push.apply(this.items, toAdd);
 						cacheRows(prevLength > 0 ? prevLength - 1 : 0);
 					}
+
+					// Cache by id
+					for (i = 0, l = toAdd.length; i < l; i++) {
+						cache.modelsById[toAdd[i][grid.options.idProperty]] = toAdd[i];
+					}
 				}
 
 				// If not updating silently, reload grid
@@ -2402,21 +2408,8 @@
 					if (id === null || id === undefined) return null;
 				}
 
-				// NOTE: We need a cache of collection item ids to handle this more efficiently
-				var findItem = function (set) {
-					var subitem;
-					for (var i = 0, l = set.length; i < l; i++) {
-						if (set[i][grid.options.idProperty] == id) return [i, set[i]];
-						if (set[i].rows) {
-							subitem = findItem(_.values(set[i].rows));
-							if (subitem) return subitem;
-						}
-					}
-					return null;
-				}.bind(this);
-
-				// Lookup the data item in the collection
-				return findItem(this.items);
+				var result = cache.modelsById[id];
+				return result ? [this.items.indexOf(result), result] : null;
 			};
 
 
@@ -2492,10 +2485,11 @@
 			// @param	items	array		Array of items to insert into
 			//
 			this.insertEmptyAlert = function (items) {
-				var obj = new NonDataItem({
-					__alert: true,
-					id: '-empty-alert-message-'
-				}),
+				var emptyId = '-empty-alert-message-',
+					obj = new NonDataItem({
+						__alert: true,
+						id: emptyId
+					}),
 					metadata = {
 						selectable: false,
 						focusable: false,
@@ -2519,6 +2513,7 @@
 				} else {
 					$.extend(obj, metadata);
 					items.push(obj);
+					cache.modelsById[emptyId] = obj;
 				}
 			};
 
@@ -2528,9 +2523,10 @@
 			// This also checks to see if we need to enable variable height support.
 			//
 			// @param	item		array		List of objects
+			// @param	recache		boolean		Update cache of given items
 			//
 			// @return array
-			parse = function (items) {
+			parse = function (items, recache) {
 				var i, l, childrow, item;
 				for (i = 0, l = items.length; i < l; i++) {
 					item = items[i];
@@ -2540,6 +2536,9 @@
 						throw new Error("Each data item must have a unique '" + grid.options.idProperty + "' key. The following item is missing an '" + grid.options.idProperty + "': " + JSON.stringify(item));
 					}
 
+					// Cache by id
+					if (recache) cache.modelsById[item[grid.options.idProperty]] = item;
+
 					// Check for children columns
 					if (item.rows) {
 						for (var rowIdx in item.rows) {
@@ -2548,6 +2547,9 @@
 								variableRowHeight = true;
 								break;
 							}
+
+							// Cache child row by id too
+							if (recache) cache.modelsById[childrow[grid.options.idProperty]] = childrow;
 
 							// Detect if nested postprocessing is needed via columns
 							if (childrow.columns && !enableAsyncPostRender) {
@@ -2885,6 +2887,7 @@
 				// Clear cache
 				delete cache.indexById[id];
 				delete cache.rowPositions[idx];
+				delete cache.modelsById[id];
 
 				// Recache positions from affected row
 				cacheRows(idx);
@@ -2916,7 +2919,7 @@
 				if (models instanceof Backbone.Collection) models = models.models.concat();
 
 				// Parse data
-				parse(models);
+				parse(models, true);
 
 				// Load items and validate
 				this.items = filteredItems = validate(models);
@@ -3049,8 +3052,13 @@
 
 				// ID may have changed for the item so update the index by id too.
 				// This is most relevant in remote grids where real IDs replace placeholder IDs
-				if (id !== data[grid.options.idProperty]) delete cache.indexById[id];
+				if (id !== data[grid.options.idProperty]) {
+					delete cache.indexById[id];
+					delete cache.modelsById[id];
+				}
+
 				cache.indexById[data[grid.options.idProperty]] = idx;
+				cache.modelsById[data[grid.options.idProperty]] = data;
 
 				// Parse the updated data before re-rendering. This will ensure that variableRowHeight
 				// is correctly set when items are updated.
@@ -3063,12 +3071,16 @@
 				// If the rows were changed we need to invalidate the child rows
 				if (data.rows) {
 					var child_row_idxs = _.chain(data.rows)
-						.pluck(grid.options.idProperty)
-						.map(function (id) {
-							return cache.indexById[id];
+						.map(function (row) {
+							cache.modelsById[id] = row;
+							return cache.indexById[row[grid.options.idProperty]];
 						})
+						.compact()
 						.value();
-					invalidateRows(child_row_idxs);
+
+					if (child_row_idxs.length) {
+						invalidateRows(child_row_idxs);
+					}
 				}
 
 				// Store the ids that were updated so the refresh knows which row to update
@@ -3226,6 +3238,7 @@
 			//
 			this.applyValue = function (items, value) {
 				var item;
+
 				for (var i = 0, l = items.length; i < l; i++) {
 					item = items[i];
 
@@ -4109,6 +4122,7 @@
 				ph = new Placeholder();
 				ph[self.options.idProperty] = phId;
 				self.collection.items.push(ph);
+				cache.modelsById[phId] = ph;
 			}
 
 			// Reset any row references in groups as they are no longer valid
@@ -5905,7 +5919,13 @@
 
 			self.listenTo(self.options.data, 'change', function (model) {
 				// When items are changed - re-render the right row
-				self.setItem(model[self.options.idProperty], model);
+				if (model.changed && model.changed[self.options.idProperty]) {
+					// If trying to edit the idProperty field -- capture that and send it to
+					// the setItem function for proper error handling
+					self.setItem(model._previousAttributes[self.options.idProperty], model);
+				} else {
+					self.setItem(model[self.options.idProperty], model);
+				}
 			});
 
 			self.listenTo(self.options.data, 'remove', function (model) {
