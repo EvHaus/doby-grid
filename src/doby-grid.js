@@ -2176,7 +2176,7 @@
 							alertRow = r;
 							continue;
 						}
-						
+
 						if (r.__placeholder) {
 							// For placeholder rows - find an empty group's value.
 							// This must use the 'groups' object and not the 'groupByVal' because
@@ -2191,11 +2191,11 @@
 							// For normal rows - get their value
 							val = typeof gi.getter === "function" ? gi.getter(r) : r[gi.getter];
 						}
-						
+
 						// If grouping nulls is disabled, make sure they're kept at the bottom
 						if (grid.options.groupNulls === false && val === null) {
 							nullRows.push(r);
-							continue;	
+							continue;
 						}
 
 						// Store groups by value if the getter
@@ -2237,7 +2237,7 @@
 					// Sort the groups if they're not remotely fetched. Remote groups
 					// are expected to already be in the right order.
 					if (!remote_groups) groups.sort(self.groups[level].comparer);
-					
+
 					// If null rows are collected - put it at the bottom of the grid
 					if (nullRows.length) {
 						groups = groups.concat(nullRows);
@@ -2515,7 +2515,7 @@
 							}
 						}
 					};
-	
+
 				// Set row id
 				obj[grid.options.idProperty] = emptyId;
 
@@ -2748,15 +2748,15 @@
 				}
 
 				var extractChildRows = function (parentRow, newRowsWithChildren) {
-					if (parentRow.rows) {
-						for (var r in parentRow.rows) {
-							if (parentRow.rows[r].collapsed) continue;
+					for (var r in parentRow.rows) {
+						if (parentRow.rows[r].collapsed) continue;
 
-							// Remember the child row's parent in the 'parent' attribute
-							parentRow.rows[r].parent = parentRow;
-							newRowsWithChildren.push(parentRow.rows[r]);
+						// Remember the child row's parent in the 'parent' attribute
+						parentRow.rows[r].parent = parentRow;
+						newRowsWithChildren.push(parentRow.rows[r]);
 
-							// Recursively scan for more children
+						// Recursively scan for more children
+						if (parentRow.rows[r].rows) {
 							extractChildRows(parentRow.rows[r], newRowsWithChildren);
 						}
 					}
@@ -2767,7 +2767,10 @@
 					var newRowsWithChildren = [];
 					for (var i = 0, l = newRows.length; i < l; i++) {
 						newRowsWithChildren.push(newRows[i]);
-						extractChildRows(newRows[i], newRowsWithChildren);
+
+						if (newRows[i].rows) {
+							extractChildRows(newRows[i], newRowsWithChildren);
+						}
 					}
 
 					var diff = getRowDiffs(cache.rows, newRowsWithChildren);
@@ -8597,7 +8600,7 @@
 			var topRow = getRowFromPosition(scrollTop),
 				topGroup = getGroupFromRow(topRow),
 				stickyGroups = [topGroup];
-			
+
 			// TODO: Group could not be found for some reason. Investigate why this might happen
 			if (!topGroup) return;
 
