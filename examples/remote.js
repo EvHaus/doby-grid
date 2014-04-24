@@ -4,7 +4,7 @@ define(['backbone', 'dataset'], function (Backbone, dataset) {
 	"use strict";
 
 	// Use a Backbone data set?
-	var backboneset = false;
+	var backboneset = true;
 
 	// Replicates a server's database filter
 	var remote_filter = function (options, item) {

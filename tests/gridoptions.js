@@ -1487,8 +1487,8 @@ describe("Grid Options", function () {
 			}).toThrow('Cannot execute "setGrouping" because "options.groupable" is disabled.');
 		});
 	});
-	
-	
+
+
 	// ==========================================================================================
 
 
@@ -1497,11 +1497,11 @@ describe("Grid Options", function () {
 			var grid = resetGrid(defaultData());
 			expect(grid.options.groupNulls).toEqual(true);
 		});
-		
-		
+
+
 		// ==========================================================================================
-		
-		
+
+
 		it("should set to false, should keep null values at the bottom", function () {
 			var grid = resetGrid($.extend(defaultData(), {
 				data: [
@@ -1510,17 +1510,15 @@ describe("Grid Options", function () {
 				],
 				groupNulls: false
 			}));
-			
+
 			// Add grouping
 			grid.addGrouping('name');
-			
+
 			waitsFor(function () {
 				return grid.$el.find('.doby-grid-group').length;
 			});
-			
+
 			runs(function () {
-				console.log(grid.$el)
-				
 				// Rows should sorted in the right direction
 				var $rows = grid.$el.find('.doby-grid-row');
 
@@ -1528,13 +1526,13 @@ describe("Grid Options", function () {
 				$rows = _.sortBy($rows, function (i) {
 					return parseInt($(i).css('top'), 10);
 				});
-				
+
 				// Check the rows that got rendered
 				$.each($rows, function (i, row) {
 					if (i === 0) {
 						expect($(row)).toHaveClass('doby-grid-group');
 					} else {
-						expect($(row).find('.doby-grid-cell:first')).toHaveText(289);	
+						expect($(row).find('.doby-grid-cell:first')).toHaveText(289);
 					}
 				});
 			});

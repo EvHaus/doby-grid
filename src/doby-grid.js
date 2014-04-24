@@ -630,6 +630,7 @@
 		};
 
 		Aggregate.prototype = new NonDataItem();
+		Aggregate.prototype._aggregateRow = true;
 
 		Aggregate.prototype.toString = function () { return "Aggregate"; };
 
@@ -1837,8 +1838,6 @@
 				filterCache = [],
 				filteredItems = [],
 				groupingDelimiter = ':|:',
-				pagenum = 0,
-				pagesize = 0,
 				prevRefreshHints = {},
 				refreshHints = {},
 				rowsById = null,	// rows by id; lazy-calculated
@@ -1854,7 +1853,7 @@
 				extractGroups,
 				finalizeGroups,
 				flattenGroupedRows,
-				getFilteredAndPagedItems,
+				getFilteredItems,
 				getRowDiffs,
 				parse,
 				processAggregators,
@@ -2160,7 +2159,7 @@
 
 						// The global grid aggregate should at the very end of the grid. Remember it here
 						// And then we'll add it at the very end.
-						if (r instanceof Aggregate && r.id == '__gridAggregate') {
+						if (r._aggregateRow && r.id == '__gridAggregate') {
 							aggregateRow = r;
 							continue;
 						}
@@ -2228,7 +2227,7 @@
 							group = gr;
 
 							// Do not treat aggreates as groups
-							if (gr instanceof Aggregate) continue;
+							if (gr._aggregateRow) continue;
 
 							extractGroups(gr.grouprows, gr, setGroups);
 						}
@@ -2281,7 +2280,7 @@
 					idx = groups.length,
 					g,
 					aggregateFilter = function (row) {
-						return row instanceof Aggregate;
+						return row._aggregateRow;
 					};
 
 				while (idx--) {
@@ -2332,7 +2331,7 @@
 
 						// If this is a nested group - still draw its Aggregate row
 						// when nestedAggregators is enabled
-						if (grid.options.nestedAggregators && g.groups && g.grouprows.length === 1 && g.grouprows[0] instanceof Aggregate) {
+						if (grid.options.nestedAggregators && g.groups && g.grouprows.length === 1 && g.grouprows[0]._aggregateRow) {
 							groupedRows[gl++] = g.grouprows[0];
 						}
 					}
@@ -2342,13 +2341,13 @@
 			};
 
 
-			// getFilteredAndPagedItems()
+			// getFilteredItems()
 			// Runs the data through the filters (if any).
 			//
 			// @param	items		array		List of items to filter through
 			//
 			// @return object
-			getFilteredAndPagedItems = function (items) {
+			getFilteredItems = function (items) {
 				// Remote data will already be filtered
 				if (self.filter && !remote) {
 					var batchFilter = uncompiledFilter;
@@ -2365,26 +2364,15 @@
 					// special case:  if not filtering and not paging, the resulting
 					// rows collection needs to be a copy so that changes due to sort
 					// can be caught
-					filteredItems = pagesize ? items : items.concat();
+					filteredItems = items.concat();
 				}
 
 				// This will ensure empty row message is inserted when filters return 0 results
 				validate(filteredItems);
 
-				// get the current page
-				var paged;
-				if (pagesize) {
-					if (filteredItems.length < pagenum * pagesize) {
-						pagenum = Math.floor(filteredItems.length / pagesize);
-					}
-					paged = filteredItems.slice(pagesize * pagenum, pagesize * pagenum + pagesize);
-				} else {
-					paged = filteredItems;
-				}
-
 				return {
 					totalRows: filteredItems.length,
-					rows: paged
+					rows: filteredItems
 				};
 			};
 
@@ -2458,14 +2446,14 @@
 						if (item && r &&
 							(
 								// Compare group with non group
-								(item instanceof Group && !(r instanceof Group)) ||
-								(!(item instanceof Group) && r instanceof Group) ||
+								(item._groupRow && !(r._groupRow)) ||
+								(!(item._groupRow) && r._groupRow) ||
 								// Compare two groups
 								(
 									self.groups.length && eitherIsNonData &&
-									(item && item instanceof Group) && (item[grid.options.idProperty] != r[grid.options.idProperty]) ||
-									(item && item instanceof Group) && (item.collapsed != r.collapsed) ||
-									(item && item instanceof Group) && (item.count != r.count)
+									(item && item._groupRow) && (item[grid.options.idProperty] != r[grid.options.idProperty]) ||
+									(item && item._groupRow) && (item.collapsed != r.collapsed) ||
+									(item && item._groupRow) && (item.count != r.count)
 								) ||
 								// Compare between different non-data types
 								(
@@ -2473,7 +2461,7 @@
 									// no good way to compare totals since they are arbitrary DTOs
 									// deep object comparison is pretty expensive
 									// always considering them 'dirty' seems easier for the time being
-									(item instanceof Aggregate || r instanceof Aggregate)
+									(item._aggregateRow || r._aggregateRow)
 								) ||
 								// Compare between different data object ids
 								(
@@ -2677,7 +2665,7 @@
 					group = groups[i];
 
 					// Make sure this is a group row
-					if (!(group instanceof Group)) continue;
+					if (!group._groupRow) continue;
 
 					// Create a new aggregators instance for each column
 					group.aggregators = {};
@@ -2738,7 +2726,7 @@
 					filterCache = [];
 				}
 
-				var filteredItems = getFilteredAndPagedItems(_items);
+				var filteredItems = getFilteredItems(_items);
 				totalRows = filteredItems.totalRows;
 				var newRows = filteredItems.rows;
 
@@ -2824,7 +2812,10 @@
 				var countBefore = cache.rows.length,
 					diff;
 
-				var process = function () {
+				// Recalculate changed rows
+				recalc(this.items, function (result) {
+					diff = result;
+
 					updated = null;
 					prevRefreshHints = refreshHints;
 					refreshHints = {};
@@ -2851,24 +2842,7 @@
 							rows: diff
 						});*/
 					}
-				}.bind(this);
 
-				// Recalculate changed rows
-				recalc(this.items, function (result) {
-					diff = result;
-
-					// If the current page is no longer valid, go to last page and recalc
-					// we suffer a performance penalty here, but the main loop (recalc)
-					// remains highly optimized
-					if (pagesize && totalRows < pagenum * pagesize) {
-						pagenum = Math.max(0, Math.ceil(totalRows / pagesize) - 1);
-						recalc(this.items, function (result) {
-							diff = result;
-							process();
-						});
-					} else {
-						process();
-					}
 				}.bind(this));
 			};
 
@@ -3816,8 +3790,8 @@
 				var column, field, sign, value1, value2, result = 0, val;
 
 				// Do not attempt to sort Aggregators. They will always go to the bottom.
-				if (dataRow1 instanceof Aggregate) return 1;
-				if (dataRow2 instanceof Aggregate) return -1;
+				if (dataRow1._aggregateRow) return 1;
+				if (dataRow2._aggregateRow) return -1;
 
 				// Loops through the columns by which we are sorting
 				for (var i = 0, l = cols.length; i < l; i++) {
@@ -4566,7 +4540,7 @@
 			if (item instanceof Backbone.Model) return item.get(columnDef.field);
 
 			// Group headers
-			if (item instanceof Group) return item.value;
+			if (item._groupRow) return item.value;
 
 			return item.data ? item.data[columnDef.field] : null;
 		};
@@ -5245,6 +5219,7 @@
 		};
 
 		Group.prototype = new NonDataItem();
+		Group.prototype._groupRow = true;
 		Group.prototype.class = function () {
 			var collapseclass = (this.collapsed ? classcollapsed : classexpanded);
 			return [classgroup, self.options.collapsible ? classgrouptoggle : null, collapseclass].join(' ');
@@ -5306,7 +5281,7 @@
 			var item = getDataItem(cell.row);
 
 			// Handle group expand/collapse
-			if (self.options.collapsible && item && item instanceof Group) {
+			if (self.options.collapsible && item && item._groupRow) {
 				var isToggler = $(e.target).hasClass(classgrouptoggle) || $(e.target).closest('.' + classgrouptoggle).length;
 
 				if (isToggler) {
@@ -6520,7 +6495,7 @@
 			for (var i = 0, l = cache.rows.length; i < l; i++) {
 				if (cache.rows[i].__placeholder) {
 					return false;
-				} else if (cache.rows[i] instanceof Group) {
+				} else if (cache.rows[i]._groupRow) {
 					for (var j = 0, m = cache.rows[i].grouprows.length; j < m; j++) {
 						if (cache.rows[i].grouprows[j].__placeholder) {
 							return false;
@@ -6604,7 +6579,7 @@
 
 				// When encountering Group rows - keep in mind how many collapsed rows
 				// we need to skip over
-				if (r && r instanceof Group && r.collapsed && newFrom === undefined) {
+				if (r && r._groupRow && r.collapsed && newFrom === undefined) {
 					collapsedOffset += r.count;
 					nonDataOffset++;
 					continue;
@@ -7054,7 +7029,7 @@
 
 				// Group rows do not inherit column class
 				value = item ? getDataItemValueForColumn(item, m) : null,
-				mClass = item instanceof Group ? "" : (m.class ? typeof m.class === "function" ? m.class(row, cell, value, m, item) : m.class : null),
+				mClass = item._groupRow ? "" : (m.class ? typeof m.class === "function" ? m.class(row, cell, value, m, item) : m.class : null),
 
 				column = cache.activeColumns[cell],
 				cellCss = [classcell, "l" + cell, "r" + rowI];
@@ -7875,7 +7850,7 @@
 			// Make sure rows below get re-evaluated
 			invalidateRows(_.range(row, cache.rows.length));
 
-			if (item instanceof Group) {
+			if (item._groupRow) {
 				// For groups we need to update the grouping options since the group rows
 				// will get regenerated, losing their custom height params during re-draws
 				item.predef.height = height;
@@ -8806,7 +8781,7 @@
 					// Invalidate all Aggregate rows in the visible range
 					var range = getVisibleRange();
 					for (var ci = range.top, ct = range.bottom; ci < ct; ci++) {
-						if (cache.rows[ci] instanceof Aggregate) {
+						if (cache.rows[ci]._aggregateRow) {
 							invalidateRows([ci]);
 						}
 					}
