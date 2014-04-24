@@ -407,6 +407,7 @@
 			formatter:				null,
 			fullWidthRows:			true,
 			groupable:				true,
+			groupNulls:				true,
 			groupRowData:			null,
 			idProperty:				"id",
 			keyboardNavigation:		true,
@@ -2110,7 +2111,7 @@
 					r, gr,
 					level = parentGroup ? parentGroup.level + 1 : 0,
 					gi = self.groups[level],
-					i, l, aggregateRow, addRow, alertRow;
+					i, l, aggregateRow, addRow, alertRow, nullRows = [];
 
 				// Reset grouping row references
 				gi.rows = [];
@@ -2175,7 +2176,7 @@
 							alertRow = r;
 							continue;
 						}
-
+						
 						if (r.__placeholder) {
 							// For placeholder rows - find an empty group's value.
 							// This must use the 'groups' object and not the 'groupByVal' because
@@ -2189,6 +2190,12 @@
 						} else {
 							// For normal rows - get their value
 							val = typeof gi.getter === "function" ? gi.getter(r) : r[gi.getter];
+						}
+						
+						// If grouping nulls is disabled, make sure they're kept at the bottom
+						if (grid.options.groupNulls === false && val === null) {
+							nullRows.push(r);
+							continue;	
 						}
 
 						// Store groups by value if the getter
@@ -2230,6 +2237,11 @@
 					// Sort the groups if they're not remotely fetched. Remote groups
 					// are expected to already be in the right order.
 					if (!remote_groups) groups.sort(self.groups[level].comparer);
+					
+					// If null rows are collected - put it at the bottom of the grid
+					if (nullRows.length) {
+						groups = groups.concat(nullRows);
+					}
 
 					// If there's an add row - put it at the bottom of the grid
 					if (alertRow) groups.push(alertRow);
@@ -2487,8 +2499,7 @@
 			this.insertEmptyAlert = function (items) {
 				var emptyId = '-empty-alert-message-',
 					obj = new NonDataItem({
-						__alert: true,
-						id: emptyId
+						__alert: true
 					}),
 					metadata = {
 						selectable: false,
@@ -2504,6 +2515,9 @@
 							}
 						}
 					};
+	
+				// Set row id
+				obj[grid.options.idProperty] = emptyId;
 
 				// Backbone collection items need to be handled in a special way
 				if (items instanceof Backbone.Collection) {
@@ -2869,7 +2883,7 @@
 			//
 			this.remove = function (id) {
 				if (id === undefined || id === null) {
-					throw new Error("Unable to delete collection item. Invalid 'id' supplied.");
+					throw new Error("Unable to delete collection item. Invalid '" + grid.options.idProperty + "' supplied (" + id + ").");
 				}
 
 				var idx = cache.indexById[id];
@@ -3018,7 +3032,7 @@
 					original_object = this.get(id);
 
 				if (idx === undefined && original_object === null) {
-					throw new Error("Unable to update item (id: " + id + "). Invalid or non-matching id");
+					throw new Error("Unable to update item (" + grid.options.idProperty + ": " + id + "). Invalid or non-matching id");
 				}
 
 				if (grid.options.data instanceof Backbone.Collection) {
@@ -5933,8 +5947,8 @@
 				self.collection.remove(model[self.options.idProperty]);
 			});
 
-			self.listenTo(self.options.data, 'reset', function () {
-				self.collection.reset();
+			self.listenTo(self.options.data, 'reset', function (collection) {
+				self.collection.reset(collection);
 			});
 
 			self.listenTo(self.options.data, 'sort', _.debounce(function () {
@@ -8583,6 +8597,9 @@
 			var topRow = getRowFromPosition(scrollTop),
 				topGroup = getGroupFromRow(topRow),
 				stickyGroups = [topGroup];
+			
+			// TODO: Group could not be found for some reason. Investigate why this might happen
+			if (!topGroup) return;
 
 			var buildParentGroups = function (group) {
 				if (group.parentGroup) {

@@ -359,5 +359,78 @@ describe("Backbone Integration", function () {
 			model.set({age: 'veryold'});
 		});
 	});
+	
+	
+	// ==========================================================================================
+
+
+	it("should be able to render Backbone data when using a custom 'idProperty'", function () {
+		var data = [{
+			id: 1,
+			name: "Bobby McFerrin",
+			age: "old",
+			city: _.sample(["Somewhere", "Nowhere"])
+		}], collection = new Backbone.Collection(),
+			results = resetGrid({
+				columns: [{
+					id: 'city',
+					name: 'City',
+					field: 'city'
+				}],
+				idProperty: 'cid',
+				data: collection
+			}),
+			grid = results[0];
+		
+		// Add data to collection after the grid has been rendered
+		collection.add(data);
+
+		waitsFor(function () {
+			// Wait until rows are rendered
+			var $rows = grid.$el.find(".doby-grid-row:not('.doby-grid-alert')");
+			return $rows.length === 1;
+		}, 100, 'grid should be rendered');
+
+		runs(function () {
+			// Make sure data is rendered
+			expect(grid.collection.items.length).toEqual(1);
+		});
+	});
+	
+	
+	// ==========================================================================================
+
+
+	it("should be able to re-render Backbone data calling reset() on the collection", function () {
+		var data = [{
+			id: 1,
+			name: "Bobby McFerrin",
+			age: "old",
+			city: _.sample(["Somewhere", "Nowhere"])
+		}], collection = new Backbone.Collection(),
+			results = resetGrid({
+				columns: [{
+					id: 'city',
+					name: 'City',
+					field: 'city'
+				}],
+				data: collection
+			}),
+			grid = results[0];
+		
+		// Add data to collection after the grid has been rendered
+		collection.reset(data);
+
+		waitsFor(function () {
+			// Wait until rows are rendered
+			var $rows = grid.$el.find(".doby-grid-row:not('.doby-grid-alert')");
+			return $rows.length === 1;
+		}, 100, 'grid should be rendered');
+
+		runs(function () {
+			// Make sure data is rendered
+			expect(grid.collection.items.length).toEqual(1);
+		});
+	});
 
 });
