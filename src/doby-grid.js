@@ -1947,6 +1947,9 @@
 
 				suspend = false;
 
+				// Previous size of the collection
+				var prevLength = this.items.length;
+
 				// Add the new models
 				if (toAdd.length) {
 					// If data used to be empty, with an alert - remove alert
@@ -1970,7 +1973,6 @@
 						Array.prototype.splice.apply(this.items, [at, 0].concat(toAdd));
 						cacheRows((at > 0 ? at - 1 : 0));
 					} else {
-						var prevLength = this.items.length;
 						Array.prototype.push.apply(this.items, toAdd);
 						cacheRows(prevLength > 0 ? prevLength - 1 : 0);
 					}
@@ -1983,6 +1985,11 @@
 
 				// If not updating silently, reload grid
 				if (!options.silent) {
+
+					// Reduce the refresh loop. This greatly improves the performance of large datasets,
+					// especially when using Backbone.Collection which calls add() very often.
+					if (at) refreshHints.ignoreDiffsAfter = at + toAdd.length;
+
 					// Call bounced refresh to ensure successive add() commands don't cause
 					// too many refreshes
 					if (options.forced) {
@@ -5910,6 +5917,11 @@
 		//
 		bindToCollection = function () {
 			self.listenTo(self.options.data, 'add', function (model, collection, options) {
+				// If "silentDobyRefresh" option is used -- add silently
+				if (options.silentDobyRefresh !== undefined) {
+					options.silent = options.silentDobyRefresh;
+				}
+
 				// When new items are added to the collection - add them to the grid
 				self.collection.add(model, options);
 			});
@@ -6632,11 +6644,11 @@
 				// what's added to their collections manually.
 				if (self.options.data instanceof Backbone.Collection) {
 					for (var i = 0, l = results.length; i < l; i++) {
-						self.options.data.add(results[i], {at: newFrom + i, merge: true});
+						self.options.data.add(results[i], {at: newFrom + i, merge: true, silentDobyRefresh: true});
 					}
 				} else {
 					// Item items to internal collection
-					self.collection.add(results, {at: newFrom, merge: true});
+					self.collection.add(results, {at: newFrom, merge: true, silent: true});
 				}
 
 				// Fire loaded function to process the changes
