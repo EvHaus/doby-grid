@@ -407,7 +407,6 @@
 			formatter:				null,
 			fullWidthRows:			true,
 			groupable:				true,
-			groupNulls:				true,
 			groupRowData:			null,
 			idProperty:				"id",
 			keyboardNavigation:		true,
@@ -2118,18 +2117,20 @@
 				var processGroups = function (remote_groups) {
 
 					var createGroupObject = function (g) {
-						var value = g ? g.value : val,
-							grp = new Group({
-								column_id: gi.column_id,
-								collapsed: gi.collapsed,
-								formatter: gi.formatter || getGroupFormatter(),
-								level: level,
-								parentGroup: (parentGroup ? parentGroup : null),
-								predef: gi,
-								sticky: gi.sticky !== null && gi.sticky !== undefined ? gi.sticky : true,
-								value: value
-							});
-
+						var value = g ? g.value : val;
+						
+						var grp = new Group({
+							column_id: gi.column_id,
+							collapsed: gi.collapsed,
+							formatter: gi.formatter || getGroupFormatter(),
+							level: level,
+							parentGroup: (parentGroup ? parentGroup : null),
+							predef: gi,
+							sticky: gi.sticky !== null && gi.sticky !== undefined ? gi.sticky : true,
+							value: value,
+							visible: gi.groupNulls === false && value === null ? false : true
+						});
+						
 						// Assign id property
 						grp[grid.options.idProperty] = '__group' + (parentGroup ? parentGroup.id + groupingDelimiter : '') + value;
 
@@ -2189,12 +2190,6 @@
 						} else {
 							// For normal rows - get their value
 							val = typeof gi.getter === "function" ? gi.getter(r) : r[gi.getter];
-						}
-
-						// If grouping nulls is disabled, make sure they're kept at the bottom
-						if (grid.options.groupNulls === false && val === null) {
-							nullRows.push(r);
-							continue;
 						}
 
 						// Store groups by value if the getter
@@ -2288,6 +2283,9 @@
 
 					g.collapsed = gi.collapsed ^ toggledGroups[g.id];
 					g.title = g.value;
+					
+					// Force invisible rows to be expanded
+					if (!g.visible) g.collapsed = 0;
 
 					if (g.groups) {
 						finalizeGroups(g.groups, level + 1);
@@ -2754,6 +2752,9 @@
 					// Insert child rows
 					var newRowsWithChildren = [];
 					for (var i = 0, l = newRows.length; i < l; i++) {
+						// If this is an invisible row - skip it entirely
+						if (newRows[i].visible === false) continue;
+						
 						newRowsWithChildren.push(newRows[i]);
 
 						if (newRows[i].rows) {
