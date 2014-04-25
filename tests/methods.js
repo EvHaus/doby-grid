@@ -945,7 +945,7 @@ describe("Methods and Data Manipulation", function () {
 			_.each(['test', 1, {}, null, undefined], function (v) {
 				expect(function () {
 					grid.filter([['id', 'IN', v]]);
-				}).toThrow('The "IN" filter operator must be used with an array. ' + v + ' was given instead.')
+				}).toThrow('The "IN" filter operator must be used with an array. ' + v + ' was given instead.');
 			});
 		});
 
@@ -1096,7 +1096,7 @@ describe("Methods and Data Manipulation", function () {
 			grid.filter();
 
 			// Verify that the grid has been un-filtered
-			var $rows = grid.$el.find('.doby-grid-row');
+			$rows = grid.$el.find('.doby-grid-row');
 			expect($rows.length).toEqual(grid.options.data.length);
 		});
 
@@ -1418,6 +1418,18 @@ describe("Methods and Data Manipulation", function () {
 			var lastcell = grid.$el.find('.doby-grid-cell').last();
 			expect(firstcell.html()).toEqual("steve");
 			expect(lastcell.html()).toEqual("steve jr");
+		});
+	});
+	
+	
+	// ==========================================================================================
+	
+	
+	describe("resize()", function () {
+		it("should not throw any error when trying to resize() a destroyed grid", function () {
+			var grid = new DobyGrid({});
+			grid.destroy();
+			grid.resize();
 		});
 	});
 

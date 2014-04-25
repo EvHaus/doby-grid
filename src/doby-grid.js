@@ -7333,6 +7333,9 @@
 		//
 		// @return object
 		this.resize = function () {
+			// If grid is already destroyed - do nothing
+			if (this.destroyed) return;
+			
 			var oldHeight = viewportH;
 
 			// Resize the grid
