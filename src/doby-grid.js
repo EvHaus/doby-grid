@@ -1792,6 +1792,10 @@
 				column_id: column.id,
 
 				comparer: function (a, b) {
+					// Null groups always on the bottom
+					if (a.value === null) return 1;
+					if (b.value === null) return -1;
+					
 					// Find the current sort direction for this group
 					var asc = true;
 					for (var i = 0, l = self.sorting.length; i < l; i++) {
@@ -7052,7 +7056,6 @@
 			} else if (item) {
 				// if there is a corresponding row (if not, this is the Add New row or
 				// this data hasn't been loaded yet)
-
 				try {
 					result.push(getFormatter(item, m)(row, cell, value, m, item));
 				} catch (e) {
@@ -9408,7 +9411,6 @@
 			if (self.options.reorderable && !$.fn.sortable) {
 				throw new Error('In order to use "reorderable", you must ensure the jquery-ui.sortable module is loaded.');
 			}
-
 
 			// Ensure "columns" option is an array
 			if (!$.isArray(self.options.columns)) {

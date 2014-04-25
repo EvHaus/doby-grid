@@ -2003,6 +2003,53 @@ describe("Methods and Data Manipulation", function () {
 			});
 		});
 	});
+	
+	
+	// ==========================================================================================
+
+
+	describe("setGrouping()", function () {
+		it("when `groupNulls` is set to false, should keep null values at the bottom without a grouping row", function () {
+			var grid = resetGrid({
+				columns: [
+					{name: 'ID', field: 'id', id: 'id'},	
+					{name: 'Name', field: 'name', id: 'name'}
+				],
+				data: [
+					{data: {id: 189, name: 'test'}, id: 189},
+					{data: {id: 289, name: null}, id: 289}
+				]
+			});
+
+			// Add grouping
+			grid.addGrouping('name', {
+				groupNulls: false
+			});
+
+			waitsFor(function () {
+				return grid.$el.find('.doby-grid-group').length;
+			});
+
+			runs(function () {
+				// Rows should sorted in the right direction
+				var $rows = grid.$el.find('.doby-grid-row');
+				
+				// Make sure rows are in correct order
+				$rows = _.sortBy($rows, function (i) {
+					return parseInt($(i).css('top'), 10);
+				});
+
+				// Check the rows that got rendered
+				$.each($rows, function (i, row) {
+					if (i === 0) {
+						expect($(row)).toHaveClass('doby-grid-group');
+					} else {
+						expect($(row).find('.doby-grid-cell:first')).toHaveText(289);
+					}
+				});
+			});
+		});
+	});
 
 
 	// ==========================================================================================
@@ -2164,10 +2211,35 @@ describe("Methods and Data Manipulation", function () {
 			grid.$el.find('.doby-grid-row').each(function () {
 				expect($(this).height()).toEqual(151);
 			});
-
 		});
+		
+		
+		// ==========================================================================================
 
 
+		// FIXME: Make this work
+		xit("should clear grouping by column if it is removed via setOptions", function () {
+			var grid = resetGrid({
+				columns: [
+					{id: 'id', field: 'id'}
+				],
+				data: [
+					{id: 1, data: {id: 1, id2: 2}}	
+				]
+			});
+			
+			// Group by id
+			grid.addGrouping('id');
+
+			// Change columns
+			grid.setOptions({
+				columns: [
+					{id: 'id2', field: 'id2'}
+				]
+			});
+			
+			expect(grid.$el.find('.doby-grid-cell')).toHaveText(2);
+		});
 	});
 
 
