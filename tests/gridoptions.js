@@ -1492,62 +1492,6 @@ describe("Grid Options", function () {
 	// ==========================================================================================
 
 
-	describe("options.groupRowData", function () {
-		it("should be null by default", function () {
-			var grid = resetGrid(defaultData());
-			expect(grid.options.groupRowData).toEqual(null);
-		});
-
-
-		// ==========================================================================================
-
-
-		it("should correctly apply values to group row objects (like CSS classes)", function () {
-			// Prepare for test
-			var custom_class = "my-custom-class",
-				grid = resetGrid($.extend(defaultData(), {
-					groupable: true,
-					groupRowData: {
-						class: custom_class
-					}
-				}));
-
-			grid.addGrouping('id');
-
-			// Find the group rows and ensure they have the HTML we're expecting
-			grid.$el.find('.doby-grid-group').each(function () {
-				expect($(this)).toHaveClass(custom_class);
-			});
-		});
-
-
-		// ==========================================================================================
-
-
-		it("should be able to set group row heights via a function", function () {
-			// Prepare for test
-			var grid = resetGrid($.extend(defaultData(), {
-					groupable: true,
-					groupRowData: {
-						height: function (item) {
-							return (item.level + 1)	* 100;
-						}
-					}
-				}));
-
-			grid.addGrouping('id');
-
-			// Find the group rows and ensure they have the HTML we're expecting
-			grid.$el.find('.doby-grid-group').each(function () {
-				expect($(this).height()).toEqual(100);
-			});
-		});
-	});
-
-
-	// ==========================================================================================
-
-
 	describe("options.idProperty", function () {
 		it("should be 'id' by default", function () {
 			var grid = resetGrid(defaultData());

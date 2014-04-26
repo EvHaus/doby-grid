@@ -407,7 +407,6 @@
 			formatter:				null,
 			fullWidthRows:			true,
 			groupable:				true,
-			groupRowData:			null,
 			idProperty:				"id",
 			keyboardNavigation:		true,
 			lineHeightOffset:		-1,
@@ -1216,7 +1215,7 @@
 					// The extra 1 is here to compesate for the 1px space between rows
 					data.top += (i === 0 ? 0 : 1);
 
-					if (item.height && item.height != self.options.rowHeight) {
+					if (item.height !== null && item.height !== undefined && item.height != self.options.rowHeight) {
 						if (typeof(item.height) === 'function') {
 							data.height = item.height(item);
 						} else {
@@ -1224,7 +1223,7 @@
 						}
 					}
 
-					data.bottom = data.top + (data.height || self.options.rowHeight) + self.options.rowSpacing;
+					data.bottom = data.top + (data.height !== null && data.height !== undefined ? data.height : self.options.rowHeight) + self.options.rowSpacing;
 
 					cache.rowPositions[i] = data;
 				}
@@ -2966,13 +2965,16 @@
 					} else if (col.groupable === false) {
 						throw new Error('Cannot add grouping for column "' + col.id + '" because "options.groupable" is disabled for that column.');
 					}
+					
+					// If there are custom heights set for groupings - enable variable row height
+					if (!variableRowHeight && options[i].height !== undefined && options[i].height !== null) variableRowHeight = true;
 
 					if (!toggledGroupsByLevel[i]) toggledGroupsByLevel[i] = {};
 
 					// Extend using a default grouping object and add to groups
 					groups.push(createGroupingObject(options[i]));
 				}
-
+				
 				// Set groups
 				this.groups = groups;
 
@@ -2988,12 +2990,10 @@
 					this.length = this.remote_length;
 					generatePlaceholders();
 				}
-
+				
 				// Unfortunately, because group row heights may be different than regular row heights
 				// we need to completely invalidate all rows here to prevent misplaced row rendering.
-				if (variableRowHeight) {
-					invalidateAllRows();
-				}
+				if (variableRowHeight) invalidateAllRows();
 
 				// Reload the grid with the new grouping
 				this.refresh();
@@ -5219,13 +5219,15 @@
 				selectable: false,		// Don't allow selecting groups
 				title: null,			// Formatted display value of the group
 				value: null				// Grouping value
-			}, options, self.options.groupRowData ? self.options.groupRowData : {});
+			}, options);
 
 			// If group row height was manipulated - use that value
-			if (this.predef && this.predef.height) {
+			if (this.predef && this.predef.height !== null && this.predef.height !== undefined) {
 				this.height = this.predef.height;
-			// Otherwise see if we need to pocess height function
-			} else if (typeof(this.height) === 'function') {
+			}
+			
+			// Then see if we need to process height function
+			if (typeof(this.height) === 'function') {
 				this.height = this.height(this);
 			}
 		};
@@ -5233,8 +5235,10 @@
 		Group.prototype = new NonDataItem();
 		Group.prototype._groupRow = true;
 		Group.prototype.class = function () {
-			var collapseclass = (this.collapsed ? classcollapsed : classexpanded);
-			return [classgroup, self.options.collapsible ? classgrouptoggle : null, collapseclass].join(' ');
+			var collapseclass = (this.collapsed ? classcollapsed : classexpanded),
+				classes = [classgroup, self.options.collapsible ? classgrouptoggle : null, collapseclass];
+			if (this.predef.class) classes.push(this.predef.class);
+			return classes.join(' ');
 		};
 		Group.prototype.columns = {
 			0: {
@@ -7221,7 +7225,7 @@
 			stringArray.push("<div class='" + rowCss + "' style='top:" + top + "px");
 
 			// In variable row height mode we need some fancy ways to determine height
-			if (variableRowHeight && pos.height) {
+			if (variableRowHeight && pos.height !== null && pos.height !== undefined) {
 				var rowheight = pos.height - cellHeightDiff;
 				stringArray.push(';height:' + rowheight + 'px;line-height:' + (rowheight + self.options.lineHeightOffset) + 'px');
 			}
@@ -9461,11 +9465,6 @@
 
 			// If 'resizableRows' are enabled, turn on variableRowHeight mode
 			if (self.options.resizableRows && !variableRowHeight) {
-				variableRowHeight = true;
-			}
-
-			// If groupRowData is added with a custom height
-			if (!variableRowHeight && self.options.groupRowData && self.options.groupRowData.height && self.options.groupRowData.height != self.options.rowHeight) {
 				variableRowHeight = true;
 			}
 

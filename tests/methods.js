@@ -2049,6 +2049,98 @@ describe("Methods and Data Manipulation", function () {
 				});
 			});
 		});
+		
+		
+		// ==========================================================================================
+		
+		
+		it("when `class` is set on a grouping object, the grouping rows should inherit it", function () {
+			var custom_class = 'hello';
+			var grid = resetGrid({
+				columns: [
+					{name: 'ID', field: 'id', id: 'id'},	
+					{name: 'Name', field: 'name', id: 'name'}
+				],
+				data: [
+					{data: {id: 189, name: 'test'}, id: 189},
+					{data: {id: 289, name: null}, id: 289}
+				]
+			});
+
+			// Add grouping
+			grid.addGrouping('name', {
+				class: custom_class
+			});
+
+			waitsFor(function () {
+				return grid.$el.find('.doby-grid-group').length;
+			});
+
+			runs(function () {
+				// Rows should sorted in the right direction
+				grid.$el.find('.doby-grid-group').each(function () {
+					expect($(this)).toHaveClass(custom_class);
+				});
+			});
+		});
+		
+		
+		// ==========================================================================================
+
+
+		it("should be able to set group row heights via a custom function", function () {
+			// Prepare for test
+			var grid = resetGrid({
+				columns: [
+					{name: 'ID', field: 'id', id: 'id'},	
+					{name: 'Name', field: 'name', id: 'name'}
+				],
+				data: [
+					{data: {id: 189, name: 'test'}, id: 189},
+					{data: {id: 289, name: null}, id: 289}
+				]
+			});
+
+			grid.addGrouping('id', {
+				height: function (item) {
+					return (item.level + 1)	* 100;
+				}
+			});
+
+			// Find the group rows and ensure they have the HTML we're expecting
+			grid.$el.find('.doby-grid-group').each(function () {
+				expect($(this).height()).toEqual(100);
+			});
+		});
+		
+		
+		// ==========================================================================================
+
+
+		it("should allow you to set group row heights to 0 via a function", function () {
+			// Prepare for test
+			var grid = resetGrid({
+				columns: [
+					{name: 'ID', field: 'id', id: 'id'},	
+					{name: 'Name', field: 'name', id: 'name'}
+				],
+				data: [
+					{data: {id: 189, name: 'test'}, id: 189},
+					{data: {id: 289, name: null}, id: 289}
+				]
+			});
+
+			grid.addGrouping('id', {
+				height: function () {
+					return 0;
+				}
+			});
+
+			// Find the group rows and ensure they have the HTML we're expecting
+			grid.$el.find('.doby-grid-group').each(function () {
+				expect($(this).height()).toEqual(0);
+			});
+		});
 	});
 
 
