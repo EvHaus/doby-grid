@@ -1223,7 +1223,7 @@
 						}
 					}
 
-					data.bottom = data.top + (data.height !== null && data.height !== undefined ? data.height : self.options.rowHeight) + self.options.rowSpacing;
+					data.bottom = data.top + (data.height !== null && data.height !== undefined ? data.height : self.options.rowHeight) + (item.rowSpacing !== null && item.rowSpacing !== undefined ? item.rowSpacing : self.options.rowSpacing);
 
 					cache.rowPositions[i] = data;
 				}
@@ -2553,7 +2553,10 @@
 					if (item.rows) {
 						for (var rowIdx in item.rows) {
 							childrow = item.rows[rowIdx];
-							if (!variableRowHeight && childrow.height && childrow.height != grid.options.rowHeight) {
+							if (!variableRowHeight && (
+								(childrow.height !== undefined && childrow.height !== null && childrow.height != grid.options.rowHeight) ||
+								(childrow.rowSpacing !== undefined && childrow.rowSpacing !== null && childrow.rowSpacing != grid.options.rowSpacing)
+							)) {
 								variableRowHeight = true;
 								break;
 							}
@@ -2573,7 +2576,10 @@
 					}
 
 					// Detect if variable row heights are used
-					if (!variableRowHeight && item.height && item.height !== grid.options.rowHeight) {
+					if (!variableRowHeight && (
+						(item.height !== undefined && item.height !== null && item.height !== grid.options.rowHeight) ||
+						(item.rowSpacing !== undefined && item.rowSpacing !== null && item.rowSpacing !== grid.options.rowHeight)
+					)) {
 						variableRowHeight = true;
 					}
 
@@ -2967,7 +2973,12 @@
 					}
 					
 					// If there are custom heights set for groupings - enable variable row height
-					if (!variableRowHeight && options[i].height !== undefined && options[i].height !== null) variableRowHeight = true;
+					if (!variableRowHeight && (
+						(options[i].height !== undefined && options[i].height !== null) ||
+						(options[i].rowSpacing !== undefined && options[i].rowSpacing !== null)
+					)) {
+						variableRowHeight = true;
+					}
 
 					if (!toggledGroupsByLevel[i]) toggledGroupsByLevel[i] = {};
 
@@ -4306,7 +4317,7 @@
 			if (variableRowHeight) {
 				var pos = cache.rowPositions[row];
 				y1 = pos.top - 1;
-				y2 = y1 + (pos.height || self.options.rowHeight) + 2;
+				y2 = y1 + (pos.height !== null && pos.height !== undefined ? pos.height : self.options.rowHeight) + 2;
 			} else {
 				y1 = (self.options.rowHeight + self.options.rowSpacing) * row - offset + row - 1;
 				y2 = y1 + self.options.rowHeight + 2 + self.options.rowSpacing;
@@ -5221,9 +5232,15 @@
 				value: null				// Grouping value
 			}, options);
 
-			// If group row height was manipulated - use that value
-			if (this.predef && this.predef.height !== null && this.predef.height !== undefined) {
-				this.height = this.predef.height;
+			// If group row height or spacing was manipulated - use that value
+			if (this.predef) {
+				if (this.predef.height !== undefined && this.predef.height !== null) {
+					this.height = this.predef.height;
+				}
+				
+				if (this.predef.rowSpacing !== undefined && this.predef.rowSpacing !== null) {
+					this.rowSpacing = this.predef.rowSpacing;
+				}
 			}
 			
 			// Then see if we need to process height function
@@ -7212,7 +7229,7 @@
 					(self.active && row === self.active.row ? " active" : "") +
 					(row % 2 === 1 ? " odd" : ""),
 				top, pos = {};
-
+			
 			if (variableRowHeight) {
 				pos = cache.rowPositions[row];
 				top = (pos.top - offset);
