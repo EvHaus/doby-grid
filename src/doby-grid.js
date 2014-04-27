@@ -1214,6 +1214,9 @@
 
 					// The extra 1 is here to compesate for the 1px space between rows
 					data.top += (i === 0 ? 0 : 1);
+					
+					// Row spacing goes on top
+					data.top += (item.rowSpacing !== null && item.rowSpacing !== undefined ? item.rowSpacing : self.options.rowSpacing);
 
 					if (item.height !== null && item.height !== undefined && item.height != self.options.rowHeight) {
 						if (typeof(item.height) === 'function') {
@@ -1223,7 +1226,7 @@
 						}
 					}
 
-					data.bottom = data.top + (data.height !== null && data.height !== undefined ? data.height : self.options.rowHeight) + (item.rowSpacing !== null && item.rowSpacing !== undefined ? item.rowSpacing : self.options.rowSpacing);
+					data.bottom = data.top + (data.height !== null && data.height !== undefined ? data.height : self.options.rowHeight);
 
 					cache.rowPositions[i] = data;
 				}
@@ -5251,10 +5254,10 @@
 
 		Group.prototype = new NonDataItem();
 		Group.prototype._groupRow = true;
-		Group.prototype.class = function () {
-			var collapseclass = (this.collapsed ? classcollapsed : classexpanded),
+		Group.prototype.class = function (row, item) {
+			var collapseclass = (item.collapsed ? classcollapsed : classexpanded),
 				classes = [classgroup, self.options.collapsible ? classgrouptoggle : null, collapseclass];
-			if (this.predef.class) classes.push(this.predef.class);
+			if (item.predef.class) classes.push(item.predef.class);
 			return classes.join(' ');
 		};
 		Group.prototype.columns = {
@@ -7067,7 +7070,7 @@
 
 				// Group rows do not inherit column class
 				value = item ? getDataItemValueForColumn(item, m) : null,
-				mClass = item._groupRow ? "" : (m.class ? typeof m.class === "function" ? m.class(row, cell, value, m, item) : m.class : null),
+				mClass = item._groupRow ? "" : (m.class ? typeof m.class === "function" ? m.class.bind(self)(row, cell, value, m, item) : m.class : null),
 
 				column = cache.activeColumns[cell],
 				cellCss = [classcell, "l" + cell, "r" + rowI];
@@ -7237,7 +7240,8 @@
 				top = (self.options.rowHeight * row) - offset + (row * 1) + (row * self.options.rowSpacing);
 			}
 
-			if (d && d.class) rowCss += " " + (typeof d.class === 'function' ? d.class(row, d) : d.class);
+			var x;
+			if (d && d.class) rowCss += " " + (typeof d.class === 'function' ? d.class.bind(self)(row, d) : d.class);
 
 			stringArray.push("<div class='" + rowCss + "' style='top:" + top + "px");
 
