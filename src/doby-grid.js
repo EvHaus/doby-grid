@@ -7240,7 +7240,6 @@
 				top = (self.options.rowHeight * row) - offset + (row * 1) + (row * self.options.rowSpacing);
 			}
 
-			var x;
 			if (d && d.class) rowCss += " " + (typeof d.class === 'function' ? d.class.bind(self)(row, d) : d.class);
 
 			stringArray.push("<div class='" + rowCss + "' style='top:" + top + "px");
