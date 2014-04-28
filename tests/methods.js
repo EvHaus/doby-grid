@@ -1420,11 +1420,11 @@ describe("Methods and Data Manipulation", function () {
 			expect(lastcell.html()).toEqual("steve jr");
 		});
 	});
-	
-	
+
+
 	// ==========================================================================================
-	
-	
+
+
 	describe("resize()", function () {
 		it("should not throw any error when trying to resize() a destroyed grid", function () {
 			var grid = new DobyGrid({});
@@ -2003,8 +2003,8 @@ describe("Methods and Data Manipulation", function () {
 			});
 		});
 	});
-	
-	
+
+
 	// ==========================================================================================
 
 
@@ -2012,7 +2012,7 @@ describe("Methods and Data Manipulation", function () {
 		it("when `groupNulls` is set to false, should keep null values at the bottom without a grouping row", function () {
 			var grid = resetGrid({
 				columns: [
-					{name: 'ID', field: 'id', id: 'id'},	
+					{name: 'ID', field: 'id', id: 'id'},
 					{name: 'Name', field: 'name', id: 'name'}
 				],
 				data: [
@@ -2033,7 +2033,7 @@ describe("Methods and Data Manipulation", function () {
 			runs(function () {
 				// Rows should sorted in the right direction
 				var $rows = grid.$el.find('.doby-grid-row');
-				
+
 				// Make sure rows are in correct order
 				$rows = _.sortBy($rows, function (i) {
 					return parseInt($(i).css('top'), 10);
@@ -2049,16 +2049,16 @@ describe("Methods and Data Manipulation", function () {
 				});
 			});
 		});
-		
-		
+
+
 		// ==========================================================================================
-		
-		
+
+
 		it("when `class` is set on a grouping object, the grouping rows should inherit it", function () {
 			var custom_class = 'hello';
 			var grid = resetGrid({
 				columns: [
-					{name: 'ID', field: 'id', id: 'id'},	
+					{name: 'ID', field: 'id', id: 'id'},
 					{name: 'Name', field: 'name', id: 'name'}
 				],
 				data: [
@@ -2083,8 +2083,45 @@ describe("Methods and Data Manipulation", function () {
 				});
 			});
 		});
-		
-		
+
+
+		// ==========================================================================================
+
+
+		it("when `class` method is set on a grouping object, the grouping rows should inherit it", function () {
+			var custom_class = function () {
+				return 'hello';
+			};
+
+			var grid = resetGrid({
+				columns: [
+					{name: 'ID', field: 'id', id: 'id'},
+					{name: 'Name', field: 'name', id: 'name'}
+				],
+				data: [
+					{data: {id: 189, name: 'test'}, id: 189},
+					{data: {id: 289, name: null}, id: 289}
+				]
+			});
+
+			// Add grouping
+			grid.addGrouping('name', {
+				class: custom_class
+			});
+
+			waitsFor(function () {
+				return grid.$el.find('.doby-grid-group').length;
+			});
+
+			runs(function () {
+				// Rows should sorted in the right direction
+				grid.$el.find('.doby-grid-group').each(function () {
+					expect($(this)).toHaveClass(custom_class());
+				});
+			});
+		});
+
+
 		// ==========================================================================================
 
 
@@ -2092,7 +2129,7 @@ describe("Methods and Data Manipulation", function () {
 			// Prepare for test
 			var grid = resetGrid({
 				columns: [
-					{name: 'ID', field: 'id', id: 'id'},	
+					{name: 'ID', field: 'id', id: 'id'},
 					{name: 'Name', field: 'name', id: 'name'}
 				],
 				data: [
@@ -2112,8 +2149,8 @@ describe("Methods and Data Manipulation", function () {
 				expect($(this).height()).toEqual(100);
 			});
 		});
-		
-		
+
+
 		// ==========================================================================================
 
 
@@ -2121,7 +2158,7 @@ describe("Methods and Data Manipulation", function () {
 			// Prepare for test
 			var grid = resetGrid({
 				columns: [
-					{name: 'ID', field: 'id', id: 'id'},	
+					{name: 'ID', field: 'id', id: 'id'},
 					{name: 'Name', field: 'name', id: 'name'}
 				],
 				data: [
@@ -2304,8 +2341,8 @@ describe("Methods and Data Manipulation", function () {
 				expect($(this).height()).toEqual(151);
 			});
 		});
-		
-		
+
+
 		// ==========================================================================================
 
 
@@ -2316,10 +2353,10 @@ describe("Methods and Data Manipulation", function () {
 					{id: 'id', field: 'id'}
 				],
 				data: [
-					{id: 1, data: {id: 1, id2: 2}}	
+					{id: 1, data: {id: 1, id2: 2}}
 				]
 			});
-			
+
 			// Group by id
 			grid.addGrouping('id');
 
@@ -2329,7 +2366,7 @@ describe("Methods and Data Manipulation", function () {
 					{id: 'id2', field: 'id2'}
 				]
 			});
-			
+
 			expect(grid.$el.find('.doby-grid-cell')).toHaveText(2);
 		});
 	});
