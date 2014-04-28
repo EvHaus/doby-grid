@@ -1214,7 +1214,7 @@
 
 					// The extra 1 is here to compesate for the 1px space between rows
 					data.top += (i === 0 ? 0 : 1);
-					
+
 					// Row spacing goes on top
 					data.top += (item.rowSpacing !== null && item.rowSpacing !== undefined ? item.rowSpacing : self.options.rowSpacing);
 
@@ -1797,7 +1797,7 @@
 					// Null groups always on the bottom
 					if (a.value === null) return 1;
 					if (b.value === null) return -1;
-					
+
 					// Find the current sort direction for this group
 					var asc = true;
 					for (var i = 0, l = self.sorting.length; i < l; i++) {
@@ -2131,7 +2131,7 @@
 
 					var createGroupObject = function (g) {
 						var value = g ? g.value : val;
-						
+
 						var grp = new Group({
 							column_id: gi.column_id,
 							collapsed: gi.collapsed,
@@ -2143,7 +2143,7 @@
 							value: value,
 							visible: gi.groupNulls === false && value === null ? false : true
 						});
-						
+
 						// Assign id property
 						grp[grid.options.idProperty] = '__group' + (parentGroup ? parentGroup.id + groupingDelimiter : '') + value;
 
@@ -2296,7 +2296,7 @@
 
 					g.collapsed = gi.collapsed ^ toggledGroups[g.id];
 					g.title = g.value;
-					
+
 					// Force invisible rows to be expanded
 					if (!g.visible) g.collapsed = 0;
 
@@ -2773,7 +2773,7 @@
 					for (var i = 0, l = newRows.length; i < l; i++) {
 						// If this is an invisible row - skip it entirely
 						if (newRows[i].visible === false) continue;
-						
+
 						newRowsWithChildren.push(newRows[i]);
 
 						if (newRows[i].rows) {
@@ -2974,7 +2974,7 @@
 					} else if (col.groupable === false) {
 						throw new Error('Cannot add grouping for column "' + col.id + '" because "options.groupable" is disabled for that column.');
 					}
-					
+
 					// If there are custom heights set for groupings - enable variable row height
 					if (!variableRowHeight && (
 						(options[i].height !== undefined && options[i].height !== null) ||
@@ -2988,7 +2988,7 @@
 					// Extend using a default grouping object and add to groups
 					groups.push(createGroupingObject(options[i]));
 				}
-				
+
 				// Set groups
 				this.groups = groups;
 
@@ -3004,7 +3004,7 @@
 					this.length = this.remote_length;
 					generatePlaceholders();
 				}
-				
+
 				// Unfortunately, because group row heights may be different than regular row heights
 				// we need to completely invalidate all rows here to prevent misplaced row rendering.
 				if (variableRowHeight) invalidateAllRows();
@@ -5240,12 +5240,12 @@
 				if (this.predef.height !== undefined && this.predef.height !== null) {
 					this.height = this.predef.height;
 				}
-				
+
 				if (this.predef.rowSpacing !== undefined && this.predef.rowSpacing !== null) {
 					this.rowSpacing = this.predef.rowSpacing;
 				}
 			}
-			
+
 			// Then see if we need to process height function
 			if (typeof(this.height) === 'function') {
 				this.height = this.height(this);
@@ -5257,7 +5257,14 @@
 		Group.prototype.class = function (row, item) {
 			var collapseclass = (item.collapsed ? classcollapsed : classexpanded),
 				classes = [classgroup, self.options.collapsible ? classgrouptoggle : null, collapseclass];
-			if (item.predef.class) classes.push(item.predef.class);
+			if (item.predef.class) {
+				if (typeof(item.predef.class) === 'function') {
+					// Group class functions will use the first column as the argument
+					classes.push(item.predef.class.bind(self)(row, 0, item.value, cache.activeColumns[0], item));
+				} else {
+					classes.push(item.predef.class);
+				}
+			}
 			return classes.join(' ');
 		};
 		Group.prototype.columns = {
@@ -7232,7 +7239,7 @@
 					(self.active && row === self.active.row ? " active" : "") +
 					(row % 2 === 1 ? " odd" : ""),
 				top, pos = {};
-			
+
 			if (variableRowHeight) {
 				pos = cache.rowPositions[row];
 				top = (pos.top - offset);
@@ -7375,7 +7382,7 @@
 		this.resize = function () {
 			// If grid is already destroyed - do nothing
 			if (this.destroyed) return;
-			
+
 			var oldHeight = viewportH;
 
 			// Resize the grid
