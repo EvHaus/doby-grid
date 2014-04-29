@@ -1191,13 +1191,14 @@
 						0: {
 							top: self.options.rowSpacing,
 							height: self.options.rowHeight,
-							bottom: self.options.rowHeight + self.options.rowSpacing
+							bottom: self.options.rowHeight + self.options.rowSpacing,
+							spacing: self.options.rowSpacing
 						}
 					};
 				}
 			}
 
-			var item, data;
+			var item, data, rowSpacing;
 			for (var i = from, l = cache.rows.length; i < l; i++) {
 				item = cache.rows[i];
 
@@ -1214,9 +1215,15 @@
 
 					// The extra 1 is here to compesate for the 1px space between rows
 					data.top += (i === 0 ? 0 : 1);
+					
+					rowSpacing = (item.rowSpacing !== null && item.rowSpacing !== undefined ? item.rowSpacing : self.options.rowSpacing);
+					
+					// Process rowSpacing function
+					if (typeof rowSpacing === 'function') rowSpacing = rowSpacing(item);
 
 					// Row spacing goes on top
-					data.top += (item.rowSpacing !== null && item.rowSpacing !== undefined ? item.rowSpacing : self.options.rowSpacing);
+					data.spacing = rowSpacing;
+					data.top += rowSpacing;
 
 					if (item.height !== null && item.height !== undefined && item.height != self.options.rowHeight) {
 						if (typeof(item.height) === 'function') {
@@ -4866,14 +4873,14 @@
 			if (!variableRowHeight) {
 				return Math.floor((maxPosition + offset) / (self.options.rowHeight + 1 + self.options.rowSpacing));
 			}
-
+			
 			var row = 0, rowLength = cache.rows.length,	pos, lastpos, i;
 
 			if (rowLength) {
 				// Loop through the row position cache and break when the row is found
 				for (i = 0; i < rowLength; i++) {
 					pos = cache.rowPositions[i];
-					if (pos.top <= maxPosition && pos.bottom >= maxPosition) {
+					if (pos.top - pos.spacing <= maxPosition && pos.bottom >= maxPosition) {
 						row = i;
 						continue;
 					}
@@ -5246,9 +5253,13 @@
 				}
 			}
 
-			// Then see if we need to process height function
+			// Then see if we need to process height and rowSpacing functions
 			if (typeof(this.height) === 'function') {
 				this.height = this.height(this);
+			}
+			
+			if (typeof(this.rowSpacing) === 'function') {
+				this.rowSpacing = this.rowSpacing(this);
 			}
 		};
 
@@ -7602,7 +7613,7 @@
 		this.scrollToRow = function (row) {
 			if (!variableRowHeight) {
 				// The extra +1 here is to compensate for the spacing between rows
-				scrollTo(row * (this.options.rowHeight + 1 + this.options.rowSpacing));
+				scrollTo((row * (this.options.rowHeight + 1 + this.options.rowSpacing)) + this.options.rowSpacing);
 			} else {
 				var pos = cache.rowPositions[row];
 				scrollTo(pos.top);

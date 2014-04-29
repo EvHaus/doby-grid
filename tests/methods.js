@@ -1619,6 +1619,41 @@ describe("Methods and Data Manipulation", function () {
 			// due to the way the grid is loaded in the fixture. Find a way to fix this.
 			expect(firstcell.text()).toEqual('test47');
 		});
+		
+		
+		// ==========================================================================================
+
+
+		it("should be able to scrollToRow() to a specific row when rowSpacing is used", function () {
+			// Prepare grid for test
+			var data = [],
+				rowSpacing = function (item) {
+					return i + 10;
+				};
+			
+			for (var i = 0; i < 1000; i++) {
+				data.push({
+					data: {id: i, name: 'test' + i},
+					id: i,
+					height: (i + 10),
+					rowSpacing: rowSpacing
+				});
+			}
+
+			var grid = resetGrid({
+				columns: [{id: 'name', field: 'name'}],
+				data: data
+			});
+
+			// Scroll to row
+			grid.scrollToRow(50);
+
+			var firstcell = grid.$el.find('.doby-grid-row:first .doby-grid-cell:first');
+
+			// TODO: The unit tests always scroll to a row 3 less than actual, probably
+			// due to the way the grid is loaded in the fixture. Find a way to fix this.
+			expect(firstcell.text()).toEqual('test47');
+		});
 	});
 
 
