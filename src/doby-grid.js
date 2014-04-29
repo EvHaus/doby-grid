@@ -1189,9 +1189,9 @@
 				if (!indexOnly && variableRowHeight) {
 					cache.rowPositions = {
 						0: {
-							top: 0,
+							top: self.options.rowSpacing,
 							height: self.options.rowHeight,
-							bottom: self.options.rowHeight
+							bottom: self.options.rowHeight + self.options.rowSpacing
 						}
 					};
 				}
@@ -7244,7 +7244,7 @@
 				pos = cache.rowPositions[row];
 				top = (pos.top - offset);
 			} else {
-				top = (self.options.rowHeight * row) - offset + (row * 1) + (row * self.options.rowSpacing);
+				top = (self.options.rowHeight * row) - offset + (row * 1) + ((row + 1) * self.options.rowSpacing);
 			}
 
 			if (d && d.class) rowCss += " " + (typeof d.class === 'function' ? d.class.bind(self)(row, d) : d.class);
