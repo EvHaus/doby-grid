@@ -1627,7 +1627,7 @@ describe("Methods and Data Manipulation", function () {
 		it("should be able to scrollToRow() to a specific row when rowSpacing is used", function () {
 			// Prepare grid for test
 			var data = [],
-				rowSpacing = function (item) {
+				rowSpacing = function () {
 					return i + 10;
 				};
 			
