@@ -2213,6 +2213,65 @@ describe("Methods and Data Manipulation", function () {
 				expect($(this).height()).toEqual(0);
 			});
 		});
+		
+		
+		// ==========================================================================================
+
+
+		it("should be able to use `height` and `rowSpacing` functions for group header rows", function () {
+			// Prepare for test
+			var grid = resetGrid({
+				columns: [
+					{name: 'ID', field: 'id', id: 'id'},
+					{name: 'Name', field: 'name', id: 'name'}
+				],
+				data: [
+					{data: {id: 189, name: 'test'}, id: 189},
+					{data: {id: 289, name: null}, id: 289}
+				]
+			});
+			
+			var ensureHeightGroup = false,
+				ensureRowSpacingGroup = false;
+			
+
+			grid.setGrouping([{
+				column_id: 'id',
+				collapsed: false
+			}, {
+				class: 'thisone',
+				column_id: 'name',
+				collapsed: true,
+				height: function (item) {
+					if (item.parentGroup.groups.length) {
+						ensureHeightGroup = true;	
+					}
+					return 10;
+				},
+				rowSpacing: function (item) {
+					if (item.parentGroup.groups.length) {
+						ensureRowSpacingGroup = true;	
+					}
+					return 20;
+				}
+			}]);
+
+			// Find the group rows and ensure they have the HTML we're expecting
+			grid.$el.find('.doby-grid-group').each(function (n) {
+				if (n % 2) {
+					expect($(this)).toHaveClass('thisone');
+					expect($(this).height()).toEqual(10);
+					if (n === 1) {
+						expect($(this).css('top')).toEqual('49px');
+					} else {
+						expect($(this).css('top')).toEqual('109px');
+					}
+				}
+			});
+			
+			expect(ensureHeightGroup).toEqual(true);
+			expect(ensureRowSpacingGroup).toEqual(true);
+		});
 	});
 
 

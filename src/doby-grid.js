@@ -5252,15 +5252,6 @@
 					this.rowSpacing = this.predef.rowSpacing;
 				}
 			}
-
-			// Then see if we need to process height and rowSpacing functions
-			if (typeof(this.height) === 'function') {
-				this.height = this.height(this);
-			}
-			
-			if (typeof(this.rowSpacing) === 'function') {
-				this.rowSpacing = this.rowSpacing(this);
-			}
 		};
 
 		Group.prototype = new NonDataItem();
