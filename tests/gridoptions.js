@@ -686,6 +686,34 @@ describe("Grid Options", function () {
 		// ==========================================================================================
 
 
+		it("should throw a TypeError if there are undefined or null column definition objects", function () {
+			var tp = new TypeError("You have an 'undefined' column object in your Grid Options. This is not allowed.");
+			expect(function () {
+				new DobyGrid({
+					columns: [
+						{id: 1},
+						undefined,
+						{id: 2}
+					]
+				});
+			}).toThrow(tp);
+
+			tp = new TypeError("You have a 'null' column object in your Grid Options. This is not allowed.");
+			expect(function () {
+				new DobyGrid({
+					columns: [
+						{id: 1},
+						null,
+						{id: 2}
+					]
+				});
+			}).toThrow(tp);
+		});
+
+
+		// ==========================================================================================
+
+
 		it("should set the columns based given values", function () {
 			var cols = [{
 				id: 'one',

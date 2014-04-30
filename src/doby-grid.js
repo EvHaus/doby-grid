@@ -9393,6 +9393,14 @@
 
 			var c, byId = {};
 			for (var i = 0, l = self.options.columns.length; i < l; i++) {
+				if (self.options.columns[i] === undefined) {
+					throw new TypeError("You have an 'undefined' column object in your Grid Options. This is not allowed.");
+				}
+
+				if (self.options.columns[i] === null) {
+					throw new TypeError("You have a 'null' column object in your Grid Options. This is not allowed.");
+				}
+
 				// Set defaults
 				c = self.options.columns[i] = $.extend(JSON.parse(JSON.stringify(columnDefaults)), self.options.columns[i]);
 
