@@ -669,6 +669,23 @@ describe("Grid Options", function () {
 		// ==========================================================================================
 
 
+		it("should throw an exception if two columns have the same 'id' value", function () {
+			var column = 'asd';
+			var tp = new Error("You cannot have two columns with the same 'id' value. Please change one of the '" + column + "' column 'id' values.");
+			expect(function () {
+				new DobyGrid({
+					columns: [
+						{id: column},
+						{id: column}
+					]
+				});
+			}).toThrow(tp);
+		});
+
+
+		// ==========================================================================================
+
+
 		it("should set the columns based given values", function () {
 			var cols = [{
 				id: 'one',
@@ -2559,7 +2576,7 @@ describe("Grid Options", function () {
 					width: 50
 				}, {
 					"class": 'nopad',
-					id: 'wide-column-a',
+					id: 'wide-column-b',
 					field: 'wide-column-b',
 					formatter: function () {
 						return '<div style="width:500px"></div>';

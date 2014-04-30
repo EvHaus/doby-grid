@@ -1215,9 +1215,9 @@
 
 					// The extra 1 is here to compesate for the 1px space between rows
 					data.top += (i === 0 ? 0 : 1);
-					
+
 					rowSpacing = (item.rowSpacing !== null && item.rowSpacing !== undefined ? item.rowSpacing : self.options.rowSpacing);
-					
+
 					// Process rowSpacing function
 					if (typeof rowSpacing === 'function') rowSpacing = rowSpacing(item);
 
@@ -4873,7 +4873,7 @@
 			if (!variableRowHeight) {
 				return Math.floor((maxPosition + offset) / (self.options.rowHeight + 1 + self.options.rowSpacing));
 			}
-			
+
 			var row = 0, rowLength = cache.rows.length,	pos, lastpos, i;
 
 			if (rowLength) {
@@ -9391,7 +9391,7 @@
 			cache.activeColumns = [];
 			cache.columnsById = {};
 
-			var c;
+			var c, byId = {};
 			for (var i = 0, l = self.options.columns.length; i < l; i++) {
 				// Set defaults
 				c = self.options.columns[i] = $.extend(JSON.parse(JSON.stringify(columnDefaults)), self.options.columns[i]);
@@ -9399,6 +9399,13 @@
 				// An "id" is required. If it's missing, auto-generate one
 				if (c.id === undefined || c.id === null) {
 					c.id = c.field ? c.field + '_' + i : c.name ? c.name + '_' + i : null;
+				}
+
+				if (byId[c.id]) {
+					throw new Error([
+						"You cannot have two columns with the same 'id' value. ",
+						"Please change one of the '", c.id, "' column 'id' values."
+					].join(''));
 				}
 
 				// If any columns require asyncPostRender, enable it on the grid
@@ -9441,6 +9448,8 @@
 					// Build column id cache
 					cache.columnsById[c.id] = cache.activeColumns.length - 1;
 				}
+
+				byId[c.id] = true;
 			}
 		},
 

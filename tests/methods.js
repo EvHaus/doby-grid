@@ -1619,8 +1619,8 @@ describe("Methods and Data Manipulation", function () {
 			// due to the way the grid is loaded in the fixture. Find a way to fix this.
 			expect(firstcell.text()).toEqual('test47');
 		});
-		
-		
+
+
 		// ==========================================================================================
 
 
@@ -1630,7 +1630,7 @@ describe("Methods and Data Manipulation", function () {
 				rowSpacing = function () {
 					return i + 10;
 				};
-			
+
 			for (var i = 0; i < 1000; i++) {
 				data.push({
 					data: {id: i, name: 'test' + i},
@@ -1666,7 +1666,7 @@ describe("Methods and Data Manipulation", function () {
 			var grid = resetGrid({
 				columns: [
 					{id: 'id', field: 'id', name: 'id'},
-					{id: 'id', field: 'name', name: 'name'}
+					{id: 'name', field: 'name', name: 'name'}
 				],
 				data: [
 					{data: {id: 189, name: 'test'}, id: 189},
@@ -1695,7 +1695,7 @@ describe("Methods and Data Manipulation", function () {
 			var grid = resetGrid({
 				columns: [
 					{id: 'id', field: 'id', name: 'id'},
-					{id: 'id', field: 'name', name: 'name'}
+					{id: 'name', field: 'name', name: 'name'}
 				],
 				data: [
 					{data: {id: 189, name: 'test'}, id: 189},
@@ -1735,7 +1735,7 @@ describe("Methods and Data Manipulation", function () {
 			var grid = resetGrid({
 				columns: [
 					{id: 'id', field: 'id', name: 'id'},
-					{id: 'id', field: 'name', name: 'name'}
+					{id: 'name', field: 'name', name: 'name'}
 				],
 				data: data
 			});
@@ -2213,8 +2213,8 @@ describe("Methods and Data Manipulation", function () {
 				expect($(this).height()).toEqual(0);
 			});
 		});
-		
-		
+
+
 		// ==========================================================================================
 
 
@@ -2230,10 +2230,10 @@ describe("Methods and Data Manipulation", function () {
 					{data: {id: 289, name: null}, id: 289}
 				]
 			});
-			
+
 			var ensureHeightGroup = false,
 				ensureRowSpacingGroup = false;
-			
+
 
 			grid.setGrouping([{
 				column_id: 'id',
@@ -2244,13 +2244,13 @@ describe("Methods and Data Manipulation", function () {
 				collapsed: true,
 				height: function (item) {
 					if (item.parentGroup.groups.length) {
-						ensureHeightGroup = true;	
+						ensureHeightGroup = true;
 					}
 					return 10;
 				},
 				rowSpacing: function (item) {
 					if (item.parentGroup.groups.length) {
-						ensureRowSpacingGroup = true;	
+						ensureRowSpacingGroup = true;
 					}
 					return 20;
 				}
@@ -2268,7 +2268,7 @@ describe("Methods and Data Manipulation", function () {
 					}
 				}
 			});
-			
+
 			expect(ensureHeightGroup).toEqual(true);
 			expect(ensureRowSpacingGroup).toEqual(true);
 		});
