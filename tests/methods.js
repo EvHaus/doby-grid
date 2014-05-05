@@ -1199,8 +1199,8 @@ describe("Methods and Data Manipulation", function () {
 			var rows = grid.$el.find('.doby-grid-row');
 
 			// Aggregator should display correct value
-			expect(rows.length).toEqual(1);
-			expect(rows.eq(0)).toHaveClass('doby-grid-alert');
+			expect(rows.length).toEqual(0);
+			expect(grid.$el).toContain('.doby-grid-empty');
 		});
 	});
 

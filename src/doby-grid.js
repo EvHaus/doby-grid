@@ -87,7 +87,6 @@
 			CellRangeDecorator,
 			cellWidthDiff = 0,
 			cj,				// "jumpiness" coefficient
-			classalert = this.NAME + '-alert',
 			classcell = this.NAME + '-cell',
 			classclipboard = this.NAME + '-clipboard',
 			classcollapsed = 'collapsed',
@@ -102,6 +101,7 @@
 			classdropdownleft = classdropdown + '-left',
 			classdropdowntitle = classdropdown + '-title',
 			classeditor = this.NAME + '-editor',
+			classempty = this.NAME + '-empty',
 			classexpanded = 'expanded',
 			classgroup = this.NAME + '-group',
 			classgrouptitle = this.NAME + '-group-title',
@@ -224,6 +224,7 @@
 			initialize,
 			initialized = false,
 			insertAddRow,
+			insertEmptyOverlay,
 			invalidate,
 			invalidateAllRows,
 			invalidatePostProcessingResults,
@@ -1874,8 +1875,7 @@
 				processGroupAggregators,
 				recalc,
 				uncompiledFilter,
-				uncompiledFilterWithCaching,
-				validate;
+				uncompiledFilterWithCaching;
 
 
 			// Events
@@ -1964,10 +1964,8 @@
 				// Add the new models
 				if (toAdd.length) {
 					// If data used to be empty, with an alert - remove alert
-					if (grid.options.emptyNotice) {
-						if (this.items.length && this.items[0].__alert) {
-							this.remove(this.items[0][grid.options.idProperty]);
-						}
+					if (this.items.length && $overlay && $overlay.length) {
+						grid.hideOverlay();
 					}
 
 					// If "addRow" is enabled, make sure we don't insert below it
@@ -2131,7 +2129,7 @@
 					r, gr,
 					level = parentGroup ? parentGroup.level + 1 : 0,
 					gi = self.groups[level],
-					i, l, aggregateRow, addRow, alertRow, nullRows = [];
+					i, l, aggregateRow, addRow, nullRows = [];
 
 				// Reset grouping row references
 				gi.rows = [];
@@ -2190,12 +2188,6 @@
 						// Do a similar thing for the AddRow row. Keep it at the bottom of the grid.
 						if (r.__addRow) {
 							addRow = r;
-							continue;
-						}
-
-						// And again for empty message alerts
-						if (r.__alert) {
-							alertRow = r;
 							continue;
 						}
 
@@ -2258,9 +2250,6 @@
 					if (nullRows.length) {
 						groups = groups.concat(nullRows);
 					}
-
-					// If there's an add row - put it at the bottom of the grid
-					if (alertRow) groups.push(alertRow);
 
 					// If there's an add row - put it at the bottom of the grid
 					if (addRow) groups.push(addRow);
@@ -2387,8 +2376,7 @@
 					filteredItems = items.concat();
 				}
 
-				// This will ensure empty row message is inserted when filters return 0 results
-				validate(filteredItems);
+				filteredItems;
 
 				return {
 					totalRows: filteredItems.length,
@@ -2496,47 +2484,6 @@
 				}
 
 				return diff;
-			};
-
-
-			// insertEmptyAlert()
-			// When the grid is empty and the empty alert is enabled -- add a NonDataItem to the grid
-			//
-			// @param	items	array		Array of items to insert into
-			//
-			this.insertEmptyAlert = function (items) {
-				var emptyId = '-empty-alert-message-',
-					obj = new NonDataItem({
-						__alert: true
-					}),
-					metadata = {
-						selectable: false,
-						focusable: false,
-						class: classalert,
-						columns: {
-							0: {
-								colspan: "*",
-								formatter: function () {
-									return getLocale("empty.default");
-								},
-								editor: null
-							}
-						}
-					};
-
-				// Set row id
-				obj[grid.options.idProperty] = emptyId;
-
-				// Backbone collection items need to be handled in a special way
-				if (items instanceof Backbone.Collection) {
-					var model = new items.model(obj);
-					$.extend(model, metadata);
-					items.add(model);
-				} else {
-					$.extend(obj, metadata);
-					items.push(obj);
-					cache.modelsById[emptyId] = obj;
-				}
 			};
 
 
@@ -2808,7 +2755,7 @@
 				// Do not create groups when the grid is empty.
 				//
 				var groups = [];
-				if (self.groups.length && self.items.length && !(self.items instanceof Backbone.Collection ? self.items.first().get('__alert') : self.items[0].__alert)) {
+				if (self.groups.length && self.items.length) {
 
 					extractGroups(newRows, null, function (result) {
 						groups = result;
@@ -2854,22 +2801,17 @@
 
 					if (countBefore != cache.rows.length) {
 						updateRowCount();
-
-						// TODO: Old SlickGrid event. Still needed?
-						/*this.trigger('rowcountchanged', {}, {
-							previous: countBefore,
-							current: cache.rows.length
-						});*/
 					}
 
 					if (diff.length > 0) {
 						invalidateRows(diff);
 						render();
+					}
 
-						// TODO: Old SlickGrid event. Still needed?
-						/*this.trigger('rowschanged', {}, {
-							rows: diff
-						});*/
+					if (this.length === 0) {
+						if (!remote && grid.options.emptyNotice) insertEmptyOverlay();
+					} else {
+						grid.hideOverlay();
 					}
 
 				}.bind(this));
@@ -2942,7 +2884,7 @@
 				parse(models, true);
 
 				// Load items and validate
-				this.items = filteredItems = validate(models);
+				this.items = filteredItems = models;
 
 				if (recache) {
 					cacheRows();
@@ -3190,20 +3132,6 @@
 				}
 
 				return retval;
-			};
-
-
-			// validate()
-			// Ensures that the given items are valid. Returns a list of validated items.
-			//
-			// @param	items		array		Array of models to validate
-			//
-			// @return array
-			validate = function (items) {
-				// If no data - add an empty alert
-				if (grid.options.emptyNotice && !items.length) self.insertEmptyAlert(items);
-
-				return items;
 			};
 
 			return this.initialize();
@@ -5883,6 +5811,17 @@
 		};
 
 
+		// insertEmptyOverlay()
+		// When the grid is empty and the empty alert is enabled -- add a NonDataItem to the grid
+		//
+		insertEmptyOverlay = function () {
+			self.showOverlay({
+				class: classempty,
+				html: remote ? getLocale("empty.remote") : self.collection && self.collection.filterset ? getLocale("empty.filter") : getLocale("empty.default")
+			});
+		};
+
+
 		// invalidate()
 		// Clears the caching for all rows counts and positions
 		//
@@ -6596,6 +6535,7 @@
 				if (result === 0) {
 					// When there are no results - reset
 					self.collection.reset();
+					insertEmptyOverlay();
 				} else {
 					// Fill the collection with placeholders
 					generatePlaceholders();
@@ -7075,6 +7015,9 @@
 			if (self.options.stickyGroupRows && self.isGrouped()) {
 				stickGroupHeaders(scrollTop);
 			}
+
+			// If grid is empty - show empty overlay
+			if (!remote && self.collection.length === 0) insertEmptyOverlay();
 		};
 
 
@@ -8378,7 +8321,8 @@
 		// Displays an overlay container with custom HTML message which covers the entire grid canvas.
 		//
 		// @param	options			object		- Options object for this method
-		// @param	options.html	string		- HTML value to display in the error block
+		// @param	options.class	string		- Custom CSS class to use for the overlay
+		// @param	options.html	string		- Custom HTML to insert into the overlay
 		//
 		this.showOverlay = function (options) {
 			options = options || {};
@@ -8388,10 +8332,11 @@
 
 			// Create an overlay
 			if ($overlay && $overlay.length) removeElement($overlay[0]);
-			$overlay = $('<div class="doby-grid-overlay"></div>').appendTo($canvas);
-
-			// Add custom HTML
-			if (options.html) $overlay.html(options.html);
+			$overlay = $([
+				'<div class="doby-grid-overlay',
+				(options.class ? ' ' + options.class : ''),
+				'">', (options.html || ""), '</div>'
+			].join('')).appendTo($canvas);
 		};
 
 

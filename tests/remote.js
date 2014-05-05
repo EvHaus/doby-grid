@@ -220,6 +220,11 @@ describe("Remote Data", function () {
 
 			grid.appendTo(fixture);
 
+			var loaded = false;
+			grid.on('remoteloaded', function () {
+				loaded = true;
+			});
+
 			var waitForRefresh;
 
 			// Manual delay to wait for refresh
@@ -230,7 +235,7 @@ describe("Remote Data", function () {
 			});
 
 			waitsFor(function () {
-				return waitForRefresh && grid.collection.items[0].toString() !== 'Placeholder';
+				return waitForRefresh && loaded;
 			}, "Fetching the first page", 2000);
 		});
 
@@ -286,8 +291,8 @@ describe("Remote Data", function () {
 
 		it("should display an empty row when remote data is empty", function () {
 			var rows = grid.$el.find('.doby-grid-row');
-			expect(rows.length).toEqual(1);
-			expect(rows.eq(0)).toHaveClass('doby-grid-alert');
+			expect(rows.length).toEqual(0);
+			expect(grid.$el).toContain('.doby-grid-empty');
 		});
 
 
@@ -1122,9 +1127,10 @@ describe("Remote Data", function () {
 				});
 
 				runs(function () {
-					// Verify that only 1 row is visible
+					// Verify that empty message comes up
 					var $rows = grid.$el.find('.doby-grid-row');
-					expect($rows.length).toEqual(1);
+					expect($rows.length).toEqual(0);
+					expect(grid.$el).toContain('.doby-grid-empty');
 				});
 			});
 
@@ -1159,8 +1165,8 @@ describe("Remote Data", function () {
 				runs(function () {
 					// Verify that only 1 row is visible
 					var $rows = grid.$el.find('.doby-grid-row');
-					expect($rows.length).toEqual(1);
-					expect($rows.eq(0)).toHaveClass('doby-grid-alert');
+					expect($rows.length).toEqual(0);
+					expect(grid.$el).toContain('.doby-grid-empty');
 				});
 			});
 		});

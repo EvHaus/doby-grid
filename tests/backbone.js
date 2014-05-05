@@ -228,9 +228,8 @@ describe("Backbone Integration", function () {
 
 		// Should have "empty message" row, with one cell
 		var $rows = grid.$el.find('.doby-grid-row');
-		expect($rows.length).toEqual(1);
-		expect($rows.children('.doby-grid-cell').length).toEqual(1);
-		expect($rows.children('.doby-grid-cell')).toHaveText('No data available');
+		expect($rows.length).toEqual(0);
+		expect(grid.$el).toContain('.doby-grid-empty');
 	});
 
 
@@ -247,9 +246,8 @@ describe("Backbone Integration", function () {
 
 		// Should have "empty message" row, with one cell
 		var $rows = grid.$el.find('.doby-grid-row');
-		expect($rows.length).toEqual(1);
-		expect($rows.children('.doby-grid-cell').length).toEqual(1);
-		expect($rows.children('.doby-grid-cell')).toHaveText('No data available');
+		expect($rows.length).toEqual(0);
+		expect(grid.$el).toContain('.doby-grid-empty');
 	});
 
 
@@ -359,8 +357,8 @@ describe("Backbone Integration", function () {
 			model.set({age: 'veryold'});
 		});
 	});
-	
-	
+
+
 	// ==========================================================================================
 
 
@@ -381,7 +379,7 @@ describe("Backbone Integration", function () {
 				data: collection
 			}),
 			grid = results[0];
-		
+
 		// Add data to collection after the grid has been rendered
 		collection.add(data);
 
@@ -396,8 +394,8 @@ describe("Backbone Integration", function () {
 			expect(grid.collection.items.length).toEqual(1);
 		});
 	});
-	
-	
+
+
 	// ==========================================================================================
 
 
@@ -417,7 +415,7 @@ describe("Backbone Integration", function () {
 				data: collection
 			}),
 			grid = results[0];
-		
+
 		// Add data to collection after the grid has been rendered
 		collection.reset(data);
 

@@ -1370,7 +1370,7 @@ describe("Grid Options", function () {
 			grid.reset();
 
 			// Check to see if alert was rendered
-			expect(grid.$el).toContain('.doby-grid-alert');
+			expect(grid.$el).toContain('.doby-grid-empty');
 		});
 
 
@@ -1388,7 +1388,7 @@ describe("Grid Options", function () {
 			grid.addGrouping('test');
 
 			// Check to see if alert was rendered and no groups are rendered
-			expect(grid.$el).toContain('.doby-grid-alert');
+			expect(grid.$el).toContain('.doby-grid-empty');
 			expect(grid.$el).not.toContain('.doby-grid-group');
 		});
 
@@ -1407,7 +1407,7 @@ describe("Grid Options", function () {
 			grid.addGrouping('test');
 
 			// Check to see if alert was rendered and no groups are rendered
-			expect(grid.$el).toContain('.doby-grid-alert');
+			expect(grid.$el).toContain('.doby-grid-empty');
 			expect(grid.$el).not.toContain('.doby-grid-group');
 		});
 	});
