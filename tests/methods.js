@@ -1309,6 +1309,34 @@ describe("Methods and Data Manipulation", function () {
 	// ==========================================================================================
 
 
+	describe("hideOverlay()", function () {
+		it("should re-draw all rows and hide the overlay", function () {
+			var grid = resetGrid({
+				columns: [
+					{id: 'id', field: 'id'},
+					{id: 'name', field: 'name'}
+				],
+				data: [
+					{id: 1, data: {id: 1, name: 'one'}},
+					{id: 2, data: {id: 2, name: 'two'}}
+				]
+			});
+
+			// Execute
+			grid.showOverlay();
+			grid.hideOverlay();
+
+			// Should clear the canvas and show the custom overlay
+			var $viewport = grid.$el.find('.doby-grid-canvas');
+			expect($viewport).not.toContain('.doby-grid-overlay');
+			expect($viewport).toContain('.doby-grid-row');
+		});
+	});
+
+
+	// ==========================================================================================
+
+
 	describe("refetch()", function () {
 		it("should not allow you to refetch non-remote grids", function () {
 			var grid = resetGrid();
@@ -2462,6 +2490,34 @@ describe("Methods and Data Manipulation", function () {
 			});
 
 			expect(grid.$el.find('.doby-grid-cell')).toHaveText(2);
+		});
+	});
+
+
+	// ==========================================================================================
+
+
+	describe("showOverlay()", function () {
+		it("should hide all rows and display an overlay", function () {
+			var grid = resetGrid({
+				columns: [
+					{id: 'id', field: 'id'},
+					{id: 'name', field: 'name'}
+				],
+				data: [
+					{id: 1, data: {id: 1, name: 'one'}},
+					{id: 2, data: {id: 2, name: 'two'}}
+				]
+			});
+
+			// Execute
+			grid.showOverlay({
+				html: 'Hi There'
+			});
+
+			// Should clear the canvas and show the custom overlay
+			var $viewport = grid.$el.find('.doby-grid-canvas');
+			expect($viewport.html()).toEqual('<div class="doby-grid-overlay">Hi There</div>');
 		});
 	});
 

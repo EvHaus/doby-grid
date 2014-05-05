@@ -52,6 +52,7 @@
 			$headers,
 			$headerFilter,
 			$headerScroller,
+			$overlay,
 			$style,
 			$viewport,
 			absoluteColumnMinWidth,
@@ -5775,6 +5776,19 @@
 		};
 
 
+		// hideOverlay()
+		// Hides the active overlay
+		//
+		this.hideOverlay = function () {
+			if ($overlay && $overlay.length) {
+				removeElement($overlay[0]);
+				$overlay = null;
+			}
+
+			// Redraw grid
+			invalidate();
+		};
+
 
 		// insertAddRow()
 		// Inserts a new row to the end of the collection used for adding new rows to the grid
@@ -8356,6 +8370,27 @@
 
 				self._event = null;
 			});
+		};
+
+
+		// showOverlay()
+		// Displays an overlay container with custom HTML message which covers the entire grid canvas.
+		//
+		// @param	options			object		- Options object for this method
+		// @param	options.html	string		- HTML value to display in the error block
+		//
+		this.showOverlay = function (options) {
+			options = options || {};
+
+			// First, clear the viewport
+			invalidateAllRows();
+
+			// Create an overlay
+			if ($overlay && $overlay.length) removeElement($overlay[0]);
+			$overlay = $('<div class="doby-grid-overlay"></div>').appendTo($canvas);
+
+			// Add custom HTML
+			if (options.html) $overlay.html(options.html);
 		};
 
 
