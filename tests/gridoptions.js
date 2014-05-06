@@ -1410,6 +1410,25 @@ describe("Grid Options", function () {
 			expect(grid.$el).toContain('.doby-grid-empty');
 			expect(grid.$el).not.toContain('.doby-grid-group');
 		});
+		
+		
+		// ==========================================================================================
+
+
+		it("should accept a function for custom empty notice HTML rendering", function () {
+			// Ensure empty notice is on
+			var html = "<span>Nothing to see here</span>",
+				grid = resetGrid({
+					columns: [],
+					emptyNotice: function () {
+						return html;	
+					}
+				});
+
+			// Check to see if alert was rendered and no groups are rendered
+			expect(grid.$el).toContain('.doby-grid-empty');
+			expect(grid.$el.find('.doby-grid-empty')).toHaveHtml(html);
+		});
 	});
 
 

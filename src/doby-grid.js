@@ -5817,9 +5817,17 @@
 		// When the grid is empty and the empty alert is enabled -- add a NonDataItem to the grid
 		//
 		insertEmptyOverlay = function () {
+			var html = "";
+			
+			if (typeof(self.options.emptyNotice) === 'function') {
+				html = self.options.emptyNotice.bind(self)();
+			} else {
+				html = remote ? getLocale("empty.remote") : self.collection && self.collection.filterset ? getLocale("empty.filter") : getLocale("empty.default");
+			}
+			
 			self.showOverlay({
 				class: classempty,
-				html: remote ? getLocale("empty.remote") : self.collection && self.collection.filterset ? getLocale("empty.filter") : getLocale("empty.default")
+				html: html
 			});
 		};
 
