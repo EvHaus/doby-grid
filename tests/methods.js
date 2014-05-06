@@ -1264,6 +1264,35 @@ describe("Methods and Data Manipulation", function () {
 	// ==========================================================================================
 
 
+	describe("getState()", function () {
+		it("should be get the state of the grid", function () {
+			var grid = resetGrid({
+				columns: [{
+					id: 1,
+					name: "NO!!",
+					removable: true
+				}]
+			});
+
+			var state = grid.getState();
+
+			expect(state).toEqual({
+				autoColumnWidth: false,
+				columns: [{
+					id: 1,
+					width: 80
+				}],
+				filters: [],
+				grouping: [],
+				sort: []
+			});
+		});
+	});
+
+
+	// ==========================================================================================
+
+
 	describe("hideColumn()", function () {
 		it("should be able to hideColumn() by id", function () {
 			var grid = resetGrid({
@@ -1585,6 +1614,261 @@ describe("Methods and Data Manipulation", function () {
 			// Make sure only name grouping is left
 			expect(grid.collection.groups.length).toEqual(1);
 			expect(grid.collection.groups[0].column_id).toEqual('name');
+		});
+	});
+
+
+	// ==========================================================================================
+
+
+	describe("restoreState()", function () {
+		it("should be able to restore autoColumnWidth", function () {
+			var options = {
+				autoColumnWidth: false,
+				autoDestroy: false,
+				columns: [{
+					id: 1,
+					name: "One",
+					field: 'one',
+					width: 10
+				}, {
+					id: 2,
+					name: "Two",
+					field: 'two',
+					width: 20
+				}, {
+					id: 3,
+					name: "Three",
+					field: 'three',
+					width: 30
+				}],
+				data: [
+					{data: {one: 'This One', two: 'B', three: 'C'}, id: 1},
+					{data: {one: 'A', two: 'B', three: 'C'}, id: 2},
+					{data: {one: 'A', two: 'B', three: 'C'}, id: 3}
+				]
+			}, grid = new DobyGrid(options), fixture = setFixtures();
+
+			fixture.attr('style', 'height:600px;position:absolute;top:0;left:0;opacity:0;width:500px');
+
+			// Restore
+			grid.restoreState({
+				autoColumnWidth: true
+			});
+
+			// Append
+			grid.appendTo(fixture);
+
+			// Should only two columns rendered
+			expect(grid.options.autoColumnWidth).toEqual(true);
+		});
+
+
+		// ==========================================================================================
+
+
+		it("should be able to restore column visibility, order and widths", function () {
+			var options = {
+				autoDestroy: false,
+				columns: [{
+					id: 1,
+					name: "One",
+					field: 'one',
+					width: 10
+				}, {
+					id: 2,
+					name: "Two",
+					field: 'two',
+					width: 20
+				}, {
+					id: 3,
+					name: "Three",
+					field: 'three',
+					width: 30
+				}],
+				data: [
+					{data: {one: 'A', two: 'B', three: 'C'}, id: 1},
+					{data: {one: 'A', two: 'B', three: 'C'}, id: 2},
+					{data: {one: 'A', two: 'B', three: 'C'}, id: 3}
+				]
+			}, grid = new DobyGrid(options), fixture = setFixtures();
+
+			fixture.attr('style', 'height:600px;position:absolute;top:0;left:0;opacity:0;width:500px');
+
+			// Restore
+			grid.restoreState({
+				columns: [
+					{id: 3, width: 300},
+					{id: 1, width: 100}
+				]
+			});
+
+			// Append
+			grid.appendTo(fixture);
+
+			// Should only two columns rendered
+			var $cols = grid.$el.find('.doby-grid-header-column');
+			expect($cols.length).toEqual(2);
+
+			$cols.each(function (i) {
+				if (i === 0) {
+					expect($(this)).toHaveText('Three');
+					expect($(this).outerWidth()).toEqual(300);
+				} else {
+					expect($(this)).toHaveText('One');
+					expect($(this).outerWidth()).toEqual(100);
+				}
+			});
+		});
+
+
+		// ==========================================================================================
+
+
+		it("should be able to restore filters", function () {
+			var options = {
+				autoDestroy: false,
+				columns: [{
+					id: 1,
+					name: "One",
+					field: 'one',
+					width: 10
+				}, {
+					id: 2,
+					name: "Two",
+					field: 'two',
+					width: 20
+				}, {
+					id: 3,
+					name: "Three",
+					field: 'three',
+					width: 30
+				}],
+				data: [
+					{data: {one: 'This One', two: 'B', three: 'C'}, id: 1},
+					{data: {one: 'A', two: 'B', three: 'C'}, id: 2},
+					{data: {one: 'A', two: 'B', three: 'C'}, id: 3}
+				]
+			}, grid = new DobyGrid(options), fixture = setFixtures();
+
+			fixture.attr('style', 'height:600px;position:absolute;top:0;left:0;opacity:0;width:500px');
+
+			// Restore
+			grid.restoreState({
+				filters: [
+					[1, '=', 'This One']
+				]
+			});
+
+			// Append
+			grid.appendTo(fixture);
+
+			// Should only two columns rendered
+			var $rows = grid.$el.find('.doby-grid-row');
+			expect($rows.length).toEqual(1);
+			expect($rows.find('.doby-grid-cell:first')).toHaveText('This One');
+		});
+
+
+		// ==========================================================================================
+
+
+		it("should be able to restore grouping", function () {
+			var options = {
+				autoDestroy: false,
+				columns: [{
+					id: 1,
+					name: "One",
+					field: 'one',
+					width: 10
+				}, {
+					id: 2,
+					name: "Two",
+					field: 'two',
+					width: 20
+				}, {
+					id: 3,
+					name: "Three",
+					field: 'three',
+					width: 30
+				}],
+				data: [
+					{data: {one: 'This One', two: 'B', three: 'C'}, id: 1},
+					{data: {one: 'A', two: 'B', three: 'C'}, id: 2},
+					{data: {one: 'A', two: 'B', three: 'C'}, id: 3}
+				]
+			}, grid = new DobyGrid(options), fixture = setFixtures();
+
+			fixture.attr('style', 'height:600px;position:absolute;top:0;left:0;opacity:0;width:500px');
+
+			// Restore
+			grid.restoreState({
+				grouping: [
+					{column_id: 2}
+				]
+			});
+
+			// Append
+			grid.appendTo(fixture);
+
+			// Should only two columns rendered
+			var $rows = grid.$el.find('.doby-grid-group');
+			expect($rows.length).toEqual(1);
+		});
+
+
+		// ==========================================================================================
+
+
+		it("should be able to restore sorting", function () {
+			var options = {
+				autoDestroy: false,
+				columns: [{
+					id: 1,
+					name: "One",
+					field: 'one',
+					width: 10
+				}, {
+					id: 2,
+					name: "Two",
+					field: 'two',
+					width: 20
+				}, {
+					id: 3,
+					name: "Three",
+					field: 'three',
+					width: 30
+				}],
+				data: [
+					{data: {one: 'A', two: 'B', three: 'C'}, id: 1},
+					{data: {one: 'B', two: 'B', three: 'C'}, id: 2},
+					{data: {one: 'C', two: 'B', three: 'C'}, id: 3}
+				]
+			}, grid = new DobyGrid(options), fixture = setFixtures();
+
+			fixture.attr('style', 'height:600px;position:absolute;top:0;left:0;opacity:0;width:500px');
+
+			// Restore
+			grid.restoreState({
+				sort: [
+					{columnId: 1}
+				]
+			});
+
+			// Append
+			grid.appendTo(fixture);
+
+			// Should only two columns rendered
+			var $rows = grid.$el.find('.doby-grid-group');
+			$rows.each(function (i) {
+				if (i === 0) {
+					expect($(this).find('.dboy-grid-cell:first')).toHaveText('C');
+				} else if (i === 1) {
+					expect($(this).find('.dboy-grid-cell:first')).toHaveText('B');
+				} else {
+					expect($(this).find('.dboy-grid-cell:first')).toHaveText('A');
+				}
+			});
 		});
 	});
 

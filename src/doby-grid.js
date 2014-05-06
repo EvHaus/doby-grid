@@ -4847,6 +4847,67 @@
 		};
 
 
+		// getState()
+		// Retrieves a configuration object for the state of all user customizations for the grid.
+		// This allows you to easily restore states between page reloads.
+		//
+		// @return object
+		this.getState = function () {
+			var results = {
+				autoColumnWidth: this.options.autoColumnWidth,
+				columns: [],
+				filters: [],
+				grouping: [],
+				sort: []
+			}, i, l, column, group, sort;
+
+			// Get columns
+			for (i = 0, l = cache.activeColumns.length; i < l; i++) {
+				column = cache.activeColumns[i];
+				if (!column.visible) continue;
+
+				// Only store the customizable bits of the column definition
+				results.columns.push({
+					id: column.id,
+					width: column.width
+				});
+			}
+
+			// Get filters
+			if (this.collection && this.collection.filterset) {
+				results.filters = this.collection.filterset;
+			}
+
+			// Get grouping
+			if (this.collection && this.collection.groups) {
+				for (i = 0, l = this.collection.groups.length; i < l; i++) {
+					group = this.collection.groups[i];
+
+					// TODO: Store the collapse/expand state of each group row
+
+					results.grouping.push({
+						collapsed: group.collapsed,
+						column_id: group.column_id
+					});
+				}
+			}
+
+			// Get sorting
+			if (this.sorting) {
+				for (i = 0, l = this.sorting.length; i < l; i++) {
+					sort = this.sorting[i];
+					if (sort.group) continue;
+					results.sort.push({
+						columnId: sort.columnId,
+						sortAsc: sort.sortAsc
+					});
+				}
+			}
+
+			return results;
+		};
+
+
 		// getValueFromItem()
 		// Given a data item, returns the value of that cell for all export functions
 		//
@@ -5818,13 +5879,13 @@
 		//
 		insertEmptyOverlay = function () {
 			var html = "";
-			
+
 			if (typeof(self.options.emptyNotice) === 'function') {
 				html = self.options.emptyNotice.bind(self)();
 			} else {
 				html = remote ? getLocale("empty.remote") : self.collection && self.collection.filterset ? getLocale("empty.filter") : getLocale("empty.default");
 			}
-			
+
 			self.showOverlay({
 				class: classempty,
 				html: html
@@ -7401,6 +7462,65 @@
 			lastRenderedScrollLeft = -1;
 
 			if (rerender) render();
+		};
+
+
+		// restoreState()
+		// Restores the state of grid's user customizations. Expect an object which was returned from
+		// `grid.getState()`.
+		//
+		// @param	state		object		- The state of the grid
+		//
+		// @return object
+		this.restoreState = function (state) {
+			var resizeColumns = false, i, l;
+
+			// Restore autoColumnWidth
+			if (state.autoColumnWidth !== undefined && state.autoColumnWidth !== null) {
+				this.options.autoColumnWidth = state.autoColumnWidth;
+				resizeColumns = true;
+			}
+
+			// Restore columns
+			if (state.columns) {
+				var stateColsById = {}, column;
+
+				// Cache state columns by id
+				for (i = 0, l = state.columns.length; i < l; i++) {
+					column = state.columns[i];
+					column.order_index = i;
+					if (column.id) stateColsById[column.id] = column;
+				}
+
+				for (i = 0, l = this.options.columns.length; i < l; i++) {
+					column = this.options.columns[i];
+					column.visible = stateColsById[column.id] ? true : false;
+					column.width = stateColsById[column.id] ? stateColsById[column.id].width : column.width;
+				}
+
+				// Re-order using order_index from state
+				this.options.columns.sort(function (a) {
+					if (stateColsById[a.id]) return stateColsById[a.id].order_index;
+					return state.columns;
+				});
+
+				this.setColumns(this.options.columns);
+			}
+
+			// In order to jump from autoColumnWidth to non-autoColumnWidth - we need to resize
+			if (resizeColumns && initialized) {
+				setupColumnResize();
+				autosizeColumns();
+			}
+
+			// Restore filters
+			if (state.filters) this.filter(state.filters);
+
+			// Restore grouping
+			if (state.grouping) this.setGrouping(state.grouping);
+
+			// Restore sorting
+			if (state.sort) this.setSorting(state.sort);
 		};
 
 
