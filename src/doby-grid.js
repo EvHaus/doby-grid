@@ -690,7 +690,7 @@
 				setupColumnSort();
 				createCssRules();
 				cacheRows();
-				resizeCanvas();
+				resizeCanvas(true);
 
 				// If we're using remote data, start by fetching the data set length
 				if (remote) {
@@ -710,7 +710,9 @@
 				// Assign events
 
 				this.$el
-					.on("resize." + this.NAME, resizeCanvas);
+					.on("resize." + this.NAME, function () {
+						resizeCanvas(true);
+					});
 
 				if (this.options.autoDestroy) {
 					this.$el.one("remove", function () {
@@ -2965,7 +2967,7 @@
 
 				// If we're in variable row height mode - resize the canvas now since grouping changes
 				// will cause the row sizes to be changed.
-				if (variableRowHeight) resizeCanvas();
+				if (variableRowHeight) resizeCanvas(true);
 
 				// If we're removing grouping - refetch remote data
 				if (remote && groups.length === 0) remoteFetch();
@@ -7341,12 +7343,16 @@
 		// @return object
 		this.resize = function () {
 			// If grid is already destroyed - do nothing
-			if (this.destroyed) return;
+			if (this.destroyed) return this;
 
 			var oldHeight = viewportH;
 
 			// Resize the grid
 			resizeCanvas();
+
+			// If the grid has an overlay enabled - do not display data
+			if ($overlay && $overlay.length) return this;
+
 			invalidate();
 
 			// If viewport got bigger and we're using remote data - fetch more items to populate the grid
@@ -7361,7 +7367,9 @@
 		// resizeCanvas()
 		// Resizes the canvas based on the current viewport dimensions
 		//
-		resizeCanvas = function () {
+		// @param	rerender	boolean		- Re-render the grid when done?
+		//
+		resizeCanvas = function (rerender) {
 			if (!initialized) return;
 
 			viewportH = getViewportHeight();
@@ -7384,7 +7392,7 @@
 			// Since the width has changed, force the render() to reevaluate virtually rendered cells.
 			lastRenderedScrollLeft = -1;
 
-			render();
+			if (rerender) render();
 		};
 
 
@@ -7759,7 +7767,7 @@
 				renderColumnHeaders();
 				removeCssRules();
 				createCssRules();
-				resizeCanvas();
+				resizeCanvas(true);
 				applyColumnWidths();
 				handleScroll();
 			}
@@ -7823,7 +7831,7 @@
 				invalidateAllRows();
 				removeCssRules();
 				createCssRules();
-				resizeCanvas();
+				resizeCanvas(true);
 				applyColumnWidths();
 			}
 
@@ -8356,7 +8364,7 @@
 				$viewport.height(viewportH);
 
 				// Resize Canvas to fix the new viewport
-				resizeCanvas();
+				resizeCanvas(true);
 			};
 
 			// Toggle off
