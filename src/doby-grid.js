@@ -3992,10 +3992,10 @@
 							if (!result) break;
 						}
 
-						self.trigger('statechange', this._event);
-
 						return result;
 					};
+
+					self.trigger('statechange', this._event);
 				} else {
 					throw new Error('Cannot apply filter to grid because given filter must be an array or a function, but given ' + typeof(filter) + '.');
 				}
@@ -8153,8 +8153,6 @@
 					self.trigger('columnreorder', e, {
 						columns: reorderedColumns
 					});
-
-					self.trigger('statechange', e);
 				}
 			});
 		};
