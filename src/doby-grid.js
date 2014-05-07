@@ -7499,9 +7499,9 @@
 				}
 
 				// Re-order using order_index from state
-				this.options.columns.sort(function (a) {
-					if (stateColsById[a.id]) return stateColsById[a.id].order_index;
-					return state.columns;
+				this.options.columns = _.sortBy(this.options.columns, function (col) {
+					if (stateColsById[col.id]) return stateColsById[col.id].order_index;
+					return state.columns.length + 1;
 				});
 
 				this.setColumns(this.options.columns);
