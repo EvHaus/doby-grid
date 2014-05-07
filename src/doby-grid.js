@@ -4883,7 +4883,7 @@
 			}
 
 			// Get grouping
-			if (this.collection && this.collection.groups) {
+			if (this.options.groupable && this.collection && this.collection.groups) {
 				for (i = 0, l = this.collection.groups.length; i < l; i++) {
 					group = this.collection.groups[i];
 
@@ -7521,7 +7521,7 @@
 			if (state.filters) this.filter(state.filters);
 
 			// Restore grouping
-			if (state.grouping) this.setGrouping(state.grouping);
+			if (this.options.groupable && state.grouping) this.setGrouping(state.grouping);
 
 			// Restore sorting
 			if (state.sort) this.setSorting(state.sort);
