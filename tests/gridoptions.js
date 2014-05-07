@@ -3538,6 +3538,39 @@ describe("Grid Options", function () {
 			expect(grid.$el.find('.doby-grid-sticky').length).toEqual(1);
 			expect(grid.$el.find('.doby-grid-sticky .doby-grid-cell').length).toEqual(1);
 		});
+		
+		// ==========================================================================================
+
+
+		it("should skip null groups when `groupNulls` is enabled", function () {
+			var data = [];
+			for (var i = 0; i < 50; i++) {
+				data.push({id: i, data: {id: i, test: null}});
+			}
+
+			var grid = resetGrid($.extend(defaultData(), {
+				columns: [
+					{id: 'test', field: 'test'},
+					{id: 'id', field: 'id'}
+				],
+				data: data,
+				groupable: true,
+				stickyGroupRows: true
+			}));
+
+			// Group grid
+			grid.setGrouping([{
+				column_id: 'test',
+				collapsed: false,
+				groupNulls: false
+			}, {
+				column_id: 'id',
+				collapsed: false
+			}]);
+			
+			// Scroll to middle
+			grid.scrollToRow(25);
+		});
 	});
 
 
