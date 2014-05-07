@@ -1410,8 +1410,8 @@ describe("Grid Options", function () {
 			expect(grid.$el).toContain('.doby-grid-empty');
 			expect(grid.$el).not.toContain('.doby-grid-group');
 		});
-		
-		
+
+
 		// ==========================================================================================
 
 
@@ -1421,7 +1421,7 @@ describe("Grid Options", function () {
 				grid = resetGrid({
 					columns: [],
 					emptyNotice: function () {
-						return html;	
+						return html;
 					}
 				});
 
@@ -2944,15 +2944,15 @@ describe("Grid Options", function () {
 
 		it("should correctly re-arrange columns via drag and drop when enabled", function () {
 			// Prepare for test
-			var grid = resetGrid($.extend(defaultData(), {
-				columns: [
-					{id: 'id', field: 'id', name: 'id', class: 'one'},
-					{id: 'name', field: 'name', name: 'name', class: 'two'}
-				]
-			}));
+			var columns = [
+				{id: 'id', field: 'id', name: 'id', class: 'one'},
+				{id: 'name', field: 'name', name: 'name', class: 'two'},
+				{id: 'hidden', field: 'hidden', name: 'hidden', class: 'three', visible: false}
+			];
 
-			// Capture the order before the move
-			var orderBefore = JSON.parse(JSON.stringify(grid.options.columns));
+			var grid = resetGrid($.extend(defaultData(), {
+				columns: columns
+			}));
 
 			// Grab the columns
 			var cols = grid.$el.find('.doby-grid-header-column');
@@ -2979,7 +2979,7 @@ describe("Grid Options", function () {
 			});
 
 			// Confirm that column options got reversed
-			expect(orderBefore).toEqual(grid.options.columns.reverse());
+			expect(_.pluck(grid.options.columns, 'id')).toEqual(['name', 'id', 'hidden']);
 		});
 	});
 

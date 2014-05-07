@@ -8135,23 +8135,47 @@
 				beforeStop: function (e, ui) {
 					$(ui.helper).removeClass(classheadercolumnactive);
 				},
-				update: function (e) {
+				update: function (e, ui) {
 					e.stopPropagation();
 
-					var reorderedIds = $headers.sortable("toArray"),
-						reorderedColumns = [],
-						cindex;
+					// http://stackoverflow.com/questions/5306680/move-an-array-element-from-one-array-position-to-another
+					var arrayMove = function (arr, old_index, new_index) {
+						if (new_index >= arr.length) {
+							var k = new_index - arr.length;
+							while ((k--) + 1) {
+								this.push(undefined);
+							}
+						}
+						arr.splice(new_index, 0, arr.splice(old_index, 1)[0]);
+					};
 
-					for (var i = 0, l = reorderedIds.length; i < l; i++) {
-						cindex = cache.columnsById[reorderedIds[i].replace(uid, "")];
-						reorderedColumns.push(cache.activeColumns[cindex]);
+					// Get the id of the column that was moved
+					var column_order = _.pluck(self.options.columns, 'id'),
+						column_id = $(ui.item).attr('id').replace(uid, ""),
+						column_index = column_order.indexOf(column_id),
+
+					// Get the id of the column immediately to the left;
+						$prev_column = $(ui.item).prev();
+
+					// If no prev column found, assume we're moving to start of grid
+					if (!$prev_column.length) {
+						// Move column to first position
+						arrayMove(self.options.columns, column_index, 0);
+					} else {
+						var prev_column_id = $prev_column.attr('id').replace(uid, ""),
+
+							// Find index of prev column in options
+							prev_column_index = column_order.indexOf(prev_column_id);
+
+						// Move column immediately after the previous
+						arrayMove(self.options.columns, column_index, prev_column_index);
 					}
 
-					self.setColumns(reorderedColumns);
+					self.setColumns(self.options.columns);
 					setupColumnResize();
 
 					self.trigger('columnreorder', e, {
-						columns: reorderedColumns
+						columns: self.options.columns
 					});
 				}
 			});
