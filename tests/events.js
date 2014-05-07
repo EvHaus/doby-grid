@@ -477,6 +477,16 @@ describe("Events", function () {
 			// Click on the first column header
 			grid.$el.find('.doby-grid-header-column').first().simulate('click');
 		},
+		'statechange': function (callback) {
+			var grid = resetGrid(defaultData());
+
+			// Subscribe to event
+			grid.on('statechange', function (event, args) {
+				callback(event, args);
+			});
+
+			grid.setColumns(grid.options.columns);
+		},
 		'validationerror': function (callback) {
 			// Prepare grid
 			var grid = resetGrid($.extend(defaultData(), {

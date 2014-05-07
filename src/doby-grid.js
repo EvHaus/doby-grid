@@ -2971,6 +2971,8 @@
 
 				// If we're removing grouping - refetch remote data
 				if (remote && groups.length === 0) remoteFetch();
+
+				grid.trigger('statechange', this._event, {});
 			};
 
 
@@ -3989,6 +3991,8 @@
 							// If we already failed the filter - stop filtering
 							if (!result) break;
 						}
+
+						self.trigger('statechange', this._event);
 
 						return result;
 					};
@@ -7890,6 +7894,8 @@
 				columns: columns
 			});
 
+			this.trigger('statechange', this._event);
+
 			if (initialized) {
 				invalidateAllRows();
 				renderColumnHeaders();
@@ -7976,8 +7982,10 @@
 				autosizeColumns();
 
 				// Fire column resize event
-				self.trigger('columnresize', {});
+				self.trigger('columnresize', this._event, {});
 			}
+
+			self.trigger('statechange', this._event, {});
 		};
 
 
@@ -8099,6 +8107,7 @@
 					sort: args
 				});
 
+				self.trigger('statechange', this._event);
 			}
 
 			return this;
@@ -8144,6 +8153,8 @@
 					self.trigger('columnreorder', e, {
 						columns: reorderedColumns
 					});
+
+					self.trigger('statechange', e);
 				}
 			});
 		};
@@ -8314,6 +8325,7 @@
 				self.trigger('columnresize', self._event, {
 					columns: self.options.columns
 				});
+				self.trigger('statechange', self._event);
 			};
 
 			// Assign double-click to auto-resize event
