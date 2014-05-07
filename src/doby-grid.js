@@ -8168,7 +8168,11 @@
 							prev_column_index = column_order.indexOf(prev_column_id);
 
 						// Move column immediately after the previous
-						arrayMove(self.options.columns, column_index, prev_column_index);
+						if (column_index > prev_column_index) {
+							arrayMove(self.options.columns, column_index, prev_column_index + 1);
+						} else {
+							arrayMove(self.options.columns, column_index, prev_column_index);
+						}
 					}
 
 					self.setColumns(self.options.columns);
@@ -8818,7 +8822,7 @@
 
 					var stickyIndex = cache.indexById[group[self.options.idProperty]],
 						cacheNode = cache.nodes[stickyIndex];
-					
+
 					// If no id found (ie. null group with null groups disabled)
 					if (stickyIndex === undefined) continue;
 
