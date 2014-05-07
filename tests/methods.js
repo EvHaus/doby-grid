@@ -1590,6 +1590,29 @@ describe("Methods and Data Manipulation", function () {
 				grid.removeColumn(3);
 			}).toThrow('Cannot remove column "3" because no such column exists.');
 		});
+
+
+		// ==========================================================================================
+
+
+		it("should remove the sort value for a column when that column is removed", function () {
+			var grid = resetGrid({
+				columns: [{
+					id: 1,
+					removable: true
+				}, {
+					id: 2
+				}]
+			});
+
+			// Sort by first column
+			grid.sortBy(1);
+
+			// Remove first column
+			grid.removeColumn(1);
+
+			expect(grid.sorting).toEqual([]);
+		});
 	});
 
 
@@ -2144,6 +2167,31 @@ describe("Methods and Data Manipulation", function () {
 			expect(cells.eq(3).html()).toEqual('2');
 			expect(cells.eq(4).html()).toEqual('m2');
 			expect(cells.eq(5).html()).toEqual('two');
+		});
+
+
+		// ==========================================================================================
+
+
+		it("should remove the sort value for a column when that column is removed", function () {
+			var grid = resetGrid({
+				columns: [{
+					id: 1,
+					removable: true
+				}, {
+					id: 2
+				}]
+			});
+
+			// Sort by first column
+			grid.sortBy(1);
+
+			// Remove first column
+			grid.setColumns([{
+				id: 2
+			}]);
+
+			expect(grid.sorting).toEqual([]);
 		});
 	});
 

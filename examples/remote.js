@@ -239,22 +239,26 @@ define(['backbone', 'dataset'], function (Backbone, dataset) {
 					if (data.__placeholder) return '';
 					return data.id;
 				},
+				removable: true,
 				sortable: true
 			}, {
 				id: "name",
 				name: "Name",
 				field: "name",
 				minWidth: 100,
+				removable: true,
 				sortable: true
 			}, {
 				id: "email",
 				name: "Email",
 				field: "email",
+				removable: true,
 				sortable: true
 			}, {
 				id: "company",
 				name: "Company",
 				field: "company",
+				removable: true,
 				sortable: true
 			}],
 

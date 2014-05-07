@@ -7890,6 +7890,11 @@
 			validateColumns();
 			updateColumnCaches();
 
+			// Clean up sorting for columns that no longer exist
+			this.setSorting(_.filter(this.sorting, function (s) {
+				return cache.columnsById[s.columnId];
+			}));
+
 			this.trigger('columnchange', this._event, {
 				columns: columns
 			});
