@@ -1851,7 +1851,7 @@ describe("Methods and Data Manipulation", function () {
 			// Restore
 			grid.restoreState({
 				sort: [
-					{columnId: 1}
+					{columnId: 1, sortAsc: false}
 				]
 			});
 
@@ -1859,14 +1859,19 @@ describe("Methods and Data Manipulation", function () {
 			grid.appendTo(fixture);
 
 			// Should only two columns rendered
-			var $rows = grid.$el.find('.doby-grid-group');
-			$rows.each(function (i) {
+			var $rows = grid.$el.find('.doby-grid-row');
+
+			$rows = _.sortBy($rows, function (i) {
+				return parseInt($(i).css('top'), 10);
+			});
+
+			$($rows).each(function (i) {
 				if (i === 0) {
-					expect($(this).find('.dboy-grid-cell:first')).toHaveText('C');
+					expect($(this).find('.doby-grid-cell:first')).toHaveText('C');
 				} else if (i === 1) {
-					expect($(this).find('.dboy-grid-cell:first')).toHaveText('B');
+					expect($(this).find('.doby-grid-cell:first')).toHaveText('B');
 				} else {
-					expect($(this).find('.dboy-grid-cell:first')).toHaveText('A');
+					expect($(this).find('.doby-grid-cell:first')).toHaveText('A');
 				}
 			});
 		});
