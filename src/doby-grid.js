@@ -8794,6 +8794,9 @@
 
 					var stickyIndex = cache.indexById[group[self.options.idProperty]],
 						cacheNode = cache.nodes[stickyIndex];
+					
+					// If no id found (ie. null group with null groups disabled)
+					if (stickyIndex === undefined) continue;
 
 					// Create group row if it doesn't already exist,
 					// (due to being outside the viewport)
