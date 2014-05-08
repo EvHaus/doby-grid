@@ -6741,7 +6741,11 @@
 				columns: cache.activeColumns,
 				order: self.sorting
 			}, function (results) {
-				self.collection.reset(results);
+				if (self.options.data instanceof Backbone.Collection) {
+					self.options.data.reset(results);
+				} else {
+					self.collection.reset(results);
+				}
 				callback();
 			});
 		};
