@@ -867,8 +867,8 @@ describe("Remote Data", function () {
 			it("should be able to correctly fetch and render nested groupings", function () {
 				var group1_column_id = "age",
 					group2_column_id = "city",
-					opened1 = false,
-					opened2 = false;
+					opened2 = false,
+					rows;
 
 				// Add grouping
 				runs(function () {
@@ -891,11 +891,7 @@ describe("Remote Data", function () {
 						expect($(this)).toHaveClass('doby-grid-group');
 					});
 
-					grid.once('remoteloaded', function () {
-						opened1 = true;
-					});
-
-					var rows = _.sortBy(grid.$el.find('.doby-grid-group'), function (row) {
+					rows = _.sortBy(grid.$el.find('.doby-grid-group'), function (row) {
 						// For some reason jasmine-grunt doesn't like .css('top') here, which returns NaN
 						// But attr('style') seems to return the right thing. Wat?
 						return parseInt($(row).attr('style').replace('top:', ''), 10);
@@ -905,10 +901,10 @@ describe("Remote Data", function () {
 					$(rows[0]).find('.doby-grid-cell:first').simulate('click', {});
 				});
 
-				// Wait for some non-placeholder row data to be fetched
+				// Wait for some secondary group rows to be fetched
 				waitsFor(function () {
-					return opened1;
-				});
+					return grid.$el.find('.doby-grid-group').length > rows.length;
+				}, 500, 'some secondary group rows to be fetched');
 
 				runs(function () {
 					// All rows should still be groups
@@ -921,7 +917,7 @@ describe("Remote Data", function () {
 						opened2 = true;
 					});
 
-					var rows = _.sortBy(grid.$el.find('.doby-grid-group'), function (row) {
+					rows = _.sortBy(grid.$el.find('.doby-grid-group'), function (row) {
 						// For some reason jasmine-grunt doesn't like .css('top') here, which returns NaN
 						// But attr('style') seems to return the right thing. Wat?
 						return parseInt($(row).attr('style').replace('top:', ''), 10);
@@ -939,7 +935,6 @@ describe("Remote Data", function () {
 				runs(function () {
 					// At this point we should have one regular row visible
 					var $rows = grid.$el.find('.doby-grid-row:not(.doby-grid-group)');
-
 
 					// First make sure none of the opened rows are placeholders
 					$rows.each(function () {

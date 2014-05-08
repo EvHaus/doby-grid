@@ -3783,7 +3783,7 @@
 							if (value1 === null) return 1;
 							if (value2 === null) return -1;
 						} else {
-								
+
 						}
 
 						// Use natural sort by default
@@ -6694,7 +6694,7 @@
 
 			// If everything is already loaded - simply process the rows via remoteLoaded()
 			if (newFrom === undefined) {
-				remoteLoaded();
+				remoteLoaded(null, null, {silent: true});
 				return;
 			}
 
@@ -6880,10 +6880,14 @@
 		// remoteLoaded()
 		// After remote data is fetched, this function is called to refresh the grid accordingly.
 		//
-		// @param	from	integer		Row index from which to start fetching
-		// @param	to		integer		Row index until when to fetch
+		// @param	from				integer		Row index from which to start fetching
+		// @param	to					integer		Row index until when to fetch
+		// @param	options				object		Additional options
+		// @param	options.silent		boolean		If true, will not fire the "remoteloaded" event
 		//
-		remoteLoaded = function (from, to) {
+		remoteLoaded = function (from, to, options) {
+			options = options || {};
+
 			// Invalidate updated rows
 			for (var i = from; i <= to; i++) {
 				invalidateRows([i]);
@@ -6892,7 +6896,7 @@
 			updateRowCount();
 			render();
 
-			self.trigger('remoteloaded', self._event, {});
+			if (!options.silent) self.trigger('remoteloaded', self._event, {});
 		};
 
 
