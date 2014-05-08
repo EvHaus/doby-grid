@@ -1613,6 +1613,123 @@ describe("Grid Options", function () {
 			$grouprow.trigger('click');
 		});
 	});
+	
+	
+	// ==========================================================================================
+
+
+	describe("options.keepNullsAtBottom", function () {
+		it("should be enabled by default", function () {
+			var grid = resetGrid(defaultData());
+			expect(grid.options.keepNullsAtBottom).toEqual(true);
+		});
+		
+		
+		// ==========================================================================================
+		
+		
+		it("should sort nulls correctly when disabled", function () {
+			var grid = resetGrid($.extend(defaultData(), {
+				columns: [{id: 'test', field: 'test'}],
+				data: [
+					{id: 1, data: {id: 1, test: 'yes'}},
+					{id: 2, data: {id: 2, test: null}}
+				],
+				keepNullsAtBottom: false
+			}));
+			
+			// Sort by test column
+			grid.sortBy('test', true);
+			
+			// Rows should sorted in the right direction
+			var $rows = grid.$el.find('.doby-grid-row');
+
+			// Make sure rows are in correct order
+			$rows = _.sortBy($rows, function (i) {
+				return parseInt($(i).css('top'), 10);
+			});
+			
+			$($rows).each(function (i) {
+				if (i === 0) {
+					expect($(this)).toHaveText('');
+				} else {
+					expect($(this)).toHaveText('yes');
+				}
+			});
+			
+			// Flip wort
+			grid.sortBy('test', false);
+			
+			// Rows should sorted in the right direction
+			$rows = grid.$el.find('.doby-grid-row');
+
+			// Make sure rows are in correct order
+			$rows = _.sortBy($rows, function (i) {
+				return parseInt($(i).css('top'), 10);
+			});
+			
+			$($rows).each(function (i) {
+				if (i === 0) {
+					expect($(this)).toHaveText('yes');
+				} else {
+					expect($(this)).toHaveText('');
+				}
+			});
+		});
+		
+		
+		// ==========================================================================================
+		
+		
+		it("should not sort nulls correctly when enabled", function () {
+			var grid = resetGrid($.extend(defaultData(), {
+				columns: [{id: 'test', field: 'test'}],
+				data: [
+					{id: 1, data: {id: 1, test: 'yes'}},
+					{id: 2, data: {id: 2, test: null}}
+				],
+				keepNullsAtBottom: true
+			}));
+			
+			// Sort by test column
+			grid.sortBy('test', true);
+			
+			// Rows should sorted in the right direction
+			var $rows = grid.$el.find('.doby-grid-row');
+
+			// Make sure rows are in correct order
+			$rows = _.sortBy($rows, function (i) {
+				return parseInt($(i).css('top'), 10);
+			});
+			
+			$($rows).each(function (i) {
+				if (i === 0) {
+					expect($(this)).toHaveText('yes');
+				} else {
+					expect($(this)).not.toHaveText('yes');
+				}
+			});
+			
+			// Flip wort
+			grid.sortBy('test', false);
+			
+			// Rows should sorted in the right direction
+			$rows = grid.$el.find('.doby-grid-row');
+
+			// Make sure rows are in correct order
+			$rows = _.sortBy($rows, function (i) {
+				return parseInt($(i).css('top'), 10);
+			});
+			
+			$($rows).each(function (i) {
+				if (i === 0) {
+					expect($(this)).toHaveText('yes');
+				} else {
+					expect($(this)).not.toHaveText('yes');
+				}
+			});
+		});
+	});
 
 
 	// ==========================================================================================

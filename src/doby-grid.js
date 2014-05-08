@@ -411,6 +411,7 @@
 			fullWidthRows:			true,
 			groupable:				true,
 			idProperty:				"id",
+			keepNullsAtBottom:		true,
 			keyboardNavigation:		true,
 			lineHeightOffset:		-1,
 			nestedAggregators:		true,
@@ -1807,8 +1808,10 @@
 
 				comparer: function (a, b) {
 					// Null groups always on the bottom
-					if (a.value === null) return 1;
-					if (b.value === null) return -1;
+					if (self.options.keepNullsAtBottom) {
+						if (a.value === null) return 1;
+						if (b.value === null) return -1;
+					}
 
 					// Find the current sort direction for this group
 					var asc = true;
@@ -3774,10 +3777,14 @@
 						val = column.comparator(value1, value2) * sign;
 						if (val !== 0) return val;
 					} else {
-						// Always keep null values on the bottom
-						if (value1 === null && value2 === null) continue;
-						if (value1 === null) return 1;
-						if (value2 === null) return -1;
+						if (self.options.keepNullsAtBottom) {
+							// Always keep null values on the bottom
+							if (value1 === null && value2 === null) continue;
+							if (value1 === null) return 1;
+							if (value2 === null) return -1;
+						} else {
+								
+						}
 
 						// Use natural sort by default
 						val = naturalSort(value1, value2) * sign;
