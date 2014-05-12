@@ -7899,6 +7899,7 @@
 		// @param	columns		object		Column definitions object
 		//
 		this.setColumns = function (columns) {
+			var oldColumns = $.extend({}, this.options.columns);
 
 			this.options.columns = enforceWidthLimits(columns);
 
@@ -7911,7 +7912,8 @@
 			}));
 
 			this.trigger('columnchange', this._event, {
-				columns: columns
+				columns: columns,
+				oldColumns: oldColumns
 			});
 
 			this.trigger('statechange', this._event);

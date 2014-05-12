@@ -117,7 +117,8 @@ describe("Events", function () {
 			// Subscribe to event
 			grid.on('columnchange', function (event, args) {
 				callback(event, args, {
-					columns: grid.options.columns
+					columns: grid.options.columns,
+					oldColumns: grid.options.columns
 				});
 			});
 
