@@ -5774,8 +5774,14 @@
 				throw new Error('Unable to hide column "' + column_id + '" because no such column could be found.');
 			}
 
-			column.visible = false;
-			this.setColumns(this.options.columns);
+			// Clone the columns so that the 'columnchange' event correctly reports back the old columns
+			var columns_clone = this.options.columns.map(function (c) {
+				var col = _.clone(c);
+				if (col.id === column_id) col.visible = false;
+				return col;
+			});
+
+			this.setColumns(columns_clone);
 		};
 
 
@@ -7899,7 +7905,10 @@
 		// @param	columns		object		Column definitions object
 		//
 		this.setColumns = function (columns) {
-			var oldColumns = $.extend({}, this.options.columns);
+			// Copy array
+			var oldColumns = this.options.columns.map(function (c) {
+				return _.clone(c);
+			});
 
 			this.options.columns = enforceWidthLimits(columns);
 
@@ -8177,12 +8186,17 @@
 						column_index = column_order.indexOf(column_id),
 
 					// Get the id of the column immediately to the left;
-						$prev_column = $(ui.item).prev();
+						$prev_column = $(ui.item).prev(),
+
+					// Clone the columns so that the 'columnchange' event correctly reports back the old columns
+						columns_copy = self.options.columns.map(function (c) {
+							return _.clone(c);
+						});
 
 					// If no prev column found, assume we're moving to start of grid
 					if (!$prev_column.length) {
 						// Move column to first position
-						arrayMove(self.options.columns, column_index, 0);
+						arrayMove(columns_copy, column_index, 0);
 					} else {
 						var prev_column_id = $prev_column.attr('id').replace(uid, ""),
 
@@ -8191,13 +8205,13 @@
 
 						// Move column immediately after the previous
 						if (column_index > prev_column_index) {
-							arrayMove(self.options.columns, column_index, prev_column_index + 1);
+							arrayMove(columns_copy, column_index, prev_column_index + 1);
 						} else {
-							arrayMove(self.options.columns, column_index, prev_column_index);
+							arrayMove(columns_copy, column_index, prev_column_index);
 						}
 					}
 
-					self.setColumns(self.options.columns);
+					self.setColumns(columns_copy);
 					setupColumnResize();
 
 					self.trigger('columnreorder', e, {
