@@ -187,7 +187,6 @@
 			getLocale,
 			getMaxCSSHeight,
 			getRenderedRange,
-			getRowFromEvent,
 			getRowFromNode,
 			getRowFromPosition,
 			getScrollbarSize,
@@ -4779,13 +4778,13 @@
 		// getRowFromEvent()
 		// Given an event object, gets the row that generated the event
 		//
-		// @param	e		object		Javascript event object
+		// @param	event		object		Javascript event object
 		//
 		// @return object
-		getRowFromEvent = function (e) {
-			var $row = $(e.target).closest("." + classrow, $canvas);
+		this.getRowFromEvent = function (event) {
+			var $row = $(event.target).closest("." + classrow, $canvas);
 			if (!$row.length) return null;
-			return getRowFromNode($row[0]);
+			return cache.rows[getRowFromNode($row[0])];
 		};
 
 

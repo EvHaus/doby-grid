@@ -1264,6 +1264,32 @@ describe("Methods and Data Manipulation", function () {
 	// ==========================================================================================
 
 
+	describe("getRowFromEvent()", function () {
+		it("should be able to getRowFromEvent()", function () {
+			var item = {data: {id: 101, name: 'dat row!'}, id: 101};
+			var grid = resetGrid({
+				data: [item]
+			});
+
+			// Click row
+			var $row = grid.$el.find('.doby-grid-row:first').first();
+
+			var event;
+
+			$row.on('click', function (e) {
+				event = e;
+			});
+
+			$row.simulate('click');
+
+			expect(grid.getRowFromEvent(event)).toEqual(item);
+		});
+	});
+
+
+	// ==========================================================================================
+
+
 	describe("getState()", function () {
 		it("should be get the state of the grid", function () {
 			var grid = resetGrid({
