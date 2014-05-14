@@ -1279,7 +1279,7 @@
 				return false;
 			}
 
-			var item = self.collection.getItem(row);
+			var item = self.getRowFromIndex(row);
 			if (typeof item.focusable === "boolean") return item.focusable;
 
 			var columnMetadata = item.columns;
@@ -1310,7 +1310,7 @@
 				return false;
 			}
 
-			var item = self.collection.getItem(row);
+			var item = self.getRowFromIndex(row);
 			if (typeof item.selectable === "boolean") {
 				return item.selectable;
 			}
@@ -1417,7 +1417,7 @@
 				// Render missing cells
 				cellsAdded = 0;
 
-				var item = self.collection.getItem(row),
+				var item = self.getRowFromIndex(row),
 					metadata = item.columns,
 					d = getDataItem(row);
 
@@ -2386,16 +2386,6 @@
 					totalRows: filteredItems.length,
 					rows: filteredItems
 				};
-			};
-
-
-			// getItem()
-			// Given an index, retrieves that row item from the cache
-			//
-			// @param	i	integer		Row index
-			//
-			this.getItem = function (i) {
-				return cache.rows[i];
 			};
 
 
@@ -4105,10 +4095,22 @@
 		// get()
 		// Entry point for collection.get(). See collection.get for more info.
 		//
+		// @param	{integer}		id		- Id of the model to fetch
+		//
 		this.get = function (id) {
 			var result = this.collection.get(id);
 			if (result) result = result[1];
 			return result;
+		};
+		
+		
+		// getIndex()
+		// Get the index of a row model
+		//
+		// @param	{integer}		id		- Id of the model to fetch
+		//
+		this.getIndex = function (id) {
+			return cache.indexById[id];
 		};
 
 
@@ -4323,7 +4325,7 @@
 		//
 		// return integer
 		getColspan = function (row, cell) {
-			var item = self.collection.getItem(row);
+			var item = self.getRowFromIndex(row);
 			if (!item.columns) return 1;
 
 			var columnData = item.columns[cache.activeColumns[cell].id] || item.columns[cell];
@@ -4488,8 +4490,8 @@
 		//
 		// @return object
 		getDataItem = function (i) {
-			if (self.collection.getItem) {
-				return self.collection.getItem(i);
+			if (self.getRowFromIndex) {
+				return self.getRowFromIndex(i);
 			} else {
 				return self.collection[i];
 			}
@@ -4540,7 +4542,7 @@
 		// @return function
 		getEditor = function (row, cell) {
 			var column = cache.activeColumns[cell],
-				item = self.collection.getItem(row),
+				item = self.getRowFromIndex(row),
 				columnMetadata = item.columns;
 
 			// Get the editor from the column definition
@@ -4785,6 +4787,17 @@
 			var $row = $(event.target).closest("." + classrow, $canvas);
 			if (!$row.length) return null;
 			return cache.rows[getRowFromNode($row[0])];
+		};
+		
+		
+		// getRowFromIndex()
+		// Given a row index number, returns the row object for that index.
+		//
+		// @param	{integer}	index		- Row index number
+		//
+		// @return object
+		this.getRowFromIndex = function (index) {
+			return cache.rows[index];
 		};
 
 

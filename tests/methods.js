@@ -1259,6 +1259,23 @@ describe("Methods and Data Manipulation", function () {
 			expect(gotten.data.id).toEqual(2);
 		});
 	});
+	
+	
+	// ==========================================================================================
+
+
+	describe("getIndex()", function () {
+		it("should be able to getIndex() model by id", function () {
+			var item = {data: {id: 102, name: 'updated'}, id: 102};
+			var grid = resetGrid({
+				data: [item]
+			});
+
+			// Validate
+			var gotten = grid.getIndex(102);
+			expect(gotten).toEqual(0);
+		});
+	});
 
 
 	// ==========================================================================================
@@ -1283,6 +1300,21 @@ describe("Methods and Data Manipulation", function () {
 			$row.simulate('click');
 
 			expect(grid.getRowFromEvent(event)).toEqual(item);
+		});
+	});
+	
+	
+	// ==========================================================================================
+
+
+	describe("getRowFromIndex()", function () {
+		it("should be able to getRowFromIndex()", function () {
+			var item = {data: {id: 101, name: 'dat row!'}, id: 101};
+			var grid = resetGrid({
+				data: [item]
+			});
+
+			expect(grid.getRowFromIndex(0)).toEqual(item);
 		});
 	});
 
