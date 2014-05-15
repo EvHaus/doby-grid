@@ -88,6 +88,7 @@
 			cellWidthDiff = 0,
 			cj,				// "jumpiness" coefficient
 			classcell = this.NAME + '-cell',
+			classcellunselectable = classcell + '-unselectable',
 			classclipboard = this.NAME + '-clipboard',
 			classcollapsed = 'collapsed',
 			classcolumnname = this.NAME + '-column-name',
@@ -1040,17 +1041,20 @@
 		//
 		bindCellRangeSelect = function () {
 			var decorator = new CellRangeDecorator(),
-				_dragging = null;
+				_dragging = null,
+				handleSelector = function () {
+					return $(this).closest('.' + classcellunselectable).length > 0;
+				};
 
-			$canvas
-				.on('draginit', function (event) {
+			$viewport
+				.on('draginit', {not: handleSelector}, function (event) {
 					// Prevent the grid from cancelling drag'n'drop by default
 					event.stopImmediatePropagation();
 
 					// Deselect any text the user may have selected
 					clearTextSelection();
 				})
-				.on('dragstart', function (event, dd) {
+				.on('dragstart', {not: handleSelector}, function (event, dd) {
 					var cell = getCellFromEvent(event);
 					if (!cell) return;
 
@@ -1075,7 +1079,7 @@
 
 					return decorator.show(new Range(start.row, start.cell));
 				})
-				.on('drag', function (event, dd) {
+				.on('drag', {not: handleSelector}, function (event, dd) {
 					if (!_dragging) return;
 
 					event.stopImmediatePropagation();
@@ -1094,7 +1098,7 @@
 						setActiveCellInternal(getCellNode(end.row, end.cell), false);
 					}
 				})
-				.on('dragend', function (event, dd) {
+				.on('dragend', {not: handleSelector}, function (event, dd) {
 					if (!_dragging) return;
 					_dragging = false;
 
@@ -1128,9 +1132,12 @@
 		// Binds the necessary events to handle row resizing
 		//
 		bindRowResize = function () {
+			var handleSelector = '.' + classrowhandle;
+
+			// This cannot be assigned to the $viewport element because the two drag
+			// event binding conflict with each other.
 			$canvas
-				.on('dragstart', function (event, dd) {
-					if (!$(event.target).hasClass(classrowhandle)) return;
+				.on('dragstart', {handle: handleSelector}, function (event, dd) {
 					event.stopImmediatePropagation();
 
 					dd._row = getRowFromNode($(event.target).parent()[0]);
@@ -1148,7 +1155,7 @@
 					$(dd._rowsBelow).wrapAll('<div class="' + classrowdragcontainer + '"></div>');
 					dd._container = $(dd._rowsBelow).parent();
 				})
-				.on('drag', function (event, dd) {
+				.on('drag', {handle: handleSelector}, function (event, dd) {
 					if (dd._row === undefined) return;
 
 					// Resize current row
@@ -1167,7 +1174,7 @@
 					// Drag and container of rows below
 					dd._container.css({marginTop: (dd._height - height) + 'px'});
 				})
-				.on('dragend', function (event, dd) {
+				.on('dragend', {handle: handleSelector}, function (event, dd) {
 					if (dd._row === undefined) return;
 
 					// Unwrap rows below
@@ -4102,8 +4109,8 @@
 			if (result) result = result[1];
 			return result;
 		};
-		
-		
+
+
 		// getIndex()
 		// Get the index of a row model
 		//
@@ -4788,8 +4795,8 @@
 			if (!$row.length) return null;
 			return cache.rows[getRowFromNode($row[0])];
 		};
-		
-		
+
+
 		// getRowFromIndex()
 		// Given a row index number, returns the row object for that index.
 		//
@@ -7158,6 +7165,7 @@
 				cellCss.push(mColumns[cell].class);
 			}
 			if (isCellSelected(row, cell)) cellCss.push(self.options.selectedClass);
+			if (column.selectable === false) cellCss.push(classcellunselectable);
 
 			result.push('<div class="' + cellCss.join(" ") + '">');
 
