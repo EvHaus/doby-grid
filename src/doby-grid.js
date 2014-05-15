@@ -1046,7 +1046,7 @@
 					return $(this).closest('.' + classcellunselectable).length > 0;
 				};
 
-			$viewport
+			$canvas
 				.on('draginit', {not: handleSelector}, function (event) {
 					// Prevent the grid from cancelling drag'n'drop by default
 					event.stopImmediatePropagation();
@@ -1132,12 +1132,11 @@
 		// Binds the necessary events to handle row resizing
 		//
 		bindRowResize = function () {
-			var handleSelector = '.' + classrowhandle;
-
 			// This cannot be assigned to the $viewport element because the two drag
 			// event binding conflict with each other.
 			$canvas
-				.on('dragstart', {handle: handleSelector}, function (event, dd) {
+				.on('dragstart', function (event, dd) {
+					if (!$(event.target).hasClass(classrowhandle)) return;
 					event.stopImmediatePropagation();
 
 					dd._row = getRowFromNode($(event.target).parent()[0]);
@@ -1155,7 +1154,7 @@
 					$(dd._rowsBelow).wrapAll('<div class="' + classrowdragcontainer + '"></div>');
 					dd._container = $(dd._rowsBelow).parent();
 				})
-				.on('drag', {handle: handleSelector}, function (event, dd) {
+				.on('drag', function (event, dd) {
 					if (dd._row === undefined) return;
 
 					// Resize current row
@@ -1174,7 +1173,7 @@
 					// Drag and container of rows below
 					dd._container.css({marginTop: (dd._height - height) + 'px'});
 				})
-				.on('dragend', {handle: handleSelector}, function (event, dd) {
+				.on('dragend', function (event, dd) {
 					if (dd._row === undefined) return;
 
 					// Unwrap rows below
