@@ -72,7 +72,7 @@ describe("Remote Data", function () {
 						id: i,
 						name: "Name " + i,
 						age: _.sample(_.range(18, 28)),
-						city: _.sample(["Vancouver", "New York", "Chicago", "London", "Paris"])
+						city: _.sample(["Vancouver", "New York", "Chicago", "London", null])
 					}
 				});
 			}
@@ -125,6 +125,10 @@ describe("Remote Data", function () {
 											column = options.order[i].columnId;
 											value1 = dataRow1.data[column];
 											value2 = dataRow2.data[column];
+											
+											// Nulls always on the bottom
+											if (value1 === null) return 1;
+											if (value2 === null) return -1;
 
 											if (value1 !== value2) {
 												val = options.order[i].sortAsc ? (value1 > value2) ? 1 : -1 : (value1 < value2) ? 1 : -1;

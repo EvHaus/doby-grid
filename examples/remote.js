@@ -2,6 +2,10 @@
 
 define(['backbone', 'dataset'], function (Backbone, dataset) {
 	"use strict";
+	
+	_.each(dataset, function (data, i) {
+		if (i % 2) data.data.name = null;
+	});
 
 	// Use a Backbone data set?
 	var backboneset = true;
@@ -91,6 +95,10 @@ define(['backbone', 'dataset'], function (Backbone, dataset) {
 							column = options.order[i].columnId;
 							value1 = dataRow1.data[column];
 							value2 = dataRow2.data[column];
+							
+							// Nulls always on the bottom
+							if (value1 === null) return 1;
+							if (value2 === null) return -1;
 
 							if (value1 !== value2) {
 								val = options.order[i].sortAsc ? (value1 > value2) ? 1 : -1 : (value1 < value2) ? 1 : -1;
@@ -116,6 +124,8 @@ define(['backbone', 'dataset'], function (Backbone, dataset) {
 						i.data.id = i.id;
 						results.add(i.data);
 					});
+					
+					console.log(results.models)
 
 					callback(results.models);
 				} else {
@@ -125,17 +135,14 @@ define(['backbone', 'dataset'], function (Backbone, dataset) {
 		};
 
 		var fetchGroups = function (options, callback) {
-			// Fake AJAX delay
-			if (timer) clearTimeout(timer);
-			timer = setTimeout(function () {
+			return setTimeout(function () {
 				var results = [], column_id;
-
 				var generateGroup = function (column_id, data, level, parent_group_value) {
 					var groups = [], grouped;
-
 					grouped = _.groupBy(data, function (item) {
 						return item.data[column_id];
 					});
+
 					_.each(_.keys(grouped).sort(), function (group) {
 						groups.push({
 							_rows: grouped[group],
@@ -144,11 +151,8 @@ define(['backbone', 'dataset'], function (Backbone, dataset) {
 							value: group
 						});
 					});
-
-					// Sort the group results according to request
 					groups.sort(function (a, b) {
 						var result = 0, val;
-						// Loops through the columns by which we are sorting
 						for (var i = 0, l = options.order.length; i < l; i++) {
 							if (!isNaN(parseInt(a.value, 10))) a.value = parseInt(a.value, 10);
 							if (!isNaN(parseInt(b.value, 10))) b.value = parseInt(b.value, 10);
@@ -161,7 +165,6 @@ define(['backbone', 'dataset'], function (Backbone, dataset) {
 
 						return result;
 					});
-
 					if (level && results[level]) {
 						results[level].groups = results[level].groups.concat(groups);
 					} else {
@@ -171,7 +174,6 @@ define(['backbone', 'dataset'], function (Backbone, dataset) {
 						};
 					}
 				};
-
 				var main_filter = function (item) {
 					return remote_filter(options, item);
 				};
@@ -185,9 +187,8 @@ define(['backbone', 'dataset'], function (Backbone, dataset) {
 						}
 					}
 				}
-
 				callback(results);
-			}, 100);
+			}, 5);
 		};
 
 		var onLoading = function () {
@@ -265,5 +266,7 @@ define(['backbone', 'dataset'], function (Backbone, dataset) {
 			data: remotedata,
 			quickFilter: true
 		};
+	}, function (grid) {
+		grid.setGrouping([{column_id: 'name'}]);
 	}];
 });

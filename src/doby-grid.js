@@ -2998,7 +2998,7 @@
 
 					// Backbone does not support changing a model's id
 					// Except if the item in there is a place holder
-					if (data[grid.options.idProperty] !== id && !cache.rows[idx].__placeholder) {
+					if (data[grid.options.idProperty] !== id && !original_object[1].__placeholder) {
 						throw new Error("Sorry, but Backbone does not support changing a model's id value, and as a result, this is not supported in Doby Grid either.");
 					}
 				}
