@@ -3,10 +3,6 @@
 define(['backbone', 'dataset'], function (Backbone, dataset) {
 	"use strict";
 	
-	_.each(dataset, function (data, i) {
-		if (i % 2) data.data.name = null;
-	});
-
 	// Use a Backbone data set?
 	var backboneset = true;
 
@@ -124,8 +120,6 @@ define(['backbone', 'dataset'], function (Backbone, dataset) {
 						i.data.id = i.id;
 						results.add(i.data);
 					});
-					
-					console.log(results.models)
 
 					callback(results.models);
 				} else {
@@ -266,7 +260,5 @@ define(['backbone', 'dataset'], function (Backbone, dataset) {
 			data: remotedata,
 			quickFilter: true
 		};
-	}, function (grid) {
-		grid.setGrouping([{column_id: 'name'}]);
 	}];
 });
