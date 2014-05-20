@@ -8967,15 +8967,20 @@
 				return function (event) {
 					event.stopPropagation();
 
-					// Flip column value
-					var c = getColumnById(column.id);
-					c.visible = !c.visible;
-
-					// Toggle menu
-					c.visible ? $(event.currentTarget).addClass('on') : $(event.currentTarget).removeClass('on');
+					// Clone the columns so that the 'columnchange' event correctly
+					// reports back the old columns
+					var columns_clone = self.options.columns.map(function (c) {
+						var col = _.clone(c);
+						if (col.id === column.id) {
+							col.visible = !col.visible;
+							// Toggle menu
+							col.visible ? $(event.currentTarget).addClass('on') : $(event.currentTarget).removeClass('on');
+						}
+						return col;
+					});
 
 					// Update grid
-					self.setColumns(self.options.columns);
+					self.setColumns(columns_clone);
 				};
 			};
 
