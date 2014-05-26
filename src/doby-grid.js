@@ -75,7 +75,8 @@
 				modelsById: {},
 				postprocess: {},
 				rowPositions: {},
-				rows: []
+				rows: [],
+				stickyRows: []
 			},
 			cacheRows,
 			calculateVisibleRows,
@@ -8866,11 +8867,11 @@
 				group,
 				offset = 0;
 
-			// Remove existing stickies
-			$viewport.children('.' + classsticky).remove();
-
-			// If we're at the very top - do nothing
-			if (scrollTop === 0) return;
+			// If we're at the very top - do nothing, just clean up
+			if (scrollTop === 0) {
+				$viewport.children('.' + classsticky).remove();
+				return;
+			}
 
 			while (i--) {
 				group = stickyGroups[i];
@@ -8879,40 +8880,50 @@
 				if (group.collapsed === 0 && group.sticky) {
 
 					stickyIds.push(group[self.options.idProperty]);
-
-					// Check if row is already rendered
-					var child = '.' + classsticky + '[rel="' + group[self.options.idProperty] + '"]:first',
+					
+					// Check if row is already cached and rendered
+					var $cached = cache.stickyRows[i], $clone;
+					
+					if ($cached && $cached.length && $cached.attr('rel') == group[self.options.idProperty]) {
+						$clone = $cached;
+					} else {
+						var child = '.' + classsticky + '[rel="' + group[self.options.idProperty] + '"]:first';
+						
 						$clone = $viewport.children(child);
 
-					if ($clone.length) $clone.remove();
+						if ($clone.length) $clone.remove();
 
-					var stickyIndex = cache.indexById[group[self.options.idProperty]],
-						cacheNode = cache.nodes[stickyIndex];
+						var stickyIndex = cache.indexById[group[self.options.idProperty]],
+							cacheNode = cache.nodes[stickyIndex];
 
-					// If no id found (ie. null group with null groups disabled)
-					if (stickyIndex === undefined) continue;
+						// If no id found (ie. null group with null groups disabled)
+						if (stickyIndex === undefined) continue;
 
-					// Create group row if it doesn't already exist,
-					// (due to being outside the viewport)
-					if (!cacheNode) {
-						var rowhtml = [];
-						renderRow(rowhtml, stickyIndex, {
-							bottom: stickyIndex,
-							leftPx: 0,
-							top: stickyIndex,
-							rightPx: $viewport.width()
-						});
-						$clone = $(rowhtml.join(''));
-					} else {
-						var $groupHeaderNode = $(cacheNode.rowNode);
-						$clone = $groupHeaderNode.clone();
+						// Create group row if it doesn't already exist,
+						// (due to being outside the viewport)
+						if (!cacheNode) {
+							var rowhtml = [];
+							renderRow(rowhtml, stickyIndex, {
+								bottom: stickyIndex,
+								leftPx: 0,
+								top: stickyIndex,
+								rightPx: $viewport.width()
+							});
+							$clone = $(rowhtml.join(''));
+						} else {
+							var $groupHeaderNode = $(cacheNode.rowNode);
+							$clone = $groupHeaderNode.clone();
+						}
+
+						$clone
+							.addClass(classsticky)
+							.attr('rel', group[self.options.idProperty])
+							.removeClass(classgrouptoggle)
+							.appendTo($viewport);
+						
+						// Cache row
+						cache.stickyRows[i] = $clone;
 					}
-
-					$clone
-						.addClass(classsticky)
-						.attr('rel', group[self.options.idProperty])
-						.removeClass(classgrouptoggle)
-						.appendTo($viewport);
 
 					// Stick a clone to the wrapper
 					$clone.css('top', scrollTop + offset);
