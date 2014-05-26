@@ -5690,14 +5690,25 @@
 			if (hScrollDist || vScrollDist) {
 				if (h_render) clearTimeout(h_render);
 
-				if (Math.abs(lastRenderedScrollTop - scrollTop) > 20 ||
-					Math.abs(lastRenderedScrollLeft - scrollLeft) > 20) {
+				if (
+					Math.abs(lastRenderedScrollTop - scrollTop) > 20 ||
+					Math.abs(lastRenderedScrollLeft - scrollLeft) > 20 ||
+					// TODO: For some unknown reason - in some rare cases the
+					// scroll reports as 0 pixels but yet the h_render timeout never
+					// completes. To deal with this - check to see if a scrollLoader
+					// is still present - and if it is - do a final re-render. Once fixed
+					// also remove the '!scrollLoader' condition below.
+					scrollLoader
+				) {
 
 					// If virtual scroll is disabled, or viewing something that is already rendered
 					// -- re-render immediately
-					if (!self.options.virtualScroll || (
-						Math.abs(lastRenderedScrollTop - scrollTop) < viewportH &&
-						Math.abs(lastRenderedScrollLeft - scrollLeft) < viewportW)) {
+					if (!scrollLoader && (
+						!self.options.virtualScroll || (
+							Math.abs(lastRenderedScrollTop - scrollTop) < viewportH &&
+							Math.abs(lastRenderedScrollLeft - scrollLeft) < viewportW)
+						)
+					) {
 						render();
 					} else {
 
