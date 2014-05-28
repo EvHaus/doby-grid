@@ -4844,7 +4844,7 @@
 					pos = cache.rowPositions[i];
 					if (pos.top - pos.spacing <= maxPosition && pos.bottom >= maxPosition) {
 						row = i;
-						continue;
+						break;
 					}
 				}
 
@@ -5007,6 +5007,9 @@
 				rowTop = Math.floor(getRowFromPosition(viewportTop + offset));
 				rowBottom = Math.ceil(getRowFromPosition(viewportTop + offset + viewportH));
 			}
+			
+			if (isNaN(rowTop)) rowTop = null;
+            if (isNaN(rowBottom)) rowBottom = null;
 
 			return {
 				top: rowTop,
@@ -6678,7 +6681,7 @@
 			var vp = getVisibleRange(),
 				from = vp.top,
 				to = vp.bottom;
-
+			
 			// If scrolling fast, abort pending requests
 			if (remoteRequest && typeof remoteRequest.abort === 'function') {
 				remoteRequest.abort();
