@@ -242,13 +242,34 @@ describe("Remote Data", function () {
 				return waitForRefresh && loaded;
 			}, "Fetching the first page", 2000);
 		});
-
-
+		
+		
 		// ==========================================================================================
 
 
 		it("should set the correct data length", function () {
 			expect(grid.collection.length).toEqual(100);
+		});
+
+
+		// ==========================================================================================
+
+
+		it("should throw an exception if a non-number is returned for the count() method", function () {
+			// Remember old count
+			var oldCount = grid.fetcher.count;
+			grid.fetcher.count = function (options, callback) {
+				callback("bad value");
+			};
+			
+			// Try refetching
+			expect(function () {
+				grid.reset();
+				grid.refetch();
+			}).toThrow('Your count() method must return a number. It returned a string of value "bad value" instead.');
+			
+			// Put value back
+			grid.fetcher.count = oldCount;
 		});
 
 
@@ -461,7 +482,7 @@ describe("Remote Data", function () {
 				// Wait for the groups to be fetched and calculated
 				waitsFor(function () {
 					return grid.collection.groups.length && grid.collection.groups[0].rows.length;
-				});
+				}, 1000, 'groups to be fetched and calculated');
 
 				runs(function () {
 					// Groups should be generated
@@ -483,7 +504,7 @@ describe("Remote Data", function () {
 					return _.filter(grid.collection.items, function (item) {
 						return !item.__nonDataRow;
 					}).length;
-				});
+				}, 1000, 'some non-placeholder row data to be fetched');
 
 				runs(function () {
 					// Find the group row that got expanded

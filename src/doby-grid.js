@@ -262,7 +262,6 @@
 			prevScrollLeft = 0,
 			prevScrollTop = 0,
 			Range,
-			remote = false,		// Should data be fetched remotely?
 			remoteAllLoaded,
 			remoteLoaded,
 			remoteCount,
@@ -477,6 +476,9 @@
 
 		// Is this instance destroyed?
 		this.destroyed = false;
+		
+		// The remote fetching object used for remote data
+		this.fetcher = false;
 
 		// Stores the currently selected cell range
 		this.selection = null;
@@ -695,7 +697,7 @@
 				resizeCanvas(true);
 
 				// If we're using remote data, start by fetching the data set length
-				if (remote) {
+				if (this.fetcher) {
 					remoteCount(function () {
 						// If we haven't scrolled anywhere yet - fetch the first page
 						if ($viewport[0].scrollTop === 0) {
@@ -1912,7 +1914,7 @@
 			this.initialize = function () {
 
 				// If we have normal data - set it now
-				if (!remote && grid.options.data) {
+				if (!grid.fetcher && grid.options.data) {
 					this.reset(grid.options.data);
 				}
 
@@ -1945,7 +1947,7 @@
 					if (existing) existing = existing[1];
 
 					// For remote models, check if we're inserting 'at' an index with place holders
-					if (remote && at !== undefined) {
+					if (grid.fetcher && at !== undefined) {
 						if (this.items[at + i].__placeholder) {
 							existing = this.items[at + i];
 						}
@@ -2072,7 +2074,7 @@
 				}
 
 				self.refresh();
-				if (remote && !collapse) remoteFetch();
+				if (grid.fetcher && !collapse) remoteFetch();
 			};
 
 
@@ -2086,7 +2088,7 @@
 			expandCollapseGroup = function (level, group_id, collapse) {
 				toggledGroupsByLevel[level][group_id] = self.groups[level].collapsed ^ collapse;
 				self.refresh();
-				if (remote && !collapse) remoteFetch();
+				if (grid.fetcher && !collapse) remoteFetch();
 			};
 
 
@@ -2231,7 +2233,7 @@
 						group.grouprows.push(r);
 
 						// Do not increment count for remote groups because we already have the right count
-						if (!remote) group.count++;
+						if (!grid.fetcher) group.count++;
 					}
 
 					// Nest groups
@@ -2272,7 +2274,7 @@
 				};
 
 				// Remote groups needs to be extracted from the remote source
-				if (remote) {
+				if (grid.fetcher) {
 					// remoteFetchGroups will cache the results after the first request,
 					// so there is no fear of this being re-querying the server on every grouping loop
 					remoteFetchGroups(function (results) {
@@ -2369,7 +2371,7 @@
 			// @return object
 			getFilteredItems = function (items) {
 				// Remote data will already be filtered
-				if (self.filter && !remote) {
+				if (self.filter && !grid.fetcher) {
 					var batchFilter = uncompiledFilter;
 					var batchFilterWithCaching = uncompiledFilterWithCaching;
 
@@ -2810,7 +2812,7 @@
 					}
 
 					if (this.length === 0) {
-						if (!remote && grid.options.emptyNotice) insertEmptyOverlay();
+						if (!grid.fetcher && grid.options.emptyNotice) insertEmptyOverlay();
 					} else {
 						grid.hideOverlay();
 					}
@@ -2950,7 +2952,7 @@
 				// When we're dealing with remote groups - we might as well re-generate placeholders
 				// for everything since any data that was previously fetched is no longer in the right
 				// order anyway.
-				if (remote) {
+				if (grid.fetcher) {
 					// Reset collection length to full. This ensures that when groupings are removed,
 					// the grid correctly refetches the full page of results.
 					this.length = this.remote_length;
@@ -2969,7 +2971,7 @@
 				if (variableRowHeight) resizeCanvas(true);
 
 				// If we're removing grouping - refetch remote data
-				if (remote && groups.length === 0) remoteFetch();
+				if (grid.fetcher && groups.length === 0) remoteFetch();
 
 				grid.trigger('statechange', this._event, {});
 			};
@@ -3731,7 +3733,7 @@
 			var cols = args.sortCols;
 
 			// If remote, and not all data is fetched - sort on server
-			if (remote && !remoteAllLoaded()) {
+			if (self.fetcher && !remoteAllLoaded()) {
 				// Reset collection length to full. This ensures that when groupings are removed,
 				// the grid correctly refetches the full page of results.
 				self.collection.length = self.collection.remote_length;
@@ -3881,10 +3883,10 @@
 			}.bind(this);
 
 			// If this is a remote data set and we don't have all data, ask the user what to export?
-			var remoteConfirm = remote && !remoteAllLoaded() ? confirm('Are you sure you want to export all data? This will require a full data fetch on the server.') : true;
+			var remoteConfirm = this.fetcher && !remoteAllLoaded() ? confirm('Are you sure you want to export all data? This will require a full data fetch on the server.') : true;
 
 			if (remoteConfirm) {
-				if (remote) {
+				if (this.fetcher) {
 					remoteFetchAll(function () {
 						processExport();
 					});
@@ -3916,7 +3918,7 @@
 				}
 
 				// Remote data is filtered on the server - so just store it for reference
-				if (typeof(filter) == 'function' || remote) {
+				if (typeof(filter) == 'function' || this.fetcher) {
 					// Set collection filter function
 					this.collection.filter = filter;
 				} else if ($.isArray(filter)) {
@@ -4005,8 +4007,8 @@
 			}
 
 			// Remote data needs to be completely reloaded
-			if (remote) {
-				self.refetch();
+			if (this.fetcher) {
+				this.refetch();
 			} else {
 				// Reset aggregator values
 				for (var column_id in cache.aggregatorsByColumnId) {
@@ -5933,7 +5935,7 @@
 			if (typeof(self.options.emptyNotice) === 'function') {
 				html = self.options.emptyNotice.bind(self)();
 			} else {
-				html = remote ? getLocale("empty.remote") : self.collection && self.collection.filterset ? getLocale("empty.filter") : getLocale("empty.default");
+				html = self.fetcher ? getLocale("empty.remote") : self.collection && self.collection.filterset ? getLocale("empty.filter") : getLocale("empty.default");
 			}
 
 			self.showOverlay({
@@ -6596,7 +6598,7 @@
 		//
 		// @return object
 		this.refetch = function () {
-			if (remote) {
+			if (this.fetcher) {
 				remoteCount(function () {
 					if (self.collection.groups && self.collection.groups.length) {
 						remoteGroupRefetch();
@@ -6643,10 +6645,15 @@
 				filters: typeof(self.collection.filter) != 'function' ? self.collection.filter : null
 			};
 
-			remote.count(options, function (result) {
+			self.fetcher.count(options, function (result) {
 				// Grid was destroyed before the callback finished
 				if (self.destroyed) return;
-
+				
+				// Validate
+				if (typeof(result) !== 'number') {
+					throw new Error('Your count() method must return a number. It returned a ' + typeof(result) + ' of value "' + result + '" instead.');
+				}
+				
 				// Sets the current collection length
 				self.collection.length = result;
 
@@ -6817,16 +6824,16 @@
 			remoteTimer = setTimeout(function () {
 				try {
 					// Fire onLoading callback
-					if (typeof remote.onLoading === 'function') remote.onLoading();
-
-					remoteRequest = remote.fetch(options, function (results) {
+					if (typeof self.fetcher.onLoading === 'function') self.fetcher.onLoading();
+					
+					remoteRequest = self.fetcher.fetch(options, function (results) {
 						// Empty the request variable so it doesn't get aborted on scroll
 						remoteRequest = null;
 
 						callback(results);
 
 						// Fire onLoaded callback
-						if (typeof remote.onLoaded === 'function') remote.onLoaded();
+						if (typeof self.fetcher.onLoaded === 'function') self.fetcher.onLoaded();
 					});
 				} catch (err) {
 					throw new Error('Doby Grid remote fetching failed due to: ' + err);
@@ -6859,10 +6866,10 @@
 				};
 
 				// Fire onLoading callback
-				if (typeof remote.onLoading === 'function') remote.onLoading();
+				if (typeof self.fetcher.onLoading === 'function') self.fetcher.onLoading();
 
 				// Begin remote fetch request
-				remoteRequest = remote.fetchGroups(options, function (results) {
+				remoteRequest = self.fetcher.fetchGroups(options, function (results) {
 					// Empty the request variable so it doesn't get aborted on scroll
 					remoteRequest = null;
 
@@ -6875,7 +6882,7 @@
 					self.trigger('remotegroupsloaded', self._event, {});
 
 					// Fire onLoaded callback
-					if (typeof remote.onLoaded === 'function') remote.onLoaded();
+					if (typeof self.fetcher.onLoaded === 'function') self.fetcher.onLoaded();
 				});
 			}
 		};
@@ -7146,7 +7153,7 @@
 			}
 
 			// If grid is empty - show empty overlay
-			if (!remote && self.collection.length === 0) insertEmptyOverlay();
+			if (!self.fetcher && self.collection.length === 0) insertEmptyOverlay();
 		};
 
 
@@ -7484,7 +7491,7 @@
 			invalidate();
 
 			// If viewport got bigger and we're using remote data - fetch more items to populate the grid
-			if (oldHeight < viewportH && remote) {
+			if (oldHeight < viewportH && this.fetcher) {
 				remoteFetch();
 			}
 
@@ -9732,13 +9739,13 @@
 			} else {
 				if (typeof self.options.data === 'function') {
 					// If data is a function - enable remote fetching by instantiating the remote class
-					remote = new self.options.data();
+					self.fetcher = new self.options.data();
 				} else if (self.options.data instanceof Backbone.Collection && self.options.data.DobyGridRemote) {
 					// If data is a Backbone.Collection with a DobyGridRemote attribute - also enable remote
-					remote = self.options.data.DobyGridRemote;
+					self.fetcher = self.options.data.DobyGridRemote;
 				}
 
-				if (remote) remote.grid = self;
+				if (self.fetcher) self.fetcher.grid = self;
 			}
 
 			// Ensure "tooltipType" is one of the allowed values
