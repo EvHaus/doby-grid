@@ -8896,11 +8896,12 @@
 
 			var i = stickyGroups.length,
 				group,
-				offset = 0;
+				offset = $viewport.position().top;
 
 			// If we're at the very top - do nothing, just clean up
 			if (scrollTop === 0) {
-				$viewport.children('.' + classsticky).remove();
+				cache.stickyRows = [];
+				$viewport.parent().children('.' + classsticky).remove();
 				return;
 			}
 
@@ -8920,7 +8921,7 @@
 					} else {
 						var child = '.' + classsticky + '[rel="' + group[self.options.idProperty] + '"]:first';
 						
-						$clone = $viewport.children(child);
+						$clone = $viewport.parent().children(child);
 
 						if ($clone.length) $clone.remove();
 
@@ -8929,7 +8930,7 @@
 
 						// If no id found (ie. null group with null groups disabled)
 						if (stickyIndex === undefined) continue;
-
+						
 						// Create group row if it doesn't already exist,
 						// (due to being outside the viewport)
 						if (!cacheNode) {
@@ -8949,15 +8950,16 @@
 						$clone
 							.addClass(classsticky)
 							.attr('rel', group[self.options.idProperty])
+							.width($canvas.css('width'))
 							.removeClass(classgrouptoggle)
-							.appendTo($viewport);
+							.appendTo($viewport.parent());
 						
 						// Cache row
 						cache.stickyRows[i] = $clone;
 					}
 
 					// Stick a clone to the wrapper
-					$clone.css('top', scrollTop + offset);
+					$clone.css('top', offset);
 
 					offset += $clone.outerHeight();
 				}
