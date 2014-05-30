@@ -2273,8 +2273,9 @@
 					callback(groups);
 				};
 
-				// Remote groups needs to be extracted from the remote source
-				if (grid.fetcher) {
+				// Remote groups needs to be extracted from the remote source.
+				// Do not re-fetch if all data is already loaded.
+				if (grid.fetcher && !remoteAllLoaded()) {
 					// remoteFetchGroups will cache the results after the first request,
 					// so there is no fear of this being re-querying the server on every grouping loop
 					remoteFetchGroups(function (results) {
@@ -2914,9 +2915,11 @@
 
 				// If resetting grouping - reset toggle cache
 				if (!options.length) toggledGroupsByLevel = [];
-
+				
+				var fullyLoaded = grid.fetcher ? remoteAllLoaded() : true;
+				
 				// Reset remote grouping cache
-				cache.remoteGroups = null;
+				if (!fullyLoaded) cache.remoteGroups = null;
 
 				// Reset group cache
 				var i, l, groups = [], col;
@@ -2965,7 +2968,7 @@
 				// When we're dealing with remote groups - we might as well re-generate placeholders
 				// for everything since any data that was previously fetched is no longer in the right
 				// order anyway.
-				if (grid.fetcher) {
+				if (!fullyLoaded && grid.fetcher) {
 					// Reset collection length to full. This ensures that when groupings are removed,
 					// the grid correctly refetches the full page of results.
 					this.length = this.remote_length;
@@ -2975,10 +2978,9 @@
 				// Unfortunately, because group row heights may be different than regular row heights
 				// we need to completely invalidate all rows here to prevent misplaced row rendering.
 				if (variableRowHeight) invalidateAllRows();
-
 				
 				// If groupings have changed - refetch groupings
-				if (grid.fetcher && grouping_changed) {
+				if (grid.fetcher && !fullyLoaded && grouping_changed) {
 					remoteGroupRefetch();
 				} else {
 					// Reload the grid with the new grouping
@@ -2989,7 +2991,7 @@
 				// will cause the row sizes to be changed.
 				if (variableRowHeight) resizeCanvas(true);
 				
-				if (grid.fetcher && groups.length === 0) {
+				if (grid.fetcher && !fullyLoaded && groups.length === 0) {
 					// If all groupings are removed - refetch the data
 					remoteFetch();
 				}
@@ -6640,15 +6642,9 @@
 		//
 		remoteAllLoaded = function () {
 			// Do we have any placeholders?
-			for (var i = 0, l = cache.rows.length; i < l; i++) {
-				if (cache.rows[i].__placeholder) {
+			for (var i = 0, l = self.collection.items.length; i < l; i++) {
+				if (self.collection.items[i].__placeholder) {
 					return false;
-				} else if (cache.rows[i]._groupRow) {
-					for (var j = 0, m = cache.rows[i].grouprows.length; j < m; j++) {
-						if (cache.rows[i].grouprows[j].__placeholder) {
-							return false;
-						}
-					}
 				}
 			}
 			return true;
@@ -6724,10 +6720,14 @@
 
 			// If there are groups - we need to scan from the very top to ensure we calculate
 			// the correct data offsets.
-			var start = self.collection.groups.length ? 0 : from;
+			var start = self.collection.groups.length ? 0 : from,
+				newFrom,
+				newTo,
+				r,
+				nonDataOffset = 0,
+				collapsedOffset = 0;
 
 			// Strip out the range that is already loaded
-			var newFrom, newTo, r, nonDataOffset = 0, collapsedOffset = 0;
 			for (var i = start; i <= to; i++) {
 				r = cache.rows[i];
 
