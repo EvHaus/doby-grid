@@ -993,6 +993,44 @@ describe("Remote Data", function () {
 					});
 				});
 			});
+			
+			
+			// ==========================================================================================
+
+
+			it("should call fetch when setGrouping changes column values", function () {
+				var column_id1 = "city",
+					column_id2a = "age",
+					column_id2b = "name",
+					updated = false;
+
+				// Add grouping
+				runs(function () {
+					grid.setGrouping([
+						{column_id: column_id1, collapsed: false},
+						{column_id: column_id2a, collapsed: false}
+					]);
+				});
+
+				// Wait for the groups to be fetched and calculated
+				waitsFor(function () {
+					return grid.collection.groups.length == 2 && grid.collection.groups[0].rows.length;
+				}, 500, 'groups should be fetched');
+
+				// Change grouping
+				runs(function () {
+					grid.on('remoteloaded', function () {
+						updated = true;
+					});
+
+					grid.setGrouping([{column_id: column_id1}, {column_id: column_id2b}]);
+				});
+
+				// Wait for data to be refetched
+				waitsFor(function () {
+					return updated;
+				}, 500, 'fetch should be called again');
+			});
 		});
 
 

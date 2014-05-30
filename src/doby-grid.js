@@ -2909,14 +2909,14 @@
 				if (!grid.options.groupable) throw new Error('Cannot execute "setGrouping" because "options.groupable" is disabled.');
 
 				options = options || [];
-
+				
 				if (!$.isArray(options)) throw new Error('Unable to set grouping because given options are not an array. Given: ' + JSON.stringify(options));
 
 				// If resetting grouping - reset toggle cache
 				if (!options.length) toggledGroupsByLevel = [];
 
 				// Reset remote grouping cache
-				if (cache.remoteGroups) cache.remoteGroups = null;
+				cache.remoteGroups = null;
 
 				// Reset group cache
 				var i, l, groups = [], col;
@@ -2942,6 +2942,19 @@
 					// Extend using a default grouping object and add to groups
 					groups.push(createGroupingObject(options[i]));
 				}
+				
+				// Consider groupings changed if the number of groupings changed
+				var grouping_changed = groups.length !== this.groups.length;
+				
+				// If the grouping column ids have changed
+				if (!grouping_changed) {
+					for (i = 0, l = groups.length; i < l; i++) {
+						if (groups[i].column_id !== this.groups[i].column_id) {
+							grouping_changed = true;
+							break;
+						}
+					}
+				}
 
 				// Set groups
 				this.groups = groups;
@@ -2963,15 +2976,23 @@
 				// we need to completely invalidate all rows here to prevent misplaced row rendering.
 				if (variableRowHeight) invalidateAllRows();
 
-				// Reload the grid with the new grouping
-				this.refresh();
+				
+				// If groupings have changed - refetch groupings
+				if (grid.fetcher && grouping_changed) {
+					remoteGroupRefetch();
+				} else {
+					// Reload the grid with the new grouping
+					this.refresh();
+				}
 
 				// If we're in variable row height mode - resize the canvas now since grouping changes
 				// will cause the row sizes to be changed.
 				if (variableRowHeight) resizeCanvas(true);
-
-				// If we're removing grouping - refetch remote data
-				if (grid.fetcher && groups.length === 0) remoteFetch();
+				
+				if (grid.fetcher && groups.length === 0) {
+					// If all groupings are removed - refetch the data
+					remoteFetch();
+				}
 
 				grid.trigger('statechange', this._event, {});
 			};
