@@ -476,7 +476,7 @@
 
 		// Is this instance destroyed?
 		this.destroyed = false;
-		
+
 		// The remote fetching object used for remote data
 		this.fetcher = false;
 
@@ -2910,14 +2910,14 @@
 				if (!grid.options.groupable) throw new Error('Cannot execute "setGrouping" because "options.groupable" is disabled.');
 
 				options = options || [];
-				
+
 				if (!$.isArray(options)) throw new Error('Unable to set grouping because given options are not an array. Given: ' + JSON.stringify(options));
 
 				// If resetting grouping - reset toggle cache
 				if (!options.length) toggledGroupsByLevel = [];
-				
+
 				var fullyLoaded = grid.fetcher ? remoteAllLoaded() : true;
-				
+
 				// Reset remote grouping cache
 				if (!fullyLoaded) cache.remoteGroups = null;
 
@@ -2945,10 +2945,10 @@
 					// Extend using a default grouping object and add to groups
 					groups.push(createGroupingObject(options[i]));
 				}
-				
+
 				// Consider groupings changed if the number of groupings changed
 				var grouping_changed = groups.length !== this.groups.length;
-				
+
 				// If the grouping column ids have changed
 				if (!grouping_changed) {
 					for (i = 0, l = groups.length; i < l; i++) {
@@ -2978,7 +2978,7 @@
 				// Unfortunately, because group row heights may be different than regular row heights
 				// we need to completely invalidate all rows here to prevent misplaced row rendering.
 				if (variableRowHeight) invalidateAllRows();
-				
+
 				// If groupings have changed - refetch groupings
 				if (grid.fetcher && !fullyLoaded && grouping_changed) {
 					remoteGroupRefetch();
@@ -2990,7 +2990,7 @@
 				// If we're in variable row height mode - resize the canvas now since grouping changes
 				// will cause the row sizes to be changed.
 				if (variableRowHeight) resizeCanvas(true);
-				
+
 				if (grid.fetcher && !fullyLoaded && groups.length === 0) {
 					// If all groupings are removed - refetch the data
 					remoteFetch();
@@ -5032,7 +5032,7 @@
 				rowTop = Math.floor(getRowFromPosition(viewportTop + offset));
 				rowBottom = Math.ceil(getRowFromPosition(viewportTop + offset + viewportH));
 			}
-			
+
 			if (isNaN(rowTop)) rowTop = null;
             if (isNaN(rowBottom)) rowBottom = null;
 
@@ -6052,7 +6052,7 @@
 			self.listenTo(self.options.data, 'add', function (model, collection, options) {
 				// If grid is destroyed by the time we get here - leave
 				if (self.destroyed) return;
-				
+
 				// If "silentDobyRefresh" option is used -- add silently
 				if (options.silentDobyRefresh !== undefined) {
 					options.silent = options.silentDobyRefresh;
@@ -6065,7 +6065,7 @@
 			self.listenTo(self.options.data, 'change', function (model) {
 				// If grid is destroyed by the time we get here - leave
 				if (self.destroyed) return;
-				
+
 				// When items are changed - re-render the right row
 				if (model.changed && model.changed[self.options.idProperty]) {
 					// If trying to edit the idProperty field -- capture that and send it to
@@ -6079,7 +6079,7 @@
 			self.listenTo(self.options.data, 'remove', function (model) {
 				// If grid is destroyed by the time we get here - leave
 				if (self.destroyed) return;
-				
+
 				// When items are removed - remove the right row
 				self.collection.remove(model[self.options.idProperty]);
 			});
@@ -6087,14 +6087,14 @@
 			self.listenTo(self.options.data, 'reset', function (collection) {
 				// If grid is destroyed by the time we get here - leave
 				if (self.destroyed) return;
-				
+
 				self.collection.reset(collection);
 			});
 
 			self.listenTo(self.options.data, 'sort', _.debounce(function () {
 				// If grid is destroyed by the time we get here - leave
 				if (self.destroyed) return;
-				
+
 				// If sorting before we've had a chance to process the collection - skip
 				if (!self.collection) return;
 
@@ -6680,12 +6680,12 @@
 			self.fetcher.count(options, function (result) {
 				// Grid was destroyed before the callback finished
 				if (self.destroyed) return;
-				
+
 				// Validate
 				if (typeof(result) !== 'number') {
 					throw new Error('Your count() method must return a number. It returned a ' + typeof(result) + ' of value "' + result + '" instead.');
 				}
-				
+
 				// Sets the current collection length
 				self.collection.length = result;
 
@@ -6720,7 +6720,7 @@
 			var vp = getVisibleRange(),
 				from = vp.top,
 				to = vp.bottom;
-			
+
 			// If scrolling fast, abort pending requests
 			if (remoteRequest && typeof remoteRequest.abort === 'function') {
 				remoteRequest.abort();
@@ -6861,7 +6861,7 @@
 				try {
 					// Fire onLoading callback
 					if (typeof self.fetcher.onLoading === 'function') self.fetcher.onLoading();
-					
+
 					remoteRequest = self.fetcher.fetch(options, function (results) {
 						// Empty the request variable so it doesn't get aborted on scroll
 						remoteRequest = null;
@@ -8927,15 +8927,15 @@
 				if (group.collapsed === 0 && group.sticky) {
 
 					stickyIds.push(group[self.options.idProperty]);
-					
+
 					// Check if row is already cached and rendered
 					var $cached = cache.stickyRows[i], $clone;
-					
+
 					if ($cached && $cached.length && $cached.attr('rel') == group[self.options.idProperty]) {
 						$clone = $cached;
 					} else {
 						var child = '.' + classsticky + '[rel="' + group[self.options.idProperty] + '"]:first';
-						
+
 						$clone = $viewport.parent().children(child);
 
 						if ($clone.length) $clone.remove();
@@ -8945,7 +8945,7 @@
 
 						// If no id found (ie. null group with null groups disabled)
 						if (stickyIndex === undefined) continue;
-						
+
 						// Create group row if it doesn't already exist,
 						// (due to being outside the viewport)
 						if (!cacheNode) {
@@ -8968,7 +8968,7 @@
 							.width($canvas.css('width'))
 							.removeClass(classgrouptoggle)
 							.appendTo($viewport.parent());
-						
+
 						// Cache row
 						cache.stickyRows[i] = $clone;
 					}
@@ -9134,7 +9134,7 @@
 			// Builds a list of all available aggregators for the user to choose from
 			var aggregator_menu = [];
 			if (column && cache.aggregatorsByColumnId[column.id]) {
-				for (var ai = 0, al = cache.aggregatorsByColumnId[column.id].length; ai < al; ai++) {
+				for (var ai in cache.aggregatorsByColumnId[column.id]) {
 					aggregator_menu.push({
 						fn: aFn(column, ai),
 						name: column.aggregators[ai].name,
