@@ -6050,6 +6050,9 @@
 		//
 		bindToCollection = function () {
 			self.listenTo(self.options.data, 'add', function (model, collection, options) {
+				// If grid is destroyed by the time we get here - leave
+				if (self.destroyed) return;
+				
 				// If "silentDobyRefresh" option is used -- add silently
 				if (options.silentDobyRefresh !== undefined) {
 					options.silent = options.silentDobyRefresh;
@@ -6060,6 +6063,9 @@
 			});
 
 			self.listenTo(self.options.data, 'change', function (model) {
+				// If grid is destroyed by the time we get here - leave
+				if (self.destroyed) return;
+				
 				// When items are changed - re-render the right row
 				if (model.changed && model.changed[self.options.idProperty]) {
 					// If trying to edit the idProperty field -- capture that and send it to
@@ -6071,15 +6077,24 @@
 			});
 
 			self.listenTo(self.options.data, 'remove', function (model) {
+				// If grid is destroyed by the time we get here - leave
+				if (self.destroyed) return;
+				
 				// When items are removed - remove the right row
 				self.collection.remove(model[self.options.idProperty]);
 			});
 
 			self.listenTo(self.options.data, 'reset', function (collection) {
+				// If grid is destroyed by the time we get here - leave
+				if (self.destroyed) return;
+				
 				self.collection.reset(collection);
 			});
 
 			self.listenTo(self.options.data, 'sort', _.debounce(function () {
+				// If grid is destroyed by the time we get here - leave
+				if (self.destroyed) return;
+				
 				// If sorting before we've had a chance to process the collection - skip
 				if (!self.collection) return;
 
