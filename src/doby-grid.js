@@ -5854,6 +5854,8 @@
 
 			// Redraw grid
 			invalidate();
+			
+			return this;
 		};
 
 
@@ -8624,6 +8626,8 @@
 				(options.class ? ' ' + options.class : ''),
 				'">', (options.html || ""), '</div>'
 			].join('')).appendTo($canvas);
+			
+			return this;
 		};
 
 
