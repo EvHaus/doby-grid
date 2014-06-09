@@ -3621,12 +3621,12 @@
 			// Positions the dropdown in the right spot
 			//
 			this.position = function () {
-				var top = event.clientY,
-					left = event.clientX,
+				var top = event.pageY,
+					left = event.pageX,
 					menu_width = this.$el.outerWidth(),
 					menu_height = this.$el.outerHeight(),
-					required_width = left + menu_width,
-					required_height = top + menu_height,
+					required_width = event.clientX + menu_width,
+					required_height = event.clientY + menu_height,
 					b = $(document.body),
 					available_width = b.width(),
 					available_height = b.height();
@@ -3655,7 +3655,6 @@
 
 				// Now, loop through all of the submenus and determine which way they should drop
 				// depending on how much screen space there is
-
 				var pos, off, height, width, leftright, parentWidth;
 				this.$el.children('.' + classdropdownmenu + ':first').find('.' + classdropdownmenu).each(function () {
 					pos = $(this).position();
@@ -3674,7 +3673,7 @@
 					}
 
 					// Determine whether to drop to up or down
-					$(this).addClass(off.top - Math.min(pos.top, 0) + height > available_height ? 'drop-up' : 'drop-down');
+					$(this).addClass(event.clientY + height > available_height ? 'drop-up' : 'drop-down');
 				});
 			};
 
