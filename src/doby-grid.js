@@ -780,7 +780,16 @@
 							(self.options.quickFilter && !$(ae).closest('.' + classheaderfiltercell).length) ||
 							!self.options.quickFilter
 						)) {
+							
+							// Prevent page from scrolling when the grid is focused.
+							// Remember previous scroll position.
+							var prevScroll = [window.scrollX, window.scrollY];
+							
+							// This will un-necessarily scroll the page
 							$(this).focus();
+							
+							// Restore scroll
+							window.scrollTo(prevScroll[0], prevScroll[1]);
 						}
 					}
 
