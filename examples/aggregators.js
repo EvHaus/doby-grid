@@ -14,7 +14,7 @@ define([], function () {
 				return "Total: <strong>" + this.total + "</strong>";
 			};
 			this.process = function (item) {
-				this.total += (item.data[column.field] || 0);
+				this.total += parseInt((item.data[column.field] || 0), 10);
 			};
 			this.reset = function () {
 				this.total = 0;
@@ -39,7 +39,7 @@ define([], function () {
 				return "Avg: <strong>" + Math.round(avg / this.total.length) + "</strong>";
 			};
 			this.process = function (item) {
-				this.total.push(item.data[column.field]);
+				this.total.push(parseInt(item.data[column.field], 10));
 			};
 			this.reset = function () {
 				this.total = [];
@@ -110,6 +110,7 @@ define([], function () {
 		return {
 			columns: columns,
 			data: data,
+			editable: true,
 			quickFilter: true,
 			stickyGroupRows: true
 		};

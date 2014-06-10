@@ -1696,6 +1696,12 @@
 							}
 						}
 
+						// If we're using aggregators - update them now
+						if (Object.keys(cache.aggregatorsByColumnId).length > 0) {
+							resetAggregators();
+							self.collection.refresh();
+						}
+
 						// Deselect any selections
 						deselectCells();
 
