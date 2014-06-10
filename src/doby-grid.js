@@ -283,6 +283,7 @@
 			renderRow,
 			renderRows,
 			resetActiveCell,
+			resetAggregators,
 			resizeCanvas,
 			scrollCellIntoView,
 			scrollLeft = 0,
@@ -780,14 +781,14 @@
 							(self.options.quickFilter && !$(ae).closest('.' + classheaderfiltercell).length) ||
 							!self.options.quickFilter
 						)) {
-							
+
 							// Prevent page from scrolling when the grid is focused.
 							// Remember previous scroll position.
 							var prevScroll = [window.scrollX, window.scrollY];
-							
+
 							// This will un-necessarily scroll the page
 							$(this).focus();
-							
+
 							// Restore scroll
 							window.scrollTo(prevScroll[0], prevScroll[1]);
 						}
@@ -2096,6 +2097,7 @@
 			//
 			expandCollapseGroup = function (level, group_id, collapse) {
 				toggledGroupsByLevel[level][group_id] = self.groups[level].collapsed ^ collapse;
+				resetAggregators();
 				self.refresh();
 				if (grid.fetcher && !collapse) remoteFetch();
 			};
@@ -2967,6 +2969,9 @@
 						}
 					}
 				}
+
+				// Reset aggregators
+				resetAggregators();
 
 				// Set groups
 				this.groups = groups;
@@ -4041,15 +4046,7 @@
 			if (this.fetcher) {
 				this.refetch();
 			} else {
-				// Reset aggregator values
-				for (var column_id in cache.aggregatorsByColumnId) {
-					for (var i in cache.aggregatorsByColumnId[column_id]) {
-						cache.aggregatorsByColumnId[column_id][i]._processed = false;
-						if (typeof(cache.aggregatorsByColumnId[column_id][i].reset) == 'function') {
-							cache.aggregatorsByColumnId[column_id][i].reset();
-						}
-					}
-				}
+				resetAggregators();
 
 				// Refresh the grid with the filtered data
 				this.collection.refresh();
@@ -5862,7 +5859,7 @@
 
 			// Redraw grid
 			invalidate();
-			
+
 			return this;
 		};
 
@@ -7518,6 +7515,22 @@
 		};
 
 
+		// resetAggregators()
+		// Resets all aggregators
+		//
+		resetAggregators = function () {
+			// Reset aggregator values
+			for (var column_id in cache.aggregatorsByColumnId) {
+				for (var i in cache.aggregatorsByColumnId[column_id]) {
+					cache.aggregatorsByColumnId[column_id][i]._processed = false;
+					if (typeof(cache.aggregatorsByColumnId[column_id][i].reset) == 'function') {
+						cache.aggregatorsByColumnId[column_id][i].reset();
+					}
+				}
+			}
+		};
+
+
 		// resize()
 		// Force the resize and re-draw of the grid (for when coming out of an invisible element)
 		//
@@ -8201,6 +8214,7 @@
 			}
 
 			if (changed) {
+				resetAggregators();
 
 				// Re-process column args into something the execute sorter can understand
 				var args = {
@@ -8634,7 +8648,7 @@
 				(options.class ? ' ' + options.class : ''),
 				'">', (options.html || ""), '</div>'
 			].join('')).appendTo($canvas);
-			
+
 			return this;
 		};
 

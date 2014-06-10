@@ -183,6 +183,63 @@ describe("Column Options", function () {
 				}));
 			}).toThrow("The column aggregator for \"id\" is missing a valid 'process' function.");
 		});
+
+
+		// ==========================================================================================
+
+
+		it("should reset aggregators when sorting or grouping is changed", function () {
+			var grid = resetGrid($.extend(defaultData(), {
+				columns: [{
+					id: 'id',
+					field: 'id',
+					name: 'id',
+					aggregators: [{
+						name: "Test",
+						fn: function (column) {
+							this.exporter = function () {
+								return (this.total || "");
+							};
+							this.formatter = function () {
+								return "Total: <strong>" + this.total + "</strong>";
+							};
+							this.process = function (item) {
+								this.total += (item.data[column.field] || 0);
+							};
+							this.reset = function () {
+								this.total = 0;
+							};
+							return this;
+						}
+					}]
+				}]
+			}));
+
+			// Check for a rendered aggregate row at the bottom
+			var lastCell = grid.$el.find('.doby-grid-row .doby-grid-cell').last(),
+				originalValue = lastCell.text();
+
+			// Change sorting
+			grid.sortBy('id');
+
+			// Ensure aggregator value stays the same
+			lastCell = grid.$el.find('.doby-grid-row .doby-grid-cell').last();
+			expect(lastCell.text()).toEqual(originalValue);
+
+			// Change grouping
+			grid.setGrouping([{column_id: 'id'}]);
+
+			// Ensure aggregator value stays the same
+			lastCell = grid.$el.find('.doby-grid-row .doby-grid-cell').last();
+			expect(lastCell.text()).toEqual(originalValue);
+
+			// Toggle group collapsing
+			grid.$el.find('.doby-grid-group .doby-grid-cell').simulate('click');
+
+			// Ensure aggregator value stays the same
+			lastCell = grid.$el.find('.doby-grid-row .doby-grid-cell').last();
+			expect(lastCell.text()).toEqual(originalValue);
+		});
 	});
 
 
