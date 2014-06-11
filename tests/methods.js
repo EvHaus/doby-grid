@@ -1259,8 +1259,8 @@ describe("Methods and Data Manipulation", function () {
 			expect(gotten.data.id).toEqual(2);
 		});
 	});
-	
-	
+
+
 	// ==========================================================================================
 
 
@@ -1302,8 +1302,8 @@ describe("Methods and Data Manipulation", function () {
 			expect(grid.getRowFromEvent(event)).toEqual(item);
 		});
 	});
-	
-	
+
+
 	// ==========================================================================================
 
 
@@ -1338,6 +1338,36 @@ describe("Methods and Data Manipulation", function () {
 				autoColumnWidth: false,
 				columns: [{
 					id: 1,
+					width: 80
+				}],
+				filters: [],
+				grouping: [],
+				sort: []
+			});
+		});
+
+
+		// ==========================================================================================
+
+
+		it("should be able to get state for additional properties", function () {
+			var grid = resetGrid({
+				columns: [{
+					id: 1,
+					name: "Excellent!",
+					removable: true
+				}]
+			});
+
+			var state = grid.getState({
+				column_properties: ['name']
+			});
+
+			expect(state).toEqual({
+				autoColumnWidth: false,
+				columns: [{
+					id: 1,
+					name: "Excellent!",
 					width: 80
 				}],
 				filters: [],

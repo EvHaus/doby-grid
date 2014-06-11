@@ -4917,8 +4917,13 @@
 		// Retrieves a configuration object for the state of all user customizations for the grid.
 		// This allows you to easily restore states between page reloads.
 		//
+		// @param	{object}	[options]						- Additional options
+		// @param	{array}		[options.column_properties]		- A list of additional column properties to save
+		//
 		// @return object
-		this.getState = function () {
+		this.getState = function (options) {
+			options = options || {};
+
 			var results = {
 				autoColumnWidth: this.options.autoColumnWidth,
 				columns: [],
@@ -4932,11 +4937,22 @@
 				column = cache.activeColumns[i];
 				if (!column.visible) continue;
 
-				// Only store the customizable bits of the column definition
-				results.columns.push({
+				// By default, only store the customizable bits of the column definition
+				var col_store = {
 					id: column.id,
 					width: column.width
-				});
+				};
+
+				// However, if the user specified additional params to store - get them now
+				if (options.column_properties) {
+					for (var c = 0, cl = options.column_properties.length; c < cl; c++) {
+						if (column[options.column_properties[c]] !== undefined) {
+							col_store[options.column_properties[c]] = column[options.column_properties[c]];
+						}
+					}
+				}
+
+				results.columns.push(col_store);
 			}
 
 			// Get filters
