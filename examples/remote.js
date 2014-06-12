@@ -2,7 +2,7 @@
 
 define(['backbone', 'dataset'], function (Backbone, dataset) {
 	"use strict";
-	
+
 	// Use a Backbone data set?
 	var backboneset = true;
 
@@ -91,7 +91,7 @@ define(['backbone', 'dataset'], function (Backbone, dataset) {
 							column = options.order[i].columnId;
 							value1 = dataRow1.data[column];
 							value2 = dataRow2.data[column];
-							
+
 							// Nulls always on the bottom
 							if (value1 === null) return 1;
 							if (value2 === null) return -1;
@@ -176,11 +176,19 @@ define(['backbone', 'dataset'], function (Backbone, dataset) {
 					if (i === 0) {
 						generateGroup(column_id, _.filter(dataset, main_filter), i);
 					} else {
+						var parentGroup;
 						for (var j = 0, m = results[i - 1].groups.length; j < m; j++) {
-							generateGroup(column_id, results[i - 1].groups[j]._rows, i, results[i - 1].groups[j].value);
+							if (results[i - 1].groups[j].parent) {
+								parentGroup = results[i - 1].groups[j].parent.concat([results[i - 1].groups[j].value]);
+							} else {
+								parentGroup = [results[i - 1].groups[j].value];
+							}
+
+							generateGroup(column_id, results[i - 1].groups[j]._rows, i, parentGroup);
 						}
 					}
 				}
+
 				callback(results);
 			}, 5);
 		};

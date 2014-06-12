@@ -125,7 +125,7 @@ describe("Remote Data", function () {
 											column = options.order[i].columnId;
 											value1 = dataRow1.data[column];
 											value2 = dataRow2.data[column];
-											
+
 											// Nulls always on the bottom
 											if (value1 === null) return 1;
 											if (value2 === null) return -1;
@@ -202,8 +202,15 @@ describe("Remote Data", function () {
 								if (i === 0) {
 									generateGroup(column_id, _.filter(data, main_filter), i);
 								} else {
+									var parentGroup;
 									for (var j = 0, m = results[i - 1].groups.length; j < m; j++) {
-										generateGroup(column_id, results[i - 1].groups[j]._rows, i, results[i - 1].groups[j].value);
+										if (results[i - 1].groups[j].parent) {
+											parentGroup = results[i - 1].groups[j].parent.concat([results[i - 1].groups[j].value]);
+										} else {
+											parentGroup = [results[i - 1].groups[j].value];
+										}
+
+										generateGroup(column_id, results[i - 1].groups[j]._rows, i, parentGroup);
 									}
 								}
 							}
@@ -242,8 +249,8 @@ describe("Remote Data", function () {
 				return waitForRefresh && loaded;
 			}, "Fetching the first page", 2000);
 		});
-		
-		
+
+
 		// ==========================================================================================
 
 
@@ -261,13 +268,13 @@ describe("Remote Data", function () {
 			grid.fetcher.count = function (options, callback) {
 				callback("bad value");
 			};
-			
+
 			// Try refetching
 			expect(function () {
 				grid.reset();
 				grid.refetch();
 			}).toThrow('Your count() method must return a number. It returned a string of value "bad value" instead.');
-			
+
 			// Put value back
 			grid.fetcher.count = oldCount;
 		});
@@ -993,8 +1000,8 @@ describe("Remote Data", function () {
 					});
 				});
 			});
-			
-			
+
+
 			// ==========================================================================================
 
 

@@ -2197,7 +2197,7 @@
 						var rm_g;
 						for (var m = 0, n = remote_groups[level].groups.length; m < n; m++) {
 							rm_g = remote_groups[level].groups[m];
-							if (parentGroup && rm_g.parent != parentGroup.value) continue;
+							if (parentGroup && rm_g.parent[level - 1] != parentGroup.value) continue;
 							group = createGroupObject(rm_g);
 							groups.push(group);
 							groupsByVal[group.value] = group;
