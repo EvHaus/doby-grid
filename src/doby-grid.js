@@ -178,7 +178,6 @@
 			getColumnContentWidth,
 			getColumnFromEvent,
 			getColspan,
-			getDataItem,
 			getDataItemValueForColumn,
 			getDataLength,
 			getEditor,
@@ -763,7 +762,7 @@
 					'mouseup'
 				], evHandler = function (event) {
 					var cell = getCellFromEvent(event),
-						item = cell && cell.row !== undefined && cell.row !== null ? getDataItem(cell.row) : null,
+						item = cell && cell.row !== undefined && cell.row !== null ? self.getRowFromIndex(cell.row) : null,
 						column = cell ? cache.activeColumns[cell.cell] : null;
 
 					self.trigger(event.type, event, {
@@ -935,7 +934,7 @@
 							postprocess({
 								$cell: $(node),
 								column: col,
-								data: getDataItem(row),
+								data: self.getRowFromIndex(row),
 								grid: self,
 								rowIndex: row
 							}, cb.bind({node: node, col: col, row: row}));
@@ -1437,8 +1436,7 @@
 				cellsAdded = 0;
 
 				var item = self.getRowFromIndex(row),
-					metadata = item.columns,
-					d = getDataItem(row);
+					metadata = item.columns;
 
 				for (var i = 0, ii = cache.activeColumns.length; i < ii; i++) {
 					// Cells to the right are outside the range.
@@ -1461,7 +1459,7 @@
 					}
 
 					if (cache.columnPosRight[Math.min(ii - 1, i + colspan - 1)] > range.leftPx) {
-						renderCell(stringArray, row, i, colspan, d);
+						renderCell(stringArray, row, i, colspan, item);
 						cellsAdded++;
 					}
 
@@ -1575,7 +1573,7 @@
 		commitCurrentEdit = function (callback) {
 			if (!self.active || !self.currentEditor) return callback(true);
 
-			var item = getDataItem(self.active.row),
+			var item = self.getRowFromIndex(self.active.row),
 				column = cache.activeColumns[self.active.cell];
 
 			// Creates a list of all the cells that will be affected by the edit
@@ -4526,21 +4524,6 @@
 		};
 
 
-		// getDataItem()
-		// Given an item's index returns its data object
-		//
-		// @param	i	integer		Index of the data item
-		//
-		// @return object
-		getDataItem = function (i) {
-			if (self.getRowFromIndex) {
-				return self.getRowFromIndex(i);
-			} else {
-				return self.collection[i];
-			}
-		};
-
-
 		// getDataItemValueForColumn()
 		// Given an item object and a column definition, returns the value of the column
 		// to display in the cell.
@@ -5401,7 +5384,7 @@
 			}
 
 			// Get item from cell
-			var item = getDataItem(cell.row);
+			var item = self.getRowFromIndex(cell.row);
 
 			// Handle group expand/collapse
 			if (self.options.collapsible && item && item._groupRow) {
@@ -5490,7 +5473,7 @@
 			self.trigger('contextmenu', e, {
 				cell: cell.cell !== null && cell.cell !== undefined ? cell.cell : null,
 				column: column,
-				item: getDataItem(cell.row),
+				item: self.getRowFromIndex(cell.row),
 				row: cell.row !== null && cell.row !== undefined ? cell.row : null
 			});
 		};
@@ -5512,7 +5495,7 @@
 			self.trigger('dblclick', e, {
 				cell: cell.cell !== null && cell.cell !== undefined ? cell.cell : null,
 				column: column,
-				item: getDataItem(cell.row),
+				item: self.getRowFromIndex(cell.row),
 				row: cell.row !== null && cell.row !== undefined ? cell.row : null
 			});
 
@@ -5913,7 +5896,7 @@
 		// @return boolean
 		isCellPotentiallyEditable = function (row, cell) {
 			var dataLength = getDataLength(),
-				item = getDataItem(row);
+				item = self.getRowFromIndex(row);
 
 			if (!item) return false;
 
@@ -6148,7 +6131,7 @@
 			clearTimeout(h_editorLoader);
 
 			var columnDef = cache.activeColumns[self.active.cell];
-			var item = getDataItem(self.active.row);
+			var item = self.getRowFromIndex(self.active.row);
 
 			$(self.active.node).addClass("editable");
 
@@ -6207,7 +6190,7 @@
 			self.currentEditor = null;
 
 			if (self.active && self.active.node) {
-				var d = getDataItem(self.active.row);
+				var d = self.getRowFromIndex(self.active.row);
 				$(self.active.node).removeClass("editable invalid");
 				if (d) {
 					var column = cache.activeColumns[self.active.cell];
@@ -7396,7 +7379,7 @@
 		// @param	range			object		Viewport range to display
 		//
 		renderRow = function (stringArray, row, range) {
-			var d = getDataItem(row),
+			var d = self.getRowFromIndex(row),
 				rowCss = classrow +
 					(self.active && row === self.active.row ? " active" : "") +
 					(row % 2 === 1 ? " odd" : ""),
@@ -8015,7 +7998,7 @@
 
 			if (activeCellChanged) {
 				var eventdata = getActiveCell();
-				eventdata.item = getDataItem(eventdata.row);
+				eventdata.item = self.getRowFromIndex(eventdata.row);
 				self.trigger('activecellchange', self._event, eventdata);
 			}
 		};
@@ -9604,7 +9587,7 @@
 
 			ensureCellNodesInRowsCache(row);
 
-			var d = getDataItem(row);
+			var d = self.getRowFromIndex(row);
 
 			for (var columnIdx in cacheEntry.cellNodesByColumnIdx) {
 				if (!cacheEntry.cellNodesByColumnIdx.hasOwnProperty(columnIdx)) {
