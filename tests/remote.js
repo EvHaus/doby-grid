@@ -1509,3 +1509,107 @@ describe("Remote Data", function () {
 
 	});
 });
+
+
+// ==========================================================================================
+
+
+describe("Remote Data Edge Cases", function () {
+	"use strict";
+
+	it("should not attempt to refetch data after chaning filters if the grid hasn't been initialized yet", function () {
+		// Render Grid
+		var fetch;
+		var grid = new DobyGrid({
+			columns: [
+				{id: 'id', field: 'id', name: 'id', width: 600},
+				{id: 'name', field: 'name', name: 'name'}
+			],
+			data: function () {
+				this.count = function (options, callback) {
+					callback(10);
+				};
+				this.fetch = function () {
+					fetch = true;
+				};
+			}
+		});
+
+		// Execute filter
+		grid.filter([['id', '=', 189]]);
+
+		var waitABit;
+		setTimeout(function () {
+			waitABit = true;
+		}, 200);
+
+		// Only fetchGroups should be called. 'fetch' should NOT be called here.
+		waitsFor(function () {
+			return waitABit;
+		}, 250, 'fetch to not be called');
+
+		runs(function () {
+			expect(fetch).toEqual(null);
+		});
+
+	});
+
+
+	// ==========================================================================================
+
+
+	it("should not attempt to fetch remote data after initialization if groupings are configured", function () {
+		// Render Grid
+		var fetch, fetchGroups;
+		var grid = new DobyGrid({
+			columns: [
+				{id: 'id', field: 'id', name: 'id', width: 600},
+				{id: 'name', field: 'name', name: 'name'}
+			],
+			data: function () {
+				this.count = function (options, callback) {
+					callback(10);
+				};
+				this.fetch = function () {
+					fetch = true;
+				};
+				this.fetchGroups = function (options, callback) {
+					fetchGroups = true;
+					callback([{
+						column_id: 'name',
+						groups: [{
+							'count': 5,
+							'value': 'bcd'
+						}, {
+							'count': 5,
+							'value': 'adb'
+						}]
+					}]);
+				};
+			}
+		}), fixture = setFixtures();
+
+		fixture.attr('style', 'position:absolute;top:0;left:0;opacity:0;height:300px;width:300px');
+
+		// Set grouping
+		grid.setGrouping([{column_id: 'name', collapsed: false}]);
+
+		// Then initialize the grid
+		grid.appendTo(fixture);
+
+		var waitABit;
+		setTimeout(function () {
+			waitABit = true;
+		}, 500);
+
+		// Only fetchGroups should be called. 'fetch' should NOT be called here.
+		waitsFor(function () {
+			return waitABit;
+		}, 550, 'fetch to not be called');
+
+		runs(function () {
+			expect(fetch).toEqual(null);
+			expect(fetchGroups).toEqual(true);
+		});
+	});
+});

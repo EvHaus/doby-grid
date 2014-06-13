@@ -699,11 +699,12 @@
 				// If we're using remote data, start by fetching the data set length
 				if (this.fetcher) {
 					remoteCount(function () {
-						// If we haven't scrolled anywhere yet - fetch the first page
-						if ($viewport[0].scrollTop === 0) {
+						// If we haven't scrolled anywhere yet - fetch the first page,
+						// but only if we're not grouped
+						if ($viewport[0].scrollTop === 0 && this.collection.groups.length === 0) {
 							remoteFetch();
 						}
-					});
+					}.bind(this));
 
 					// Subscribe to scroll events
 					this.on('viewportchanged', function () {
@@ -4048,7 +4049,8 @@
 
 			// Remote data needs to be completely reloaded
 			if (this.fetcher) {
-				this.refetch();
+				// Only re-fetch if the grid is initialized, otherwise we're wasting an AJAX call
+				if (initialized) this.refetch();
 			} else {
 				resetAggregators();
 
