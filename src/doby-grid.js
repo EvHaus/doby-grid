@@ -1695,10 +1695,13 @@
 							}
 						}
 
-						// If we're using aggregators - update them now
+						// If we're using aggregators - update them now.
+						// Except for Backbone Collection data sets -- those will auto-refresh
 						if (Object.keys(cache.aggregatorsByColumnId).length > 0) {
 							resetAggregators();
-							self.collection.refresh();
+							if (!(self.options.data instanceof Backbone.Collection)) {
+								self.collection.refresh();
+							}
 						}
 
 						// Deselect any selections
