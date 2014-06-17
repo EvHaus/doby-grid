@@ -9154,7 +9154,7 @@
 					// Invalidate all Aggregate rows in the visible range
 					var range = getVisibleRange();
 					for (var ci = range.top, ct = range.bottom; ci < ct; ci++) {
-						if (cache.rows[ci]._aggregateRow) {
+						if (cache.rows[ci] && cache.rows[ci]._aggregateRow) {
 							invalidateRows([ci]);
 						}
 					}
