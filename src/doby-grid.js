@@ -93,6 +93,7 @@
 			classclipboard = this.NAME + '-clipboard',
 			classcollapsed = 'collapsed',
 			classcolumnname = this.NAME + '-column-name',
+			classcolumnspacer = this.NAME + '-column-spacer',
 			classcontextmenu = this.NAME + '-contextmenu',
 			classdropdown = this.NAME + '-dropdown',
 			classdropdownmenu = classdropdown + '-menu',
@@ -121,6 +122,7 @@
 			classheadersortable = 'sortable',
 			classinvalid = 'invalid',
 			classinvalidicon = this.NAME + '-invalid-icon',
+			classleft = this.NAME + '-scrollbar-left',
 			classnoright = this.NAME + '-no-right',
 			classplaceholder = this.NAME + '-sortable-placeholder',
 			classrangedecorator = this.NAME + '-range-decorator',
@@ -404,7 +406,7 @@
 			deactivateOnRightClick:	false,
 			editable:				false,
 			editor:					null,
-			editorType:				'selection',
+			editorType:				"selection",
 			emptyNotice:			true,
 			exportFileName:			"doby-grid-export",
 			formatter:				null,
@@ -425,6 +427,7 @@
 			reorderable:			true,
 			rowHeight:				28,
             rowSpacing:             0,
+			scrollbarPosition:		"right",
 			scrollLoader:			null,
 			selectable:				true,
 			selectedClass:			"selected",
@@ -832,7 +835,7 @@
 		//
 		applyColumnHeaderWidths = function (headers) {
 			if (!initialized || !self.options.showHeader) return;
-			if (!headers) headers = $headers.children();
+			if (!headers) headers = $headers.children('.' + classheadercolumn);
 
 			// Auto-sizes the quick filter headers too
 			var qHeaders = null;
@@ -863,6 +866,12 @@
 		applyColumnWidths = function () {
 			// The -1 here is to compensate for the border spacing between cells
 			var x = -1, c, w, rule, i, l, r;
+			
+			// If scrollbar is on the left - we need to add a spacer
+			$headers.children('.' + classcolumnspacer).remove();	
+			if (self.options.scrollbarPosition === 'left' && viewportHasVScroll) {
+				$headers.prepend('<span class="' + classcolumnspacer + '" style="width:' + window.scrollbarDimensions.height + 'px"></span>');
+			}
 
 			for (i = 0, l = cache.activeColumns.length; i < l; i++) {
 				c = cache.activeColumns[i];
@@ -878,7 +887,9 @@
 
 				// If this is the last column, and there is no vertical scrollbar, and
 				// do not allow negative spacing on the right otherwise we get a gap
-				if (i + 1 === l && r < 0 && !viewportHasVScroll) r = 0;
+				if (!viewportHasVScroll && self.options.scrollbarPosition === 'right' && i + 1 === l && r < 0) {
+					r = 0;
+				}
 
 				rule.right.style.right = r + "px";
 
@@ -1791,6 +1802,7 @@
 			// Create the container
 			var cclasses = [self.NAME];
 			if (self.options.class) cclasses.push(self.options.class);
+			if (self.options.scrollbarPosition === 'left') cclasses.push(classleft);
 
 			self.$el = $('<div class="' + cclasses.join(' ') + '" id="' + uid + '"></div>');
 
@@ -4198,9 +4210,13 @@
 				// The 2 here is to compensate for the spacing between columns
 				rowWidth += cache.activeColumns[i].width - self.options.columnSpacing + (self.options.fullWidthRows ? 2 : 0);
 			}
-
+			
 			// When fullWidthRows disable - keep canvas as big as the dat only
-			return self.options.fullWidthRows ? Math.max(rowWidth, availableWidth) : (rowWidth + l * 2);
+			var result = self.options.fullWidthRows ? Math.max(rowWidth, availableWidth) : (rowWidth + l * 2);
+			
+			if (self.options.scrollbarPosition == 'left') result--;
+			
+			return result;
 		};
 
 
@@ -7276,7 +7292,7 @@
 				$headers.empty();
 				$headers.width(getHeadersWidth());
 			}
-
+			
 			// Render columns
 			var column, html = [], classes, w;
 			for (var i = 0, l = cache.activeColumns.length; i < l; i++) {
@@ -7288,7 +7304,7 @@
 
 				// Determine width
 				w = column.width - headerColumnWidthDiff;
-
+				
 				html.push('<div class="' + classes.join(' ') + '" style="width:' + w + 'px" ');
 				html.push('id="' + (uid + column.id) + '"');
 
@@ -8346,7 +8362,7 @@
 
 			var j, c, l, pageX, columnElements, minPageX, maxPageX, firstResizable, lastResizable;
 
-			columnElements = $headers.children();
+			columnElements = $headers.children("." + classheadercolumn);
 			var $handle = columnElements.find("." + classhandle);
 			if ($handle && $handle.length) removeElement($handle[0]);
 			columnElements.each(function (i) {
@@ -8360,7 +8376,7 @@
 
 			var lockColumnWidths = function () {
 				// Columns may have been changed since the last time this ran - refetch children
-				columnElements = $headers.children();
+				columnElements = $headers.children('.' + classheadercolumn);
 
 				columnElements.each(function (i) {
 					// The extra 1 here is to compensate for the border separator
@@ -9482,7 +9498,7 @@
 		updateCanvasWidth = function (forceColumnWidthsUpdate) {
 			var oldCanvasWidth = canvasWidth;
 			canvasWidth = getCanvasWidth();
-
+			
 			if (canvasWidth != oldCanvasWidth) {
 				$canvas.width(canvasWidth);
 				if (self.options.showHeader) $headers.width(getHeadersWidth());

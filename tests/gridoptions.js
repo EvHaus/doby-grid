@@ -3170,6 +3170,42 @@ describe("Grid Options", function () {
 			});
 		});
 	});
+	
+	
+	// ==========================================================================================
+
+
+	describe("options.scrollbarPosition", function () {
+		it("should be 'right' by default", function () {
+			var grid = resetGrid(defaultData());
+			expect(grid.options.scrollbarPosition).toEqual('right');
+		});
+		
+		
+		// ==========================================================================================
+		
+		
+		it("should draw the scrollbar on the left with a column spacer", function () {
+			var data = [];
+			
+			for (var i = 0, l = 100; i < l; i++) {
+				data.push({
+					id: i,
+					data: {
+						id: i	
+					}
+				});
+			}
+			
+			var grid = resetGrid($.extend(defaultData(), {
+				data: data,
+				scrollbarPosition: "left"
+			}));
+			
+			// Spacer should be created
+			expect(grid.$el).toContain('.doby-grid-column-spacer');
+		});
+	});
 
 
 	// ==========================================================================================
