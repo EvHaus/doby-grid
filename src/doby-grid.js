@@ -866,11 +866,13 @@
 		applyColumnWidths = function () {
 			// The -1 here is to compensate for the border spacing between cells
 			var x = -1, c, w, rule, i, l, r;
-			
+
 			// If scrollbar is on the left - we need to add a spacer
-			$headers.children('.' + classcolumnspacer).remove();	
-			if (self.options.scrollbarPosition === 'left' && viewportHasVScroll) {
-				$headers.prepend('<span class="' + classcolumnspacer + '" style="width:' + window.scrollbarDimensions.height + 'px"></span>');
+			if ($headers) {
+				$headers.children('.' + classcolumnspacer).remove();
+				if (self.options.scrollbarPosition === 'left' && viewportHasVScroll) {
+					$headers.prepend('<span class="' + classcolumnspacer + '" style="width:' + window.scrollbarDimensions.height + 'px"></span>');
+				}
 			}
 
 			for (i = 0, l = cache.activeColumns.length; i < l; i++) {
@@ -4210,12 +4212,12 @@
 				// The 2 here is to compensate for the spacing between columns
 				rowWidth += cache.activeColumns[i].width - self.options.columnSpacing + (self.options.fullWidthRows ? 2 : 0);
 			}
-			
+
 			// When fullWidthRows disable - keep canvas as big as the dat only
 			var result = self.options.fullWidthRows ? Math.max(rowWidth, availableWidth) : (rowWidth + l * 2);
-			
+
 			if (self.options.scrollbarPosition == 'left') result--;
-			
+
 			return result;
 		};
 
@@ -7292,7 +7294,7 @@
 				$headers.empty();
 				$headers.width(getHeadersWidth());
 			}
-			
+
 			// Render columns
 			var column, html = [], classes, w;
 			for (var i = 0, l = cache.activeColumns.length; i < l; i++) {
@@ -7304,7 +7306,7 @@
 
 				// Determine width
 				w = column.width - headerColumnWidthDiff;
-				
+
 				html.push('<div class="' + classes.join(' ') + '" style="width:' + w + 'px" ');
 				html.push('id="' + (uid + column.id) + '"');
 
@@ -9498,7 +9500,7 @@
 		updateCanvasWidth = function (forceColumnWidthsUpdate) {
 			var oldCanvasWidth = canvasWidth;
 			canvasWidth = getCanvasWidth();
-			
+
 			if (canvasWidth != oldCanvasWidth) {
 				$canvas.width(canvasWidth);
 				if (self.options.showHeader) $headers.width(getHeadersWidth());
