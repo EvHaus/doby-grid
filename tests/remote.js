@@ -1517,7 +1517,7 @@ describe("Remote Data", function () {
 describe("Remote Data Edge Cases", function () {
 	"use strict";
 
-	it("should not attempt to refetch data after chaning filters if the grid hasn't been initialized yet", function () {
+	it("should not attempt to refetch data after changing filters if the grid hasn't been initialized yet", function () {
 		// Render Grid
 		var fetch;
 		var grid = new DobyGrid({
@@ -1558,7 +1558,10 @@ describe("Remote Data Edge Cases", function () {
 	// ==========================================================================================
 
 
-	it("should not attempt to fetch remote data after initialization if groupings are configured", function () {
+	// FIXME: This is actually an invalid unit test. The fetch SHOULD be called -- but only
+	// if it's faster than the delay on the remote data sets. Here we need to test calling appendTo
+	// immediately, vs. calling appendTo after several seconds of a delay.
+	xit("should not attempt to fetch remote data after initialization if groupings are configured", function () {
 		// Render Grid
 		var fetch, fetchGroups;
 		var grid = new DobyGrid({

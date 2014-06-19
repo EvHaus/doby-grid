@@ -703,8 +703,7 @@
 				if (this.fetcher) {
 					remoteCount(function () {
 						// If we haven't scrolled anywhere yet - fetch the first page,
-						// but only if we're not grouped
-						if ($viewport[0].scrollTop === 0 && this.collection.groups.length === 0) {
+						if ($viewport[0].scrollTop === 0) {
 							remoteFetch();
 						}
 					}.bind(this));
