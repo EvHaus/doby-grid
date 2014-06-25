@@ -267,7 +267,6 @@
 			remoteLoaded,
 			remoteCount,
 			remoteFetch,
-			remoteFetchAll,
 			remoteFetcher,
 			remoteFetchGroups,
 			remoteGroupRefetch,
@@ -3944,7 +3943,7 @@
 
 			if (remoteConfirm) {
 				if (this.fetcher) {
-					remoteFetchAll(function () {
+					this.remoteFetchAll(function () {
 						processExport();
 					});
 				} else {
@@ -6849,7 +6848,7 @@
 		//
 		// @param	callback	function	Callback function
 		//
-		remoteFetchAll = function (callback) {
+		this.remoteFetchAll = function (callback) {
 			callback = callback || function () {};
 
 			// If scrolling fast, abort pending requests
@@ -6862,15 +6861,15 @@
 
 			remoteFetcher({
 				columns: cache.activeColumns,
-				order: self.sorting
+				order: this.sorting
 			}, function (results) {
-				if (self.options.data instanceof Backbone.Collection) {
-					self.options.data.reset(results);
+				if (this.options.data instanceof Backbone.Collection) {
+					this.options.data.reset(results);
 				} else {
-					self.collection.reset(results);
+					this.collection.reset(results);
 				}
 				callback();
-			});
+			}.bind(this));
 		};
 
 
