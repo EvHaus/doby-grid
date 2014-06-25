@@ -6870,6 +6870,8 @@
 				}
 				callback();
 			}.bind(this));
+			
+			return this;
 		};
 
 
