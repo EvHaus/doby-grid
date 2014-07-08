@@ -3286,6 +3286,9 @@
 			// Destroys any elements your editor has created.
 			//
 			this.destroy = function () {
+				// Clear any invalid cells
+				options.grid.$el.find('.' + classinvalid).removeClass(classinvalid);
+				
 				this.$input.remove();
 			};
 
