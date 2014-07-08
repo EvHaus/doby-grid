@@ -270,7 +270,6 @@
 			remoteFetcher,
 			remoteFetchGroups,
 			remoteGroupRefetch,
-			remoteRequest = null,
 			remoteTimer = null,
 			removeCssRules,
 			removeElement,
@@ -6755,8 +6754,8 @@
 				to = vp.bottom;
 
 			// If scrolling fast, abort pending requests
-			if (remoteRequest && typeof remoteRequest.abort === 'function') {
-				remoteRequest.abort();
+			if (self.fetcher.request && typeof self.fetcher.request.abort === 'function') {
+				self.fetcher.request.abort();
 			}
 
 			// Also cancel previous execution entirely (if scrolling really really fast)
@@ -6852,8 +6851,8 @@
 			callback = callback || function () {};
 
 			// If scrolling fast, abort pending requests
-			if (remoteRequest && typeof remoteRequest.abort === 'function') {
-				remoteRequest.abort();
+			if (this.fetcher.request && typeof this.fetcher.request.abort === 'function') {
+				this.fetcher.request.abort();
 			}
 
 			// Also, cancel previous execution entirely (if refetching very quickly)
@@ -6897,9 +6896,9 @@
 					// Fire onLoading callback
 					if (typeof self.fetcher.onLoading === 'function') self.fetcher.onLoading();
 
-					remoteRequest = self.fetcher.fetch(options, function (results) {
+					self.fetcher.request = self.fetcher.fetch(options, function (results) {
 						// Empty the request variable so it doesn't get aborted on scroll
-						remoteRequest = null;
+						self.fetcher.request = null;
 
 						callback(results);
 
@@ -6922,8 +6921,8 @@
 			callback = callback || function () {};
 
 			// If grouping fast, abort pending requests
-			if (remoteRequest && typeof remoteRequest.abort === 'function') {
-				remoteRequest.abort();
+			if (self.fetcher.request && typeof self.fetcher.request.abort === 'function') {
+				self.fetcher.request.abort();
 			}
 
 			// If we have a cache -- load that
@@ -6940,9 +6939,9 @@
 				if (typeof self.fetcher.onLoading === 'function') self.fetcher.onLoading();
 
 				// Begin remote fetch request
-				remoteRequest = self.fetcher.fetchGroups(options, function (results) {
+				self.fetcher.request = self.fetcher.fetchGroups(options, function (results) {
 					// Empty the request variable so it doesn't get aborted on scroll
-					remoteRequest = null;
+					self.fetcher.request = null;
 
 					// Cache the results for this column
 					cache.remoteGroups = results;
