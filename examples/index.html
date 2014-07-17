@@ -206,7 +206,7 @@
 					size = opts.data ? opts.data.length : 0,
 					type = 'DobyGrid "' + name + '" example with ' + size + ' objects';
 
-				console[profiler](type);
+				console && console[profiler] && console[profiler](type);
 				window.grid = new DobyGrid(opts).appendTo($('#gridwrapper').empty());
 				if (example[1]) example[1](window.grid);
 				console[profiler + 'End'](type);
