@@ -209,7 +209,7 @@
 				console && console[profiler] && console[profiler](type);
 				window.grid = new DobyGrid(opts).appendTo($('#gridwrapper').empty());
 				if (example[1]) example[1](window.grid);
-				console[profiler + 'End'](type);
+				console && console[profiler + 'End'] && console[profiler + 'End'](type);
 			};
 
 			// Load "css" or "less" theme files
