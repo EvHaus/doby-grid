@@ -88,6 +88,7 @@
 			CellRangeDecorator,
 			cellWidthDiff = 0,
 			cj,				// "jumpiness" coefficient
+			classautoheight = this.NAME + "-autoheight",
 			classcell = this.NAME + '-cell',
 			classcellunselectable = classcell + '-unselectable',
 			classclipboard = this.NAME + '-clipboard',
@@ -193,6 +194,7 @@
 			getRowFromNode,
 			getRowFromPosition,
 			getScrollbarSize,
+			getTotalHeight,
 			getValueFromItem,
 			getVBoxDelta,
 			getViewportHeight,
@@ -284,6 +286,7 @@
 			resetActiveCell,
 			resetAggregators,
 			resizeCanvas,
+			resizeContainer,
 			scrollCellIntoView,
 			scrollLeft = 0,
 			scrollLoader,
@@ -390,6 +393,7 @@
 			autoColumnWidth:		false,
 			autoDestroy:			true,
 			autoEdit:				true,
+			autoHeight:				false,
 			canvasFocus:			true,
 			"class":				null,
 			clipboard:				"csv",
@@ -1281,6 +1285,13 @@
 		//
 		// @return integer
 		calculateVisibleRows = function () {
+
+			//all rows are visible when using autoHeight
+			if (self.options.autoHeight) {
+				numVisibleRows = self.collection.length;
+				return;
+			}
+
 			// When in variable row height mode we need to find which actual rows are at the
 			// top and bottom of the viewport
 			if (variableRowHeight) {
@@ -1815,7 +1826,7 @@
 					.width(getHeadersWidth());
 			}
 
-			$viewport = $('<div class="' + classviewport + '"></div>').appendTo(self.$el);
+			$viewport = $('<div class="' + classviewport + (self.options.autoHeight ? ' ' + classautoheight : '') + '"></div>').appendTo(self.$el);
 
 			// The tabindex here ensures we can focus on this element
 			// otherwise we can't assign keyboard events
@@ -2847,8 +2858,13 @@
 					} else {
 						grid.hideOverlay();
 					}
-
 				}.bind(this));
+
+				// if autoheight is enabled the grid needs to be resized on every refresh
+				if (initialized && grid.options.autoHeight) {
+					grid.resize();
+				}
+
 			};
 
 
@@ -4173,6 +4189,19 @@
 			return cache.indexById[id];
 		};
 
+		// getTotalHeight()
+		//
+		// Get the total height of currently rendered rows in the table
+		//
+		getTotalHeight = function () {
+			var totalHeight = 0;
+
+			_.each(cache.nodes, function (node) {
+				totalHeight += $(node.rowNode).outerHeight();
+			});
+			
+			return totalHeight;
+		};
 
 		// getActive()
 		// Gets the active cell row/cell indexes
@@ -5058,12 +5087,16 @@
 
 			var rowTop, rowBottom;
 
-			if (!variableRowHeight) {
-				rowTop = getRowFromPosition(viewportTop);
-				rowBottom = getRowFromPosition(viewportTop + viewportH) + 1;
-			} else {
+			if (self.options.autoHeight) {
+				//all rows are visible when using autoHeight
+				rowTop = 0;
+				rowBottom = self.collection.length - 1;
+			} else if (variableRowHeight) {
 				rowTop = Math.floor(getRowFromPosition(viewportTop + offset));
 				rowBottom = Math.ceil(getRowFromPosition(viewportTop + offset + viewportH));
+			} else {
+				rowTop = getRowFromPosition(viewportTop);
+				rowBottom = getRowFromPosition(viewportTop + viewportH) + 1;
 			}
 
 			if (isNaN(rowTop)) rowTop = null;
@@ -7571,6 +7604,10 @@
 
 			var oldHeight = viewportH;
 
+			if (self.options.autoHeight) {
+				resizeContainer();
+			}
+
 			// Resize the grid
 			resizeCanvas();
 
@@ -7619,6 +7656,15 @@
 			if (rerender) render();
 		};
 
+		// resizeContainer()
+		//
+		// resizes the tables outer container to fit the total height of all visible rows
+		// (currently only used for options.autoHeight)
+		//
+		resizeContainer = function () {
+			var newHeight = getTotalHeight() + (self.options.showHeader ? $headerScroller.outerHeight() - getVBoxDelta($headerScroller) : 0) + 1;			
+			self.$el.height(newHeight);
+		};
 
 		// restoreState()
 		// Restores the state of grid's user customizations. Expect an object which was returned from
