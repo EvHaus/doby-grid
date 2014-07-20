@@ -8172,6 +8172,7 @@
 			if (options.autoHeight) {
 				$viewport.addClass(classautoheight);
 			} else {
+				this.$el.removeAttr('style');
 				$viewport.removeClass(classautoheight);
 			}
 
