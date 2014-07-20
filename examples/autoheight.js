@@ -71,6 +71,5 @@ define([], function () {
             collapsed: true,
             groupNulls: false
         }]);
-
 	}];
 });

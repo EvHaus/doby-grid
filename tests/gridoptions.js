@@ -478,6 +478,49 @@ describe("Grid Options", function () {
 			expect(firstCell.find('input').length).toEqual(1);
 		});
 	});
+	
+	
+	// ==========================================================================================
+
+
+	describe("options.autoHeight", function () {
+		it("should be disabled by default", function () {
+			var grid = resetGrid(defaultData());
+			expect(grid.options.autoHeight).toEqual(false);
+		});
+		
+		
+		// ==========================================================================================
+		
+		
+		it("should cause the grid's container to grow when adding rows", function () {
+			var grid = resetGrid({
+				autoHeight: true
+			});
+			
+			grid.add({id: 1, data: {id: 1}});
+			
+			waitsFor(function () {
+				return grid.$el.find('.doby-grid-row').length === 1;
+			}, 100);
+			
+			var oldHeight;
+			
+			runs(function () {
+				oldHeight = grid.$el.height();
+				grid.add({id: 2, data: {id: 2}});
+			});
+			
+			waitsFor(function () {
+				return grid.$el.find('.doby-grid-row').length === 2;
+			}, 100);
+			
+			runs(function () {
+				var newHeight = grid.$el.height();
+				expect(oldHeight).toBeLessThan(newHeight);
+			});
+		});
+	});
 
 
 	// ==========================================================================================
