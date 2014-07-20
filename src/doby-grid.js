@@ -8167,6 +8167,13 @@
 
 			$.extend(true, self.options, options);
 			validateOptions();
+			
+			// Toggling autoHeight needs to DOM manipulation
+			if (options.autoHeight) {
+				$viewport.addClass(classautoheight);
+			} else {
+				$viewport.removeClass(classautoheight);
+			}
 
 			// If setting new columns - it will auto-re-render, so no need to manually call render
 			if (options.columns) {
@@ -8187,6 +8194,11 @@
 			// additions to aggregators are picked up.
 			if (options.data) {
 				this.reset(options.data);
+			}
+			
+			// Toggling autoHeight requires a resize
+			if (options.autoHeight !== undefined && options.autoHeight !== null) {
+				this.resize();
 			}
 
 			// If toggling auto column width - resize

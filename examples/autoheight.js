@@ -61,22 +61,16 @@ define([], function () {
 		}];
 
 		return {
-			columns: columns,
-			data: data,
-			keepNullsAtBottom: false,
-			quickFilter: true,
-			stickyGroupRows: true,
 			autoHeight: true,
-			height: "100px"
+			columns: columns,
+			data: data
 		};
 	}, function (grid) {
 		grid.setGrouping([{
-			column_id: 'language',
-			collapsed: true,
-			groupNulls: false
-		}]);
-		
-		grid.getVirtualHeight();
-		
+            column_id: 'language',
+            collapsed: true,
+            groupNulls: false
+        }]);
+
 	}];
 });
