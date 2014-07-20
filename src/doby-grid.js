@@ -4201,7 +4201,7 @@
 		getTotalHeight = function () {
 			var totalHeight = 0;
 
-			for (var i = 0, l = cache.nodes.length; i < l; i++) {
+			for (var i in cache.nodes) {
 				totalHeight += $(cache.nodes[i].rowNode).outerHeight();
 			}
 			
@@ -7668,7 +7668,7 @@
 		// (currently only used for options.autoHeight).
 		//
 		resizeContainer = function () {
-			var newHeight = getTotalHeight() + (self.options.showHeader ? $headerScroller.outerHeight() - getVBoxDelta($headerScroller) : 0) + 1;			
+			var newHeight = getTotalHeight() + (self.options.showHeader ? $headerScroller.outerHeight() - getVBoxDelta($headerScroller) : 0) + 1;
 			self.$el.height(newHeight);
 		};
 		
