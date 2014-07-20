@@ -1286,7 +1286,7 @@
 		// @return integer
 		calculateVisibleRows = function () {
 
-			//all rows are visible when using autoHeight
+			// All rows are visible when using autoHeight
 			if (self.options.autoHeight) {
 				numVisibleRows = self.collection.length;
 				return;
@@ -1826,7 +1826,11 @@
 					.width(getHeadersWidth());
 			}
 
-			$viewport = $('<div class="' + classviewport + (self.options.autoHeight ? ' ' + classautoheight : '') + '"></div>').appendTo(self.$el);
+			$viewport = $([
+				'<div class="', classviewport,
+				(self.options.autoHeight ? ' ' + classautoheight : ''),
+				'"></div>'
+			].join('')).appendTo(self.$el);
 
 			// The tabindex here ensures we can focus on this element
 			// otherwise we can't assign keyboard events
@@ -2860,7 +2864,7 @@
 					}
 				}.bind(this));
 
-				// if autoheight is enabled the grid needs to be resized on every refresh
+				// If autoheight is enabled the grid needs to be resized on every refresh
 				if (initialized && grid.options.autoHeight) {
 					grid.resize();
 				}
@@ -4188,6 +4192,7 @@
 		this.getIndex = function (id) {
 			return cache.indexById[id];
 		};
+		
 
 		// getTotalHeight()
 		//
@@ -4196,12 +4201,13 @@
 		getTotalHeight = function () {
 			var totalHeight = 0;
 
-			_.each(cache.nodes, function (node) {
-				totalHeight += $(node.rowNode).outerHeight();
-			});
+			for (var i = 0, l = cache.nodes.length; i < l; i++) {
+				totalHeight += $(cache.nodes[i].rowNode).outerHeight();
+			}
 			
 			return totalHeight;
 		};
+		
 
 		// getActive()
 		// Gets the active cell row/cell indexes
@@ -5088,7 +5094,7 @@
 			var rowTop, rowBottom;
 
 			if (self.options.autoHeight) {
-				//all rows are visible when using autoHeight
+				// All rows are visible when using autoHeight
 				rowTop = 0;
 				rowBottom = self.collection.length - 1;
 			} else if (variableRowHeight) {
@@ -7656,15 +7662,16 @@
 			if (rerender) render();
 		};
 
+		
 		// resizeContainer()
-		//
-		// resizes the tables outer container to fit the total height of all visible rows
-		// (currently only used for options.autoHeight)
+		// Resizes the tables outer container to fit the total height of all visible rows
+		// (currently only used for options.autoHeight).
 		//
 		resizeContainer = function () {
 			var newHeight = getTotalHeight() + (self.options.showHeader ? $headerScroller.outerHeight() - getVBoxDelta($headerScroller) : 0) + 1;			
 			self.$el.height(newHeight);
 		};
+		
 
 		// restoreState()
 		// Restores the state of grid's user customizations. Expect an object which was returned from
