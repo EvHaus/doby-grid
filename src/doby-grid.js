@@ -1083,7 +1083,7 @@
 					// Deselect any text the user may have selected
 					clearTextSelection();
 				})
-				.on('dragstart', {not: handleSelector, distance: 10}, function (event, dd) {
+				.on('dragstart', {not: handleSelector, distance: 8}, function (event, dd) {
 					var cell = getCellFromEvent(event);
 					if (!cell) return;
 
@@ -6557,7 +6557,7 @@
 		Range.prototype.contains = function (row, cell) {
 			return row >= this.fromRow &&
 				row <= this.toRow &&
-				(!cell ||
+				(cell === undefined || cell === null ||
 				cell >= this.fromCell &&
 				cell <= this.toCell &&
 				!this.isExcludedCell(row, cell));
