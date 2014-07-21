@@ -3485,8 +3485,8 @@
 					if (self.selection[i].contains(row, cell)) {
 						self.selection[i].deselect(row, cell);
 					}
-				} else if(rowProvided) {
-					if(self.selection[i].contains(row)) {
+				} else if (rowProvided) {
+					if (self.selection[i].contains(row)) {
 						self.selection[i].deselect(row);
 					}
 				} else {
@@ -3519,7 +3519,7 @@
 		//
 		// @param	rowIndex	integer		Row index for row to deselect
 		//
-		deselectRow = function(rowIndex) {
+		deselectRow = function (rowIndex) {
 			deselectCells(rowIndex);
 		};
 
@@ -4972,7 +4972,7 @@
 		// Returns the currently selected rows including the item data
 		//
 		// @return array
-		this.getSelectedRows = function() {
+		this.getSelectedRows = function () {
 			var rows = [];
 			for (var i = 0, l = self.selection.length; i < l; i ++) {
 				var selectedRows = self.selection[i].toRows();
@@ -5515,7 +5515,7 @@
 					var selectionHandled = false;
 					// Support for "Ctrl" / "Command" clicks
 					if (self.options.ctrlSelect && (e.ctrlKey || e.metaKey) && self.active) {
-						if(isCellSelected(cell.row)){
+						if (isCellSelected(cell.row)) {
 							deselectCells(cell.row);
 						} else {							
 							self.selectRow(cell.row, true);
@@ -8087,7 +8087,7 @@
 		// @param	rowIndex		integer		Index of the row to be selected
 		// @param	add				boolean		If true, will add selection as a new range
 		//
-		this.selectRow = function(rowIndex, add) {
+		this.selectRow = function (rowIndex, add) {
 			this.selectCells(rowIndex, 0, rowIndex, cache.activeColumns.length, add);
 		};
 		
@@ -8098,7 +8098,7 @@
 		// @param	toRow			integer		Index of the last row to select
 		// @param	add				boolean		If true, will add selection as a new range
 		//
-		this.selectRows = function(fromRow, toRow, add) {
+		this.selectRows = function (fromRow, toRow, add) {
 			this.selectCells(fromRow, 0, toRow, cache.activeColumns.length, add);
 		};
 
