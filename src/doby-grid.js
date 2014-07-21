@@ -1547,7 +1547,7 @@
 				delete cacheEntry.cellColSpans[cellToRemove];
 				delete cacheEntry.cellNodesByColumnIdx[cellToRemove];
 				if (cache.postprocess[cache.rows[row].id]) {
-					delete cache.postprocess[cache.rows[row].i][cache.activeColumns[cellToRemove].id];
+					delete cache.postprocess[cache.rows[row].id][cache.activeColumns[cellToRemove].id];
 				}
 				totalCellsRemoved++;
 			}
