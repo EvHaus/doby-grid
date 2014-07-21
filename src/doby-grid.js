@@ -157,6 +157,7 @@
 			defaultEditor,
 			defaultFormatter,
 			deselectCells,
+			deselectRow,
 			disableSelection,
 			Dropdown,
 			enableAsyncPostRender = false,	// Does grid have any columns that require post-processing
@@ -429,6 +430,7 @@
 			reorderable:			true,
 			rowHeight:				28,
             rowSpacing:             0,
+            rowBasedSelection:		false,
 			scrollbarPosition:		"right",
 			scrollLoader:			null,
 			selectable:				true,
@@ -1081,7 +1083,7 @@
 					// Deselect any text the user may have selected
 					clearTextSelection();
 				})
-				.on('dragstart', {not: handleSelector}, function (event, dd) {
+				.on('dragstart', {not: handleSelector, distance: 10}, function (event, dd) {
 					var cell = getCellFromEvent(event);
 					if (!cell) return;
 
@@ -2535,7 +2537,6 @@
 				return diff;
 			};
 
-
 			// parse()
 			// Given a list of items objects to convert to models, returns a list of parsed items.
 			// This also checks to see if we need to enable variable height support.
@@ -3475,6 +3476,7 @@
 			if (!self.selection) return;
 
 			var specific = row !== undefined && row !== null && cell !== undefined && cell !== null;
+			var rowProvided = row !== undefined && row !== null;
 
 			// Go through the selection ranges and deselect as needed
 			for (var i = 0, l = self.selection.length; i < l; i++) {
@@ -3483,13 +3485,17 @@
 					if (self.selection[i].contains(row, cell)) {
 						self.selection[i].deselect(row, cell);
 					}
+				} else if(rowProvided) {
+					if(self.selection[i].contains(row)) {
+						self.selection[i].deselect(row);
+					}
 				} else {
 					self.selection[i].deselect();
 				}
 			}
 
 			// If deselecting everything - remove selection store
-			if (!specific) self.selection = null;
+			if (!specific && !rowProvided) self.selection = null;
 
 			// Did the user exclude all values of any ranges? If so - destroy that range.
 			if (self.selection) {
@@ -3506,6 +3512,15 @@
 					self.selection = cleanranges;
 				}
 			}
+		};
+
+		// deselectRow()
+		// Deselect all cells in the specified row
+		//
+		// @param	rowIndex	integer		Row index for row to deselect
+		//
+		deselectRow = function(rowIndex) {
+			deselectCells(rowIndex);
 		};
 
 
@@ -4953,6 +4968,21 @@
 			return result;
 		};
 
+		// getSelectedRows()
+		// Returns the currently selected rows including the item data
+		//
+		// @return array
+		this.getSelectedRows = function() {
+			var rows = [];
+			for (var i = 0, l = self.selection.length; i < l; i ++) {
+				var selectedRows = self.selection[i].toRows();
+				for (var ir in selectedRows) {
+					rows.push(selectedRows[ir]);
+				}
+			}
+			return rows;
+		};
+		
 
 		// getState()
 		// Retrieves a configuration object for the state of all user customizations for the grid.
@@ -5480,32 +5510,64 @@
 
 			// Set clicked cells to active
 			if (canCellBeActive(cell.row, cell.cell)) {
-				// If holding down "Shift" key and another cell is already active - use this to
-				// select a cell range.
-				if (self.options.shiftSelect && e.shiftKey && self.active) {
-					// Deselect anything we had selected before
-					deselectCells();
 
-					self.selectCells(self.active.row, self.active.cell, cell.row, cell.cell);
-				}
+				if (self.options.rowBasedSelection) {
+					var selectionHandled = false;
+					// Support for "Ctrl" / "Command" clicks
+					if (self.options.ctrlSelect && (e.ctrlKey || e.metaKey) && self.active) {
+						if(isCellSelected(cell.row)){
+							deselectCells(cell.row);
+						} else {							
+							self.selectRow(cell.row, true);
+						}
+						selectionHandled = true;
+					}
 
-				// Support for "Ctrl" / "Command" clicks
-				if (self.options.ctrlSelect && (e.ctrlKey || e.metaKey) && self.active) {
+					// If holding down "Shift" key and another cell is already active - use this to
+					// select a cell range.
+					if (self.options.shiftSelect && e.shiftKey && self.active) {
+						// Keep selection if ctrlKey is also pressed
+						if (!(self.options.ctrlSelect && (e.ctrlKey || e.metaKey) && self.active)) {
+							// Deselect anything we had selected before
+							deselectCells();														
+						}
+						self.selectRows(self.active.row, cell.row, true);
+						selectionHandled = true;
+					}
 
-					// Is the cell already selected? If so - deselect it
-					if (isCellSelected(cell.row, cell.cell)) {
-						deselectCells(cell.row, cell.cell);
+					if (!selectionHandled) {
+						deselectCells();
+						self.selectRow(cell.row, true);						
+					}
+
+				} else {					
+					// If holding down "Shift" key and another cell is already active - use this to
+					// select a cell range.
+					if (self.options.shiftSelect && e.shiftKey && self.active) {
+						// Deselect anything we had selected before
+						deselectCells();
+
+						self.selectCells(self.active.row, self.active.cell, cell.row, cell.cell);
+					}
+
+					// Support for "Ctrl" / "Command" clicks
+					if (self.options.ctrlSelect && (e.ctrlKey || e.metaKey) && self.active) {
+
+						// Is the cell already selected? If so - deselect it
+						if (isCellSelected(cell.row, cell.cell)) {
+							deselectCells(cell.row, cell.cell);
+							return;
+						}
+
+						// Select the currently active cell
+						if (!self.selection) {
+							self.selectCells(self.active.row, self.active.cell, self.active.row, self.active.cell, true);
+						}
+
+						// Select the cell the user chose
+						self.selectCells(cell.row, cell.cell, cell.row, cell.cell, true);
 						return;
 					}
-
-					// Select the currently active cell
-					if (!self.selection) {
-						self.selectCells(self.active.row, self.active.cell, self.active.row, self.active.cell, true);
-					}
-
-					// Select the cell the user chose
-					self.selectCells(cell.row, cell.cell, cell.row, cell.cell, true);
-					return;
 				}
 
 				scrollRowIntoView(cell.row, false);
@@ -6495,9 +6557,10 @@
 		Range.prototype.contains = function (row, cell) {
 			return row >= this.fromRow &&
 				row <= this.toRow &&
+				(!cell ||
 				cell >= this.fromCell &&
 				cell <= this.toCell &&
-				!this.isExcludedCell(row, cell);
+				!this.isExcludedCell(row, cell));
 		};
 
 
@@ -6533,7 +6596,7 @@
 			var clear = {}, styles = {};
 
 			// If we have a specific cell to deselect, just do that one
-			if (cell !== undefined && cell !== undefined) {
+			if (cell !== undefined && cell !== null) {
 				clear[cache.activeColumns[cell].id] = self.options.selectedClass;
 			} else {
 				for (var ic = 0, lc = cache.activeColumns.length; ic < lc; ic++) {
@@ -8016,6 +8079,27 @@
 			this.trigger('selection', this._event, {
 				selection: this.selection
 			});
+		};
+		
+		// selectRow()
+		// select a single row
+		//
+		// @param	rowIndex		integer		Index of the row to be selected
+		// @param	add				boolean		If true, will add selection as a new range
+		//
+		this.selectRow = function(rowIndex, add) {
+			this.selectCells(rowIndex, 0, rowIndex, cache.activeColumns.length, add);
+		};
+		
+		// selectRows()
+		// select a range of rows
+		//
+		// @param	fromRow			integer		Index of the first row to select
+		// @param	toRow			integer		Index of the last row to select
+		// @param	add				boolean		If true, will add selection as a new range
+		//
+		this.selectRows = function(fromRow, toRow, add) {
+			this.selectCells(fromRow, 0, toRow, cache.activeColumns.length, add);
 		};
 
 
