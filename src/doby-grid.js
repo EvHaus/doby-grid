@@ -7686,7 +7686,7 @@
 			// Restore autoColumnWidth
 			if (state.autoColumnWidth !== undefined && state.autoColumnWidth !== null) {
 				this.options.autoColumnWidth = state.autoColumnWidth;
-				resizeColumns = true;
+				resizeColumns = state.autoColumnWidth;
 			}
 
 			// Restore columns

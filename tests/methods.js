@@ -1986,6 +1986,57 @@ describe("Methods and Data Manipulation", function () {
 				}
 			});
 		});
+		
+		
+		// ==========================================================================================
+
+
+		it("should not resize columns if state has autoColumnWidth disabled", function () {
+			var options = {
+				autoColumnWidth: false,
+				columns: [{
+					id: 1,
+					name: "One",
+					field: 'one',
+					width: 10
+				}, {
+					id: 2,
+					name: "Two",
+					field: 'two',
+					width: 20
+				}, {
+					id: 3,
+					name: "Three",
+					field: 'three',
+					width: 30
+				}],
+				data: [
+					{data: {one: 'A', two: 'B', three: 'C'}, id: 1},
+					{data: {one: 'B', two: 'B', three: 'C'}, id: 2},
+					{data: {one: 'C', two: 'B', three: 'C'}, id: 3}
+				]
+			}, grid = new DobyGrid(options), fixture = setFixtures();
+
+			fixture.attr('style', 'height:600px;position:absolute;top:0;left:0;opacity:0;width:500px');
+			
+			// Append
+			grid.appendTo(fixture);
+			
+			// Get column widths
+			var widths = grid.$el.find('.doby-grid-header-column').map(function () {
+				return $(this).width();
+			});
+
+			// Restore current state
+			grid.restoreState(grid.getState());
+			
+			var newWidths = grid.$el.find('.doby-grid-header-column').map(function () {
+				return $(this).width();
+			});
+			
+			// Widths should stay the same
+			expect(widths).toEqual(newWidths);
+		});
 	});
 
 
