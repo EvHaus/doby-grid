@@ -5515,39 +5515,47 @@
 			// Set clicked cells to active
 			if (canCellBeActive(cell.row, cell.cell)) {
 
+				var shiftUsed = self.options.shiftSelect && e.shiftKey,
+					ctrlUsed = self.options.ctrlSelect && (e.ctrlKey || e.metaKey);
+				
 				if (self.options.rowBasedSelection) {
-					var selectionHandled = false;
+					
 					// Support for "Ctrl" / "Command" clicks
-					if (self.options.ctrlSelect && (e.ctrlKey || e.metaKey) && self.active) {
+					if (ctrlUsed && self.active) {
 						if (isCellSelected(cell.row)) {
 							deselectRow(cell.row);
-						} else {							
-							self.selectRow(cell.row, true);
+						} else {
+							// Don't select the new row if the shift key is pressed since
+							// it will be selected with the range
+							if (!(self.options.shiftSelect && e.shiftKey)) {
+								self.selectRow(cell.row, true);
+							}
 						}
-						selectionHandled = true;
 					}
 
 					// If holding down "Shift" key and another cell is already active - use this to
 					// select a cell range.
-					if (self.options.shiftSelect && e.shiftKey && self.active) {
+					if (shiftUsed && self.active) {
 						// Keep selection if ctrlKey is also pressed
-						if (!(self.options.ctrlSelect && (e.ctrlKey || e.metaKey) && self.active)) {
+						if (!(ctrlUsed && self.active)) {
 							// Deselect anything we had selected before
 							deselectCells();														
+						} else {
+							// If ctrlKey is pressed, deselect the activeRow
+							deselectRow(self.active.row);
 						}
 						self.selectRows(self.active.row, cell.row, true);
-						selectionHandled = true;
 					}
 
-					if (!selectionHandled) {
+					if (!(ctrlUsed || shiftUsed)) {
 						deselectCells();
 						self.selectRow(cell.row, true);						
 					}
 
-				} else {					
+				} else {
 					// If holding down "Shift" key and another cell is already active - use this to
 					// select a cell range.
-					if (self.options.shiftSelect && e.shiftKey && self.active) {
+					if (shiftUsed && self.active) {
 						// Deselect anything we had selected before
 						deselectCells();
 
@@ -5555,7 +5563,7 @@
 					}
 
 					// Support for "Ctrl" / "Command" clicks
-					if (self.options.ctrlSelect && (e.ctrlKey || e.metaKey) && self.active) {
+					if (ctrlUsed && self.active) {
 
 						// Is the cell already selected? If so - deselect it
 						if (isCellSelected(cell.row, cell.cell)) {
@@ -8113,11 +8121,18 @@
 		// @param	add				boolean		If true, will add selection as a new range
 		//
 		this.selectRows = function (fromRow, toRow, add) {
+			// Select all rows in one batch, so it can be saved as a single selection range
+			this.selectCells(fromRow, 0, toRow, cache.activeColumns.length, add);
+			
+			// Go through all selected rows to add the selected css class
 			var step = (fromRow < toRow) ? 1 : -1;
 			var rows = _.range(fromRow, toRow + step, step);
 			
 			for (var r = 0, l = rows.length; r < l; r++) {
-				this.selectRow(rows[r], add);
+				var rowNode = cache.nodes[rows[r]] ? cache.nodes[rows[r]].rowNode : null;
+				if (rowNode) {
+					$(rowNode).addClass(self.options.selectedClass);
+				}
 			}
 		};
 
