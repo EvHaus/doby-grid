@@ -3521,6 +3521,10 @@
 		//
 		deselectRow = function (rowIndex) {
 			deselectCells(rowIndex);
+			var rowNode = cache.nodes[rowIndex] ? cache.nodes[rowIndex].rowNode : null;
+			if (rowNode) {
+				$(rowNode).addClass(self.options.selectedClass);
+			}
 		};
 
 
@@ -5516,7 +5520,7 @@
 					// Support for "Ctrl" / "Command" clicks
 					if (self.options.ctrlSelect && (e.ctrlKey || e.metaKey) && self.active) {
 						if (isCellSelected(cell.row)) {
-							deselectCells(cell.row);
+							deselectRow(cell.row);
 						} else {							
 							self.selectRow(cell.row, true);
 						}
@@ -6580,7 +6584,13 @@
 			}
 
 			// If deselecting a specific cell -- add it to the exclusion list
-			if (specific) this.exclusions.push([row, cell]);
+			if (specific) {
+				this.exclusions.push([row, cell]);
+			} else if (row !== undefined && row !== null) {
+				for (var c = 0, l = cache.activeColumns.length; c < l; c++) {
+					this.exclusions.push([row, c]);
+				}
+			}
 
 			// Get rows we want to deselect items
 			var selectedRows = [];
@@ -8089,6 +8099,10 @@
 		//
 		this.selectRow = function (rowIndex, add) {
 			this.selectCells(rowIndex, 0, rowIndex, cache.activeColumns.length, add);
+			var rowNode = cache.nodes[rowIndex] ? cache.nodes[rowIndex].rowNode : null;
+			if (rowNode) {
+				$(rowNode).addClass(self.options.selectedClass);
+			}
 		};
 		
 		// selectRows()
@@ -8099,7 +8113,12 @@
 		// @param	add				boolean		If true, will add selection as a new range
 		//
 		this.selectRows = function (fromRow, toRow, add) {
-			this.selectCells(fromRow, 0, toRow, cache.activeColumns.length, add);
+			var step = (fromRow < toRow) ? 1 : -1;
+			var rows = _.range(fromRow, toRow + step, step);
+			
+			for (var r = 0, l = rows.length; r < l; r++) {
+				this.selectRow(rows[r], add);
+			}
 		};
 
 
