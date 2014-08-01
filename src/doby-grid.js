@@ -6796,8 +6796,14 @@
 				to = vp.bottom;
 
 			// If scrolling fast, abort pending requests
+			var silentRemoteLoaded = true;
 			if (self.fetcher.request && typeof self.fetcher.request.abort === 'function') {
 				self.fetcher.request.abort();
+
+				// if the request is aborted, we need to ensure that if there is no 
+				// fetcher event triggered after this that the event gets propagated
+				// up to the grid instance if there are no new rows requested
+				silentRemoteLoaded = false;
 			}
 
 			// Also cancel previous execution entirely (if scrolling really really fast)
@@ -6850,7 +6856,7 @@
 
 			// If everything is already loaded - simply process the rows via remoteLoaded()
 			if (newFrom === undefined) {
-				remoteLoaded(null, null, {silent: true});
+				remoteLoaded(null, null, {silent: silentRemoteLoaded});
 				return;
 			}
 
