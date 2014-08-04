@@ -166,6 +166,8 @@
 			executeSorter,
 			findFirstFocusableCell,
 			findLastFocusableCell,
+			fitColumnToHeader,
+			fitColumnsToHeader,
 			garbageBin,
 			generatePlaceholders,
 			getActiveCell,
@@ -419,6 +421,7 @@
 			editorType:				"selection",
 			emptyNotice:			true,
 			exportFileName:			"doby-grid-export",
+			fitColumnsToHeader:		false,
 			formatter:				null,
 			fullWidthRows:			true,
 			groupable:				true,
@@ -524,7 +527,7 @@
 			// Create the grid
 			createGrid();
 
-			if (self.options.selectable) bindCellRangeSelect();
+			if (self.options.selectable) bindCellRangeSelect();			
 
 			return self;
 		};
@@ -708,6 +711,9 @@
 				createCssRules();
 				cacheRows();
 				resizeCanvas(true);
+				
+				// Fit column widths to header contents
+				if (self.options.fitColumnsToHeader) fitColumnsToHeader();
 
 				// If we're using remote data, start by fetching the data set length
 				if (this.fetcher) {
@@ -4149,6 +4155,62 @@
 			return lastFocusableCell;
 		};
 
+
+		// fitColumnToHeader()
+		// Adjusts the columns width and minWidth to according to the
+		// content found in it's header.
+		//
+		// @param	column	object	Column Object
+		//
+		fitColumnToHeader = function (column) {
+		
+			if (!initialized) return;
+			
+			var currentWidth = column.width,
+				column_index = cache.columnsById[column.id],
+				headerWidth,
+				newWidth,
+				columnRightPosition;
+
+			headerWidth = getColumnHeaderWidth(column_index);
+			newWidth = Math.max(column.width, headerWidth);
+			
+			column.minWidth = Math.max(column.minWidth, headerWidth);
+			
+			if (currentWidth == newWidth) return;						
+			
+			lockColumnWidths(column_index);		
+			
+			var diff = newWidth - currentWidth;
+			
+			columnRightPosition = cache.columnPosRight[column_index];
+			
+			prepareLeeway(column_index, columnRightPosition);
+			
+			// This will ensure you can't resize beyond the maximum allowed width
+			var delta = Math.min(maxPageX, Math.max(minPageX, columnRightPosition + diff)) - columnRightPosition;
+
+			resizeColumn(column_index, delta);
+		};
+
+
+		// fitColumnsToHeader()
+		// Adjusts the width and minWidth of all columns according to the
+		// content of its header.
+		//
+		// @param	column	object	Column Object
+		//
+		fitColumnsToHeader = function () {
+			
+			if (!initialized) return;
+			
+			for (var i = 0, l = cache.activeColumns.length; i < l; i++) {
+				fitColumnToHeader(cache.activeColumns[i]);
+			}
+			
+			applyHeaderAndColumnWidths();
+			submitColResize();
+		};
 
 		// generatePlaceholders()
 		// Replaces the entire collection with Placeholder objects
