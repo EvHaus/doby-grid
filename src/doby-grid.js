@@ -6800,9 +6800,8 @@
 			if (self.fetcher.request && typeof self.fetcher.request.abort === 'function') {
 				self.fetcher.request.abort();
 
-				// if the request is aborted, we need to ensure that if there is no 
-				// fetcher event triggered after this that the event gets propagated
-				// up to the grid instance if there are no new rows requested
+				// If the request is aborted, we need to ensure that the "remoteloaded"
+				// event isn't triggered when the fetch request is processed.
 				silentRemoteLoaded = false;
 			}
 
