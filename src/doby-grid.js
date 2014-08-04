@@ -4,8 +4,6 @@
 // For all details and documentation:
 // https://github.com/globexdesigns/doby-grid
 
-/*jslint browser: true, vars: true, plusplus: true, indent: 4, maxerr: 50*/
-/*jshint expr: true, white: true*/
 /*global console, define, saveAs*/
 
 (function (root, factory) {
@@ -29,6 +27,14 @@
 }(this, function (root, $, _, Backbone) {
 	"use strict";
 
+	/**
+	 * The Doby Grid class instance.
+	 * @class DobyGrid
+	 *
+	 * @param	{object}	options			- Grid Options object
+	 *
+	 * @returns {object} Instance of DobyGrid
+	 */
 	var DobyGrid = function (options) {
 		options = options || {};
 
@@ -246,15 +252,6 @@
 			n,				// number of pages
 			naturalSort,
 			navigate,
-			NonDataItem = function (data) {
-				// NonDataItem()
-				// A base class that all special / non-data rows (like Group) derive from.
-				//
-				// @param	data		object		Data object for this item
-				//
-				this.__nonDataRow = true;
-				if (data) $.extend(this, data);
-			},
 			numVisibleRows,
 			offset = 0,		// current page offset
 			page = 0,		// current page
@@ -326,6 +323,16 @@
 			viewportW,
 			vScrollDir = 1;
 
+		/**
+		 * @class NonDataItem
+		 * @classdesc A base class that all special / non-data rows (like Group) derive from.
+		 *
+		 * @param	{object}	data		- Data object for this item
+		 */
+		var NonDataItem = function (data) {
+			this.__nonDataRow = true;
+			if (data) $.extend(this, data);
+		};
 		NonDataItem.prototype.toString = function () { return "NonDataItem"; };
 
 		// Default Grid Options
@@ -492,10 +499,14 @@
 		this.sorting = [];
 
 
-		// initialize()
-		// Creates a new DobyGrid instance
-		//
-		// @return object
+		/**
+		 * Creates a new DobyGrid instance
+		 * @method initialize
+		 * @memberof DobyGrid
+		 * @private
+		 *
+		 * @returns {object}
+		 */
 		initialize = function () {
 
 			// Ensure the options we were given are all valid and complete
@@ -522,12 +533,16 @@
 		};
 
 
-		// activate()
-		// Given a row and cell index, will set that cell as the active in the grid
-		//
-		// @param	row		integer		Row index
-		// @param	cell	integer		Cell index
-		//
+		/**
+		 * Given a row and cell index, will set that cell as the active in the grid
+		 * @method activate
+		 * @memberof DobyGrid
+		 *
+		 * @param	{integer}	row			- Row index
+		 * @param	{integer}	cell		- Cell index
+		 *
+		 * @returns {object}
+		 */
 		this.activate = function (row, cell) {
 			if (!initialized) return;
 			if (row === undefined || cell === undefined) {
@@ -541,22 +556,32 @@
 		};
 
 
-		// add()
-		// Entry point for collection.add(). See collection.add for more info.
-		//
+		/**
+		 * Entry point for collection.add(). See collection.add for more info.
+		 * @method add
+		 * @memberof DobyGrid
+		 *
+		 * @param	{array}		models		- List of models to add
+		 * @param	{object}	[options]	- Additional options
+		 *
+		 * @returns {object}
+		 */
 		this.add = function (models, options) {
 			this.collection.add(models, options);
 			return this;
 		};
 
 
-		// addColumn()
-		// Inserts a new column into the grid
-		//
-		// @param	data			object		Column data object
-		// @param	options			object		(Optional) Additional options for handling the insert.
-		//
-		// @return object
+		/**
+		 * Inserts a new column into the grid
+		 * @method addColumn
+		 * @memberof DobyGrid
+		 *
+		 * @param	{object}	data		- Column data object
+		 * @param	{object}	[options]	- Additional options for handling the insert.
+		 *
+		 * @returns {object}
+		 */
 		this.addColumn = function (data, options) {
 			if (!data || typeof data !== 'object' || $.isArray(data) || data instanceof HTMLElement) {
 				throw new Error("Unable to addColumn() because the given 'data' param is invalid.");
@@ -594,14 +619,16 @@
 		};
 
 
-		// addGrouping()
-		// Add to the grouping object given the 'id' of a column. Allows you to
-		// create nested groupings.
-		//
-		// @param	column_id		string		Id of the column to group by
-		// @param	options			object		(Optional) Additional grouping options.
-		//
-		// @return object
+		/**
+		 * Add to the grouping object given the 'id' of a column. Allows you to create nested groupings.
+		 * @method addGrouping
+		 * @memberof DobyGrid
+		 *
+		 * @param	{string}		column_id		- Id of the column to group by
+		 * @param	{object}		[options]		- Additional grouping options.
+		 *
+		 * @returns {object}
+		 */
 		this.addGrouping = function (column_id, options) {
 			// Is grouping enabled
 			if (!self.options.groupable) throw new Error('Cannot execute "addGrouping" because "options.groupable" is disabled.');
@@ -624,12 +651,19 @@
 		};
 
 
-		// Aggregate()
-		// Information about data totals.
-		// An instance of Aggregates will be created for each totals row and passed to the aggregators
-		// so that they can store arbitrary data in it. That data can later be accessed by group totals
-		// formatters during the display.
-		//
+		/**
+		 * @class Aggregate
+		 * @classdesc Information about data totals.
+		 * @augments NonDataItem
+		 *
+		 * An instance of Aggregate will be created for each totals row and passed to the aggregators
+		 * so that they can store arbitrary data in it. That data can later be accessed by group totals
+		 * formatters during the display.
+		 *
+		 * @param	{array}		aggregators		- List of aggregators for this object
+		 *
+		 * @returns {object}
+		 */
 		Aggregate = function (aggregators) {
 			this.aggregators = aggregators;
 			this.class = classrowtotal;
@@ -671,12 +705,15 @@
 		};
 
 
-		// appendTo()
-		// Duplicates the jQuery appendTo() function
-		//
-		// @param	target		object		jQuery object to insert table into
-		//
-		// @return object
+		/**
+		 * Duplicates the jQuery appendTo() function
+		 * @method appendTo
+		 * @memberof DobyGrid
+		 *
+		 * @param	{jQuery}		target		- jQuery object to insert table into
+		 *
+		 * @returns {object}
+		 */
 		this.appendTo = function (target) {
 			if (!target || !target.length) {
 				throw new Error('Doby Grid requires a valid container. "' + $(target).selector + '" does not exist in the DOM.');
@@ -829,11 +866,15 @@
 		};
 
 
-		// applyColumnHeaderWidths()
-		// Ensures that the header column widths are all set correctly
-		//
-		// @param	headers		array		(Optional) Header column DOM elements to resize
-		//
+		/**
+		 * Ensures that the header column widths are all set correctly
+		 * @method applyColumnHeaderWidths
+		 * @memberof DobyGrid
+		 * @private
+		 *
+		 * @param	{array}		[headers]		- Header column DOM elements to resize
+		 *
+		 */
 		applyColumnHeaderWidths = function (headers) {
 			if (!initialized || !self.options.showHeader) return;
 			if (!headers) headers = $headers.children('.' + classheadercolumn);
@@ -861,9 +902,12 @@
 		};
 
 
-		// applyColumnWidths()
-		// Sets the widths of the columns to what they should be
-		//
+		/**
+		 * Sets the widths of the columns to what they should be
+		 * @method applyColumnWidths
+		 * @memberof DobyGrid
+		 * @private
+		 */
 		applyColumnWidths = function () {
 			// The -1 here is to compensate for the border spacing between cells
 			var x = -1, c, w, rule, i, l, r;
@@ -902,9 +946,12 @@
 		};
 
 
-		// asyncPostProcessRows()
-		// Processing the post-render action on all cells that need it
-		//
+		/**
+		 * Processing the post-render action on all cells that need it
+		 * @method asyncPostProcessRows
+		 * @memberof DobyGrid
+		 * @private
+		 */
 		asyncPostProcessRows = function () {
 			var dataLength = getDataLength(),
 				cb = function () {
@@ -964,9 +1011,12 @@
 		};
 
 
-		// autosizeColumns()
-		// Resizes all column to try and fit them into the available screen width
-		//
+		/**
+		 * Resizes all column to try and fit them into the available screen width
+		 * @method autosizeColumns
+		 * @memberof DobyGrid
+		 * @private
+		 */
 		autosizeColumns = function () {
 			var i, c,
 				widths = [],
@@ -1063,9 +1113,12 @@
 		};
 
 
-		// bindCellRangeSelect()
-		// Enable events used to select cell ranges via click + drag
-		//
+		/**
+		 * Enable events used to select cell ranges via click + drag
+		 * @method bindCellRangeSelect
+		 * @memberof DobyGrid
+		 * @private
+		 */
 		bindCellRangeSelect = function () {
 			var decorator = new CellRangeDecorator(),
 				_dragging = null,
@@ -1155,9 +1208,12 @@
 		};
 
 
-		// bindRowResize()
-		// Binds the necessary events to handle row resizing
-		//
+		/**
+		 * Binds the necessary events to handle row resizing
+		 * @method bindRowResize
+		 * @memberof DobyGrid
+		 * @private
+		 */
 		bindRowResize = function () {
 			// This cannot be assigned to the $viewport element because the two drag
 			// event binding conflict with each other.
@@ -1211,13 +1267,17 @@
 		};
 
 
-		// cacheRows()
-		// Walks through the data and caches positions for all the rows into
-		// the 'cache.rowPositions' object
-		//
-		// @param	from		integer		(Optional) Start to cache from which row?
-		// @param	indexOnly	boolean		(Optional) If true, will only perform a re-index
-		//
+		/**
+		 * Walks through the data and caches positions for all the rows into
+		 * the 'cache.rowPositions' object
+		 * @method cacheRows
+		 * @memberof DobyGrid
+		 * @private
+		 *
+		 * @param	{integer}	[from]			- Start to cache from which row?
+		 * @param	{boolean}	[indexOnly]		- If true, will only perform a re-index
+		 *
+		 */
 		cacheRows = function (from, indexOnly) {
 			from = from || 0;
 
@@ -1279,11 +1339,15 @@
 		};
 
 
-		// calculateVisibleRows()
-		// Calculates the number of currently visible rows in the viewport. Partially visible rows are
-		// included in the calculation.
-		//
-		// @return integer
+		/**
+		 * Calculates the number of currently visible rows in the viewport. Partially visible rows are
+		 * included in the calculation.
+		 * @method calculateVisibleRows
+		 * @memberof DobyGrid
+		 * @private
+		 *
+		 * @returns {integer}
+		 */
 		calculateVisibleRows = function () {
 
 			// All rows are visible when using autoHeight
@@ -1306,13 +1370,17 @@
 		};
 
 
-		// canCellBeActive()
-		// Can a given cell be activated?
-		//
-		// @param	row		integer		Row index
-		// @param	cell	integer		Cell index
-		//
-		// @return boolean
+		/**
+		 * Can a given cell be activated?
+		 * @method canCellBeActive
+		 * @memberof DobyGrid
+		 * @private
+		 *
+		 * @param	{integer}	row		- Row index
+		 * @param	{integer}	cell	- Cell index
+		 *
+		 * @returns {boolean}
+		 */
 		canCellBeActive = function (row, cell) {
 			if (!self.options.keyboardNavigation || row >= getDataLength() ||
 				row < 0 || cell >= cache.activeColumns.length || cell < 0) {
@@ -1338,13 +1406,17 @@
 		};
 
 
-		// canCellBeSelected()
-		// Can a given cell be selected?
-		//
-		// @param	row		integer		Row index
-		// @param	cell	integer		Cell index
-		//
-		// @return boolean
+		/**
+		 * Can a given cell be selected?
+		 * @method canCellBeSelected
+		 * @memberof DobyGrid
+		 * @private
+		 *
+		 * @param	{integer}		row		- Row index
+		 * @param	{integer}		cell	- Cell index
+		 *
+		 * @returns {boolean}
+		 */
 		canCellBeSelected = function (row, cell) {
 			if (row >= getDataLength() || row < 0 || cell >= cache.activeColumns.length || cell < 0) {
 				return false;
@@ -1364,21 +1436,26 @@
 		};
 
 
-		// cellExists()
-		// Returns true if the requested cell exists in the data set
-		//
-		// @param	row		integer		Index of the row
-		// @param	cell	integer		Index of the cell
-		//
-		// @return bolean
+		/**
+		 * Returns true if the requested cell exists in the data set
+		 * @method cellExists
+		 * @memberof DobyGrid
+		 * @private
+		 *
+		 * @param	{integer}		row		- Index of the row
+		 * @param	{integer}		cell	- Index of the cell
+		 *
+		 * @returns {boolean}
+		 */
 		cellExists = function (row, cell) {
 			return !(row < 0 || row >= getDataLength() || cell < 0 || cell >= cache.activeColumns.length);
 		};
 
 
-		// CellRangeDecorator()
-		// Displays an overlay on top of a given cell range.
-		//
+		/**
+		 * @class CellRangeDecorator
+		 * @classdesc Displays an overlay on top of a given cell range
+		 */
 		CellRangeDecorator = function () {
 			this.$el = null;
 
@@ -1432,11 +1509,15 @@
 		};
 
 
-		// cleanUpAndRenderCells()
-		// Re-renders existing cells. Makes sure that all columns in the viewport are rendered.
-		//
-		// @param		range		object		Cell range to render
-		//
+		/**
+		 * Re-renders existing cells. Makes sure that all columns in the viewport are rendered.
+		 * @method cleanUpAndRenderCells
+		 * @memberof DobyGrid
+		 * @private
+		 *
+		 * @param		{object}		range		- Cell range to render
+		 *
+		 */
 		cleanUpAndRenderCells = function (range) {
 			var cacheEntry,
 				stringArray = [],
@@ -1511,12 +1592,16 @@
 		};
 
 
-		// cleanUpCells()
-		// Cleanup the cell cache
-		//
-		// @param	range	object		Data about the range to clean up
-		// @param	row		integer		Which row to clean up
-		//
+		/**
+		 * Cleanup the cell cache
+		 * @method cleanUpCells
+		 * @memberof DobyGrid
+		 * @private
+		 *
+		 * @param	{object}	range	- Data about the range to clean up
+		 * @param	{integer}	row		- Which row to clean up
+		 *
+		 */
 		cleanUpCells = function (range, row) {
 			var totalCellsRemoved = 0;
 			var cacheEntry = cache.nodes[row];
@@ -1554,11 +1639,15 @@
 		};
 
 
-		// cleanupRows()
-		// Cleans the row cache
-		//
-		// @param	rangeToKeep		object		A range of top/bottom values to keep
-		//
+		/**
+		 * Cleans the row cache
+		 * @method cleanupRows
+		 * @memberof DobyGrid
+		 * @private
+		 *
+		 * @param	{object}	rangeToKeep		- A range of top/bottom values to keep
+		 *
+		 */
 		cleanupRows = function (rangeToKeep) {
 			var acr = self.active && 'row' in self.active ? self.active.row : null;
 			for (var i in cache.nodes) {
@@ -1569,9 +1658,12 @@
 		};
 
 
-		// clearTextSelection()
-		// If user has somethinge selected - clears that selection
-		//
+		/**
+		 * If user has somethinge selected - clears that selection
+		 * @method clearTextSelection
+		 * @memberof DobyGrid
+		 * @private
+		 */
 		clearTextSelection = function () {
 			if (document.selection && document.selection.empty) {
 				try {
@@ -1587,11 +1679,14 @@
 		};
 
 
-		// commitCurrentEdit()
-		// Processes edit operations using the current editor
-		//
-		// @param	callback	function	Callback function
-		//
+		/**
+		 * Processes edit operations using the current editor
+		 * @method commitCurrentEdit
+		 * @memberof DobyGrid
+		 * @private
+		 *
+		 * @param	{function}	callback	- Callback function
+		 */
 		commitCurrentEdit = function (callback) {
 			if (!self.active || !self.currentEditor) return callback(true);
 
@@ -1741,9 +1836,12 @@
 		};
 
 
-		// copySelected()
-		// Copies the selected cell(s) to the clipboard
-		//
+		/**
+		 * Copies the selected cell(s) to the clipboard
+		 * @method copySelected
+		 * @memberof DobyGrid
+		 * @private
+		 */
 		copySelected = function () {
 			var result;
 
@@ -1784,9 +1882,12 @@
 		};
 
 
-		// createCssRules()
-		// Generates the CSS styling that will drive the dimensions of the grid cells
-		//
+		/**
+		 * Generates the CSS styling that will drive the dimensions of the grid cells
+		 * @method createCssRules
+		 * @memberof DobyGrid
+		 * @private
+		 */
 		createCssRules = function () {
 			$style = $('<style type="text/css" rel="stylesheet"></style>').appendTo($("head"));
 			var rowHeight = self.options.rowHeight - cellHeightDiff;
@@ -1803,10 +1904,14 @@
 		};
 
 
-		// createGrid()
-		// Generates the grid elements
-		//
-		// @return object
+		/**
+		 * Generates the grid elements
+		 * @method createGrid
+		 * @memberof DobyGrid
+		 * @private
+		 *
+		 * @returns {object}
+		 */
 		createGrid = function () {
 
 			// Create the container
@@ -1839,12 +1944,16 @@
 		};
 
 
-		// createGroupingObject()
-		// Given a grouping object, extends it with the defaults.
-		//
-		// @param	grouping	object		A column grouping object
-		//
-		// @return object
+		/**
+		 * Given a grouping object, extends it with the defaults.
+		 * @method createGroupingObject
+		 * @memberof DobyGrid
+		 * @private
+		 *
+		 * @param	{object}	grouping		- A column grouping object
+		 *
+		 * @returns {object}
+		 */
 		createGroupingObject = function (grouping) {
 			if (!grouping) throw new Error("Unable to create group because grouping object is missing.");
 
@@ -1890,17 +1999,20 @@
 		};
 
 
-		// Collection()
-		// This is a special class that looks an awful lot like Backbone.Collection and it
-		// stores and manipulates the data set for this grid. So why not just use a Backbone.Collection?
-		//	1) It's super slow for large data sets: https://github.com/jashkenas/backbone/issues/2760
-		//	2) In order for 'remote' fetching to work nicely with scrolling, the collection has to
-		//		simulate objects that haven't been fetched from the server yet. Backbone doesn't allow
-		//		you to have "fake" data in their collections without some serious hacking.
-		//
-		// @param	grid		object		Reference pointer to the grid instance
-		//
-		// @return object
+		/**
+		 * @class Collection
+		 * @classdesc This is a special class that looks an awful lot like Backbone.Collection and it
+		 * stores and manipulates the data set for this grid.
+		 * So why not just use a Backbone.Collection?
+		 *	1) It's super slow for large data sets: https://github.com/jashkenas/backbone/issues/2760
+		 *	2) In order for 'remote' fetching to work nicely with scrolling, the collection has to
+		 *		simulate objects that haven't been fetched from the server yet. Backbone doesn't allow
+		 *		you to have "fake" data in their collections without some serious hacking.
+		 *
+		 * @param	{object}		grid		- Reference pointer to the grid instance
+		 *
+		 * @returns {object}
+		 */
 		Collection = function (grid) {
 
 			// Private Variables
@@ -1951,10 +2063,13 @@
 			this.length = 0;
 
 
-			// initialize()
-			// Initializes the Data View
-			//
-			// @return object
+			/**
+			 * Initializes the Data View
+			 * @method initialize
+			 * @memberof Collection
+			 *
+			 * @returns {object}
+			 */
 			this.initialize = function () {
 
 				// If we have normal data - set it now
@@ -1966,13 +2081,16 @@
 			};
 
 
-			// add()
-			// Add models to the collection.
-			//
-			// @param	models		array, object		Object(s) to add to the collection
-			// @param	options		object				Additional options
-			//
-			// @return object
+			/**
+			 * Add models to the collection.
+			 * @method add
+			 * @memberof Collection
+			 *
+			 * @param	{array|object}		models		- Object(s) to add to the collection
+			 * @param	{object}			options		- Additional options
+			 *
+			 * @returns {object}
+			 */
 			this.add = function (models, options) {
 				if (!$.isArray(models)) models = models ? [models] : [];
 				options = options || {};
@@ -2069,18 +2187,24 @@
 			};
 
 
-			// collapseAllGroups()
-			//
-			// @param	level	integer		Optional level to collapse.
-			//								If not specified, applies to all levels.
-			//
+			/**
+			 * Collapse all groups
+			 * @method collapseAllGroups
+			 * @memberof Collection
+			 *
+			 * @param	{integer}	level		- Optional level to collapse. If not
+			 *									specified, applies to all levels.
+			 */
 			this.collapseAllGroups = function (level) {
 				expandCollapseAllGroups(level, true);
 			};
 
 
-			// collapseGroup()
-			// Collapse a group
+			/**
+			 * Collapse a group
+			 * @method collapseGroup
+			 * @memberof Collection
+			 */
 			this.collapseGroup = function () {
 				var args = Array.prototype.slice.call(arguments),
 					arg0 = args[0];
@@ -2092,20 +2216,29 @@
 			};
 
 
-			// expandAllGroups()
-			// @param	level	integer		Optional level to expand.
-			//								If not specified, applies to all levels.
+			/**
+			 * Expand all groups
+			 * @method expandAllGroups
+			 * @memberof Collection
+			 *
+			 * @param	{integer}	level		- Optional level to expand.
+			 *									If not specified, applies to all levels.
+			 */
 			this.expandAllGroups = function (level) {
 				expandCollapseAllGroups(level, false);
 			};
 
 
-			// expandCollapseAllGroups()
-			// Handles expading/collapsing for all groups in batch
-			//
-			// @param	level		integer		Optional level to expand
-			// @param	collapse	boolean		Collapse or expand?
-			//
+			/**
+			 * Handles expading/collapsing for all groups in batch
+			 * @method expandCollapseAllGroups
+			 * @memberof Collection
+			 * @private
+			 *
+			 * @param	{integer}		level		- Optional level to expand
+			 * @param	{boolean}		collapse	- Collapse or expand?
+			 *
+			 */
 			expandCollapseAllGroups = function (level, collapse) {
 				if (level === null || level === undefined) {
 					for (var i = 0, l = self.groups.length; i < l; i++) {
@@ -2122,13 +2255,16 @@
 			};
 
 
-			// expandCollapseGroup()
-			// Handles collapsing and expanding of groups
-			//
-			// @param	level			integer		Which level are we toggling
-			// @param	group_id		integer		Which group key are we toggling
-			// @param	collapse		boolean		Collapse? Otherwise expand.
-			//
+			/**
+			 * Handles collapsing and expanding of groups
+			 * @method expandCollapseGroup
+			 * @memberof Collection
+			 * @prviate
+			 *
+			 * @param	{integer}		level			- Which level are we toggling
+			 * @param	{integer}		group_id		- Which group key are we toggling
+			 * @param	{boolean}		collapse		- Collapse? Otherwise expand.
+			 */
 			expandCollapseGroup = function (level, group_id, collapse) {
 				toggledGroupsByLevel[level][group_id] = self.groups[level].collapsed ^ collapse;
 				resetAggregators();
@@ -2137,8 +2273,11 @@
 			};
 
 
-			// expandGroup()
-			// Expands a collapsed group
+			/**
+			 * Expands a collapsed group
+			 * @method expandGroup
+			 * @memberof Collection
+			 */
 			this.expandGroup = function () {
 				var args = Array.prototype.slice.call(arguments),
 					arg0 = args[0];
@@ -2151,11 +2290,14 @@
 			};
 
 
-			// ensureCellNodesInRowsCache()
-			// Make sure cell nodes are cached for a given row
-			//
-			// @param	row		integer		Row index
-			//
+			/**
+			 * Make sure cell nodes are cached for a given row
+			 * @method ensureCellNodesInRowsCache
+			 * @memberof Collection
+			 * @private
+			 *
+			 * @param	{integer}	row		- Row index
+			 */
 			ensureCellNodesInRowsCache = function (row) {
 				var cacheEntry = cache.nodes[row];
 				if (cacheEntry) {
@@ -2171,14 +2313,18 @@
 			};
 
 
-			// extractGroups()
-			// Generates new group objects from the given rows
-			//
-			// @param	rows			array		The list of data objects to group
-			// @param	parentGroup		object		The parent group object
-			// @param	callback		function	Callback function
-			//
-			// @return array
+			/**
+			 * Generates new group objects from the given rows
+			 * @method extractGroups
+			 * @memberof Collection
+			 * @private
+			 *
+			 * @param	{array}			rows			- The list of data objects to group
+			 * @param	{object}		parentGroup		- The parent group object
+			 * @param	{function}		callback		- Callback function
+			 *
+			 * @returns {array}
+			 */
 			extractGroups = function (rows, parentGroup, callback) {
 				var group,
 					val,
@@ -2332,12 +2478,16 @@
 			};
 
 
-			// finalizeGroups()
-			// Ensure the group objects have valid data and the states are set correctly
-			//
-			// @param	group		array		Groups to validate
-			// @param	level		integer		Which level to validate
-			//
+			/**
+			 * Ensure the group objects have valid data and the states are set correctly
+			 * @method finalizeGroups
+			 * @memberof Collection
+			 * @private
+			 *
+			 * @param	{array}		groups		- Groups to validate
+			 * @param	{integer}	level		- Which level to validate
+			 *
+			 */
 			finalizeGroups = function (groups, level) {
 				level = level || 0;
 				var gi = self.groups[level],
@@ -2372,14 +2522,18 @@
 			};
 
 
-			// flattenGroupedRows()
-			// Given a list of groups and the nesting levels returns the list of grouped rows that are
-			// expanded.
-			//
-			// @param	group		array		List of group objects
-			// @param	level		integer		Level of group nesting to scan
-			//
-			// @return array
+			/**
+			 * Given a list of groups and the nesting levels returns the list of grouped rows
+			 * that are expanded.
+			 * @method flattenGroupedRows
+			 * @memberof Collection
+			 * @private
+			 *
+			 * @param	{array}		groups		- List of group objects
+			 * @param	{integer}	level		- Level of group nesting to scan
+			 *
+			 * @returns {array}
+			 */
 			flattenGroupedRows = function (groups, level) {
 				level = level || 0;
 				var groupedRows = [],
@@ -2409,12 +2563,16 @@
 			};
 
 
-			// getFilteredItems()
-			// Runs the data through the filters (if any).
-			//
-			// @param	items		array		List of items to filter through
-			//
-			// @return object
+			/**
+			 * Runs the data through the filters (if any).
+			 * @method getFilteredItems
+			 * @memberof Collection
+			 * @private
+			 *
+			 * @param	{array}		items		- List of items to filter through
+			 *
+			 * @returns {object}
+			 */
 			getFilteredItems = function (items) {
 				// Remote data will already be filtered
 				if (self.filter && !grid.fetcher) {
@@ -2444,19 +2602,22 @@
 			};
 
 
-			// get()
-			// Get a model from collection, specified by an id, or by passing in a model.
-			// The model gets generated on demand as generating all models at the start would
-			// make the grid take a very long time to initialize. This way, users will always
-			// see model objects, but internally the grid can make use of direct item references
-			// when performance is important.
-			//
-			// Return back an array where the first key is the index of the item in the data list,
-			// and the second key is the data object itself.
-			//
-			// @param		obj		object, integer		Model reference or model id
-			//
-			// @return array, or null
+			/**
+			 * Get a model from collection, specified by an id, or by passing in a model.
+			 * The model gets generated on demand as generating all models at the start would
+			 * make the grid take a very long time to initialize. This way, users will always
+			 * see model objects, but internally the grid can make use of direct item references
+			 * when performance is important.
+			 *
+			 * Return back an array where the first key is the index of the item in the data list,
+			 * and the second key is the data object itself.
+			 * @method get
+			 * @memberof Collection
+			 *
+			 * @param		{object|integer}	obj		- Model reference or model id
+			 *
+			 * @returns {array|null}
+			 */
 			this.get = function (obj) {
 				if (obj === null) return void 0;
 				var id = obj;
@@ -2470,14 +2631,18 @@
 			};
 
 
-			// getRowDiffs()
-			// Given two lists of row data objects, returns a list of indexes of the rows which
-			// are changed. This will tell the grid what needs to be re-cached and re-rendered.
-			//
-			// @param	rows		array		List of current rows
-			// @param	newRows		array		List of new rows
-			//
-			// @return array
+			/**
+			 * Given two lists of row data objects, returns a list of indexes of the rows which
+			 * are changed. This will tell the grid what needs to be re-cached and re-rendered.
+			 * @method getRowDiffs
+			 * @memberof Collection
+			 * @private
+			 *
+			 * @param	{array}		rows		- List of current rows
+			 * @param	{array}		newRows		- List of new rows
+			 *
+			 * @returns {array}
+			 */
 			getRowDiffs = function (rows, newRows) {
 				var item, r, eitherIsNonData, diff = [];
 				var from = 0,
@@ -2536,14 +2701,18 @@
 			};
 
 
-			// parse()
-			// Given a list of items objects to convert to models, returns a list of parsed items.
-			// This also checks to see if we need to enable variable height support.
-			//
-			// @param	item		array		List of objects
-			// @param	recache		boolean		Update cache of given items
-			//
-			// @return array
+			/**
+			 * Given a list of items objects to convert to models, returns a list of parsed items.
+			 * This also checks to see if we need to enable variable height support.
+			 * @method parse
+			 * @memberof Collection
+			 * @private
+			 *
+			 * @param	{array}			items		- List of objects
+			 * @param	{boolean}		recache		- Update cache of given items
+			 *
+			 * @returns {array}
+			 */
 			parse = function (items, recache) {
 				var i, l, childrow, item;
 				for (i = 0, l = items.length; i < l; i++) {
@@ -2604,10 +2773,13 @@
 			};
 
 
-			// processAggregators()
-			// Processes any aggregrators that are enabled and caches their results.
-			// Then inserts new Aggregate rows that are needed.
-			//
+			/**
+			 * Processes any aggregrators that are enabled and caches their results.
+			 * Then inserts new Aggregate rows that are needed.
+			 * @method processAggregators
+			 * @memberof Collection
+			 * @private
+			 */
 			processAggregators = function () {
 				var item, i, l, active_aggregator, agg_keys,
 					column_id, aggreg_idx,
@@ -2677,9 +2849,15 @@
 			};
 
 
-			// processGroupAggregators()
-			// Processes the aggregation methods for each group.
-			// Then inserts new Aggregate rows at the bottom of each.
+			/**
+			 * Processes the aggregation methods for each group.
+			 * Then inserts new Aggregate rows at the bottom of each.
+			 * @method processGroupAggregators
+			 * @memberof Collection
+			 * @private
+			 *
+			 * @param	{array}		groups		- Groups to process
+			 */
 			processGroupAggregators = function (groups) {
 				// For each group we're going to generate a new aggregate row
 				var i, l, group, item, column, column_id, ii, ll, aggreg_idx;
@@ -2733,13 +2911,17 @@
 			};
 
 
-			// recalc()
-			// Given a list of rows we're viewing determines which of them need to be re-rendered
-			//
-			// @param		_items		array		List of rows to render
-			// @param		callback	function	Callback function
-			//
-			// @return array
+			/**
+			 * Given a list of rows we're viewing determines which of them need to be re-rendered
+			 * @method recalc
+			 * @memberof Collection
+			 * @private
+			 *
+			 * @param		{array}		_items		- List of rows to render
+			 * @param		{function}	callback	- Callback function
+			 *
+			 * @returns {array}
+			 */
 			recalc = function (_items, callback) {
 				rowsById = null;
 
@@ -2824,9 +3006,11 @@
 			};
 
 
-			// refresh()
-			// Automatically re-render the grid when rows have changed
-			//
+			/**
+			 * Automatically re-render the grid when rows have changed
+			 * @method refresh
+			 * @memberof Collection
+			 */
 			this.refresh = function () {
 				if (suspend) return;
 
@@ -2872,17 +3056,21 @@
 			};
 
 
-			// refreshDebounced()
-			// Calls the refresh function, with debounce enabled to prevent repeat calls
-			//
+			/**
+			 * Calls the refresh function, with debounce enabled to prevent repeat calls
+			 * @method refreshDebounced
+			 * @memberof Collection
+			 */
 			this.refreshDebounced = _.debounce(this.refresh, 10),
 
 
-			// remove()
-			// Removes an item from the collection
-			//
-			// @param	id		string		ID of the row item
-			//
+			/**
+			 * Removes an item from the collection
+			 * @method remove
+			 * @memberof Collection
+			 *
+			 * @param	{string}	id		- ID of the row item
+			 */
 			this.remove = function (id) {
 				if (id === undefined || id === null) {
 					throw new Error("Unable to delete collection item. Invalid '" + grid.options.idProperty + "' supplied (" + id + ").");
@@ -2913,13 +3101,15 @@
 			};
 
 
-			// reset()
-			// Given an array of items, binds those items to the data view collection, generates
-			// index caches and checks for id uniqueness.
-			//
-			// @param	models		array		Array of objects
-			// @param	recache		boolean		(Optional) Force a recache of positions and rows
-			//
+			/**
+			 * Given an array of items, binds those items to the data view collection, generates
+			 * index caches and checks for id uniqueness.
+			 * @method reset
+			 * @memberof Collection
+			 *
+			 * @param	{array}		models		- Array of objects
+			 * @param	{boolean}	[recache]	- Force a recache of positions and rows
+			 */
 			this.reset = function (models, recache) {
 				if (!models) models = [];
 				suspend = true;
@@ -2950,11 +3140,14 @@
 			};
 
 
-			// setGrouping()
-			// Sets the current grouping settings
-			//
-			// @param	options		array		List of grouping objects
-			//
+			/**
+			 * Sets the current grouping settings
+			 * @method setGrouping
+			 * @memberof Collection
+			 *
+			 * @param	{array}		options		- List of grouping objects
+			 *
+			 */
 			this.setGrouping = function (options) {
 				// Is grouping enabled
 				if (!grid.options.groupable) throw new Error('Cannot execute "setGrouping" because "options.groupable" is disabled.');
@@ -3053,14 +3246,17 @@
 			};
 
 
-			// setItem()
-			// Update and redraw an existing items. If item being replaced is a Placeholder,
-			// it is replaced entirely, otherwise object is extended.
-			//
-			// @param	id		string		The id of the item to update
-			// @param	data	object		The data to use for the item
-			//
-			// @return object
+			/**
+			 * Update and redraw an existing items. If item being replaced is a Placeholder,
+			 * it is replaced entirely, otherwise object is extended.
+			 * @method setItem
+			 * @memberof Collection
+			 *
+			 * @param	{string}	id			- The id of the item to update
+			 * @param	{object}	data		- The data to use for the item
+			 *
+			 * @returns {object}
+			 */
 			this.setItem = function (id, data) {
 				// Get the index of this item
 				var idx = cache.indexById[id],
@@ -3143,12 +3339,14 @@
 			};
 
 
-			// sort()
-			// Performs the sort operation and refreshes the grid render
-			//
-			// @param	comparer	function		The function to use to render
-			// @param	ascending	boolean			Is the direction ascending?
-			//
+			/**
+			 * Performs the sort operation and refreshes the grid render
+			 * @method sort
+			 * @memberof Collection
+			 *
+			 * @param	{function}	comparer		- The function to use to render
+			 * @param	{boolean}	ascending		- Is the direction ascending?
+			 */
 			this.sort = function (comparer, ascending) {
 				sortAsc = ascending;
 				sortComparer = comparer;
@@ -3169,12 +3367,16 @@
 			};
 
 
-			// uncompiledFilter()
-			// Runs the given items through the active filters in the collection
-			//
-			// @param	items	array		List of items to filter
-			//
-			// @retun array
+			/**
+			 * Runs the given items through the active filters in the collection
+			 * @method uncompiledFilter
+			 * @memberof Collection
+			 * @private
+			 *
+			 * @param	{array}		items	- List of items to filter
+			 *
+			 * @returns {array}
+			 */
 			uncompiledFilter = function (items) {
 				var retval = [],
 					idx = 0;
@@ -3190,13 +3392,17 @@
 			};
 
 
-			// uncompiledFilterWithCaching()
-			// Runs the given items through the active filters in the collection,
-			// and caches the results.
-			//
-			// @param	items	array		List of items to filter
-			//
-			// @retun array
+			/**
+			 * Runs the given items through the active filters in the collection,
+			 * and caches the results.
+			 * @method uncompiledFilterWithCaching
+			 * @memberof Collection
+			 * @private
+			 *
+			 * @param	{array}		items	- List of items to filter
+			 *
+			 * @returns {array}
+			 */
 			uncompiledFilterWithCaching = function (items, cache) {
 				var retval = [],
 					idx = 0,
@@ -3219,17 +3425,20 @@
 		};
 
 
-		// defaultEditor()
-		// Default editor object that handles cell reformatting and processing of edits
-		//
-		// @param	options		object		Editor arguments
-		//
+		/**
+		 * Default editor object that handles cell reformatting and processing of edits
+		 * @class defaultEditor
+		 *
+		 * @param	{object}	options		- Editor arguments
+		 */
 		defaultEditor = function (options) {
 
-			// initialize()
-			// The editor is actived when an active cell in the grid is focused.
-			// This should generate any DOM elements you want to use for your editor.
-			//
+			/**
+			 * The editor is actived when an active cell in the grid is focused.
+			 * This should generate any DOM elements you want to use for your editor.
+			 * @method initialize
+			 * @memberof defaultEditor
+			 */
 			this.initialize = function () {
 				// Will hold the current value of the item being edited
 				this.loadValue(options.item);
@@ -3265,12 +3474,15 @@
 			};
 
 
-			// applyValue()
-			// This is the function that will update the data model in the grid.
-			//
-			// @param	items		array		Array of row data to update
-			// @param	value		string		The user-input value being entered
-			//
+			/**
+			 * This is the function that will update the data model in the grid.
+			 * @method applyValue
+			 * @memberof defaultEditor
+			 *
+			 * @param	{array}		items		- Array of row data to update
+			 * @param	{string}	value		- The user-input value being entered
+			 *
+			 */
 			this.applyValue = function (items, value) {
 				var item;
 
@@ -3294,56 +3506,67 @@
 			};
 
 
-			// cancel()
-			// Cancel the edit and return the cell to its default state
-			//
-			this.cancel = function () {
+			/**
+			 * Cancel the edit and return the cell to its default state
+			 * @method cancel
+			 * @memberof defaultEditor
+			 */
+			this.cancel = function () {};
 
-			};
 
-
-			// destroy()
-			// Destroys any elements your editor has created.
-			//
+			/**
+			 * Destroys any elements your editor has created.
+			 * @method destroy
+			 * @memberof defaultEditor
+			 */
 			this.destroy = function () {
 				// Clear any invalid cells
 				options.grid.$el.find('.' + classinvalid).removeClass(classinvalid);
-				
 				this.$input.remove();
 			};
 
 
-			// focus()
-			// When the cell with an initialized editor is focused
-			//
+			/**
+			 * When the cell with an initialized editor is focused
+			 * @method focus
+			 * @memberof defaultEditor
+			 */
 			this.focus = function () {
 				this.$input.focus().select();
 			};
 
 
-			// getValue()
-			// Gets the current value of whatever the user has inputted
-			//
-			// @return string
+			/**
+			 * Gets the current value of whatever the user has inputted
+			 * @method getValue
+			 * @memberof defaultEditor
+			 *
+			 * @returns {string}
+			 */
 			this.getValue = function () {
 				return this.$input.val();
 			};
 
 
-			// isValueChanged()
-			// Determines whether or not the value has changed
-			//
-			// @return boolean
+			/**
+			 * Determines whether or not the value has changed
+			 * @method isValueChanged
+			 * @memberof defaultEditor
+			 *
+			 * @returns {boolean}
+			 */
 			this.isValueChanged = function () {
 				return (!(this.$input.val() === "" && this.currentValue === null)) && (this.$input.val() != this.currentValue);
 			};
 
 
-			// loadValue()
-			// Loads the current value for the item
-			//
-			// @param	item	object		Data model object that is being edited
-			//
+			/**
+			 * Loads the current value for the item
+			 * @method loadValue
+			 * @memberof defaultEditor
+			 *
+			 * @param	{object}	item		- Data model object that is being edited
+			 */
 			this.loadValue = function (item) {
 				if (!item) return null;
 				var value = item instanceof Backbone.Model ? item.get(options.column.field) : item.data ? item.data[options.column.field] : null;
@@ -3352,31 +3575,37 @@
 			};
 
 
-			// serializeValue()
-			// Process the input value before submitting it
-			//
+			/**
+			 * Process the input value before submitting it
+			 * @method serializeValue
+			 * @memberof defaultEditor
+			 */
 			this.serializeValue = function () {
 				return this.$input.val();
 			};
 
 
-			// setValue()
-			// Sets the value inside your editor, in case some internal grid calls needs to do
-			// it dynamically.
-			//
-			// @param	val		string		Value to set
-			//
+			/**
+			 * Sets the value inside your editor, in case some internal grid calls needs to do
+			 * it dynamically.
+			 * @method setValue
+			 * @memberof defaultEditor
+			 *
+			 * @param	{string}	val			- Value to set
+			 */
 			this.setValue = function (val) {
 				this.$input.val(val);
 			};
 
 
-			// showInvalid()
-			// What to do when the validation for an edit fails. Here you can highlight the cell
-			// and show the user the error message.
-			//
-			// @param   results     array       Results array from your validate() function
-			//
+			/**
+			 * What to do when the validation for an edit fails. Here you can highlight the cell
+			 * and show the user the error message.
+			 * @method showInvalid
+			 * @memberof defaultEditor
+			 *
+			 * @param   {array}    results        - Results array from your validate() function
+			 */
 			this.showInvalid = function (results) {
 				var result;
 				for (var i = 0, l = results.length; i < l; i++) {
@@ -3396,25 +3625,29 @@
 			};
 
 
-			// validate()
-			// Validation step for the value before allowing a save. Should return back either
-			// true or an array of objects like this:
-			//
-			// [{
-			//	row: 1,
-			//	cell: 1,
-			//	$cell: $(..),
-			//	msg: 'Your failure message here.'
-			// }, {
-			//	row: 1,
-			//	cell: 2,
-			//	$cell: $(..),
-			//	msg: 'Your failure message here.'
-			// }]
-			//
-			// @param	items		array		Array of edits to validate
-			// @param	callback	function	Callback function
-			//
+			/**
+			 * Validation step for the value before allowing a save. Should return back either
+			 * true or an array of objects like this:
+			 * @method validate
+			 * @memberof defaultEditor
+			 *
+			 * @example
+			 * [{
+			 *	row: 1,
+			 *	cell: 1,
+			 *	$cell: $(..),
+			 *	msg: 'Your failure message here.'
+			 * }, {
+			 *	row: 1,
+			 *	cell: 2,
+			 *	$cell: $(..),
+			 *	msg: 'Your failure message here.'
+			 * }]
+			 *
+			 * @param	{array}		items		- Array of edits to validate
+			 * @param	{function}	callback	- Callback function
+			 *
+			 */
 			this.validate = function (items, callback) {
 				var results = [];
 
@@ -3440,17 +3673,25 @@
 		};
 
 
-		// defaultFormatter()
-		// Default formatting functions for all cell rendering. Returns an HTML string.
-		//
-		// @param	row			integer		Index of the row is located
-		// @param	cell		integer		Index of the
-		// @param	value		string		The value of this cell from the data object for this row
-		// @param	columnDef	object		The column definition object for the given column
-		// @param	data		object		The full data object for the given cell
-		//
-		// @return string
-		defaultFormatter = function (row, cell, value) {
+		/**
+		 * Default formatting functions for all cell rendering. Returns an HTML string.
+		 * @method defaultFormatter
+		 * @memberof DobyGrid
+		 * @private
+		 *
+		 * @param	{integer}	row			- Index of the row is located
+		 * @param	{integer}	cell		- Index of the
+		 * @param	{string}	value		- The value of this cell from the data object for this row
+		 * @param	{object}	[columnDef]	- The column definition object for the given column
+		 * @param	{object}	[data]		- The full data object for the given cell
+		 *
+		 * @returns {string}
+		 */
+		defaultFormatter = function (row, cell, value, columnDef, data) {
+			// These variables aren't used in the default editor, but are available to you
+			// for customization. This line is left here for JSDoc reasons.
+			if (columnDef || data) {}
+
 			// Never write "undefined" or "null" in the grid -- that's just bad programming
 			if (value === undefined || value === null) {
 				return "";
@@ -3464,12 +3705,16 @@
 		};
 
 
-		// deselectCells()
-		// Deselects all selected cell ranges, or a specific cell specified.
-		//
-		// @param	row		integer		(Optional) Row index for cell to deselect
-		// @param	cell	integer		(Optional) Cell index to deselect in the given row
-		//
+		/**
+		 * Deselects all selected cell ranges, or a specific cell specified.
+		 * @method deselectCells
+		 * @memberof DobyGrid
+		 * @private
+		 *
+		 * @param	{integer}	[row]		- Row index for cell to deselect
+		 * @param	{integer}	[cell]		- Cell index to deselect in the given row
+		 *
+		 */
 		deselectCells = function (row, cell) {
 			// Nothing to deselect
 			if (!self.selection) return;
@@ -3509,9 +3754,11 @@
 		};
 
 
-		// destroy()
-		// Destroy the grid and clean up any events that have been assigned
-		//
+		/**
+		 * Destroy the grid and clean up any events that have been assigned
+		 * @method destroy
+		 * @memberof DobyGrid
+		 */
 		this.destroy = function () {
 			if (this.destroyed) {
 				console.warn('Doby Grid instance has already been destroyed. You do not need to manually call destroy().');
@@ -3585,17 +3832,21 @@
 		};
 
 
-		// disableSelection()
-		// Disable all text selection in header (including input and textarea).
-		//
-		// For usability reasons, all text selection is disabled
-		// with the exception of input and textarea elements (selection must
-		// be enabled there so that editors work as expected); note that
-		// selection in grid cells (grid body) is already unavailable in
-		// all browsers except IE
-		//
-		// @param	$target		object		Target to use as selection curtain
-		//
+		/**
+		 * Disable all text selection in header (including input and textarea).
+		 *
+		 * For usability reasons, all text selection is disabled
+		 * with the exception of input and textarea elements (selection must
+		 * be enabled there so that editors work as expected); note that
+		 * selection in grid cells (grid body) is already unavailable in
+		 * all browsers except IE.
+		 *
+		 * @method disableSelection
+		 * @memberof DobyGrid
+		 * @private
+		 *
+		 * @param	{jQuery}	$target			- Target to use as selection curtain
+		 */
 		disableSelection = function ($target) {
 			if ($target && $target.jquery) {
 				$target
@@ -3608,18 +3859,25 @@
 		};
 
 
-		// Dropdown()
-		// Creates a new dropdown menu.
-		//
-		// @param	event		object		Javascript event object
-		// @param	options		object		Additional dropdown options
-		//
-		// @return object
+		/**
+		 * Creates a new dropdown menu.
+		 * @class Dropdown
+		 *
+		 * @param	{object}	[event]			- Javascript event object
+		 * @param	{object}	[options]		- Additional dropdown options
+		 *
+		 * @returns {object}
+		 */
 		Dropdown = function (event, options) {
 
 			// Is the dropdown currently shown?
 			this.open = false;
 
+			/**
+			 * Initializes the class
+			 * @method initialize
+			 * @memberof Dropdown
+			 */
 			this.initialize = function () {
 				this.$parent = options.parent || $(event.currentTarget);
 				this.$el = options.menu;
@@ -3673,9 +3931,11 @@
 			};
 
 
-			// position()
-			// Positions the dropdown in the right spot
-			//
+			/**
+			 * Positions the dropdown in the right spot
+			 * @method position
+			 * @memberof Dropdown
+			 */
 			this.position = function () {
 				var top = event.pageY,
 					left = event.pageX,
@@ -3737,9 +3997,11 @@
 		};
 
 
-		// show()
-		// Displays the dropdown
-		//
+		/**
+		 * Displays the dropdown
+		 * @method show
+		 * @memberof Dropdown
+		 */
 		Dropdown.prototype.show = function () {
 			if (this.open) return;
 
@@ -3760,9 +4022,11 @@
 		};
 
 
-		// hide()
-		// Hides the dropdown
-		//
+		/**
+		 * Hides the dropdown
+		 * @method hide
+		 * @memberof Dropdown
+		 */
 		Dropdown.prototype.hide = function () {
 			if (!this.open || !this.$parent) return;
 
@@ -3785,12 +4049,16 @@
 		};
 
 
-		// enforceWidthLimits()
-		// Given a set of columns, make sure 'minWidth <= width <= maxWidth
-		//
-		// @param	columns		array		Array of columns to validate
-		//
-		// @return
+		/**
+		 * Given a set of columns, make sure 'minWidth <= width <= maxWidth
+		 * @method enforceWidthLimits
+		 * @memberof DobyGrid
+		 * @private
+		 *
+		 * @param	{array}		columns		- Array of columns to validate
+		 *
+		 * @returns {array}
+		 */
 		enforceWidthLimits = function (columns) {
 			var c;
 			for (var i = 0, l = columns.length; i < l; i++) {
@@ -3802,11 +4070,14 @@
 		};
 
 
-		// executeSorter()
-		// Re-sorts the data set and re-renders the grid
-		//
-		// @param	args		object		Slick.Event sort data
-		//
+		/**
+		 * Re-sorts the data set and re-renders the grid
+		 * @method executeSorter
+		 * @memberof DobyGrid
+		 * @private
+		 *
+		 * @param	{object}	args		- Event Sort Data
+		 */
 		executeSorter = function (args) {
 			var cols = args.sortCols;
 
@@ -3873,13 +4144,16 @@
 		};
 
 
-		// export()
-		// Export all grid data to a format of your choice. Available formats are 'csv' and 'html'.
-		//
-		// @param	format		string		Which format to export to
-		// @param	callback	function	Callback function
-		//
-		// @return object
+		/**
+		 * Export all grid data to a format of your choice. Available formats are 'csv' and 'html'.
+		 * @method export
+		 * @memberof DobyGrid
+		 *
+		 * @param	{string}	format		- Which format to export to
+		 * @param	{function}	callback	- Callback function
+		 *
+		 * @returns {object}
+		 */
 		this.export = function (format, callback) {
 			var allowed = ['csv', 'html'];
 			if (allowed.indexOf(format) < 0) throw new Error('Sorry, "' + format + '" is not a supported format for export.');
@@ -3977,12 +4251,15 @@
 		};
 
 
-		// filter()
-		// Filters the grid using a given function
-		//
-		// @param	filter	function, array		Function or array to use for filtering data
-		//
-		// @return object
+		/**
+		 * Filters the grid using a given function
+		 * @method filter
+		 * @memberof DobyGrid
+		 *
+		 * @param	{function|array}	filter		- Function or array to use for filtering data
+		 *
+		 * @returns {object}
+		 */
 		this.filter = function (filter) {
 			// Remove existing filters
 			if (filter === null || filter === undefined) {
@@ -4099,12 +4376,16 @@
 		};
 
 
-		// findFirstFocusableCell()
-		// Given a row, returns the index of first focusable cell in that row
-		//
-		// @param	row		integer		Row index
-		//
-		// return integer
+		/**
+		 * Given a row, returns the index of first focusable cell in that row
+		 * @method findFirstFocusableCell
+		 * @memberof DobyGrid
+		 * @private
+		 *
+		 * @param	{integer}	row		- Row index
+		 *
+		 * @returns {integer}
+		 */
 		findFirstFocusableCell = function (row) {
 			var cell = 0;
 			while (cell < cache.activeColumns.length) {
@@ -4117,12 +4398,16 @@
 		};
 
 
-		// findLastFocusableCell()
-		// Given a row, returns the index of last focusable cell in that row
-		//
-		// @param	row		integer		Row index
-		//
-		// return integer
+		/**
+		 * Given a row, returns the index of last focusable cell in that row
+		 * @method findLastFocusableCell
+		 * @memberof DobyGrid
+		 * @private
+		 *
+		 * @param	{integer}	row		- Row index
+		 *
+		 * @returns {integer}
+		 */
 		findLastFocusableCell = function (row) {
 			var cell = 0;
 			var lastFocusableCell = null;
@@ -4136,12 +4421,12 @@
 		};
 
 
-		// generatePlaceholders()
-		// Replaces the entire collection with Placeholder objects
-		//
-		// @param	group		object		(Optional) Group object whose placeholders should be reset.
-		//									If not specified, will reset placeholders for everything.
-		//
+		/**
+		 * Replaces the entire collection with Placeholder objects
+		 * @method generatePlaceholders
+		 * @memberof DobyGrid
+		 * @private
+		 */
 		generatePlaceholders = function () {
 			// Reset the collection
 			self.collection.items = [];
@@ -4172,11 +4457,15 @@
 		};
 
 
-		// get()
-		// Entry point for collection.get(). See collection.get for more info.
-		//
-		// @param	{integer}		id		- Id of the model to fetch
-		//
+		/**
+		 * Entry point for collection.get(). See collection.get for more info.
+		 * @method get
+		 * @memberof DobyGrid
+		 *
+		 * @param	{integer}		id		- Id of the model to fetch
+		 *
+		 * @return {object}
+		 */
 		this.get = function (id) {
 			var result = this.collection.get(id);
 			if (result) result = result[1];
@@ -4184,35 +4473,47 @@
 		};
 
 
-		// getIndex()
-		// Get the index of a row model
-		//
-		// @param	{integer}		id		- Id of the model to fetch
-		//
+		/**
+		 * Get the index of a row model
+		 * @method getIndex
+		 * @memberof DobyGRid
+		 *
+		 * @param	{integer}		id		- Id of the model to fetch
+		 *
+		 * @returns {integer}
+		 */
 		this.getIndex = function (id) {
 			return cache.indexById[id];
 		};
-		
 
-		// getTotalHeight()
-		//
-		// Get the total height of currently rendered rows in the table
-		//
+
+		/**
+		 * Get the total height of currently rendered rows in the table
+		 * @method getTotalHeight
+		 * @memberof DobyGrid
+		 * @private
+		 *
+		 * @return {integer}
+		 */
 		getTotalHeight = function () {
 			var totalHeight = 0;
 
 			for (var i in cache.nodes) {
 				totalHeight += $(cache.nodes[i].rowNode).outerHeight();
 			}
-			
+
 			return totalHeight;
 		};
-		
 
-		// getActive()
-		// Gets the active cell row/cell indexes
-		//
-		// @return object
+
+		/**
+		 * Gets the active cell row/cell indexes
+		 * @method getActive
+		 * @memberof DobyGrid
+		 * @private
+		 *
+		 * @returns {object}
+		 */
 		getActiveCell = function () {
 			if (!self.active || !self.active.node) {
 				return null;
@@ -4225,20 +4526,27 @@
 		};
 
 
-		// getBrowserData()
-		// Calculates some information about the browser window that will be shared
-		// with all grid instances.
-		//
+		/**
+		 * Calculates some information about the browser window that will be shared
+		 * with all grid instances.
+		 * @method getBrowserData
+		 * @memberof DobyGrid
+		 * @private
+		 */
 		getBrowserData = function () {
 			window.maxSupportedCssHeight = window.maxSupportedCssHeight || getMaxCSSHeight();
 			window.scrollbarDimensions = window.scrollbarDimensions || getScrollbarSize();
 		};
 
 
-		// getCanvasWidth()
-		// Gets the width of the current canvas area (usually the viewport)
-		//
-		// @return integer
+		/**
+		 * Gets the width of the current canvas area (usually the viewport)
+		 * @method getCanvasWidth
+		 * @memberof DobyGrid
+		 * @private
+		 *
+		 * @returns {integer}
+		 */
 		getCanvasWidth = function () {
 			var availableWidth = viewportW - (viewportHasVScroll ? window.scrollbarDimensions.width : 0),
 				rowWidth = 0, i, l;
@@ -4257,12 +4565,16 @@
 		};
 
 
-		// getCaretPosition()
-		// Given an input field object, will tell you where the cursor is positioned
-		//
-		// @param	input		DOM		Input dom element
-		//
-		// @return integer
+		/**
+		 * Given an input field object, will tell you where the cursor is positioned
+		 * @method getCaretPosition
+		 * @memberof DobyGrid
+		 * @private
+		 *
+		 * @param	{DOMObject}		input		- Input dom element
+		 *
+		 * @returns {integer}
+		 */
 		getCaretPosition = function (input) {
 			var pos = 0;
 
@@ -4284,12 +4596,16 @@
 		};
 
 
-		// getCellFromNode()
-		// Given a cell node, returns the cell index in that row
-		//
-		// @param	cellNode	DOM		DOM object for the cell
-		//
-		// @return integer
+		/**
+		 * Given a cell node, returns the cell index in that row
+		 * @method getCellFromNode
+		 * @memberof DobyGrid
+		 * @private
+		 *
+		 * @param	{DOMObject}		cellNode	- DOM object for the cell
+		 *
+		 * @returns {integer}
+		 */
 		getCellFromNode = function (cellNode) {
 			// read column number from .l<columnNumber> CSS class
 			var cls = /l\d+/.exec(cellNode.className);
@@ -4300,13 +4616,17 @@
 		};
 
 
-		// getCellFromPoint()
-		// Find the cell that corresponds to the given x, y coordinates in the canvas
-		//
-		// @param	x	integer		x pixel position
-		// @param	y	integer		y pixel position
-		//
-		// @retrun object
+		/**
+		 * Find the cell that corresponds to the given x, y coordinates in the canvas
+		 * @method getCellFromPoint
+		 * @memberof DobyGrid
+		 * @prviate
+		 *
+		 * @param	{integer}	x		- x pixel position
+		 * @param	{integer}	y		- y pixel position
+		 *
+		 * @returns {object}
+		 */
 		getCellFromPoint = function (x, y) {
 			var row = getRowFromPosition(y),
 				cell = 0,
@@ -4326,13 +4646,17 @@
 		};
 
 
-		// getCellNode()
-		// Given a row and cell index, returns the DOM node for that cell
-		//
-		// @param	row		integer		Row index
-		// @param	cell	integer		Cell index
-		//
-		// @return DOM object
+		/**
+		 * Given a row and cell index, returns the DOM node for that cell
+		 * @method getCellNode
+		 * @memberof DobyGrid
+		 * @private
+		 *
+		 * @param	{integer}	row			- Row index
+		 * @param	{integer}	cell		- Cell index
+		 *
+		 * @returns {DOMObject}
+		 */
 		getCellNode = function (row, cell) {
 			if (cache.nodes[row]) {
 				ensureCellNodesInRowsCache(row);
@@ -4356,13 +4680,17 @@
 		};
 
 
-		// getCellNodeBox()
-		// Given a row and cell index, returns the node size for that cell DOM
-		//
-		// @param	row		integer		Row index
-		// @param	cell	integer		Cell index
-		//
-		// @return DOM object
+		/**
+		 * Given a row and cell index, returns the node size for that cell DOM
+		 * @method getCellNodeBox
+		 * @memberof DobyGrid
+		 * @private
+		 *
+		 * @param	{integer}	row			- Row index
+		 * @param	{integer}	cell		- Cell index
+		 *
+		 * @returns {DOMObject}
+		 */
 		getCellNodeBox = function (row, cell) {
 			if (!cellExists(row, cell)) return null;
 
@@ -4392,12 +4720,16 @@
 		};
 
 
-		// getCellFromEvent()
-		// Given an event object, gets the cell that generated the event
-		//
-		// @param	e		object		Javascript event object
-		//
-		// @return object
+		/**
+		 * Given an event object, gets the cell that generated the event
+		 * @method getCellFromEvent
+		 * @memberof DobyGrid
+		 * @private
+		 *
+		 * @param	{object}	e		- Javascript event object
+		 *
+		 * @returns {object}
+		 */
 		getCellFromEvent = function (e) {
 			var $cell = $(e.target).closest("." + classcell, $canvas);
 			if (!$cell.length) return null;
@@ -4416,13 +4748,17 @@
 		};
 
 
-		// getColspan()
-		// Given a row and cell index, returns the colspan for that cell
-		//
-		// @param	row		integer		Row index
-		// @param	cell	integer		Cell index
-		//
-		// return integer
+		/**
+		 * Given a row and cell index, returns the colspan for that cell
+		 * @method getColspan
+		 * @memberof DobyGrid
+		 * @private
+		 *
+		 * @param	{integer}	row			- Row index
+		 * @param	{integer}	cell		- Cell index
+		 *
+		 * @returns {integer}
+		 */
 		getColspan = function (row, cell) {
 			var item = self.getRowFromIndex(row);
 			if (!item.columns) return 1;
@@ -4439,23 +4775,31 @@
 		};
 
 
-		// getColumnById()
-		// Returns the column object given the column id
-		//
-		// @param	column_id		string		Id the column to lookup
-		//
-		// @return object
+		/**
+		 * Returns the column object given the column id
+		 * @method getColumnById
+		 * @memberof DobyGrid
+		 * @private
+		 *
+		 * @param	{string}	column_id		- Id the column to lookup
+		 *
+		 * @returns {object}
+		 */
 		getColumnById = function (column_id) {
 			return _.findWhere(self.options.columns, {id: column_id});
 		};
 
 
-		// getColumnCssRules()
-		// Gets the CSS rules for the given columns
-		//
-		// @param	idx		integer		Index of the column to get rules for
-		//
-		// @return object
+		/**
+		 * Gets the CSS rules for the given columns
+		 * @method getColumnCssRules
+		 * @memberof DobyGrid
+		 * @private
+		 *
+		 * @param	{integer}	idx		- Index of the column to get rules for
+		 *
+		 * @returns {object}
+		 */
 		getColumnCssRules = function (idx) {
 			if (!stylesheet) {
 				var sheets = document.styleSheets, i, l;
@@ -4496,15 +4840,17 @@
 		};
 
 
-		// getColumnContentWidth()
-		// Returns the width of the content in the given column. Used for auto resizing columns to their
-		// content via double-click on the resize handle.
-		//
-		// Ignores Group rows.
-		//
-		// @param	column_index	integer		Index of the column to calculate data for
-		//
-		// @return integer
+		/**
+		 * Returns the width of the content in the given column. Used for auto resizing
+		 * columns to their content via double-click on the resize handle.  Ignores Group rows.
+		 * @method getColumnContentWidth
+		 * @memberof DobyGrid
+		 * @private
+		 *
+		 * @param	{integer}	column_index	- Index of the column to calculate data for
+		 *
+		 * @returns {integer}
+		 */
 		getColumnContentWidth = function (column_index) {
 			if (!self.options.showHeader) return;
 
@@ -4560,12 +4906,16 @@
 		};
 
 
-		// getColumnFromEvent()
-		// Given an event object, attempts to figure out which column was acted upon
-		//
-		// @param	event	object		Javascript event object
-		//
-		// @return object
+		/**
+		 * Given an event object, attempts to figure out which column was acted upon
+		 * @method getColumnFromEvent
+		 * @memberof DobyGrid
+		 * @private
+		 *
+		 * @param	{object}	event		- Javascript event object
+		 *
+		 * @returns {object}
+		 */
 		getColumnFromEvent = function (event) {
 			// Attempt to find column in header
 			var $column = $(event.target).closest("." + classheadercolumn + ':not(.' + classplaceholder + ')');
@@ -4582,14 +4932,18 @@
 		};
 
 
-		// getDataItemValueForColumn()
-		// Given an item object and a column definition, returns the value of the column
-		// to display in the cell.
-		//
-		// @param	item		object		Data row object from the dataset
-		// @param	columnDef	object		Column definition object for the given column
-		//
-		// @return string
+		/**
+		 * Given an item object and a column definition, returns the value of the column
+		 * to display in the cell.
+		 * @method getDataItemValueForColumn
+		 * @memberof DobyGrid
+		 * @private
+		 *
+		 * @param	{object}	item			- Data row object from the dataset
+		 * @param	{object}	columnDef		- Column definition object for the given column
+		 *
+		 * @returns {string}
+		 */
 		getDataItemValueForColumn = function (item, columnDef) {
 			// If a custom column extractor is specified -- use that
 			if (columnDef.dataExtractor) return columnDef.dataExtractor(item, columnDef);
@@ -4607,23 +4961,31 @@
 		};
 
 
-		// getDataLength()
-		// Gets the number of items in the data set
-		//
-		// @return integer
+		/**
+		 * Gets the number of items in the data set
+		 * @method getDataLength
+		 * @memberof DobyGrid
+		 * @private
+		 *
+		 * @returns {integer}
+		 */
 		getDataLength = function () {
 			if (!self.collection) return 0;
 			return self.collection.length;
 		};
 
 
-		// getEditor()
-		// Given a row and cell index, returns the editor factory for that cell
-		//
-		// @param	row		integer		Row index
-		// @param	cell	integer		Cell index
-		//
-		// @return function
+		/**
+		 * Given a row and cell index, returns the editor factory for that cell
+		 * @method getEditor
+		 * @memberof DobyGrid
+		 * @private
+		 *
+		 * @param	{integer}	row			- Row index
+		 * @param	{integer}	cell		- Cell index
+		 *
+		 * @returns {function}
+		 */
 		getEditor = function (row, cell) {
 			var column = cache.activeColumns[cell],
 				item = self.getRowFromIndex(row),
@@ -4642,13 +5004,17 @@
 		};
 
 
-		// getFormatter()
-		// Given a row and column, returns the formatter function for that cell
-		//
-		// @param	item	object		The data item to get the formatter for
-		// @param	column	object		Column data object
-		//
-		// @return function
+		/**
+		 * Given a row and column, returns the formatter function for that cell
+		 * @method getFormatter
+		 * @memberof DobyGrid
+		 * @private
+		 *
+		 * @param	{object}	item		- The data item to get the formatter for
+		 * @param	{object}	column		- Column data object
+		 *
+		 * @returns {function}
+		 */
 		getFormatter = function (item, column) {
 			// Check if item has column overrides
 			var columnOverrides = item.columns && (item.columns[column.id] || item.columns[cache.columnsById[column.id]]);
@@ -4668,10 +5034,14 @@
 		};
 
 
-		// getGroupFormatter()
-		// Returns the formatter function for the group header rows
-		//
-		// @return function
+		/**
+		 * Returns the formatter function for the group header rows
+		 * @method getGroupFormatter
+		 * @memberof DobyGrid
+		 * @private
+		 *
+		 * @returns {function}
+		 */
 		getGroupFormatter = function () {
 			// Otherwise use the default
 			return function (row, cell, value, columnDef, item) {
@@ -4696,12 +5066,16 @@
 		};
 
 
-		// getGroupFromRow()
-		// Given a row index, returns the grouping object which contain that row.
-		//
-		// @param	row		integer		Index of the row
-		//
-		// @return array
+		/**
+		 * Given a row index, returns the grouping object which contain that row.
+		 * @method getGroupFromRow
+		 * @memberof DobyGrid
+		 * @private
+		 *
+		 * @param	{integer}	row		- Index of the row
+		 *
+		 * @returns {array}
+		 */
 		getGroupFromRow = function (row) {
 			var result = null,
 				item = cache.rows[row];
@@ -4745,10 +5119,14 @@
 		};
 
 
-		// getHeadersWidth()
-		// Gets the total width of the column headers, or the viewport (whichever is bigger)
-		//
-		// @return integer
+		/**
+		 * Gets the total width of the column headers, or the viewport (whichever is bigger)
+		 * @method getHeadersWidth
+		 * @memberof DobyGrid
+		 * @private
+		 *
+		 * @returns {integer}
+		 */
 		getHeadersWidth = function () {
 			var headersWidth = 0;
 
@@ -4765,13 +5143,17 @@
 		};
 
 
-		// getLocale()
-		// Formats a string of text for display to the end user
-		//
-		// @param	key		string		Key string to fetch in locale object
-		// @param	data	object		Object to pass in
-		//
-		// @return string
+		/**
+		 * Formats a string of text for display to the end user
+		 * @method getLocale
+		 * @memberof DobyGrid
+		 * @private
+		 *
+		 * @param	{string}	key			- Key string to fetch in locale object
+		 * @param	{object}	data		- Object to pass in
+		 *
+		 * @returns {string}
+		 */
 		getLocale = function (key, data) {
 			data = data || {};
 
@@ -4794,11 +5176,15 @@
 		};
 
 
-		// getMaxCSS ()
-		// Some browsers have a limit on the CSS height an element can make use of.
-		// Calculate the maximum height we have to play with.
-		//
-		// @return integer
+		/**
+		 * Some browsers have a limit on the CSS height an element can make use of.
+		 * Calculate the maximum height we have to play with.
+		 * @method getMaxCSS
+		 * @memberof DobyGrid
+		 * @private
+		 *
+		 * @returns {integer}
+		 */
 		getMaxCSSHeight = function () {
 			var supportedHeight = 1000000;
 
@@ -4822,10 +5208,17 @@
 		};
 
 
-		// getRenderedRange()
-		// Given viewport coordinates, returns the range of rendered rows
-		//
-		// @param	viewportTop		integer
+		/**
+		 * Given viewport coordinates, returns the range of rendered rows
+		 * @method getRenderedRange
+		 * @memberof DobyGrid
+		 * @private
+		 *
+		 * @param	{integer}	viewportTop		- Top viewport coordinate
+		 * @param	{integer}	viewportLeft	- Left viewport coordinate
+		 *
+		 * @return {object}
+		 */
 		getRenderedRange = function (viewportTop, viewportLeft) {
 			var range = getVisibleRange(viewportTop, viewportLeft),
 				buffer,
@@ -4861,12 +5254,15 @@
 		};
 
 
-		// getRowFromEvent()
-		// Given an event object, gets the row that generated the event
-		//
-		// @param	event		object		Javascript event object
-		//
-		// @return object
+		/**
+		 * Given an event object, gets the row that generated the event
+		 * @method getRowFromEvent
+		 * @memberof DobyGrid
+		 *
+		 * @param	{object}	event		- Javascript event object
+		 *
+		 * @returns {object}
+		 */
 		this.getRowFromEvent = function (event) {
 			var $row = $(event.target).closest("." + classrow, $canvas);
 			if (!$row.length) return null;
@@ -4874,23 +5270,30 @@
 		};
 
 
-		// getRowFromIndex()
-		// Given a row index number, returns the row object for that index.
-		//
-		// @param	{integer}	index		- Row index number
-		//
-		// @return object
+		/**
+		 * Given a row index number, returns the row object for that index.
+		 * @method getRowFromIndex
+		 * @memberof DobyGrid
+		 *
+		 * @param	{integer}	index		- Row index number
+		 *
+		 * @returns {object}
+		 */
 		this.getRowFromIndex = function (index) {
 			return cache.rows[index];
 		};
 
 
-		// getRowFromNode()
-		// Given a DOM node, returns the row index for that row
-		//
-		// @param	rowNode		object		DOM object
-		//
-		// @return integer
+		/**
+		 * Given a DOM node, returns the row index for that row
+		 * @method getRowFromNode
+		 * @memberof DobyGrid
+		 * @private
+		 *
+		 * @param	{object}	rowNode			- DOM object
+		 *
+		 * @returns {integer}
+		 */
 		getRowFromNode = function (rowNode) {
 			for (var row in cache.nodes) {
 				if (cache.nodes[row].rowNode === rowNode) {
@@ -4902,12 +5305,16 @@
 		};
 
 
-		// getRowFromPosition()
-		// Given a pixel position, returns the row index for that position.
-		//
-		// @param	maxPosition		integer		Top scroll position
-		//
-		// @return integer
+		/**
+		 * Given a pixel position, returns the row index for that position.
+		 * @method getRowFromPosition
+		 * @memberof DobyGrid
+		 * @private
+		 *
+		 * @param	{integer}	maxPosition		- Top scroll position
+		 *
+		 * @returns {integer}
+		 */
 		getRowFromPosition = function (maxPosition) {
 			if (!variableRowHeight) {
 				return Math.floor((maxPosition + offset) / (self.options.rowHeight + 1 + self.options.rowSpacing));
@@ -4935,13 +5342,16 @@
 		};
 
 
-		// getScrollbarSize()
-		// Calculates the size of the browser's scrollbar by inserting a temporary element
-		// into the DOM and measuring the offset it creates.
-		//
-		// Returns an object like this: {height: 1000, width: 20}.
-		//
-		// @return object
+		/**
+		 * Calculates the size of the browser's scrollbar by inserting a temporary element
+		 * into the DOM and measuring the offset it creates.
+		 *
+		 * @method getScrollbarSize
+		 * @memberof DobyGrid
+		 * @private
+		 *
+		 * @returns {object}	- Returns an object like this: {height: 1000, width: 20}.
+		 */
 		getScrollbarSize = function () {
 			var s = 'position:absolute;top:-10000px;left:-10000px;width:100px;height:100px;overflow:scroll',
 				c = $("<div style='" + s + "'></div>").appendTo($(document.body)),
@@ -4954,14 +5364,18 @@
 		};
 
 
-		// getState()
-		// Retrieves a configuration object for the state of all user customizations for the grid.
-		// This allows you to easily restore states between page reloads.
-		//
-		// @param	{object}	[options]						- Additional options
-		// @param	{array}		[options.column_properties]		- A list of additional column properties to save
-		//
-		// @return object
+		/**
+		 * Retrieves a configuration object for the state of all user customizations for the grid.
+		 * This allows you to easily restore states between page reloads.
+		 * @method getState
+		 * @memberof DobyGrid
+		 *
+		 * @param	{object}	[options]						- Additional options
+		 * @param	{array}		[options.column_properties]		- A list of additional column
+		 *														properties to save
+		 *
+		 * @returns {object}
+		 */
 		this.getState = function (options) {
 			options = options || {};
 
@@ -5031,13 +5445,17 @@
 		};
 
 
-		// getValueFromItem()
-		// Given a data item, returns the value of that cell for all export functions
-		//
-		// @param	item		object		Data item from the collection
-		// @param	column		object		Column object for the field to pull
-		//
-		// @return string
+		/**
+		 * Given a data item, returns the value of that cell for all export functions
+		 * @method getValueFromItem
+		 * @memberof DobyGrid
+		 * @private
+		 *
+		 * @param	{object}	item		- Data item from the collection
+		 * @param	{object}	column		- Column object for the field to pull
+		 *
+		 * @returns {string}
+		 */
 		getValueFromItem = function (item, column) {
 			// First check for an exporter function for this specific item
 			if (typeof item.exporter === 'function') {
@@ -5054,12 +5472,16 @@
 		};
 
 
-		// getVBoxDelta()
-		// Given an elements, gets its padding and border offset size
-		//
-		// @param	$el		object		Element to scan
-		//
-		// @return integer
+		/**
+		 * Given an elements, gets its padding and border offset size
+		 * @method getVBoxDelta
+		 * @memberof DobyGrid
+		 * @private
+		 *
+		 * @param	{jQuery}	$el			- Element to scan
+		 *
+		 * @returns {integer}
+		 */
 		getVBoxDelta = function ($el) {
 			var p = ["borderTopWidth", "borderBottomWidth", "paddingTop", "paddingBottom"];
 			var delta = 0;
@@ -5070,23 +5492,31 @@
 		};
 
 
-		// getViewportHeight()
-		// Calculates the height of the current viewport
-		//
-		// @return integer
+		/**
+		 * Calculates the height of the current viewport
+		 * @method getViewportHeight
+		 * @memberof DobyGRid
+		 * @private
+		 *
+		 * @returns {integer}
+		 */
 		getViewportHeight = function () {
 			// TODO: Find out why the extra 1 is needed.
 			return Math.max(self.$el.height() - (self.options.showHeader ? $headerScroller.outerHeight() - getVBoxDelta($headerScroller) : 0) - 1, 0);
 		};
 
 
-		// getVisibleRange()
-		// Gets the currently visible range of the grid. This is the range we'll be rendering
-		//
-		// @param	viewportTop		integer		The current top offset
-		// @param	viewportLeft	integer		The current left offset
-		//
-		// @return object
+		/**
+		 * Gets the currently visible range of the grid. This is the range we'll be rendering
+		 * @method getVisibleRange
+		 * @memberof DobyGrid
+		 * @private
+		 *
+		 * @param	{integer}	viewportTop			- The current top offset
+		 * @param	{integer}	viewportLeft		- The current left offset
+		 *
+		 * @returns {object}
+		 */
 		getVisibleRange = function (viewportTop, viewportLeft) {
 			if (viewportTop === undefined || viewportTop === null) viewportTop = scrollTop;
 			if (viewportLeft === undefined || viewportLeft === null) viewportLeft = scrollLeft;
@@ -5117,13 +5547,16 @@
 		};
 
 
-		// gotoCell()
-		// Activates a given cell
-		//
-		// @param	row			integer		Index of the row
-		// @param	cell		integer		Index of the cell
-		// @param	forceEdit	boolean		TODO: ???
-		//
+		/**
+		 * Activates a given cell
+		 * @method gotoCell
+		 * @memberof DobyGrid
+		 * @private
+		 *
+		 * @param	{integer}	row				- Index of the row
+		 * @param	{integer}	cell			- Index of the cell
+		 * @param	{boolean}	forceEdit		- TODO: ???
+		 */
 		gotoCell = function (row, cell, forceEdit) {
 			if (!initialized) return;
 			if (!canCellBeActive(row, cell)) return;
@@ -5137,13 +5570,16 @@
 		};
 
 
-		// gotoDown()
-		// Activates the cell below the currently active one
-		//
-		// @param	row			integer		Index of the row
-		// @param	cell		integer		Index of the cell
-		// @param	posX		integer		TODO: ???
-		//
+		/**
+		 * Activates the cell below the currently active one
+		 * @method gotoDown
+		 * @memberof DobyGrid
+		 * @private
+		 *
+		 * @param	{integer}	row				- Index of the row
+		 * @param	{integer}	cell			- Index of the cell
+		 * @param	{integer}	posX			- TODO: ???
+		 */
 		gotoDown = function (row, cell, posX) {
 			var prevCell,
 				dataLength = getDataLength();
@@ -5169,12 +5605,15 @@
 		};
 
 
-		// gotoLeft()
-		// Activates the cell to the left the currently active one
-		//
-		// @param	row			integer		Index of the row
-		// @param	cell		integer		Index of the cell
-		//
+		/**
+		 * Activates the cell to the left the currently active one
+		 * @method gotoLeft
+		 * @memberof DobyGrid
+		 * @private
+		 *
+		 * @param	{integer}	row				- Index of the row
+		 * @param	{integer}	cell			- Index of the cell
+		 */
 		gotoLeft = function (row, cell) {
 			if (cell <= 0) {
 				return null;
@@ -5204,13 +5643,16 @@
 		};
 
 
-		// gotoNext()
-		// Activates the next available cell in the grid (either left, or first in next row)
-		//
-		// @param	row			integer		Index of the row
-		// @param	cell		integer		Index of the cell
-		// @param	posX		integer		TODO: ???
-		//
+		/**
+		 * Activates the next available cell in the grid (either left, or first in next row)
+		 * @method gotoNext
+		 * @memberof DobyGrid
+		 * @private
+		 *
+		 * @param	{integer}	row			- Index of the row
+		 * @param	{integer}	cell		- Index of the cell
+		 * @param	{integer}	posX		- TODO: ???
+		 */
 		gotoNext = function (row, cell, posX) {
 			if (row === null && cell === null) {
 				row = cell = posX = 0;
@@ -5245,13 +5687,16 @@
 		};
 
 
-		// gotoPrev()
-		// Activates the previous cell to the current one
-		//
-		// @param	row			integer		Index of the row
-		// @param	cell		integer		Index of the cell
-		// @param	posX		integer		TODO: ???
-		//
+		/**
+		 * Activates the previous cell to the current one
+		 * @method gotoPrev
+		 * @memberof DobyGrid
+		 * @private
+		 *
+		 * @param	{integer}	row			- Index of the row
+		 * @param	{integer}	cell		- Index of the cell
+		 * @param	{integer}	posX		- TODO: ???
+		 */
 		gotoPrev = function (row, cell, posX) {
 			if (row === null && cell === null) {
 				row = getDataLength() - 1;
@@ -5290,12 +5735,15 @@
 		};
 
 
-		// gotoRight()
-		// Activates the cell to the right the currently active one
-		//
-		// @param	row			integer		Index of the row
-		// @param	cell		integer		Index of the cell
-		//
+		/**
+		 * Activates the cell to the right the currently active one
+		 * @method gotoRight
+		 * @memberof DobyGrid
+		 * @private
+		 *
+		 * @param	{integer}	row			- Index of the row
+		 * @param	{integer}	cell		- Index of the cell
+		 */
 		gotoRight = function (row, cell) {
 			if (cell >= cache.activeColumns.length) return null;
 
@@ -5315,13 +5763,16 @@
 		};
 
 
-		// gotoUp()
-		// Activates the cell above the currently active one
-		//
-		// @param	row			integer		Index of the row
-		// @param	cell		integer		Index of the cell
-		// @param	posX		integer		TODO: ???
-		//
+		/**
+		 * Activates the cell above the currently active one
+		 * @method gotoUp
+		 * @memberof DobyGrid
+		 * @private
+		 *
+		 * @param	{integer}	row			- Index of the row
+		 * @param	{integer}	cell		- Index of the cell
+		 * @param	{integer}	posX		- TODO: ???
+		 */
 		gotoUp = function (row, cell, posX) {
 			var prevCell;
 			while (true) {
@@ -5346,11 +5797,12 @@
 		};
 
 
-		// Group()
-		// Class that stores information about a group of rows.
-		//
-		// @param	options		object		Custom options for this group item
-		//
+		/**
+		 * Class that stores information about a group of rows.
+		 * @class Group
+		 *
+		 * @param	{object}	options		- Custom options for this group item
+		 */
 		Group = function (options) {
 			options = options || {};
 
@@ -5402,12 +5854,15 @@
 		Group.prototype.toString = function () { return "Group"; };
 
 
-		// handleBodyClick()
-		// Handles the click and context menu events when clicking on the entire page body.
-		// This is what will unfocus the grid, when clicking outside.
-		//
-		// @param	e	object		Javascript event object
-		//
+		/**
+		 * Handles the click and context menu events when clicking on the entire page body.
+		 * This is what will unfocus the grid, when clicking outside.
+		 * @method handleBodyClick
+		 * @memberof DobyGrid
+		 * @private
+		 *
+		 * @param	{object}	e		- Javascript event object
+		 */
 		handleBodyClick = function (e) {
 
 			// If we clicked inside the grid, or in the grid's context menu - do nothing
@@ -5430,11 +5885,14 @@
 		},
 
 
-		// handleClick()
-		// Handles the click events on cells
-		//
-		// @param	e	object		Javascript event object
-		//
+		/**
+		 * Handles the click events on cells
+		 * @method handleClick
+		 * @memberof DobyGrid
+		 * @private
+		 *
+		 * @param	{object}	e		- Javascript event object
+		 */
 		handleClick = function (e) {
 			var cell = getCellFromEvent(e);
 
@@ -5514,11 +5972,15 @@
 		};
 
 
-		// handleContextMenu()
-		// Handles the context menu events on cells
-		//
-		// @param	e	object		Javascript event object
-		//
+		/**
+		 * Handles the context menu events on cells
+		 * @method handleContextMenu
+		 * @memberof DobyGrid
+		 * @private
+		 *
+		 * @param	{object}	e		- Javascript event object
+		 *
+		 */
 		handleContextMenu = function (e) {
 			var $cell = $(e.target).closest("." + classcell, $canvas);
 			if ($cell.length === 0) return;
@@ -5541,11 +6003,14 @@
 		};
 
 
-		// handleDblClick()
-		// Handles the double click events on cells
-		//
-		// @param	e	object		Javascript event object
-		//
+		/**
+		 * Handles the double click events on cells
+		 * @method handleDblClick
+		 * @memberof DobyGrid
+		 * @private
+		 *
+		 * @param	{object}	e		- Javascript event object
+		 */
 		handleDblClick = function (e) {
 			var cell = getCellFromEvent(e);
 			if (!cell || (self.currentEditor !== null && (self.active && self.active.row == cell.row && self.active.cell == cell.cell))) {
@@ -5569,11 +6034,15 @@
 		};
 
 
-		// handleHeaderClick()
-		// Handles the header click events
-		//
-		// @param	event		object		Event object
-		//
+		/**
+		 * Handles the header click events
+		 * @method handleHeaderClick
+		 * @memberof DobyGrid
+		 * @private
+		 *
+		 * @param	{object}	event		- Javascript event object
+		 *
+		 */
 		handleHeaderClick = function (event) {
 			var column = getColumnFromEvent(event);
 			if (column) {
@@ -5584,11 +6053,15 @@
 		};
 
 
-		// handleHeaderContextMenu()
-		// Triggers the header context menu events
-		//
-		// @param	event		object		Event object
-		//
+		/**
+		 * Triggers the header context menu events
+		 * @method handleHeaderContextMenu
+		 * @memberof DobyGrid
+		 * @private
+		 *
+		 * @param	{object}	event			- Javascript event object
+		 *
+		 */
 		handleHeaderContextMenu = function (event) {
 			var column = getColumnFromEvent(event);
 			self.trigger('headercontextmenu', event, {
@@ -5597,11 +6070,14 @@
 		};
 
 
-		// handleKeyDown()
-		// Handles the key down events on cells. These are our keyboard shortcuts.
-		//
-		// @param	e	object		Javascript event object
-		//
+		/**
+		 * Handles the key down events on cells. These are our keyboard shortcuts.
+		 * @method handleKeyDown
+		 * @memberof DobyGrid
+		 * @private
+		 *
+		 * @param	{object}	e		- Javascript event object
+		 */
 		handleKeyDown = function (e) {
 			if (self.active) {
 				self.trigger('keydown', e, {
@@ -5740,11 +6216,14 @@
 		};
 
 
-		// handleScroll()
-		// Handles the offsets and event that need to fire when a user is scrolling
-		//
-		// @param	event		object		Javascript event object
-		//
+		/**
+		 * Handles the offsets and event that need to fire when a user is scrolling
+		 * @method handleScroll
+		 * @memberof DobyGrid
+		 * @private
+		 *
+		 * @param	{object}	event		- Javascript event object
+		 */
 		handleScroll = function (event) {
 			if (event === undefined) event = null;
 
@@ -5842,9 +6321,12 @@
 		};
 
 
-		// handleWindowResize()
-		// Event that fires when the window is resize
-		//
+		/**
+		 * Event that fires when the window is resize
+		 * @method handleWindowResize
+		 * @memberof DobyGrid
+		 * @private
+		 */
 		handleWindowResize = function () {
 			// Only if the object is visible
 			if (!self.$el.is(':visible')) return;
@@ -5852,13 +6334,17 @@
 		};
 
 
-		// hasGrouping()
-		// Given a column's id, check to see if it is currently grouped. If it is, returns the grouping
-		// object. Otherwise returns false.
-		//
-		// @param	column_id	string		ID of the column to check grouping for
-		//
-		// @return boolean, object
+		/**
+		 * Given a column's id, check to see if it is currently grouped. If it is, returns the grouping
+		 * object. Otherwise returns false.
+		 * @method hasGrouping
+		 * @memberof DobyGrid
+		 * @private
+		 *
+		 * @param	{string}	column_id	- ID of the column to check grouping for
+		 *
+		 * @returns {boolean|object}
+		 */
 		hasGrouping = function (column_id) {
 			if (!column_id) return false;
 
@@ -5874,12 +6360,16 @@
 		};
 
 
-		// hasSorting()
-		// Returns true if there is a sorting enabled for a given column id.
-		//
-		// @param	column_id	string		ID of the column to check sorting for
-		//
-		// @return boolean
+		/**
+		 * Returns true if there is a sorting enabled for a given column id.
+		 * @method hasSorting
+		 * @memberof DobyGrid
+		 * @private
+		 *
+		 * @param	{string}	column_id		- ID of the column to check sorting for
+		 *
+		 * @returns {boolean}
+		 */
 		hasSorting = function (column_id) {
 			if (!column_id) return false;
 			var column_ids = _.pluck(self.sorting, 'columnId');
@@ -5887,11 +6377,15 @@
 		};
 
 
-		// hideColumn()
-		// Removes a column from view, but keeps it in the grid's memory bank so
-		// that user can re-add it later.
-		//
-		// @param column_id		string		ID of the column to hide
+		/**
+		 * Removes a column from view, but keeps it in the grid's memory bank so
+		 * that user can re-add it later.
+		 * @method hideColumn
+		 * @memberof DobyGrid
+		 *
+		 * @param {string}	column_id		- ID of the column to hide
+		 *
+		 */
 		this.hideColumn = function (column_id) {
 			var column = null;
 
@@ -5915,9 +6409,11 @@
 		};
 
 
-		// hideOverlay()
-		// Hides the active overlay
-		//
+		/**
+		 * Hides the active overlay
+		 * @method hideOverlay
+		 * @memberof DobyGrid
+		 */
 		this.hideOverlay = function () {
 			if ($overlay && $overlay.length) {
 				removeElement($overlay[0]);
@@ -5931,10 +6427,12 @@
 		};
 
 
-		// insertAddRow()
-		// Inserts a new row to the end of the collection used for adding new rows to the grid
-		//
-		//
+		/**
+		 * Inserts a new row to the end of the collection used for adding new rows to the grid
+		 * @method insertAddRow
+		 * @memberof DobyGrid
+		 * @private
+		 */
 		insertAddRow = function () {
 			var obj = new NonDataItem({
 				__addRow: true,
@@ -5949,13 +6447,17 @@
 		};
 
 
-		// isCellPotentiallyEditable()
-		// Determines if a given cell is editable
-		//
-		// @param	row		integer		ID of the row
-		// @param	cell	integer		ID of the cell
-		//
-		// @return boolean
+		/**
+		 * Determines if a given cell is editable
+		 * @method isCellPotentiallyEditable
+		 * @memberof DobyGrid
+		 * @private
+		 *
+		 * @param	{integer}	row			- ID of the row
+		 * @param	{integer}	cell		- ID of the cell
+		 *
+		 * @returns {boolean}
+		 */
 		isCellPotentiallyEditable = function (row, cell) {
 			var dataLength = getDataLength(),
 				item = self.getRowFromIndex(row);
@@ -5978,13 +6480,17 @@
 		};
 
 
-		// isCellSelected()
-		// Returns true if the given row/cell index combination yields a selected cell
-		//
-		// @param	row		integer		Index of row of the cell
-		// @param	cell	integer		Index of the cell in the row
-		//
-		// @return boolean
+		/**
+		 * Returns true if the given row/cell index combination yields a selected cell
+		 * @method isCellSelected
+		 * @memberof DobyGrid
+		 * @private
+		 *
+		 * @param	{integer}	row			- Index of row of the cell
+		 * @param	{integer}	cell		- Index of the cell in the row
+		 *
+		 * @returns {boolean}
+		 */
 		isCellSelected = function (row, cell) {
 			if (!self.selection) return false;
 			var s;
@@ -5996,12 +6502,16 @@
 		};
 
 
-		// isColumnSelected()
-		// Returns true if all the cells for a given column are selected
-		//
-		// @param	column_idx	integer		Index of the column to check
-		//
-		// @return boolean
+		/**
+		 * Returns true if all the cells for a given column are selected
+		 * @method isColumnSelected
+		 * @memberof DobyGrid
+		 * @private
+		 *
+		 * @param	{integer}	column_idx		- Index of the column to check
+		 *
+		 * @returns {boolean}
+		 */
 		isColumnSelected = function (column_idx) {
 			if (!self.selection) return false;
 
@@ -6023,9 +6533,12 @@
 		};
 
 
-		// insertEmptyOverlay()
-		// When the grid is empty and the empty alert is enabled -- add a NonDataItem to the grid
-		//
+		/**
+		 * When the grid is empty and the empty alert is enabled -- add a NonDataItem to the grid
+		 * @method insertEmptyOverlay
+		 * @memberof DobyGrid
+		 * @private
+		 */
 		insertEmptyOverlay = function () {
 			var html = "";
 
@@ -6042,9 +6555,12 @@
 		};
 
 
-		// invalidate()
-		// Clears the caching for all rows counts and positions
-		//
+		/**
+		 * Clears the caching for all rows counts and positions
+		 * @method invalidate
+		 * @memberof DobyGrid
+		 * @private
+		 */
 		invalidate = function () {
 			updateRowCount();
 			invalidateAllRows();
@@ -6052,9 +6568,12 @@
 		};
 
 
-		// invalidateAllRows()
-		// Clears the caching for all rows caches
-		//
+		/**
+		 * Clears the caching for all rows caches
+		 * @method invalidateAllRows
+		 * @memberof DobyGrid
+		 * @private
+		 */
 		invalidateAllRows = function () {
 			if (self.currentEditor) {
 				makeActiveCellNormal();
@@ -6068,7 +6587,7 @@
 		// invalidatePostProcessingResults()
 		// Clears the caching for all post processing for a row
 		//
-		// @param	row		integer		Row index
+		// @param	row		{integer}		Row index
 		//
 		invalidatePostProcessingResults = function (row) {
 			delete cache.postprocess[cache.rows[row][self.options.idProperty]];
@@ -6081,7 +6600,7 @@
 		// invalidateRows()
 		// Clear the cache for a given set of rows
 		//
-		// @param	rows	array		List of row indices to invalidate
+		// @param	rows	{array}		List of row indices to invalidate
 		//
 		invalidateRows = function (rows) {
 			if (!rows || !rows.length) return;
@@ -6103,7 +6622,7 @@
 		// isGrouped()
 		// Returns true if the grid is currently grouped by a value
 		//
-		// @return boolean
+		// @returns {boolean}
 		this.isGrouped = function () {
 			return this.collection.groups.length ? true : false;
 		};
@@ -6112,7 +6631,7 @@
 		// isSorted()
 		// Returns true if the grid is currently sorted by a value
 		//
-		// @return boolean
+		// @returns {boolean}
 		this.isSorted = function () {
 			return this.sorting.length ? true : false;
 		};
@@ -6178,11 +6697,14 @@
 		};
 
 
-		// makeActiveCellEditable()
-		// Makes the currently active cell editable
-		//
-		// @param	editor		function		Editor factory to use
-		//
+		/**
+		 * Makes the currently active cell editable
+		 * @method makeActiveCellEditable
+		 * @memberof DobyGrid
+		 * @private
+		 *
+		 * @param	{function}	editor		- Editor factory to use
+		 */
 		makeActiveCellEditable = function (editor) {
 			if (!self.active || !self.active.node || self.options.editable !== true) return;
 
@@ -6231,9 +6753,12 @@
 		};
 
 
-		// makeActiveCellNormal()
-		// Handler for cell styling when using an editor
-		//
+		/**
+		 * Handler for cell styling when using an editor
+		 * @method makeActiveCellNormal
+		 * @memberof DobyGrid
+		 * @private
+		 */
 		makeActiveCellNormal = function () {
 
 			if (!self.currentEditor) return;
@@ -6264,10 +6789,13 @@
 		};
 
 
-		// measureCellPadding()
-		// Header columns and cells may have different padding skewing width
-		// calculations (box-sizing, hello?) calculate the diff so we can set consistent sizes
-		//
+		/**
+		 * Header columns and cells may have different padding skewing width
+		 * calculations (box-sizing, hello?) calculate the diff so we can set consistent sizes
+		 * @method measureCellPadding
+		 * @memberof DobyGrid
+		 * @private
+		 */
 		measureCellPadding = function () {
 			var h = ["paddingLeft", "paddingRight"],
 				v = ["paddingTop", "paddingBottom"],
@@ -6316,12 +6844,17 @@
 		};
 
 
-		// mergeGroupSorting()
-		// Given a sorting object generated by addGrouping(), will merge those sorting options
-		// with the existing sorting options in the grid to ensure groups are always sorted first.
-		//
-		// @param	user_sorting	array		List of sorting options as requested by the user
-		//
+		/**
+		 * Given a sorting object generated by addGrouping(), will merge those sorting options
+		 * with the existing sorting options in the grid to ensure groups are always sorted first.
+		 * @method mergeGroupSorting
+		 * @memberof DobyGrid
+		 * @private
+		 *
+		 * @param	{array}		user_sorting	- List of sorting options as requested by the user
+		 *
+		 * @return {array}
+		 */
 		mergeGroupSorting = function (user_sorting) {
 			var sorting = [],
 				groupSortById = {},
@@ -6356,10 +6889,13 @@
 		};
 
 
-		// naturalSort()
-		// Natural Sort algorithm for Javascript - Version 0.7 - Released under MIT license
-		// Author: Jim Palmer (based on chunking idea from Dave Koelle)
-		//
+		/**
+		 * Natural Sort algorithm for Javascript - Version 0.7 - Released under MIT license
+		 * Author: Jim Palmer (based on chunking idea from Dave Koelle)
+		 * @method naturalSort
+		 * @memberof DobyGrid
+		 * @private
+		 */
 		naturalSort = function (a, b) {
 			var re = /(^-?[0-9]+(\.?[0-9]*)[df]?e?[0-9]?$|^0x[0-9a-f]+$|[0-9]+)/gi,
 				sre = /(^[ ]*|[ ]*$)/g,
@@ -6406,13 +6942,17 @@
 		};
 
 
-		// navigate()
-		// Enables cell navigation via keyboard shortcuts. Returns true if
-		// navigation resulted in a change of active cell.
-		//
-		// @param	dir		string			Navigation direction
-		//
-		// @return boolean
+		/**
+		 * Enables cell navigation via keyboard shortcuts. Returns true if
+		 * navigation resulted in a change of active cell.
+		 * @method navigate
+		 * @memberof DobyGrid
+		 * @private
+		 *
+		 * @param	{string}		dir			- Navigation direction
+		 *
+		 * @returns {boolean}
+		 */
 		navigate = function (dir) {
 			if (!self.options.keyboardNavigation) return false;
 
@@ -6453,23 +6993,26 @@
 		};
 
 
-		// Placeholder()
-		// An item object used as a placeholder for a remote item.
-		//
+		/**
+		 * @class Placeholder
+		 * @classdesc An item object used as a placeholder for a remote item.
+		 * @augments NonDataItem
+		 */
 		Placeholder = function () {};
 		Placeholder.prototype = new NonDataItem();
 		Placeholder.prototype.__placeholder = true;
 		Placeholder.prototype.toString = function () { return "Placeholder"; };
 
 
-		// Range()
-		// A structure containing a range of cells.
-		//
-		// @param fromRow	integer		Starting row
-		// @param fromCell	integer		Starting cell
-		// @param toRow		integer		(Optional) Ending row. Defaults to 'fromRow'
-		// @param toCell	integer		(Optional) Ending cell. Defaults to 'fromCell'
-		//
+		/**
+		 * @class Range
+		 * @classdesc A structure containing a range of cells.
+		 *
+		 * @param {integer}		fromRow		- Starting row
+		 * @param {integer}		fromCell	- Starting cell
+		 * @param {integer}		[toRow]		- Ending row. Defaults to 'fromRow'
+		 * @param {integer}		[toCell]		- Ending cell. Defaults to 'fromCell'
+		 */
 		Range = function (fromRow, fromCell, toRow, toCell) {
 			toRow = toRow === undefined ? fromRow : toRow;
 			toCell = toCell === undefined ? fromCell : toCell;
@@ -6485,13 +7028,16 @@
 		};
 
 
-		// contains()
-		// Returns whether a range contains a given cell
-		//
-		// @param	row		integer		Row index
-		// @param	cell	integer		Cell index
-		//
-		// @return boolean
+		/**
+		 * Returns whether a range contains a given cell
+		 * @method contains
+		 * @memberof Range
+		 *
+		 * @param	{integer}	row			- Row index
+		 * @param	{integer}	cell		- Cell index
+		 *
+		 * @returns {boolean}
+		 */
 		Range.prototype.contains = function (row, cell) {
 			return row >= this.fromRow &&
 				row <= this.toRow &&
@@ -6501,13 +7047,16 @@
 		};
 
 
-		// deselect()
-		// Deselects the range, or a specific cell in the range. Returns the Range object.
-		//
-		// @param	row		integer		(Optional) Row index for cell to deselect
-		// @param	cell	integer		(Optional) Cell index to deselect in the given row
-		//
-		// @return object
+		/**
+		 * Deselects the range, or a specific cell in the range. Returns the Range object.
+		 * @method deselect
+		 * @memberof Range
+		 *
+		 * @param	{integer}	[row]		- Row index for cell to deselect
+		 * @param	{integer}	[cell]	- Cell index to deselect in the given row
+		 *
+		 * @returns {object}
+		 */
 		Range.prototype.deselect = function (row, cell) {
 			var specific = row !== undefined && row !== null && cell !== undefined && cell !== null;
 
@@ -6553,9 +7102,11 @@
 		};
 
 
-		// excludeUnselectable()
-		// Validates that all cells in the range are selectable, if not - adds them to the exclusions
-		//
+		/**
+		 * Validates that all cells in the range are selectable, if not - adds them to the exclusions
+		 * @method excludeUnselectable
+		 * @memberof Range
+		 */
 		Range.prototype.excludeUnselectable = function () {
 			for (var row = this.fromRow; row <= this.toRow; row++) {
 				for (var cell = this.fromCell; cell <= this.toCell; cell++) {
@@ -6567,10 +7118,13 @@
 		};
 
 
-		// fullyExcluded()
-		// Returns whether the range is fully excluded
-		//
-		// @return boolean
+		/**
+		 * Returns whether the range is fully excluded
+		 * @method fullyExcluded
+		 * @memberof Range
+		 *
+		 * @returns {boolean}
+		 */
 		Range.prototype.fullyExcluded = function () {
 			for (var row = this.fromRow; row <= this.toRow; row++) {
 				for (var cell = this.fromCell; cell <= this.toCell; cell++) {
@@ -6581,10 +7135,13 @@
 		};
 
 
-		// getCellCount()
-		// Returns the number of cells in this selection range
-		//
-		// @return integer
+		/**
+		 * Returns the number of cells in this selection range
+		 * @method getCellCount
+		 * @memberof Range
+		 *
+		 * @returns {integer}
+		 */
 		Range.prototype.getCellCount = function () {
 			var count = 0, rownodes;
 			for (var r = this.fromRow; r <= this.toRow; r++) {
@@ -6599,12 +7156,14 @@
 		};
 
 
-		// isExcludedCell()
-		// Returns whether a cell is excluded in this range
-		//
-		// @param	row		integer		Row index for cell to check
-		// @param	cell	integer		Cell index to check in the given row
-		//
+		/**
+		 * Returns whether a cell is excluded in this range
+		 * @method isExcludedCell
+		 * @memberof Range
+		 *
+		 * @param	{integer}	row			- Row index for cell to check
+		 * @param	{integer}	cell		- Cell index to check in the given row
+		 */
 		Range.prototype.isExcludedCell = function (row, cell) {
 			if (this.exclusions.length === 0) return false;
 			for (var i = 0, l = this.exclusions.length; i < l; i++) {
@@ -6613,29 +7172,38 @@
 		};
 
 
-		// isSingleCell()
-		// Returns whether a range represents a single cell
-		//
-		// @return boolean
+		/*
+		 * Returns whether a range represents a single cell
+		 * @method isSingleCell
+		 * @memberof Range
+		 *
+		 * @returns {boolean}
+		 */
 		Range.prototype.isSingleCell = function () {
 			// TODO: This needs to take colspans into account
 			return this.fromRow == this.toRow && this.fromCell == this.toCell;
 		};
 
 
-		// isSingleRow()
-		// Returns whether a range represents a single row.
-		//
-		// @return boolean
+		/**
+		 * Returns whether a range represents a single row.
+		 * @method isSingleRow
+		 * @memberof Range
+		 *
+		 * @returns {boolean}
+		 */
 		Range.prototype.isSingleRow = function () {
 			return this.fromRow == this.toRow;
 		};
 
 
-		// toCSV()
-		// Converts the cell range values to CSV
-		//
-		// @return string
+		/**
+		 * Converts the cell range values to CSV
+		 * @method toCSV
+		 * @memberof Range
+		 *
+		 * @returns {string}
+		 */
 		Range.prototype.toCSV = function () {
 			var json = this.toJSON(),
 				csv = [];
@@ -6646,10 +7214,13 @@
 		};
 
 
-		// toJSON()
-		// Converts the cell range values to JSON
-		//
-		// @return string
+		/**
+		 * Converts the cell range values to JSON
+		 * @method toJSON
+		 * @memberof Range
+		 *
+		 * @returns {string}
+		 */
 		Range.prototype.toJSON = function () {
 			// TODO: Hacky solution to fix PhantomJS Jasmine tests. For some reason
 			// they will run this command on some tests after the grid has been destroyed.
@@ -6678,10 +7249,13 @@
 		};
 
 
-		// toRows()
-		// Converts the cell range values to a list of selected row objects
-		//
-		// @return string
+		/**
+		 * Converts the cell range values to a list of selected row objects
+		 * @method toRows
+		 * @memberof Range
+		 *
+		 * @returns {string}
+		 */
 		Range.prototype.toRows = function () {
 			var result = [];
 			for (var i = this.fromRow; i <= this.toRow; i++) {
@@ -6691,10 +7265,13 @@
 		};
 
 
-		// toString()
-		// Returns a readable representation of a range
-		//
-		// @return string
+		/**
+		 * Returns a readable representation of a range
+		 * @method toString
+		 * @memberof Range
+		 *
+		 * @returns {string}
+		 */
 		Range.prototype.toString = function () {
 			if (this.isSingleCell()) {
 				return "Range (" + this.fromRow + ":" + this.fromCell + ")";
@@ -6704,11 +7281,14 @@
 		};
 
 
-		// refetch()
-		// A public method that allows developers to ask the grid to fetch data using its current
-		// filters and configuration
-		//
-		// @return object
+		/**
+		 * A public method that allows developers to ask the grid to fetch data using its current
+		 * filters and configuration
+		 * @method refetch
+		 * @memberof DobyGrid
+		 *
+		 * @returns {object}
+		 */
 		this.refetch = function () {
 			if (this.fetcher) {
 				remoteCount(function () {
@@ -6726,9 +7306,12 @@
 		};
 
 
-		// remoteAllLoaded()
-		// Returns true if all remote data is loaded
-		//
+		/**
+		 * Returns true if all remote data is loaded
+		 * @method remoteAllLoaded
+		 * @memberof DobyGrid
+		 * @private
+		 */
 		remoteAllLoaded = function () {
 			// Do we have any placeholders?
 			for (var i = 0, l = self.collection.items.length; i < l; i++) {
@@ -6740,12 +7323,16 @@
 		};
 
 
-		// remoteCount()
-		// Executes a remote data count fetch, savs it as the collection length
-		// then calls the callback.
-		//
-		// @param	callback	function	Callback function
-		//
+		/**
+		 * Executes a remote data count fetch, savs it as the collection length
+		 * then calls the callback.
+		 * @method remoteCount
+		 * @memberof DobyGrid
+		 * @private
+		 *
+		 * @param	{function}	callback	- Callback function
+		 *
+		 */
 		remoteCount = function (callback) {
 			var options = {
 				filters: typeof(self.collection.filter) != 'function' ? self.collection.filter : null
@@ -6787,9 +7374,12 @@
 		};
 
 
-		// remoteFetch()
-		// Executes a remote data fetch and re-renders the grid with the new data.
-		//
+		/**
+		 * Executes a remote data fetch and re-renders the grid with the new data.
+		 * @method remoteFetch
+		 * @memberof DobyGrid
+		 * @private
+		 */
 		remoteFetch = function () {
 			var vp = getVisibleRange(),
 				from = vp.top,
@@ -6888,12 +7478,14 @@
 		};
 
 
-		// remoteFetchAll()
-		// Fetches all the remote data the server has available for this grid. This is needed sometimes,
-		// like in the case where the user may want to export the full result data set.
-		//
-		// @param	callback	function	Callback function
-		//
+		/**
+		 * Fetches all the remote data the server has available for this grid. This is needed sometimes,
+		 * like in the case where the user may want to export the full result data set.
+		 * @method remoteFetchAll
+		 * @memberof DobyGrid
+		 *
+		 * @param	{function}	callback	- Callback function
+		 */
 		this.remoteFetchAll = function (callback) {
 			callback = callback || function () {};
 
@@ -6916,18 +7508,22 @@
 				}
 				callback();
 			}.bind(this));
-			
+
 			return this;
 		};
 
 
-		// remoteFetcher()
-		// Handles the processing of the remote fetch function for remoteFetch and remoteFetchAll
-		// since both of those functions share the majority of their fetching code.
-		//
-		// @param	options		object		Fetching options
-		// @param	callback	function	Callback function
-		//
+		/**
+		 * Handles the processing of the remote fetch function for remoteFetch and remoteFetchAll
+		 * since both of those functions share the majority of their fetching code.
+		 * @method remoteFetcher
+		 * @memberof DobyGrid
+		 * @private
+		 *
+		 * @param	{object}	options		- Fetching options
+		 * @param	{function}	callback	- Callback function
+		 *
+		 */
 		remoteFetcher = function (options, callback) {
 			callback = callback || function () {};
 
@@ -6959,11 +7555,15 @@
 		};
 
 
-		// remoteFetchGroups()
-		// Executes a remote data fetch for group objects
-		//
-		// @param	callback	function	Callback function
-		//
+		/**
+		 * Executes a remote data fetch for group objects
+		 * @method remoteFetchGroups
+		 * @memberof DobyGrid
+		 * @private
+		 *
+		 * @param	{function}	callback	- Callback function
+		 *
+		 */
 		remoteFetchGroups = function (callback) {
 			callback = callback || function () {};
 
@@ -7005,10 +7605,13 @@
 		};
 
 
-		// remoteGroupRefetch()
-		// Sometimes we need to refetch remote groups (like after a sort or a filter).
-		// This function will correctly refetch the groups and then reload the grid if necessary.
-		//
+		/**
+		 * Sometimes we need to refetch remote groups (like after a sort or a filter).
+		 * This function will correctly refetch the groups and then reload the grid if necessary.
+		 * @method remoteGroupRefetch
+		 * @memberof DobyGrid
+		 * @private
+		 */
 		remoteGroupRefetch = function () {
 			// Clear the grouping cache
 			cache.remoteGroups = null;
@@ -7040,14 +7643,18 @@
 		};
 
 
-		// remoteLoaded()
-		// After remote data is fetched, this function is called to refresh the grid accordingly.
-		//
-		// @param	from				integer		Row index from which to start fetching
-		// @param	to					integer		Row index until when to fetch
-		// @param	options				object		Additional options
-		// @param	options.silent		boolean		If true, will not fire the "remoteloaded" event
-		//
+		/**
+		 * After remote data is fetched, this function is called to refresh the grid accordingly.
+		 * @method remoteLoaded
+		 * @memberof DobyGrid
+		 * @private
+		 *
+		 * @param	{integer}	from					- Row index from which to start fetching
+		 * @param	{integer}	to						- Row index until when to fetch
+		 * @param	{object}	[options]				- Additional options
+		 * @param	{boolean}	[options.silent]		- If true, will not fire the "remoteloaded" event
+		 *
+		 */
 		remoteLoaded = function (from, to, options) {
 			options = options || {};
 
@@ -7064,12 +7671,15 @@
 
 
 
-		// remove()
-		// Removes a row of data from the grid
-		//
-		// @param	id			integer		Lookup data object via id instead
-		//
-		// @return object
+		/**
+		 * Removes a row of data from the grid
+		 * @method remove
+		 * @memberof DobyGrid
+		 *
+		 * @param	{integer}	id		- Lookup data object via id instead
+		 *
+		 * @returns {object}
+		 */
 		this.remove = function (id) {
 			// TODO: Convert this to use a similar to input to Backbone.Collection.remove()
 			this.collection.remove(id);
@@ -7077,12 +7687,15 @@
 		};
 
 
-		// removeColumn()
-		// Removes a column from the grid
-		//
-		// @param	column		integer		'id' key of the column definition
-		//
-		// @return object
+		/**
+		 * Removes a column from the grid
+		 * @method removeColumn
+		 * @memberof DobyGrid
+		 *
+		 * @param	{integer}	column		- 'id' key of the column definition
+		 *
+		 * @returns {object}
+		 */
 		this.removeColumn = function (column) {
 			if (!column) return this;
 			if (typeof column == 'object') column = column.id;
@@ -7121,9 +7734,12 @@
 		};
 
 
-		// removeCssRules()
-		// Removes the CSS rules specific to this grid instance
-		//
+		/**
+		 * Removes the CSS rules specific to this grid instance
+		 * @method removeCssRules
+		 * @memberof DobyGrid
+		 * @private
+		 */
 		removeCssRules = function () {
 			if ($style && $style.length) {
 				removeElement($style[0]);
@@ -7134,13 +7750,18 @@
 		};
 
 
-		// removeElement()
-		// This seems to be the only reliable way to remove nodes from the DOM without creating a
-		// DOM memory leak. See this post:
-		// http://stackoverflow.com/questions/768621/how-to-dispose-of-dom-elements-in-javascript-to-avoid-memory-leaks?rq=1
-		//
-		// @param	element		object		DOM node to remove
-		//
+		/**
+		 * This seems to be the only reliable way to remove nodes from the DOM without creating a
+		 * DOM memory leak. See this post:
+		 * http://stackoverflow.com/questions/768621/how-to-dispose-of-dom-elements-in-javascript-to-avoid-memory-leaks?rq=1
+		 *
+		 * @method removeElement
+		 * @memberof DobyGrid
+		 * @private
+		 *
+		 * @param	{DOMObject}	element			- DOM node to remove
+		 *
+		 */
 		removeElement = function (element) {
 			garbageBin = document.getElementById('DobyGridGarbageBin');
 			if (!garbageBin) {
@@ -7156,12 +7777,15 @@
 		};
 
 
-		// removeGrouping()
-		// Remove column grouping for a given 'id' of a column.
-		//
-		// @param	column		string		Id of the column to remove group for
-		//
-		// @return object
+		/**
+		 * Remove column grouping for a given 'id' of a column.
+		 * @method removeGrouping
+		 * @memberof DobyGrid
+		 *
+		 * @param	{string}	column		- Id of the column to remove group for
+		 *
+		 * @returns {object}
+		 */
 		this.removeGrouping = function (column) {
 			if (!column) return;
 			if (typeof column == 'object') column = column.id;
@@ -7178,13 +7802,17 @@
 		};
 
 
-		// removeInvalidRanges()
-		// Given a list of cell ranges, removes the ranges that are not allowed due to cells
-		// not being selectable
-		//
-		// @param	ranges		array		List of Range objects
-		//
-		// @return array
+		/**
+		 * Given a list of cell ranges, removes the ranges that are not allowed due to cells
+		 * not being selectable
+		 * @method removeInvalidRanges
+		 * @memberof DobyGrid
+		 * @private
+		 *
+		 * @param	{array}		ranges		- List of Range objects
+		 *
+		 * @returns {array}
+		 */
 		removeInvalidRanges = function (ranges) {
 			var result = [];
 			for (var i = 0, l = ranges.length; i < l; i++) {
@@ -7198,11 +7826,14 @@
 		};
 
 
-		// removeRowFromCache()
-		// Given a row index, removes that row from the cache
-		//
-		// @param	row		integer		Row index to remvoe
-		//
+		/**
+		 * Given a row index, removes that row from the cache
+		 * @method removeRowFromCache
+		 * @memberof DobyGrid
+		 *
+		 * @param	{integer}	row		- Row index to remvoe
+		 *
+		 */
 		removeRowFromCache = function (row) {
 			var cacheEntry = cache.nodes[row], col;
 			if (!cacheEntry) return;
@@ -7225,9 +7856,12 @@
 		};
 
 
-		// render()
-		// Renders the viewport of the grid
-		//
+		/**
+		 * Renders the viewport of the grid
+		 * @method render
+		 * @memberof DobyGrid
+		 * @private
+		 */
 		render = function () {
 			if (!initialized) return;
 
@@ -7274,15 +7908,19 @@
 		};
 
 
-		// renderCell()
-		// Generates the HTML content for a given cell and adds it to the output cache
-		//
-		// @param	result		array		Output array to which to append
-		// @param	row			integer		Current row index
-		// @param	cell		integer		Current cell index
-		// @param	colspan		integer		Colspan of this cell
-		// @param	item		object		Data object for this cell
-		//
+		/**
+		 * Generates the HTML content for a given cell and adds it to the output cache
+		 * @method renderCell
+		 * @memberof DobyGrid
+		 * @private
+		 *
+		 * @param	{array}		result			- Output array to which to append
+		 * @param	{integer}	row				- Current row index
+		 * @param	{integer}	cell			- Current cell index
+		 * @param	{integer}	colspan			- Colspan of this cell
+		 * @param	{object}	item			- Data object for this cell
+		 *
+		 */
 		renderCell = function (result, row, cell, colspan, item) {
 			var m = cache.activeColumns[cell],
 				mColumns = item && item.columns || {},
@@ -7330,9 +7968,12 @@
 		};
 
 
-		// renderColumnHeaders()
-		// Creates the column header elements.
-		//
+		/**
+		 * Creates the column header elements.
+		 * @method renderColumnHeaders
+		 * @memberof DobyGrid
+		 * @private
+		 */
 		renderColumnHeaders = function () {
 			if (!self.options.showHeader) return;
 
@@ -7380,13 +8021,16 @@
 		};
 
 
-		// renderMenu()
-		// Function for recursively rendering menu components for a Dropdown menu
-		//
-		// @param	menu		object		A menu data object to render
-		// @param	$parent		object		DOM object into which to insert the rendered HTML
-		// @param	args		object		List of arguments from the event that initialized the menu
-		//
+		/**
+		 * Function for recursively rendering menu components for a Dropdown menu
+		 * @method renderMenu
+		 * @memberof DobyGrid
+		 * @private
+		 *
+		 * @param	{object}	menu			- A menu data object to render
+		 * @param	{object}	$parent			- DOM object into which to insert the rendered HTML
+		 *
+		 */
 		renderMenu = function (menu, $parent) {
 			var $menu = $(['<div class="', classdropdownmenu, '"></div>'].join('')),
 				item,
@@ -7440,13 +8084,17 @@
 		};
 
 
-		// renderRow()
-		// Generates the HTML content for a given cell and adds it to the output cache
-		//
-		// @param	stringArray		array		Output array to which to append
-		// @param	row				integer		Current row index
-		// @param	range			object		Viewport range to display
-		//
+		/**
+		 * Generates the HTML content for a given cell and adds it to the output cache
+		 * @method renderRow
+		 * @memberof DobyGrid
+		 * @private
+		 *
+		 * @param	{array}		stringArray			- Output array to which to append
+		 * @param	{integer}	row					- Current row index
+		 * @param	{object}	range				- Viewport range to display
+		 *
+		 */
 		renderRow = function (stringArray, row, range) {
 			var d = self.getRowFromIndex(row),
 				rowCss = classrow +
@@ -7514,11 +8162,15 @@
 		};
 
 
-		// renderRows()
-		// Renders the rows of the grid
-		//
-		// @param	range		object		Range of rows to render
-		//
+		/**
+		 * Renders the rows of the grid
+		 * @method renderRows
+		 * @memberof DobyGrid
+		 * @private
+		 *
+		 * @param	{object}	range		- Range of rows to render
+		 *
+		 */
 		renderRows = function (range) {
 			var stringArray = [],
 				rows = [],
@@ -7572,26 +8224,38 @@
 		};
 
 
-		// reset()
-		// Entry point for collection.reset(). See collection.reset for more info.
-		//
+		/**
+		 * Entry point for collection.reset(). See collection.reset for more info.
+		 * @method reset
+		 * @memberof DobyGrid
+		 *
+		 * @param	{array}		[models]		- List of models to reset to
+		 *
+		 * @returns {object}
+		 */
 		this.reset = function (models) {
 			this.collection.reset(models, true);
 			return this;
 		};
 
 
-		// resetActiveCell()
-		// Reset the current active cell
-		//
+		/**
+		 * Reset the current active cell
+		 * @method resetActiveCell
+		 * @memberof DobyGrid
+		 * @private
+		 */
 		resetActiveCell = function () {
 			setActiveCellInternal(null, false);
 		};
 
 
-		// resetAggregators()
-		// Resets all aggregators
-		//
+		/**
+		 * Resets all aggregators
+		 * @method resetAggregators
+		 * @memberof DobyGrid
+		 * @private
+		 */
 		resetAggregators = function () {
 			// Reset aggregator values
 			for (var column_id in cache.aggregatorsByColumnId) {
@@ -7605,10 +8269,13 @@
 		};
 
 
-		// resize()
-		// Force the resize and re-draw of the grid (for when coming out of an invisible element)
-		//
-		// @return object
+		/**
+		 * Force the resize and re-draw of the grid (for when coming out of an invisible element)
+		 * @method resize
+		 * @memberof DobyGrid
+		 *
+		 * @returns {object}
+		 */
 		this.resize = function () {
 			// If grid is already destroyed - do nothing
 			if (this.destroyed) return this;
@@ -7636,11 +8303,15 @@
 		};
 
 
-		// resizeCanvas()
-		// Resizes the canvas based on the current viewport dimensions
-		//
-		// @param	rerender	boolean		- Re-render the grid when done?
-		//
+		/**
+		 * Resizes the canvas based on the current viewport dimensions
+		 * @method resizeCanvas
+		 * @memberof DobyGrid
+		 * @private
+		 *
+		 * @param	{boolean}	rerender		- Re-render the grid when done?
+		 *
+		 */
 		resizeCanvas = function (rerender) {
 			if (!initialized) return;
 
@@ -7667,24 +8338,30 @@
 			if (rerender) render();
 		};
 
-		
-		// resizeContainer()
-		// Resizes the tables outer container to fit the total height of all visible rows
-		// (currently only used for options.autoHeight).
-		//
+
+		/**
+		 * Resizes the tables outer container to fit the total height of all visible rows
+		 * (currently only used for options.autoHeight).
+		 * @method resizeContainer
+		 * @memberof DobyGrid
+		 * @private
+		 */
 		resizeContainer = function () {
 			var newHeight = getTotalHeight() + (self.options.showHeader ? $headerScroller.outerHeight() - getVBoxDelta($headerScroller) : 0) + 1;
 			self.$el.height(newHeight);
 		};
-		
 
-		// restoreState()
-		// Restores the state of grid's user customizations. Expect an object which was returned from
-		// `grid.getState()`.
-		//
-		// @param	state		object		- The state of the grid
-		//
-		// @return object
+
+		/**
+		 * Restores the state of grid's user customizations. Expect an object which was returned from
+		 * `grid.getState()`.
+		 * @method restoreState
+		 * @memberof DobyGrid
+		 *
+		 * @param	{object}	state		- The state of the grid
+		 *
+		 * @returns {object}
+		 */
 		this.restoreState = function (state) {
 			var resizeColumns = false, i, l;
 
@@ -7737,13 +8414,17 @@
 		};
 
 
-		// scrollCellIntoView()
-		// Scroll the viewport until the given cell position is visible
-		//
-		// @param	row			integer		Row index
-		// @param	cell		integer		Cell index
-		// @param	doPaging	boolean		If true, will ensure the cell appears at the top of the page
-		//
+		/**
+		 * Scroll the viewport until the given cell position is visible
+		 * @method scrollCellIntoView
+		 * @memberof DobyGrid
+		 * @private
+		 *
+		 * @param	{integer}	row				- Row index
+		 * @param	{integer}	cell			- Cell index
+		 * @param	{boolean}	doPaging		- If true, will ensure the cell appears at the top of the page
+		 *
+		 */
 		scrollCellIntoView = function (row, cell, doPaging) {
 			scrollRowIntoView(row, doPaging);
 
@@ -7764,11 +8445,15 @@
 		};
 
 
-		// scrollPage()
-		// Scrolls the length of a page
-		//
-		// @param	dir		integer		Direction of scroll
-		//
+		/**
+		 * Scrolls the length of a page
+		 * @method scrollPage
+		 * @memberof DobyGrid
+		 * @private
+		 *
+		 * @param	{integer}	dir			- Direction of scroll
+		 *
+		 */
 		scrollPage = function (dir) {
 			var deltaRows = dir * numVisibleRows,
 				targetRow = getRowFromPosition(scrollTop) + deltaRows,
@@ -7818,13 +8503,16 @@
 		};
 
 
-		// scrollRowIntoView()
-		// Scroll viewport until the given row is in view
-		//
-		// @param	row			integer		Index of row
-		// @param	doPaging	boolean		If true, will ensure row is at top of page,
-		//									otherwise use direction of scroll to determine where
-		//
+		/**
+		 * Scroll viewport until the given row is in view
+		 * @method scrollRowIntoView
+		 * @memberof DobyGrid
+		 * @private
+		 *
+		 * @param	{integer}	row				- Index of row
+		 * @param	{boolean}	doPaging		- If true, will ensure row is at top of page,
+		 *										otherwise use direction of scroll to determine where
+		 */
 		scrollRowIntoView = function (row, doPaging) {
 
 			// Determine where the row's page is
@@ -7866,11 +8554,15 @@
 		};
 
 
-		// scrollTo()
-		// Scrolls the viewport to the given position
-		//
-		// @param	y	integer		Position to scroll to
-		//
+		/**
+		 * Scrolls the viewport to the given position
+		 * @method scrollTo
+		 * @memberof DobyGrid
+		 * @private
+		 *
+		 * @param	{integer}	y		- Position to scroll to
+		 *
+		 */
 		scrollTo = function (y) {
 			y = Math.max(y, 0);
 			y = Math.min(y, th - viewportH + (viewportHasHScroll ? window.scrollbarDimensions.height : 0));
@@ -7903,11 +8595,14 @@
 		};
 
 
-		// scrollToRow()
-		// Scroll the viewport so the given row is at the top.
-		//
-		// @param	row		integer		Row index
-		//
+		/**
+		 * Scroll the viewport so the given row is at the top.
+		 * @method scrollToRow
+		 * @memberof DobyGrid
+		 *
+		 * @param	{integer}	row		- Row index
+		 *
+		 */
 		this.scrollToRow = function (row) {
 			if (!variableRowHeight) {
 				// The extra +1 here is to compensate for the spacing between rows
@@ -7923,16 +8618,19 @@
 		};
 
 
-		// selectCells()
-		// Select a range of cells
-		//
-		// @param	startRow	integer		Row on which to start selection
-		// @param	startCell	integer		Cell on which to start selection
-		// @param	endRow		integer		Row on which to end selection
-		// @param	endCell		integer		Cell on which to end selection
-		// @param	add			boolean		If true, will add selection as a new range
-		//
-		// @return array
+		/**
+		 * Select a range of cells
+		 * @method selectCells
+		 * @memberof DobyGrid
+		 *
+		 * @param	{integer}	startRow		- Row on which to start selection
+		 * @param	{integer}	startCell		- Cell on which to start selection
+		 * @param	{integer}	endRow			- Row on which to end selection
+		 * @param	{integer}	endCell			- Cell on which to end selection
+		 * @param	{boolean}	add				- If true, will add selection as a new range
+		 *
+		 * @returns {array}
+		 */
 		this.selectCells = function (startRow, startCell, endRow, endCell, add) {
 			if (!this.options.selectable) return;
 
@@ -8024,12 +8722,16 @@
 		};
 
 
-		// setActiveCellInternal()
-		// Internal method for setting the active cell that bypasses any option restrictions
-		//
-		// @param	newCell			DOM			Cell node to set as the active cell
-		// @param	setEdit			boolean		If true, will force cell to editable immediately
-		//
+		/**
+		 * Internal method for setting the active cell that bypasses any option restrictions
+		 * @method setActiveCellInternal
+		 * @memberof DobyGrid
+		 * @private
+		 *
+		 * @param	{DOMObject}		newCell		- Cell node to set as the active cell
+		 * @param	{boolean}		setEdit		- If true, will force cell to editable immediately
+		 *
+		 */
 		setActiveCellInternal = function (newCell, setEdit) {
 			if (self.active && self.active.node !== null) {
 				makeActiveCellNormal();
@@ -8087,11 +8789,14 @@
 		};
 
 
-		// setColumns()
-		// Given a new column definitions object -- updates the grid to use it
-		//
-		// @param	columns		object		Column definitions object
-		//
+		/**
+		 * Given a new column definitions object -- updates the grid to use it
+		 * @method setColumns
+		 * @memberof DobyGrid
+		 *
+		 * @param	{object}	columns		- Column definitions object
+		 *
+		 */
 		this.setColumns = function (columns) {
 			// Copy array
 			var oldColumns = this.options.columns.map(function (c) {
@@ -8127,32 +8832,42 @@
 		};
 
 
-		// setGrouping()
-		// Sets the grouping for the grid data view.
-		//
-		// @param	options		array		List of grouping objects
-		//
-		// @return object
+		/**
+		 * Sets the grouping for the grid data view.
+		 * @method setGrouping
+		 * @memberof DobyGrid
+		 *
+		 * @param	{array}		options		- List of grouping objects
+		 *
+		 * @returns {object}
+		 */
 		this.setGrouping = function (options) {
 			this.collection.setGrouping(options);
 			return this;
 		};
 
 
-		// setItem()
-		// Entry point for collection.setItem(). See collection.setItem for more info.
-		//
+		/**
+		 * Entry point for collection.setItem(). See collection.setItem for more info.
+		 * @method setItem
+		 * @memberof DobyGrid
+		 *
+		 * @returns {object}
+		 */
 		this.setItem = function (item_id, attributes) {
 			this.collection.setItem(item_id, attributes);
 			return this;
 		};
 
 
-		// setOptions()
-		// Given a set of options, updates the grid accordingly
-		//
-		// @param	options		object		New options object data
-		//
+		/**
+		 * Given a set of options, updates the grid accordingly
+		 * @method setOptions
+		 * @memberof DobyGrid
+		 *
+		 * @param	{object}	options			- New options object data
+		 *
+		 */
 		this.setOptions = function (options) {
 			makeActiveCellNormal();
 
@@ -8172,7 +8887,7 @@
 
 			$.extend(true, self.options, options);
 			validateOptions();
-			
+
 			// Toggling autoHeight needs to DOM manipulation
 			if (options.autoHeight) {
 				$viewport.addClass(classautoheight);
@@ -8201,7 +8916,7 @@
 			if (options.data) {
 				this.reset(options.data);
 			}
-			
+
 			// Toggling autoHeight requires a resize
 			if (options.autoHeight !== undefined && options.autoHeight !== null) {
 				this.resize();
@@ -8221,12 +8936,16 @@
 		};
 
 
-		// setRowHeight()
-		// Sets the height of a given row
-		//
-		// @param	row		integer		Row index
-		// @param	height	integer		Height to set
-		//
+		/**
+		 * Sets the height of a given row
+		 * @method setRowHeight
+		 * @memberof DobyGrid
+		 * @private
+		 *
+		 * @param	{integer}	row			- Row index
+		 * @param	{integer}	height		- Height to set
+		 *
+		 */
 		setRowHeight = function (row, height) {
 			var item = cache.rows[row];
 
@@ -8258,12 +8977,15 @@
 		};
 
 
-		// setSorting()
-		// Sets the sorting for the grid data view
-		//
-		// @param	options		array		List of column options to use for sorting
-		//
-		// @return object
+		/**
+		 * Sets the sorting for the grid data view
+		 * @method setSorting
+		 * @memberof DobyGrid
+		 *
+		 * @param	{array}		options		- List of column options to use for sorting
+		 *
+		 * @returns {object}
+		 */
 		this.setSorting = function (options) {
 			if (!$.isArray(options)) {
 				throw new Error('Doby Grid cannot set the sorting because the "options" parameter must be an array of objects.');
@@ -8347,9 +9069,12 @@
 		};
 
 
-		// setupColumnReorder()
-		// Allows columns to be re-orderable.
-		//
+		/**
+		 * Allows columns to be re-orderable.
+		 * @method setupColumnReorder
+		 * @memberof DobyGrid
+		 * @private
+		 */
 		setupColumnReorder = function () {
 			if (!self.options.showHeader) return;
 			if ($headers.filter(":ui-sortable").length) return;
@@ -8424,11 +9149,17 @@
 		};
 
 
-		// setupColumnResize()
-		// Enables the resizing of columns.
-		// NOTE: This can be optimized
-		// NOTE: Perhaps assign the handle events on the whole header instead of on each element
-		//
+		/**
+		 * Enables the resizing of columns.
+		 * @method setupColumnResize
+		 * @memberof DobyGrid
+		 * @private
+		 *
+		 * @desc
+		 * NOTE: This can be optimized
+		 * NOTE: Perhaps assign the handle events on the whole header instead of on each element
+		 *
+		 */
 		setupColumnResize = function () {
 			if (!self.options.showHeader) return;
 
@@ -8664,9 +9395,12 @@
 		};
 
 
-		// setupColumnSort()
-		// Allows columns to be sortable via click.
-		//
+		/**
+		 * Allows columns to be sortable via click.
+		 * @method setupColumnSort
+		 * @memberof DobyGrid
+		 * @private
+		 */
 		setupColumnSort = function () {
 			if (!self.options.showHeader) return;
 
@@ -8729,13 +9463,15 @@
 		};
 
 
-		// showOverlay()
-		// Displays an overlay container with custom HTML message which covers the entire grid canvas.
-		//
-		// @param	options			object		- Options object for this method
-		// @param	options.class	string		- Custom CSS class to use for the overlay
-		// @param	options.html	string		- Custom HTML to insert into the overlay
-		//
+		/**
+		 * Displays an overlay container with custom HTML message which covers the entire grid canvas.
+		 * @method showOverlay
+		 * @memberof DobyGrid
+		 *
+		 * @param	{object}	[options]			- Options object for this method
+		 * @param	{string}	[options.class]		- Custom CSS class to use for the overlay
+		 * @param	{string}	[options.html]		- Custom HTML to insert into the overlay
+		 */
 		this.showOverlay = function (options) {
 			options = options || {};
 
@@ -8754,13 +9490,18 @@
 		};
 
 
-		// showQuickFilter()
-		// Slide out a quick search header bar
-		//
-		// @param	focus		object		Column definition object for the column we want to focus.
-		//									Passing in null will toggle the quick filter.
-		//
-		// NOTE: Many optimizations can be done here.
+		/**
+		 * Slide out a quick search header bar
+		 * @method showQuickFilter
+		 * @memberof DobyGrid
+		 * @private
+		 *
+		 * @param	{object}	focus		- Column definition object for the column we want to focus.
+		 *									Passing in null will toggle the quick filter.
+		 *
+		 * NOTE: Many optimizations can be done here.
+		 *
+		 */
 		showQuickFilter = function (focus) {
 			if (!self.options.showHeader) return;
 
@@ -8881,11 +9622,15 @@
 		};
 
 
-		// showTooltip()
-		// Show a tooltip on the column header
-		//
-		// @param	event		object		Javascript event object
-		//
+		/**
+		 * Show a tooltip on the column header
+		 * @method showTooltip
+		 * @memberof DobyGrid
+		 * @private
+		 *
+		 * @param	{object}	event		- Javascript event object
+		 *
+		 */
 		showTooltip = function (event) {
 			// Proceed for popup tooltips only
 			if (self.options.tooltipType != 'popup') return;
@@ -8986,13 +9731,16 @@
 		};
 
 
-		// sortBy()
-		// Sort the grid by a given column id
-		//
-		// @param	column_id	string		Id of the column by which to sort
-		// @param	ascending	boolean		Is the sort direction ascending?
-		//
-		// @return object
+		/**
+		 * Sort the grid by a given column id
+		 * @method sortBy
+		 * @memberof DobyGrid
+		 *
+		 * @param	{string}	column_id		- Id of the column by which to sort
+		 * @param	{boolean}	ascending		- Is the sort direction ascending?
+		 *
+		 * @returns {object}
+		 */
 		this.sortBy = function (column_id, ascending) {
 			if (!column_id)	throw new Error('Grid cannot sort by blank value. Column Id must be specified.');
 			return this.setSorting([{
@@ -9002,9 +9750,12 @@
 		};
 
 
-		// startPostProcessing()
-		// Runs the async post render postprocessing on the grid cells
-		//
+		/**
+		 * Runs the async post render postprocessing on the grid cells
+		 * @method startPostProcessing
+		 * @memberof DobyGrid
+		 * @private
+		 */
 		startPostProcessing = function () {
 			if (!enableAsyncPostRender) return;
 			clearTimeout(h_postrender);
@@ -9012,11 +9763,14 @@
 		};
 
 
-		// stickGroupHeaders()
-		// Ensures that sticky header groups stick to the top of the viewport.
-		//
-		// @param	scrollTop	integer		Current scroll position
-		//
+		/**
+		 * Ensures that sticky header groups stick to the top of the viewport.
+		 * @method stickGroupHeaders
+		 * @memberof DobyGrid
+		 * @private
+		 *
+		 * @param	{integer}	scrollTop		- Current scroll position
+		 */
 		stickGroupHeaders = function (scrollTop) {
 			// Find top-most group
 			var topRow = getRowFromPosition(scrollTop),
@@ -9109,9 +9863,12 @@
 		};
 
 
-		// styleSortColumns()
-		// Styles the column headers according to the current sorting data
-		//
+		/**
+		 * Styles the column headers according to the current sorting data
+		 * @method styleSortColumns
+		 * @memberof DobyGrid
+		 * @private
+		 */
 		styleSortColumns = function () {
 			if (!self.options.showHeader) return;
 
@@ -9136,20 +9893,27 @@
 		};
 
 
-		// toString()
-		// Returns a readable representation of a Doby Grid Object
-		//
-		// @return string
+		/**
+		 * Returns a readable representation of a Doby Grid Object
+		 * @method toString
+		 * @memberof DobyGrid
+		 *
+		 * @returns {string}
+		 */
 		this.toString = function () { return "DobyGrid"; };
 
 
-		// toggleContextMenu()
-		// Toggles the display of the context menu that appears when the column headers are
-		// right-clicked.
-		//
-		// @param	event		object		Javascript event object
-		// @param	args		object		Event object data
-		//
+		/**
+		 * Toggles the display of the context menu that appears when the column headers are
+		 * right-clicked.
+		 * @method toggleContextMenu
+		 * @memberof DobyGrid
+		 * @private
+		 *
+		 * @param	{object}	event		- Javascript event object
+		 * @param	{object}	args		- Event object data
+		 *
+		 */
 		toggleContextMenu = function (event, args) {
 			event.preventDefault();
 
@@ -9272,10 +10036,10 @@
 
 			// Menu data object which will define what the menu will have
 			//
-			// @param	divider		boolean		If true, item will be a divider
-			// @param	enabled		boolean		Will draw item only if true
-			// @param	name		string		Name of menu item to display to user
-			// @param	fn			function	Function to execute when item clicked
+			// @param	divider		{boolean}		If true, item will be a divider
+			// @param	enabled		{boolean}		Will draw item only if true
+			// @param	name		{string}		Name of menu item to display to user
+			// @param	fn			{function}	Function to execute when item clicked
 			//
 			var menuData = [{
 				enabled: column || self.options.quickFilter,
@@ -9565,11 +10329,15 @@
 		};
 
 
-		// updateCanvasWidth()
-		// Resizes the canvas width
-		//
-		// @param	forceColumnWidthsUpdate		boolean		Force the width of columns to also update?
-		//
+		/**
+		 * Resizes the canvas width
+		 * @method updateCanvasWidth
+		 * @memberof DobyGrid
+		 * @private
+		 *
+		 * @param	{boolean}	forceColumnWidthsUpdate		- Force the width of columns to also update?
+		 *
+		 */
 		updateCanvasWidth = function (forceColumnWidthsUpdate) {
 			var oldCanvasWidth = canvasWidth;
 			canvasWidth = getCanvasWidth();
@@ -9586,21 +10354,26 @@
 		};
 
 
-		// updateCellCssStylesOnRenderedRows()
-		// Given an add and remove hash object, adds or removes CSS classes on the given nodes
-		//
-		// @param	addedHash		object		Which classes should be added to which cells
-		// @param	removedHash		object		Which classes should be removed from which cells
-		//
-		// Example hash object: {
-		//		4: {
-		//			columnId: {
-		//				"myclassname"
-		//			}
-		//		}
-		// }
-		// Where "4" is the id of the affected row
-		//
+		/**
+		 * Given an add and remove hash object, adds or removes CSS classes on the given nodes
+		 * @method updateCellCssStylesOnRenderedRows
+		 * @memberof DobyGrid
+		 * @private
+		 *
+		 * @param	{object}	addedHash		- Which classes should be added to which cells
+		 * @param	{object}	removedHash		- Which classes should be removed from which cells
+		 *
+		 * @example
+		 * // Where "4" is the id of the affected row
+		 * Example hash object: {
+		 *		4: {
+		 *			columnId: {
+		 *				"myclassname"
+		 *			}
+		 *		}
+		 * }
+		 *
+		 */
 		updateCellCssStylesOnRenderedRows = function (addedHash, removedHash) {
 			var node, columnId, addedRowHash, removedRowHash;
 
@@ -9633,11 +10406,15 @@
 		};
 
 
-		// updateColumnCaches()
-		// Recalculates the columns caches
-		//
-		// @param	resetAggregators	boolean		Reset the aggregator cache too?
-		//
+		/**
+		 * Recalculates the columns caches
+		 * @method updateColumnCaches
+		 * @memberof DobyGrid
+		 * @private
+		 *
+		 * @param	{boolean}	[resetAggregators=true]		- Reset the aggregator cache too?
+		 *
+		 */
 		updateColumnCaches = function (resetAggregators) {
 			if (resetAggregators === null || resetAggregators === undefined) resetAggregators = true;
 
@@ -9672,11 +10449,15 @@
 		};
 
 
-		// updateRow()
-		// Re-cache and re-render a single row
-		//
-		// @param	row		integer		Index of the row to re-render
-		//
+		/**
+		 * Re-cache and re-render a single row
+		 * @method updateRow
+		 * @memberof DobyGrid
+		 * @private
+		 *
+		 * @param	{integer}	row			- Index of the row to re-render
+		 *
+		 */
 		updateRow = function (row) {
 			var cacheEntry = cache.nodes[row];
 			if (!cacheEntry) return;
@@ -9707,9 +10488,12 @@
 		};
 
 
-		// updateRowCount()
-		// Updates the cache of row data
-		//
+		/**
+		 * Updates the cache of row data
+		 * @method updateRowCount
+		 * @memberof DobyGrid
+		 * @private
+		 */
 		updateRowCount = function () {
 			if (!initialized) return;
 
@@ -9797,9 +10581,12 @@
 		};
 
 
-		// validateColumns()
-		// Parses the options.columns list to ensure column data is correctly configured.
-		//
+		/**
+		 * Parses the options.columns list to ensure column data is correctly configured.
+		 * @method validateColumns
+		 * @memberof DobyGrid
+		 * @private
+		 */
 		validateColumns = function () {
 			if (!self.options.columns) return;
 
@@ -9877,9 +10664,12 @@
 		},
 
 
-		// validateOptions()
-		// Ensures that the given options are valid and complete
-		//
+		/**
+		 * Ensures that the given options are valid and complete
+		 * @method validateOptions
+		 * @memberof DobyGrid
+		 * @private
+		 */
 		validateOptions = function () {
 			// Validate loaded JavaScript modules against requested options
 			if (self.options.resizableColumns && !$.fn.drag) {
