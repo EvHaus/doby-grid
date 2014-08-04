@@ -179,6 +179,7 @@
 			getColumnById,
 			getColumnCssRules,
 			getColumnContentWidth,
+			getColumnHeaderWidth,
 			getColumnFromEvent,
 			getColspan,
 			getDataItemValueForColumn,
@@ -4508,22 +4509,9 @@
 		getColumnContentWidth = function (column_index) {
 			if (!self.options.showHeader) return;
 
-			var columnElements = $headers.children(),
-				$column = $(columnElements[column_index]),
-				currentWidth = $column.width(),
-				headerPadding = parseInt($column.css('paddingLeft'), 10) + parseInt($column.css('paddingRight'), 10),
-				cellWidths = [];
+			var cellWidths = [];
 
-			// Determine the width of the column name text
-			var name = $column.children('.' + classcolumnname + ':first');
-			name.css('overflow', 'visible');
-			$column.width('auto');
-			// The extra 1 is needed here because text-overflow: ellipsis
-			// seems to kick in 1 pixel too early.
-			var headerWidth = $column.width() + headerPadding + 1;
-			name.css('overflow', '');
-			$column.width(currentWidth);
-			cellWidths.push(headerWidth);
+			cellWidths.push(getColumnHeaderWidth(column_index));
 
 			// Loop through the visible row nodes
 			var rowcls = 'r' + column_index, $node;
@@ -4557,6 +4545,35 @@
 
 			// If new width is smaller than min width - use min width
 			return Math.max.apply(null, cellWidths);
+		};
+		
+		// getColumnHeaderWidth()
+		// Returns the width of the content in the given column header. 
+		//
+		// Ignores Group rows.
+		//
+		// @param	column_index	integer		Index of the column to calculate data for
+		//
+		// @return integer
+		getColumnHeaderWidth = function (column_index) {
+			if (!self.options.showHeader) return;
+
+			var columnElements = $headers.children(),
+				$column = $(columnElements[column_index]),
+				currentWidth = $column.width(),
+				headerPadding = parseInt($column.css('paddingLeft'), 10) + parseInt($column.css('paddingRight'), 10);				
+
+			// Determine the width of the column name text
+			var name = $column.children('.' + classcolumnname + ':first');
+			name.css('overflow', 'visible');
+			$column.width('auto');
+			// The extra 1 is needed here because text-overflow: ellipsis
+			// seems to kick in 1 pixel too early.
+			var headerWidth = $column.width() + headerPadding + 1;
+			name.css('overflow', '');
+			$column.width(currentWidth);
+			
+			return headerWidth;
 		};
 
 
