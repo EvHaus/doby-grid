@@ -518,7 +518,7 @@
 			// Create the grid
 			createGrid();
 
-			if (self.options.selectable) bindCellRangeSelect();
+			if (self.options.selectable && !self.options.rowBasedSelection) bindCellRangeSelect();
 
 			return self;
 		};
@@ -1083,7 +1083,7 @@
 					// Deselect any text the user may have selected
 					clearTextSelection();
 				})
-				.on('dragstart', {not: handleSelector, distance: 8}, function (event, dd) {
+				.on('dragstart', {not: handleSelector}, function (event, dd) {
 					var cell = getCellFromEvent(event);
 					if (!cell) return;
 
@@ -5551,6 +5551,8 @@
 						deselectCells();
 						self.selectRow(cell.row, true);						
 					}
+					
+					clearTextSelection();
 
 				} else {
 					// If holding down "Shift" key and another cell is already active - use this to
