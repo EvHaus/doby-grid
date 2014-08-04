@@ -126,7 +126,7 @@ module.exports = function (grunt) {
 	grunt.loadNpmTasks('grunt-lesslint');
 
 	// Grunt "default" task (validation only)
-	grunt.registerTask('default', ['lesslint', 'less', 'jshint', 'jasmine']);
+	grunt.registerTask('default', ['lesslint', 'less', 'jshint', 'jscs', 'jasmine']);
 
 	// Grunt "build" task
 	grunt.registerTask('build', ['lesslint', 'less', 'jshint', 'jasmine', 'uglify', 'copy', 'symlink']);
