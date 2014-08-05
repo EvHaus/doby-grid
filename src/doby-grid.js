@@ -538,7 +538,7 @@
 			// Create the grid
 			createGrid();
 
-			if (self.options.selectable) bindCellRangeSelect();			
+			if (self.options.selectable) bindCellRangeSelect();
 
 			return self;
 		};
@@ -748,7 +748,7 @@
 				createCssRules();
 				cacheRows();
 				resizeCanvas(true);
-				
+
 				// Fit column widths to header contents
 				if (self.options.fitColumnsToHeader) fitColumnsToHeader();
 
@@ -4448,9 +4448,9 @@
 		// @param	column	object	Column Object
 		//
 		fitColumnToHeader = function (column) {
-		
+
 			if (!initialized) return;
-			
+
 			var currentWidth = column.width,
 				column_index = cache.columnsById[column.id],
 				headerWidth,
@@ -4459,19 +4459,19 @@
 
 			headerWidth = getColumnHeaderWidth(column_index);
 			newWidth = Math.max(column.width, headerWidth);
-			
+
 			column.minWidth = Math.max(column.minWidth, headerWidth);
-			
-			if (currentWidth == newWidth) return;						
-			
-			lockColumnWidths(column_index);		
-			
+
+			if (currentWidth == newWidth) return;
+
+			lockColumnWidths(column_index);
+
 			var diff = newWidth - currentWidth;
-			
+
 			columnRightPosition = cache.columnPosRight[column_index];
-			
+
 			prepareLeeway(column_index, columnRightPosition);
-			
+
 			// This will ensure you can't resize beyond the maximum allowed width
 			var delta = Math.min(maxPageX, Math.max(minPageX, columnRightPosition + diff)) - columnRightPosition;
 
@@ -4486,13 +4486,13 @@
 		// @param	column	object	Column Object
 		//
 		fitColumnsToHeader = function () {
-			
+
 			if (!initialized) return;
-			
+
 			for (var i = 0, l = cache.activeColumns.length; i < l; i++) {
 				fitColumnToHeader(cache.activeColumns[i]);
 			}
-			
+
 			applyHeaderAndColumnWidths();
 			submitColResize();
 		};
@@ -4968,9 +4968,9 @@
 			// If new width is smaller than min width - use min width
 			return Math.max.apply(null, cellWidths);
 		};
-		
+
 		// getColumnHeaderWidth()
-		// Returns the width of the content in the given column header. 
+		// Returns the width of the content in the given column header.
 		//
 		// Ignores Group rows.
 		//
@@ -4983,7 +4983,7 @@
 			var columnElements = $headers.children(),
 				$column = $(columnElements[column_index]),
 				currentWidth = $column.width(),
-				headerPadding = parseInt($column.css('paddingLeft'), 10) + parseInt($column.css('paddingRight'), 10);				
+				headerPadding = parseInt($column.css('paddingLeft'), 10) + parseInt($column.css('paddingRight'), 10);
 
 			// Determine the width of the column name text
 			var name = $column.children('.' + classcolumnname + ':first');
@@ -4994,7 +4994,7 @@
 			var headerWidth = $column.width() + headerPadding + 1;
 			name.css('overflow', '');
 			$column.width(currentWidth);
-			
+
 			return headerWidth;
 		};
 
