@@ -429,8 +429,8 @@
 			resizeCells:			false,
 			reorderable:			true,
 			rowHeight:				28,
-            rowSpacing:             0,
-            rowBasedSelection:		false,
+			rowSpacing:             0,
+			rowBasedSelection:		false,
 			scrollbarPosition:		"right",
 			scrollLoader:			null,
 			selectable:				true,
@@ -3475,8 +3475,8 @@
 			// Nothing to deselect
 			if (!self.selection) return;
 
-			var specific = row !== undefined && row !== null && cell !== undefined && cell !== null;
 			var rowProvided = row !== undefined && row !== null;
+			var specific = rowProvided && cell !== undefined && cell !== null;
 
 			// Go through the selection ranges and deselect as needed
 			for (var i = 0, l = self.selection.length; i < l; i++) {
@@ -4978,7 +4978,7 @@
 		// @return array
 		this.getSelectedRows = function () {
 			var rows = [];
-			for (var i = 0, l = self.selection.length; i < l; i ++) {
+			for (var i = 0, l = self.selection.length; i < l; i++) {
 				var selectedRows = self.selection[i].toRows();
 				for (var ir in selectedRows) {
 					rows.push(selectedRows[ir]);
