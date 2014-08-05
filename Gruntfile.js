@@ -36,6 +36,22 @@ module.exports = function (grunt) {
 			}
 		},
 
+		jscs: {
+			src: "src/<%= pkg.name %>.js",
+			options: {
+				config: ".jscsrc"
+			}
+		},
+
+		jsdoc: {
+			dist: {
+				src: ['src/<%= pkg.name %>.js'],
+				options: {
+					destination: 'docs'
+				}
+			}
+		},
+
 		jshint: {
 			options: {
 				jshintrc: '.jshintrc',
@@ -66,7 +82,7 @@ module.exports = function (grunt) {
 				'src/themes/*.less'
 			]
 		},
-		
+
 		symlink: {
 			options: {
 				overwrite: true
@@ -105,10 +121,12 @@ module.exports = function (grunt) {
 	grunt.loadNpmTasks('grunt-contrib-less');
 	grunt.loadNpmTasks('grunt-contrib-symlink');
 	grunt.loadNpmTasks('grunt-contrib-uglify');
+	grunt.loadNpmTasks('grunt-jscs');
+	grunt.loadNpmTasks('grunt-jsdoc');
 	grunt.loadNpmTasks('grunt-lesslint');
 
 	// Grunt "default" task (validation only)
-	grunt.registerTask('default', ['lesslint', 'less', 'jshint', 'jasmine']);
+	grunt.registerTask('default', ['lesslint', 'less', 'jshint', 'jscs', 'jasmine']);
 
 	// Grunt "build" task
 	grunt.registerTask('build', ['lesslint', 'less', 'jshint', 'jasmine', 'uglify', 'copy', 'symlink']);
