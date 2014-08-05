@@ -20,13 +20,13 @@
 		"grunt-contrib-less": "~0.7.0",
 		"grunt-contrib-symlink": "~0.3.0",
 		"grunt-contrib-uglify": "~0.2.2",
+		"grunt-jscs": "~0.6.2",
+		"grunt-jsdoc": "~0.5.6",
 		"grunt-lesslint": "~0.15.0"
 	},
-	"licenses": [
-		{
-			"type": "MIT",
-			"url": "https://github.com/globexdesigns/doby-grid/blob/master/LICENSE"
-    	}
-	],
+	"licenses": [{
+		"type": "MIT",
+		"url": "https://github.com/globexdesigns/doby-grid/blob/master/LICENSE"
+    }],
 	"main": "Gruntfile.js"
 }

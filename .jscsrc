@@ -1,0 +1,67 @@
+{
+	"validateJSDoc": {
+		"checkParamNames": true,
+		"checkRedundantParams": true,
+		"requireParamTypes": true
+	},
+
+	"requireSpaceAfterKeywords": [
+		"if",
+		"else",
+		"for",
+		"while",
+		"do",
+		"switch",
+		"return",
+		"try",
+		"catch",
+		"function"
+    ],
+
+	"requireSpacesInFunctionExpression": {
+		"beforeOpeningCurlyBrace": true
+	},
+	
+	"disallowTrailingWhitespace": true,
+
+	"disallowSpaceAfterObjectKeys": true,
+	"disallowSpacesInsideObjectBrackets": true,
+	"disallowSpacesInsideArrayBrackets": true,
+	"disallowSpacesInsideParentheses": true,
+	"disallowSpaceBeforeBinaryOperators": [
+		"!",
+		","
+	],
+
+	"requireSpaceBeforeBinaryOperators": [
+		"=",
+		"+",
+		"-",
+		"/",
+		"*",
+		"==",
+		"===",
+		"!=",
+		"!=="
+	],
+
+	"requireSpaceAfterBinaryOperators": [
+		":",
+		"=",
+		",",
+		"+",
+		"-",
+		"/",
+		"*",
+		"==",
+		"===",
+		"!=",
+		"!=="
+	],
+
+	"disallowSpaceAfterPrefixUnaryOperators": ["++", "--", "+", "~"],
+	"disallowSpaceBeforePostfixUnaryOperators": ["++", "--"],
+
+	"disallowKeywords": ["with"],
+	"disallowKeywordsOnNewLine": ["else"]
+}
