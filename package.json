@@ -20,7 +20,7 @@
 		"grunt-contrib-less": "~0.7.0",
 		"grunt-contrib-symlink": "~0.3.0",
 		"grunt-contrib-uglify": "~0.2.2",
-		"grunt-jscs": "~1.5.9",
+		"grunt-jscs": "~0.6.2",
 		"grunt-jsdoc": "~3.2.2",
 		"grunt-lesslint": "~0.15.0"
 	},
