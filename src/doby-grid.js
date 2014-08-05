@@ -5397,7 +5397,7 @@
 			}
 			return rows;
 		};
-		
+
 
 		/**
 		 * Retrieves a configuration object for the state of all user customizations for the grid.
@@ -5976,9 +5976,9 @@
 
 				var shiftUsed = self.options.shiftSelect && e.shiftKey,
 					ctrlUsed = self.options.ctrlSelect && (e.ctrlKey || e.metaKey);
-				
+
 				if (self.options.rowBasedSelection) {
-					
+
 					// Support for "Ctrl" / "Command" clicks
 					if (ctrlUsed && self.active) {
 						if (isCellSelected(cell.row)) {
@@ -5998,7 +5998,7 @@
 						// Keep selection if ctrlKey is also pressed
 						if (!(ctrlUsed && self.active)) {
 							// Deselect anything we had selected before
-							deselectCells();														
+							deselectCells();
 						} else {
 							// If ctrlKey is pressed, deselect the activeRow
 							deselectRow(self.active.row);
@@ -6008,9 +6008,9 @@
 
 					if (!(ctrlUsed || shiftUsed)) {
 						deselectCells();
-						self.selectRow(cell.row, true);						
+						self.selectRow(cell.row, true);
 					}
-					
+
 					clearTextSelection();
 
 				} else {
@@ -8804,7 +8804,7 @@
 				selection: this.selection
 			});
 		};
-		
+
 		// selectRow()
 		// select a single row
 		//
@@ -8818,7 +8818,7 @@
 				$(rowNode).addClass(self.options.selectedClass);
 			}
 		};
-		
+
 		// selectRows()
 		// select a range of rows
 		//
@@ -8829,11 +8829,11 @@
 		this.selectRows = function (fromRow, toRow, add) {
 			// Select all rows in one batch, so it can be saved as a single selection range
 			this.selectCells(fromRow, 0, toRow, cache.activeColumns.length, add);
-			
+
 			// Go through all selected rows to add the selected css class
 			var step = (fromRow < toRow) ? 1 : -1;
 			var rows = _.range(fromRow, toRow + step, step);
-			
+
 			for (var r = 0, l = rows.length; r < l; r++) {
 				var rowNode = cache.nodes[rows[r]] ? cache.nodes[rows[r]].rowNode : null;
 				if (rowNode) {
