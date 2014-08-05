@@ -21,7 +21,7 @@
 		"grunt-contrib-symlink": "~0.3.0",
 		"grunt-contrib-uglify": "~0.2.2",
 		"grunt-jscs": "~0.6.2",
-		"grunt-jsdoc": "~3.2.2",
+		"grunt-jsdoc": "~0.5.6",
 		"grunt-lesslint": "~0.15.0"
 	},
 	"licenses": [{
