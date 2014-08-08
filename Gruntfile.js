@@ -6,15 +6,23 @@ module.exports = function (grunt) {
 	grunt.initConfig({
 		pkg: grunt.file.readJSON("package.json"),
 
-		csslint: {
-			options: grunt.file.readJSON('.csslintrc')
-		},
+		clean: ['build/latest'],
 
 		copy: {
 			main: {
 				src: "src/<%= pkg.name %>.js",
 				dest: "build/<%= pkg.version %>/<%= pkg.name %>.js"
+			},
+			latest: {
+				expand: true,
+				cwd: "build/<%= pkg.version %>/",
+				src: "**",
+				dest: "build/latest/"
 			}
+		},
+
+		csslint: {
+			options: grunt.file.readJSON('.csslintrc')
 		},
 
 		jasmine: {
@@ -83,16 +91,6 @@ module.exports = function (grunt) {
 			]
 		},
 
-		symlink: {
-			options: {
-				overwrite: true
-			},
-			explicit: {
-				dest: 'build/latest/',
-				src: 'build/<%= pkg.version %>/'
-			}
-		},
-
 		uglify: {
 			options: {
 				banner: [
@@ -115,20 +113,19 @@ module.exports = function (grunt) {
 	});
 
 	// Load plugins
+	grunt.loadNpmTasks('grunt-contrib-clean');
 	grunt.loadNpmTasks('grunt-contrib-copy');
 	grunt.loadNpmTasks('grunt-contrib-jasmine');
 	grunt.loadNpmTasks('grunt-contrib-jshint');
 	grunt.loadNpmTasks('grunt-contrib-less');
-	grunt.loadNpmTasks('grunt-contrib-symlink');
 	grunt.loadNpmTasks('grunt-contrib-uglify');
 	grunt.loadNpmTasks('grunt-jscs');
 	grunt.loadNpmTasks('grunt-jsdoc');
 	grunt.loadNpmTasks('grunt-lesslint');
 
-	// Grunt "default" task (validation only)
+	// Grunt "default" task (validation and unit tests only)
 	grunt.registerTask('default', ['lesslint', 'less', 'jshint', 'jscs', 'jasmine']);
 
 	// Grunt "build" task
-	grunt.registerTask('build', ['lesslint', 'less', 'jshint', 'jasmine', 'uglify', 'copy', 'symlink']);
-
+	grunt.registerTask('build', ['lesslint', 'less', 'jshint', 'jasmine', 'uglify', 'clean', 'copy']);
 };
