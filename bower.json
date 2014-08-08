@@ -27,6 +27,20 @@
     "url": "git://globexdesigns/doby-grid.git"
   },
   "license": "MIT",
+  "ignore": [
+	  ".bowerrc",
+	  ".csslintrc",
+	  ".gitignore",
+	  ".jscsrc",
+	  ".jshintrc",
+	  ".travis.yml",
+	  "build/*",
+	  "!build/latest",
+	  "examples",
+	  "Gruntfile.js",
+	  "src",
+	  "tests"
+  ],
   "dependencies": {
     "backbone": "1.1.2",
     "FileSaver": "",
