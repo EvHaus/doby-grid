@@ -10,7 +10,7 @@ Submitting Pull Requests
 
 Before you start coding, post to the [GitHub Issues](https://github.com/globexdesigns/doby-grid/issues) about the bug or feature you're thinking of working on, so you can get early feedback. We don't want you to do tons of work and then have to rewrite half of it!
 
-Feel free to submit pull requests for bugs or new features. Please ensure to run your code through the JSLint params as defined at the top of the file.
+Feel free to submit pull requests for bugs or new features. Please ensure to run your code through the grunt linting and unit tests to ensure you don't break the builds.
 
 Ways to Contribute
 ==========
