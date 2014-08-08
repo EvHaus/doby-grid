@@ -28,12 +28,7 @@
   },
   "license": "MIT",
   "ignore": [
-	  ".bowerrc",
-	  ".csslintrc",
-	  ".gitignore",
-	  ".jscsrc",
-	  ".jshintrc",
-	  ".travis.yml",
+	  "**/.*",
 	  "bower.json",
 	  "build/*",
 	  "!build/latest",
