@@ -436,7 +436,7 @@
 			resizeCells:			false,
 			reorderable:			true,
 			rowHeight:				28,
-			rowSpacing:             0,
+			rowSpacing:				0,
 			rowBasedSelection:		false,
 			scrollbarPosition:		"right",
 			scrollLoader:			null,
@@ -2589,7 +2589,7 @@
 						filteredItems = batchFilter(items);
 					}
 				} else {
-					// special case:  if not filtering and not paging, the resulting
+					// special case: if not filtering and not paging, the resulting
 					// rows collection needs to be a copy so that changes due to sort
 					// can be caught
 					filteredItems = items.concat();
@@ -3353,7 +3353,7 @@
 				sortAsc = ascending;
 				sortComparer = comparer;
 
-                if (ascending === false) {
+				if (ascending === false) {
 					this.items.reverse();
 				}
 
@@ -3606,7 +3606,7 @@
 			 * @method showInvalid
 			 * @memberof defaultEditor
 			 *
-			 * @param   {array}    results        - Results array from your validate() function
+			 * @param	{array}		results		- Results array from your validate() function
 			 */
 			this.showInvalid = function (results) {
 				var result;
@@ -4287,7 +4287,7 @@
 				this.collection.filter = null;
 			} else {
 
-				// If this is a filter set -  remember it
+				// If this is a filter set - remember it
 				if ($.isArray(filter)) {
 					this.collection.filterset = filter;
 				}
@@ -4362,7 +4362,7 @@
 								break;
 							case '!~*':
 								test = value === null ? '' : value;
-								result = test.toString().toLowerCase().search(f[2].toString().toLowerCase())  === -1;
+								result = test.toString().toLowerCase().search(f[2].toString().toLowerCase()) === -1;
 								break;
 							default:
 								throw new Error('Unable to filter by "' + f[0] + '" because "' + f[1] + '" is not a valid operator.');
@@ -4862,7 +4862,7 @@
 
 		/**
 		 * Returns the width of the content in the given column. Used for auto resizing
-		 * columns to their content via double-click on the resize handle.  Ignores Group rows.
+		 * columns to their content via double-click on the resize handle. Ignores Group rows.
 		 * @method getColumnContentWidth
 		 * @memberof DobyGrid
 		 * @private
@@ -5571,7 +5571,7 @@
 			}
 
 			if (isNaN(rowTop)) rowTop = null;
-            if (isNaN(rowBottom)) rowBottom = null;
+			if (isNaN(rowBottom)) rowBottom = null;
 
 			return {
 				top: rowTop,
@@ -8280,7 +8280,7 @@
 					cellNodesByColumnIdx: [],
 
 					// Column indices of cell nodes that have been rendered, but not yet indexed in
-					// cellNodesByColumnIdx.  These are in the same order as cell nodes added at the
+					// cellNodesByColumnIdx. These are in the same order as cell nodes added at the
 					// end of the row.
 					cellRenderQueue: []
 				};
