@@ -5998,7 +5998,7 @@
 							// Don't select the new row if the shift key is pressed since
 							// it will be selected with the range
 							if (!(self.options.shiftSelect && e.shiftKey)) {
-								self.selectRow(cell.row, true);
+								self.selectRows(cell.row, cell.row, true);
 							}
 						}
 					}
@@ -6019,7 +6019,7 @@
 
 					if (!(ctrlUsed || shiftUsed)) {
 						deselectCells();
-						self.selectRow(cell.row, true);
+						self.selectRows(cell.row, cell.row, true);
 					}
 
 					clearTextSelection();
@@ -8816,23 +8816,6 @@
 			this.trigger('selection', this._event, {
 				selection: this.selection
 			});
-		};
-
-
-		/**
-		 * Select a single row
-		 * @method selectRow
-		 * @memberof DobyGrid
-		 *
-		 * @param	{integer}	rowIndex	- Index of the row to be selected
-		 * @param	{boolean}	add			- If true, will add selection as a new range
-		 */
-		this.selectRow = function (rowIndex, add) {
-			this.selectCells(rowIndex, 0, rowIndex, cache.activeColumns.length, add);
-			var rowNode = cache.nodes[rowIndex] ? cache.nodes[rowIndex].rowNode : null;
-			if (rowNode) {
-				$(rowNode).addClass(self.options.selectedClass);
-			}
 		};
 
 
