@@ -5399,10 +5399,12 @@
 		 */
 		this.getSelectedRows = function () {
 			var rows = [];
-			for (var i = 0, l = this.selection.length; i < l; i++) {
-				var selectedRows = this.selection[i].toRows();
-				for (var ir in selectedRows) {
-					rows.push(selectedRows[ir]);
+			if (this.selection) {
+				for (var i = 0, l = this.selection.length; i < l; i++) {
+					var selectedRows = this.selection[i].toRows();
+					for (var ir in selectedRows) {
+						rows.push(selectedRows[ir]);
+					}
 				}
 			}
 			return rows;
@@ -8828,6 +8830,7 @@
 		 * @param	{integer}		toRow			- Index of the last row to select
 		 * @param	{boolean}		add				- If true, will add selection as a new range
 		 *
+		 * @return {object}
 		 */
 		this.selectRows = function (fromRow, toRow, add) {
 			// Select all rows in one batch, so it can be saved as a single selection range
@@ -8838,6 +8841,8 @@
 				var rowNode = cache.nodes[i] ? cache.nodes[i].rowNode : null;
 				if (rowNode) $(rowNode).addClass(this.options.selectedClass);
 			}
+
+			return this;
 		};
 
 

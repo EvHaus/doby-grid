@@ -1352,6 +1352,28 @@ describe("Methods and Data Manipulation", function () {
 				data: {id: 1, name: 'one'}
 			}]);
 		});
+
+
+		// ==========================================================================================
+
+
+		it("should return an empty array when nothing is selected", function () {
+			var grid = resetGrid({
+				columns: [
+					{id: 'id', name: 'ID', field: 'id'},
+					{id: 'name', name: 'Name', field: 'name'}],
+				data: [{
+					id: 1,
+					data: {id: 1, name: 'one'}
+				}, {
+					id: 2,
+					data: {id: 2, name: 'two'}
+				}]
+			});
+
+			// Get selected rows when nothing is selected
+			expect(grid.getSelectedRows()).toEqual([]);
+		});
 	});
 
 
