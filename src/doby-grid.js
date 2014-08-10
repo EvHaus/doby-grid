@@ -8834,14 +8834,9 @@
 			this.selectCells(fromRow, 0, toRow, cache.activeColumns.length, add);
 
 			// Go through all selected rows to add the selected css class
-			var step = (fromRow < toRow) ? 1 : -1;
-			var rows = _.range(fromRow, toRow + step, step);
-
-			for (var r = 0, l = rows.length; r < l; r++) {
-				var rowNode = cache.nodes[rows[r]] ? cache.nodes[rows[r]].rowNode : null;
-				if (rowNode) {
-					$(rowNode).addClass(self.options.selectedClass);
-				}
+			for (var i = fromRow; i <= toRow; i++) {
+				var rowNode = cache.nodes[i] ? cache.nodes[i].rowNode : null;
+				if (rowNode) $(rowNode).addClass(this.options.selectedClass);
 			}
 		};
 
