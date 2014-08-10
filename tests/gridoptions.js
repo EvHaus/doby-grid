@@ -3179,7 +3179,44 @@ describe("Grid Options", function () {
 	});
 
 
-    // ==========================================================================================
+	// ==========================================================================================
+
+
+	describe("options.rowBasedSelection", function () {
+		it("should be false by default", function () {
+			var grid = resetGrid(defaultData());
+			expect(grid.options.rowBasedSelection).toEqual(false);
+		});
+
+
+		// ==========================================================================================
+
+
+		it("should select rows when clicking on row with rowBasedSelection enabled", function () {
+			// Prepare for test
+			var grid = resetGrid($.extend(defaultData(), {
+				rowBasedSelection: true
+			}));
+
+			// Click on a cell
+			var $cell = grid.$el.find('.doby-grid-cell:first');
+			$cell.simulate('click');
+
+			// Entire row should be selected
+			expect(grid.selection.length).toEqual(1);
+			expect(grid.selection[0].fromRow).toEqual(0);
+			expect(grid.selection[0].fromCell).toEqual(0);
+			expect(grid.selection[0].toRow).toEqual(0);
+			expect(grid.selection[0].toCell).toEqual(1);
+			expect(grid.selection[0].exclusions.length).toEqual(0);
+
+			// Row should have 'selected' calss
+			expect($cell.closest('.doby-grid-row')).toHaveClass('selected');
+		});
+	});
+
+
+	// ==========================================================================================
 
 
 	describe("options.rowSpacing", function () {
@@ -3197,19 +3234,19 @@ describe("Grid Options", function () {
 
 			// Prepare for test
 			var grid = resetGrid($.extend(defaultData(), {rowSpacing: testSpacing})),
-                $rows = grid.$el.find('.doby-grid-row'),
-                $prevRow;
+				$rows = grid.$el.find('.doby-grid-row'),
+				$prevRow;
 
 			// Make sure we've got actual rows to test on
 			expect($rows.length).toBeGreaterThan(0);
 
 			$rows.each(function (i) {
-                if (i > 0) {
-                    $prevRow = $($rows[i - 1]);
+				if (i > 0) {
+					$prevRow = $($rows[i - 1]);
 
-                    // Make sure every row (except for first) is spaced correctly
-                    expect(parseInt($(this).css('top'), 10)).toEqual(parseInt($prevRow.css('top'), 10) + $prevRow.outerHeight() + testSpacing);
-                }
+					// Make sure every row (except for first) is spaced correctly
+					expect(parseInt($(this).css('top'), 10)).toEqual(parseInt($prevRow.css('top'), 10) + $prevRow.outerHeight() + testSpacing);
+				}
 			});
 		});
 	});
