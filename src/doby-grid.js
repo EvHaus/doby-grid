@@ -529,6 +529,7 @@
 			// Create the grid
 			createGrid();
 
+			// Cell range selection is disabled when using row-based selection
 			if (self.options.selectable && !self.options.rowBasedSelection) bindCellRangeSelect();
 
 			return self;
@@ -3721,8 +3722,8 @@
 			// Nothing to deselect
 			if (!self.selection) return;
 
-			var rowProvided = row !== undefined && row !== null;
-			var specific = rowProvided && cell !== undefined && cell !== null;
+			var rowProvided = row !== undefined && row !== null,
+				specific = rowProvided && cell !== undefined && cell !== null;
 
 			// Go through the selection ranges and deselect as needed
 			for (var i = 0, l = self.selection.length; i < l; i++) {
@@ -3760,11 +3761,16 @@
 			}
 		};
 
-		// deselectRow()
-		// Deselect all cells in the specified row
-		//
-		// @param	rowIndex	integer		Row index for row to deselect
-		//
+
+		/**
+		 * Deselect all cells in the specified row
+		 * @method deselectRow
+		 * @memberof DobyGrid
+		 * @private
+		 *
+		 * @param	{integer}	rowIndex	- Row index for row to deselect
+		 *
+		 */
 		deselectRow = function (rowIndex) {
 			deselectCells(rowIndex);
 			var rowNode = cache.nodes[rowIndex] ? cache.nodes[rowIndex].rowNode : null;
@@ -5383,14 +5389,18 @@
 			return result;
 		};
 
-		// getSelectedRows()
-		// Returns the currently selected rows including the item data
-		//
-		// @return array
+
+		/**
+		 * Returns the currently selected rows including the item data
+		 * @method getSelectedRows
+		 * @memberof DobyGrid
+		 *
+		 * @returns {array}
+		 */
 		this.getSelectedRows = function () {
 			var rows = [];
-			for (var i = 0, l = self.selection.length; i < l; i++) {
-				var selectedRows = self.selection[i].toRows();
+			for (var i = 0, l = this.selection.length; i < l; i++) {
+				var selectedRows = this.selection[i].toRows();
 				for (var ir in selectedRows) {
 					rows.push(selectedRows[ir]);
 				}
@@ -5977,6 +5987,7 @@
 				var shiftUsed = self.options.shiftSelect && e.shiftKey,
 					ctrlUsed = self.options.ctrlSelect && (e.ctrlKey || e.metaKey);
 
+				// When row-based selection is used - we need to handle clicks differently
 				if (self.options.rowBasedSelection) {
 
 					// Support for "Ctrl" / "Command" clicks
@@ -7117,11 +7128,13 @@
 		 */
 		Range.prototype.contains = function (row, cell) {
 			return row >= this.fromRow &&
-				row <= this.toRow &&
-				(cell === undefined || cell === null ||
-				cell >= this.fromCell &&
-				cell <= this.toCell &&
-				!this.isExcludedCell(row, cell));
+				row <= this.toRow && (
+					cell === undefined || cell === null || (
+						cell >= this.fromCell &&
+						cell <= this.toCell &&
+						!this.isExcludedCell(row, cell)
+					)
+				);
 		};
 
 
@@ -8805,12 +8818,15 @@
 			});
 		};
 
-		// selectRow()
-		// select a single row
-		//
-		// @param	rowIndex		integer		Index of the row to be selected
-		// @param	add				boolean		If true, will add selection as a new range
-		//
+
+		/**
+		 * Select a single row
+		 * @method selectRow
+		 * @memberof DobyGrid
+		 *
+		 * @param	{integer}	rowIndex	- Index of the row to be selected
+		 * @param	{boolean}	add			- If true, will add selection as a new range
+		 */
 		this.selectRow = function (rowIndex, add) {
 			this.selectCells(rowIndex, 0, rowIndex, cache.activeColumns.length, add);
 			var rowNode = cache.nodes[rowIndex] ? cache.nodes[rowIndex].rowNode : null;
@@ -8819,13 +8835,17 @@
 			}
 		};
 
-		// selectRows()
-		// select a range of rows
-		//
-		// @param	fromRow			integer		Index of the first row to select
-		// @param	toRow			integer		Index of the last row to select
-		// @param	add				boolean		If true, will add selection as a new range
-		//
+
+		/**
+		 * Select a range of rows
+		 * @method selectRows
+		 * @memberof DobyGrid
+		 *
+		 * @param	{integer}		fromRow			- Index of the first row to select
+		 * @param	{integer}		toRow			- Index of the last row to select
+		 * @param	{boolean}		add				- If true, will add selection as a new range
+		 *
+		 */
 		this.selectRows = function (fromRow, toRow, add) {
 			// Select all rows in one batch, so it can be saved as a single selection range
 			this.selectCells(fromRow, 0, toRow, cache.activeColumns.length, add);
