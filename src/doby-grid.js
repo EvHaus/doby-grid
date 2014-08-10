@@ -8831,7 +8831,7 @@
 		 */
 		this.selectRows = function (fromRow, toRow, add) {
 			// Select all rows in one batch, so it can be saved as a single selection range
-			this.selectCells(fromRow, 0, toRow, cache.activeColumns.length, add);
+			this.selectCells(fromRow, 0, toRow, cache.activeColumns.length - 1, add);
 
 			// Go through all selected rows to add the selected css class
 			for (var i = fromRow; i <= toRow; i++) {
