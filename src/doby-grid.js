@@ -6416,6 +6416,8 @@
 		 * @method handleWindowResize
 		 * @memberof DobyGrid
 		 * @private
+		 * 
+		 * @param {object} evt - Javascript event object
 		 */
 		handleWindowResize = function (evt) {
 			// Only if the object is visible
