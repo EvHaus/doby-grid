@@ -6,3 +6,9 @@ Doby Grid is stand-alone module (part of the Doby JS framework) for rendering a 
 ---
 
 For more information and complete documentation visit: http://www.dobyjs.com/#grid
+
+---
+
+Doby Grid is also available via Bower:
+
+```bower install doby-grid```

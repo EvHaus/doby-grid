@@ -6,7 +6,7 @@
 
 
 @w3c: true;
-@import "../libs/lesshat/lesshat";
+@import "../libs/lesshat/build/lesshat";
 
 
 // Containers
@@ -41,7 +41,7 @@
 	.doby-grid-viewport {
 		direction: rtl;
 	}
-	
+
 	.doby-grid-canvas {
 		direction: ltr;
 	}
@@ -333,8 +333,8 @@
 		&.selected {z-index: 2}
 		&.active {z-index: 3}
 	}
-	
-	
+
+
 
 	// When columns are auto-sized, remove right border on the last item for a cleaner edge
 	.doby-grid-no-right .doby-grid-cell:last-child {border-right: 0}

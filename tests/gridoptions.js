@@ -478,8 +478,8 @@ describe("Grid Options", function () {
 			expect(firstCell.find('input').length).toEqual(1);
 		});
 	});
-	
-	
+
+
 	// ==========================================================================================
 
 
@@ -488,33 +488,33 @@ describe("Grid Options", function () {
 			var grid = resetGrid(defaultData());
 			expect(grid.options.autoHeight).toEqual(false);
 		});
-		
-		
+
+
 		// ==========================================================================================
-		
-		
+
+
 		it("should cause the grid's container to grow when adding rows", function () {
 			var grid = resetGrid({
 				autoHeight: true
 			});
-			
+
 			grid.add({id: 1, data: {id: 1}});
-			
+
 			waitsFor(function () {
 				return grid.$el.find('.doby-grid-row').length === 1;
 			}, 100);
-			
+
 			var oldHeight;
-			
+
 			runs(function () {
 				oldHeight = grid.$el.height();
 				grid.add({id: 2, data: {id: 2}});
 			});
-			
+
 			waitsFor(function () {
 				return grid.$el.find('.doby-grid-row').length === 2;
 			}, 100);
-			
+
 			runs(function () {
 				var newHeight = grid.$el.height();
 				expect(oldHeight).toBeLessThan(newHeight);
@@ -1656,8 +1656,8 @@ describe("Grid Options", function () {
 			$grouprow.trigger('click');
 		});
 	});
-	
-	
+
+
 	// ==========================================================================================
 
 
@@ -1666,11 +1666,11 @@ describe("Grid Options", function () {
 			var grid = resetGrid(defaultData());
 			expect(grid.options.keepNullsAtBottom).toEqual(true);
 		});
-		
-		
+
+
 		// ==========================================================================================
-		
-		
+
+
 		it("should sort nulls correctly when disabled", function () {
 			var grid = resetGrid($.extend(defaultData(), {
 				columns: [{id: 'test', field: 'test'}],
@@ -1680,10 +1680,10 @@ describe("Grid Options", function () {
 				],
 				keepNullsAtBottom: false
 			}));
-			
+
 			// Sort by test column
 			grid.sortBy('test', true);
-			
+
 			// Rows should sorted in the right direction
 			var $rows = grid.$el.find('.doby-grid-row');
 
@@ -1691,7 +1691,7 @@ describe("Grid Options", function () {
 			$rows = _.sortBy($rows, function (i) {
 				return parseInt($(i).css('top'), 10);
 			});
-			
+
 			$($rows).each(function (i) {
 				if (i === 0) {
 					expect($(this)).toHaveText('');
@@ -1699,10 +1699,10 @@ describe("Grid Options", function () {
 					expect($(this)).toHaveText('yes');
 				}
 			});
-			
+
 			// Flip wort
 			grid.sortBy('test', false);
-			
+
 			// Rows should sorted in the right direction
 			$rows = grid.$el.find('.doby-grid-row');
 
@@ -1710,7 +1710,7 @@ describe("Grid Options", function () {
 			$rows = _.sortBy($rows, function (i) {
 				return parseInt($(i).css('top'), 10);
 			});
-			
+
 			$($rows).each(function (i) {
 				if (i === 0) {
 					expect($(this)).toHaveText('yes');
@@ -1719,11 +1719,11 @@ describe("Grid Options", function () {
 				}
 			});
 		});
-		
-		
+
+
 		// ==========================================================================================
-		
-		
+
+
 		it("should not sort nulls correctly when enabled", function () {
 			var grid = resetGrid($.extend(defaultData(), {
 				columns: [{id: 'test', field: 'test'}],
@@ -1733,10 +1733,10 @@ describe("Grid Options", function () {
 				],
 				keepNullsAtBottom: true
 			}));
-			
+
 			// Sort by test column
 			grid.sortBy('test', true);
-			
+
 			// Rows should sorted in the right direction
 			var $rows = grid.$el.find('.doby-grid-row');
 
@@ -1744,7 +1744,7 @@ describe("Grid Options", function () {
 			$rows = _.sortBy($rows, function (i) {
 				return parseInt($(i).css('top'), 10);
 			});
-			
+
 			$($rows).each(function (i) {
 				if (i === 0) {
 					expect($(this)).toHaveText('yes');
@@ -1752,10 +1752,10 @@ describe("Grid Options", function () {
 					expect($(this)).not.toHaveText('yes');
 				}
 			});
-			
+
 			// Flip wort
 			grid.sortBy('test', false);
-			
+
 			// Rows should sorted in the right direction
 			$rows = grid.$el.find('.doby-grid-row');
 
@@ -1763,7 +1763,7 @@ describe("Grid Options", function () {
 			$rows = _.sortBy($rows, function (i) {
 				return parseInt($(i).css('top'), 10);
 			});
-			
+
 			$($rows).each(function (i) {
 				if (i === 0) {
 					expect($(this)).toHaveText('yes');
@@ -3179,7 +3179,44 @@ describe("Grid Options", function () {
 	});
 
 
-    // ==========================================================================================
+	// ==========================================================================================
+
+
+	describe("options.rowBasedSelection", function () {
+		it("should be false by default", function () {
+			var grid = resetGrid(defaultData());
+			expect(grid.options.rowBasedSelection).toEqual(false);
+		});
+
+
+		// ==========================================================================================
+
+
+		it("should select rows when clicking on row with rowBasedSelection enabled", function () {
+			// Prepare for test
+			var grid = resetGrid($.extend(defaultData(), {
+				rowBasedSelection: true
+			}));
+
+			// Click on a cell
+			var $cell = grid.$el.find('.doby-grid-cell:first');
+			$cell.simulate('click');
+
+			// Entire row should be selected
+			expect(grid.selection.length).toEqual(1);
+			expect(grid.selection[0].fromRow).toEqual(0);
+			expect(grid.selection[0].fromCell).toEqual(0);
+			expect(grid.selection[0].toRow).toEqual(0);
+			expect(grid.selection[0].toCell).toEqual(1);
+			expect(grid.selection[0].exclusions.length).toEqual(0);
+
+			// Row should have 'selected' calss
+			expect($cell.closest('.doby-grid-row')).toHaveClass('selected');
+		});
+	});
+
+
+	// ==========================================================================================
 
 
 	describe("options.rowSpacing", function () {
@@ -3197,24 +3234,24 @@ describe("Grid Options", function () {
 
 			// Prepare for test
 			var grid = resetGrid($.extend(defaultData(), {rowSpacing: testSpacing})),
-                $rows = grid.$el.find('.doby-grid-row'),
-                $prevRow;
+				$rows = grid.$el.find('.doby-grid-row'),
+				$prevRow;
 
 			// Make sure we've got actual rows to test on
 			expect($rows.length).toBeGreaterThan(0);
 
 			$rows.each(function (i) {
-                if (i > 0) {
-                    $prevRow = $($rows[i - 1]);
+				if (i > 0) {
+					$prevRow = $($rows[i - 1]);
 
-                    // Make sure every row (except for first) is spaced correctly
-                    expect(parseInt($(this).css('top'), 10)).toEqual(parseInt($prevRow.css('top'), 10) + $prevRow.outerHeight() + testSpacing);
-                }
+					// Make sure every row (except for first) is spaced correctly
+					expect(parseInt($(this).css('top'), 10)).toEqual(parseInt($prevRow.css('top'), 10) + $prevRow.outerHeight() + testSpacing);
+				}
 			});
 		});
 	});
-	
-	
+
+
 	// ==========================================================================================
 
 
@@ -3223,28 +3260,28 @@ describe("Grid Options", function () {
 			var grid = resetGrid(defaultData());
 			expect(grid.options.scrollbarPosition).toEqual('right');
 		});
-		
-		
+
+
 		// ==========================================================================================
-		
-		
+
+
 		it("should draw the scrollbar on the left with a column spacer", function () {
 			var data = [];
-			
+
 			for (var i = 0, l = 100; i < l; i++) {
 				data.push({
 					id: i,
 					data: {
-						id: i	
+						id: i
 					}
 				});
 			}
-			
+
 			var grid = resetGrid($.extend(defaultData(), {
 				data: data,
 				scrollbarPosition: "left"
 			}));
-			
+
 			// Spacer should be created
 			expect(grid.$el).toContain('.doby-grid-column-spacer');
 		});
@@ -3360,18 +3397,19 @@ describe("Grid Options", function () {
 		// ==========================================================================================
 
 
-		it("should append to the selection when dragging selection and holding down the Shift key", function () {
+		// Disabled until "https://github.com/jquery/jquery-simulate/issues/26" can be fixed
+		xit("should append to the selection when dragging selection and holding down the Shift key", function () {
 			// Prepare for test
 			var grid = resetGrid($.extend(defaultData(), {}));
 
 			// Find the first and last cells
 			var firstcell = grid.$el.find('.doby-grid-row:first .doby-grid-cell:first'),
-				lastcell = grid.$el.find('.doby-grid-row:last .doby-grid-cell:first');
+				lastcell = grid.$el.find('.doby-grid-row:last .doby-grid-cell:last');
 
 			// Simulate a selection of the first cell
 			firstcell.simulate('drag', {
-				dx: firstcell.position().right,
-				dy: firstcell.position().bottom
+				dx: firstcell.position().left,
+				dy: firstcell.position().top
 			});
 
 			// Expect the first cell to be selected
@@ -3383,8 +3421,8 @@ describe("Grid Options", function () {
 
 			// Simulate a selection of the last cell (with Shift key)
 			lastcell.simulate('drag', {
-				dx: lastcell.position().right,
-				dy: lastcell.position().bottom,
+				dx: lastcell.offset().left + 1,
+				dy: lastcell.offset().top + 1,
 				shiftKey: true
 			});
 
@@ -3394,6 +3432,8 @@ describe("Grid Options", function () {
 			expect(grid.selection[1].fromRow).toEqual(1);
 			expect(grid.selection[1].toCell).toEqual(0);
 			expect(grid.selection[1].toRow).toEqual(1);
+
+
 		});
 	});
 
@@ -3734,7 +3774,7 @@ describe("Grid Options", function () {
 			expect(grid.$el.find('.doby-grid-sticky').length).toEqual(1);
 			expect(grid.$el.find('.doby-grid-sticky .doby-grid-cell').length).toEqual(1);
 		});
-		
+
 		// ==========================================================================================
 
 
@@ -3763,7 +3803,7 @@ describe("Grid Options", function () {
 				column_id: 'id',
 				collapsed: false
 			}]);
-			
+
 			// Scroll to middle
 			grid.scrollToRow(25);
 		});
