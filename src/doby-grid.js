@@ -356,6 +356,7 @@
 				groups_expand:		'Expand All Groups',
 				options:			'Column Options',
 				remove:				'Remove "{{name}}" Column',
+				remove_aggregators:	'Remove Aggregator',
 				remove_group:		'Remove Grouping By "{{name}}"',
 				remove_sort:		'Remove Sort By "{{name}}"',
 				sorting:			'Sorting',
@@ -429,6 +430,7 @@
 			nestedAggregators:		true,
 			menuExtensions:			null,
 			multiColumnSort:		true,
+			optionalAggregators:	false,
 			quickFilter:			false,
 			remoteScrollTime:		200,
 			resizableColumns:		true,
@@ -2786,7 +2788,11 @@
 			processAggregators = function () {
 				var item, i, l, active_aggregator, agg_keys,
 					column_id, aggreg_idx,
-					items = filteredItems;
+					items = filteredItems,
+					current_aggregator = null;
+
+				// Reset the aggregators each time the aggregators are processsed
+				resetAggregators();
 
 				// Loop through the data and process the aggregators
 				for (i = 0, l = items.length; i < l; i++) {
@@ -2803,6 +2809,8 @@
 							if (cache.aggregatorsByColumnId[column_id][aggreg_idx].active) {
 								if (active_aggregator === null) {
 									active_aggregator = cache.aggregatorsByColumnId[column_id][aggreg_idx];
+									active_aggregator.active = true;
+									current_aggregator = active_aggregator;
 								} else {
 									// Disable duplicate active aggregators
 									cache.aggregatorsByColumnId[column_id][aggreg_idx].active = false;
@@ -2810,10 +2818,9 @@
 							}
 						}
 
-						// If no active aggregator found - use first one
+						// If no active aggregator found - use first one, if aggregators aren't optional
 						agg_keys = Object.keys(cache.aggregatorsByColumnId[column_id]);
-						if (active_aggregator === null && agg_keys.length) {
-
+						if (!grid.options.optionalAggregators && active_aggregator === null && agg_keys.length) {
 							active_aggregator = cache.aggregatorsByColumnId[column_id][agg_keys[0]];
 							active_aggregator.active = true;
 						}
@@ -2841,14 +2848,23 @@
 					}
 				}
 
-				// Insert grid totals row
-				var gridAggregate = new Aggregate(cache.aggregatorsByColumnId);
+				var addAggregator = function () {
+					// Insert grid totals row
+					var gridAggregate = new Aggregate(cache.aggregatorsByColumnId);
 
-				// Mark this is the grid-level aggregate
-				gridAggregate[grid.options.idProperty] = '__gridAggregate';
+					// Mark this is the grid-level aggregate
+					gridAggregate[grid.options.idProperty] = '__gridAggregate';
 
-				// Insert new Aggregate row
-				items.push(gridAggregate);
+					// Insert new Aggregate row
+					items.push(gridAggregate);
+
+				};
+
+				if ((active_aggregator || current_aggregator) && grid.options.optionalAggregators) {
+					addAggregator();
+				} else if (!grid.options.optionalAggregators) {
+					addAggregator();
+				}
 			};
 
 
@@ -10146,14 +10162,56 @@
 				};
 			};
 
+			var aRemFn = function () {
+				return function (event) {
+					// If this is the only aggregator available - clicking does nothing
+					if (Object.keys(cache.aggregatorsByColumnId[column.id]).length === 1) return;
+
+					// Update menu items
+					$(event.target).parent().children('.' + classdropdownitem).removeClass('on');
+					$(event.target).addClass('on');
+					if (!$(event.target).children('.' + classdropdownicon).length) {
+						$(event.target).append('<span class="' + classdropdownicon + '"></span>');
+					}
+
+					// Disable all aggregators
+					for (var aggr_i in cache.aggregatorsByColumnId[column.id]) {
+						cache.aggregatorsByColumnId[column.id][aggr_i].active = false;
+					}
+
+					// Invalidate all Aggregate rows in the visible range
+					var range = getVisibleRange();
+					for (var ci = range.top, ct = range.bottom; ci < ct; ci++) {
+						if (cache.rows[ci] && cache.rows[ci]._aggregateRow) {
+							invalidateRows([ci]);
+						}
+					}
+
+					// Re-process aggregators and re-render rows
+					self.collection.refresh();
+				};
+			};
+
 			// Builds a list of all available aggregators for the user to choose from
 			var aggregator_menu = [];
 			if (column && cache.aggregatorsByColumnId[column.id]) {
+				var activeAggregator = false;
 				for (var ai in cache.aggregatorsByColumnId[column.id]) {
+					if (!activeAggregator) {
+						activeAggregator = cache.aggregatorsByColumnId[column.id][ai].active;
+					}
+
 					aggregator_menu.push({
 						fn: aFn(column, ai),
 						name: column.aggregators[ai].name,
 						value: cache.aggregatorsByColumnId[column.id][ai].active
+					});
+				}
+				if (self.options.optionalAggregators) {
+					aggregator_menu.unshift({
+						fn: aRemFn(),
+						name: self.options.locale.column.remove_aggregators,
+						value: !activeAggregator,
 					});
 				}
 			}
