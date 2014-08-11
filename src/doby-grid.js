@@ -356,7 +356,7 @@
 				groups_expand:		'Expand All Groups',
 				options:			'Column Options',
 				remove:				'Remove "{{name}}" Column',
-				remove_aggregators:	'Remove Aggregator',
+				remove_aggregators:	'None',
 				remove_group:		'Remove Grouping By "{{name}}"',
 				remove_sort:		'Remove Sort By "{{name}}"',
 				sorting:			'Sorting',
