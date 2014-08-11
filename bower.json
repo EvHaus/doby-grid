@@ -1,0 +1,60 @@
+{
+  "name": "doby-grid",
+  "homepage": "http://www.dobyjs.com/#grid",
+  "description": "Doby Grid is a <table> on steroids",
+  "main": [
+    "build/latest/doby-grid.min.css",
+    "build/latest/doby-grid.min.js"
+  ],
+  "moduleType": [
+    "amd",
+    "globals"
+  ],
+  "keywords": [
+    "doby",
+    "grid",
+    "table",
+    "grid",
+    "javascript",
+    "html",
+    "css"
+  ],
+  "authors": [
+    "Globex Designs Inc. <info@globexdesigns.com> (http://www.globexdesigns.com)"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git://globexdesigns/doby-grid.git"
+  },
+  "license": "MIT",
+  "ignore": [
+	  "**/.*",
+	  "bower.json",
+	  "build/*",
+	  "!build/latest",
+	  "examples",
+	  "Gruntfile.js",
+	  "src",
+	  "tests"
+  ],
+  "dependencies": {
+    "backbone": "1.1.2",
+    "FileSaver": "",
+    "jquery": "2.1.1",
+    "jquery-ui": "1.11.0",
+    "jquery.event.drag-drop": "2.2.1",
+    "underscore": "1.6.0"
+  },
+  "devDependencies": {
+    "Faker": "1.0.1",
+    "jasmine": "1.3.1",
+    "jasmine-jquery": "1.7.0",
+    "jquery.simulate": "1.3.0",
+    "less": "1.7.4",
+    "lesshat": "3.0.2",
+    "requirejs": "2.1.14"
+  },
+  "resolutions": {
+    "jquery": "2.1.1"
+  }
+}

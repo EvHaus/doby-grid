@@ -1,4 +1,4 @@
 .DS_Store
 docs
+libs
 node_modules
-build/latest/

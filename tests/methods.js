@@ -674,7 +674,10 @@ describe("Methods and Data Manipulation", function () {
 		it("should correctly export() to CSV", function () {
 			// Prepare for test
 			var grid = resetGrid({
-				columns: [{id: 'id', name: 'ID', field: 'id'}, {id: 'name', name: 'Name', field: 'name'}],
+				columns: [
+					{id: 'id', name: 'ID', field: 'id'},
+					{id: 'name', name: 'Name', field: 'name'}
+				],
 				data: [{
 					id: 1,
 					data: {id: 1, name: 'one'}
@@ -1315,6 +1318,61 @@ describe("Methods and Data Manipulation", function () {
 			});
 
 			expect(grid.getRowFromIndex(0)).toEqual(item);
+		});
+	});
+
+
+	// ==========================================================================================
+
+
+	describe("getSelectedRows()", function () {
+		it("should return a list of selected row objects", function () {
+			var grid = resetGrid({
+				columns: [
+					{id: 'id', name: 'ID', field: 'id'},
+					{id: 'name', name: 'Name', field: 'name'}],
+				data: [{
+					id: 1,
+					data: {id: 1, name: 'one'}
+				}, {
+					id: 2,
+					data: {id: 2, name: 'two'}
+				}]
+			});
+
+			// Select one (not all) cell in a row
+			grid.selectCells(0, 0, 0, 0);
+
+			// Ensure the cells got selected
+			expect(grid.selection.length).toEqual(1);
+
+			// Retrieve selected row
+			expect(grid.getSelectedRows()).toEqual([{
+				id: 1,
+				data: {id: 1, name: 'one'}
+			}]);
+		});
+
+
+		// ==========================================================================================
+
+
+		it("should return an empty array when nothing is selected", function () {
+			var grid = resetGrid({
+				columns: [
+					{id: 'id', name: 'ID', field: 'id'},
+					{id: 'name', name: 'Name', field: 'name'}],
+				data: [{
+					id: 1,
+					data: {id: 1, name: 'one'}
+				}, {
+					id: 2,
+					data: {id: 2, name: 'two'}
+				}]
+			});
+
+			// Get selected rows when nothing is selected
+			expect(grid.getSelectedRows()).toEqual([]);
 		});
 	});
 
@@ -1986,8 +2044,8 @@ describe("Methods and Data Manipulation", function () {
 				}
 			});
 		});
-		
-		
+
+
 		// ==========================================================================================
 
 
@@ -2018,10 +2076,10 @@ describe("Methods and Data Manipulation", function () {
 			}, grid = new DobyGrid(options), fixture = setFixtures();
 
 			fixture.attr('style', 'height:600px;position:absolute;top:0;left:0;opacity:0;width:500px');
-			
+
 			// Append
 			grid.appendTo(fixture);
-			
+
 			// Get column widths
 			var widths = grid.$el.find('.doby-grid-header-column').map(function () {
 				return $(this).width();
@@ -2029,11 +2087,11 @@ describe("Methods and Data Manipulation", function () {
 
 			// Restore current state
 			grid.restoreState(grid.getState());
-			
+
 			var newWidths = grid.$el.find('.doby-grid-header-column').map(function () {
 				return $(this).width();
 			});
-			
+
 			// Widths should stay the same
 			expect(widths).toEqual(newWidths);
 		});
@@ -2225,6 +2283,159 @@ describe("Methods and Data Manipulation", function () {
 			// Convert selection to rows
 			var result = grid.selection[0].toRows();
 			expect(result).toEqual(data);
+		});
+	});
+
+
+	// ==========================================================================================
+
+
+	describe("selectRows()", function () {
+		it("should be able to select a single row", function () {
+			var grid = resetGrid({
+				columns: [
+					{id: 'id', name: 'ID', field: 'id'},
+					{id: 'name', name: 'Name', field: 'name'}],
+				data: [{
+					id: 1,
+					data: {id: 1, name: 'one'}
+				}, {
+					id: 2,
+					data: {id: 2, name: 'two'}
+				}],
+				selectable: true
+			});
+
+			// Select a single row
+			grid.selectRows(0, 0);
+
+			// Ensure the row got selected
+			expect(grid.selection.length).toEqual(1);
+			expect(grid.selection[0].fromRow).toEqual(0);
+			expect(grid.selection[0].fromCell).toEqual(0);
+			expect(grid.selection[0].toRow).toEqual(0);
+			expect(grid.selection[0].toCell).toEqual(1);
+			expect(grid.selection[0].exclusions.length).toEqual(0);
+		});
+
+
+		// ==========================================================================================
+
+
+		it("should be able to select a range of rows", function () {
+			var grid = resetGrid({
+				columns: [
+					{id: 'id', name: 'ID', field: 'id'},
+					{id: 'name', name: 'Name', field: 'name'}],
+				data: [{
+					id: 1,
+					data: {id: 1, name: 'one'}
+				}, {
+					id: 2,
+					data: {id: 2, name: 'two'}
+				}],
+				selectable: true
+			});
+
+			// Select range of rows
+			grid.selectRows(0, 1);
+
+			// Ensure the rows got selected
+			expect(grid.selection.length).toEqual(1);
+			expect(grid.selection[0].fromRow).toEqual(0);
+			expect(grid.selection[0].fromCell).toEqual(0);
+			expect(grid.selection[0].toRow).toEqual(1);
+			expect(grid.selection[0].toCell).toEqual(1);
+			expect(grid.selection[0].exclusions.length).toEqual(0);
+		});
+
+
+		// ==========================================================================================
+
+
+		it("should replace existing selection when using 'add' false", function () {
+			var grid = resetGrid({
+				columns: [
+					{id: 'id', name: 'ID', field: 'id'},
+					{id: 'name', name: 'Name', field: 'name'}],
+				data: [{
+					id: 1,
+					data: {id: 1, name: 'one'}
+				}, {
+					id: 2,
+					data: {id: 2, name: 'two'}
+				}],
+				selectable: true
+			});
+
+			// Select a single row
+			grid.selectRows(0, 0);
+
+			// Ensure the row got selected
+			expect(grid.selection.length).toEqual(1);
+			expect(grid.selection[0].fromRow).toEqual(0);
+			expect(grid.selection[0].fromCell).toEqual(0);
+			expect(grid.selection[0].toRow).toEqual(0);
+			expect(grid.selection[0].toCell).toEqual(1);
+			expect(grid.selection[0].exclusions.length).toEqual(0);
+
+			// Select a different row
+			grid.selectRows(1, 1);
+
+			// Ensure the selection got replaced
+			expect(grid.selection.length).toEqual(1);
+			expect(grid.selection[0].fromRow).toEqual(1);
+			expect(grid.selection[0].fromCell).toEqual(0);
+			expect(grid.selection[0].toRow).toEqual(1);
+			expect(grid.selection[0].toCell).toEqual(1);
+			expect(grid.selection[0].exclusions.length).toEqual(0);
+		});
+
+
+		// ==========================================================================================
+
+
+		it("should add to existing selection when using 'add' true", function () {
+			var grid = resetGrid({
+				columns: [
+					{id: 'id', name: 'ID', field: 'id'},
+					{id: 'name', name: 'Name', field: 'name'}],
+				data: [{
+					id: 1,
+					data: {id: 1, name: 'one'}
+				}, {
+					id: 2,
+					data: {id: 2, name: 'two'}
+				}],
+				selectable: true
+			});
+
+			// Select a single row
+			grid.selectRows(0, 0);
+
+			// Ensure the row got selected
+			expect(grid.selection.length).toEqual(1);
+			expect(grid.selection[0].fromRow).toEqual(0);
+			expect(grid.selection[0].fromCell).toEqual(0);
+			expect(grid.selection[0].toRow).toEqual(0);
+			expect(grid.selection[0].toCell).toEqual(1);
+			expect(grid.selection[0].exclusions.length).toEqual(0);
+
+			// Select a different row as an addition
+			grid.selectRows(1, 1, true);
+
+			// Ensure the selection got added
+			expect(grid.selection.length).toEqual(2);
+			expect(grid.selection[0].fromRow).toEqual(0);
+			expect(grid.selection[0].fromCell).toEqual(0);
+			expect(grid.selection[0].toRow).toEqual(0);
+			expect(grid.selection[0].toCell).toEqual(1);
+			expect(grid.selection[0].exclusions.length).toEqual(0);
+			expect(grid.selection[1].fromRow).toEqual(1);
+			expect(grid.selection[1].fromCell).toEqual(0);
+			expect(grid.selection[1].toRow).toEqual(1);
+			expect(grid.selection[1].toCell).toEqual(1);
+			expect(grid.selection[1].exclusions.length).toEqual(0);
 		});
 	});
 

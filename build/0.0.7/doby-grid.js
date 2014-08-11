@@ -66,7 +66,6 @@
 			Aggregate,
 			applyColumnHeaderWidths,
 			applyColumnWidths,
-			applyHeaderAndColumnWidths,
 			asyncPostProcessRows,
 			autosizeColumns,
 			bindCellRangeSelect,
@@ -164,7 +163,6 @@
 			defaultEditor,
 			defaultFormatter,
 			deselectCells,
-			deselectRow,
 			disableSelection,
 			Dropdown,
 			enableAsyncPostRender = false,	// Does grid have any columns that require post-processing
@@ -173,8 +171,6 @@
 			executeSorter,
 			findFirstFocusableCell,
 			findLastFocusableCell,
-			fitColumnToHeader,
-			fitColumnsToHeader,
 			garbageBin,
 			generatePlaceholders,
 			getActiveCell,
@@ -189,7 +185,6 @@
 			getColumnById,
 			getColumnCssRules,
 			getColumnContentWidth,
-			getColumnHeaderWidth,
 			getColumnFromEvent,
 			getColspan,
 			getDataItemValueForColumn,
@@ -249,12 +244,9 @@
 			isColumnSelected,
 			lastRenderedScrollLeft = 0,
 			lastRenderedScrollTop = 0,
-			lockColumnWidths,
 			bindToCollection,
 			makeActiveCellEditable,
 			makeActiveCellNormal,
-			maxPageX,
-			minPageX,
 			measureCellPadding,
 			mergeGroupSorting,
 			n,				// number of pages
@@ -267,7 +259,6 @@
 			Placeholder,
 			postProcessFromRow = null,
 			postProcessToRow = null,
-			prepareLeeway,
 			prevScrollLeft = 0,
 			prevScrollTop = 0,
 			Range,
@@ -292,7 +283,6 @@
 			resetActiveCell,
 			resetAggregators,
 			resizeCanvas,
-			resizeColumn,
 			resizeContainer,
 			scrollCellIntoView,
 			scrollLeft = 0,
@@ -314,7 +304,6 @@
 			stickyIds = [],
 			stylesheet,
 			styleSortColumns,
-			submitColResize,
 			suspend = false,	// suspends the refresh recalculation
 			tabbingDirection = 1,
 			th,				// virtual height
@@ -429,7 +418,6 @@
 			editorType:				"selection",
 			emptyNotice:			true,
 			exportFileName:			"doby-grid-export",
-			fitColumnsToHeader:		false,
 			formatter:				null,
 			fullWidthRows:			true,
 			groupable:				true,
@@ -447,8 +435,7 @@
 			resizeCells:			false,
 			reorderable:			true,
 			rowHeight:				28,
-			rowSpacing:				0,
-			rowBasedSelection:		false,
+            rowSpacing:             0,
 			scrollbarPosition:		"right",
 			scrollLoader:			null,
 			selectable:				true,
@@ -540,8 +527,7 @@
 			// Create the grid
 			createGrid();
 
-			// Cell range selection is disabled when using row-based selection
-			if (self.options.selectable && !self.options.rowBasedSelection) bindCellRangeSelect();
+			if (self.options.selectable) bindCellRangeSelect();
 
 			return self;
 		};
@@ -752,9 +738,6 @@
 				cacheRows();
 				resizeCanvas(true);
 
-				// Fit column widths to header contents
-				if (self.options.fitColumnsToHeader) fitColumnsToHeader(true);
-
 				// If we're using remote data, start by fetching the data set length
 				if (this.fetcher) {
 					remoteCount(function () {
@@ -960,12 +943,6 @@
 				// The +1 here is to compensate for the border spacing between cells
 				x += c.width + 1;
 			}
-		};
-
-
-		applyHeaderAndColumnWidths = function () {
-			applyColumnHeaderWidths();
-			if (self.options.resizeCells) applyColumnWidths();
 		};
 
 
@@ -2610,7 +2587,7 @@
 						filteredItems = batchFilter(items);
 					}
 				} else {
-					// special case: if not filtering and not paging, the resulting
+					// special case:  if not filtering and not paging, the resulting
 					// rows collection needs to be a copy so that changes due to sort
 					// can be caught
 					filteredItems = items.concat();
@@ -3374,7 +3351,7 @@
 				sortAsc = ascending;
 				sortComparer = comparer;
 
-				if (ascending === false) {
+                if (ascending === false) {
 					this.items.reverse();
 				}
 
@@ -3627,7 +3604,7 @@
 			 * @method showInvalid
 			 * @memberof defaultEditor
 			 *
-			 * @param	{array}		results		- Results array from your validate() function
+			 * @param   {array}    results        - Results array from your validate() function
 			 */
 			this.showInvalid = function (results) {
 				var result;
@@ -3742,8 +3719,7 @@
 			// Nothing to deselect
 			if (!self.selection) return;
 
-			var rowProvided = row !== undefined && row !== null,
-				specific = rowProvided && cell !== undefined && cell !== null;
+			var specific = row !== undefined && row !== null && cell !== undefined && cell !== null;
 
 			// Go through the selection ranges and deselect as needed
 			for (var i = 0, l = self.selection.length; i < l; i++) {
@@ -3752,17 +3728,13 @@
 					if (self.selection[i].contains(row, cell)) {
 						self.selection[i].deselect(row, cell);
 					}
-				} else if (rowProvided) {
-					if (self.selection[i].contains(row)) {
-						self.selection[i].deselect(row);
-					}
 				} else {
 					self.selection[i].deselect();
 				}
 			}
 
 			// If deselecting everything - remove selection store
-			if (!specific && !rowProvided) self.selection = null;
+			if (!specific) self.selection = null;
 
 			// Did the user exclude all values of any ranges? If so - destroy that range.
 			if (self.selection) {
@@ -3778,24 +3750,6 @@
 				} else {
 					self.selection = cleanranges;
 				}
-			}
-		};
-
-
-		/**
-		 * Deselect all cells in the specified row
-		 * @method deselectRow
-		 * @memberof DobyGrid
-		 * @private
-		 *
-		 * @param	{integer}	rowIndex	- Row index for row to deselect
-		 *
-		 */
-		deselectRow = function (rowIndex) {
-			deselectCells(rowIndex);
-			var rowNode = cache.nodes[rowIndex] ? cache.nodes[rowIndex].rowNode : null;
-			if (rowNode) {
-				$(rowNode).addClass(self.options.selectedClass);
 			}
 		};
 
@@ -4313,7 +4267,7 @@
 				this.collection.filter = null;
 			} else {
 
-				// If this is a filter set - remember it
+				// If this is a filter set -  remember it
 				if ($.isArray(filter)) {
 					this.collection.filterset = filter;
 				}
@@ -4388,7 +4342,7 @@
 								break;
 							case '!~*':
 								test = value === null ? '' : value;
-								result = test.toString().toLowerCase().search(f[2].toString().toLowerCase()) === -1;
+								result = test.toString().toLowerCase().search(f[2].toString().toLowerCase())  === -1;
 								break;
 							default:
 								throw new Error('Unable to filter by "' + f[0] + '" because "' + f[1] + '" is not a valid operator.');
@@ -4464,63 +4418,6 @@
 				cell += getColspan(row, cell);
 			}
 			return lastFocusableCell;
-		};
-
-
-		// fitColumnToHeader()
-		// Adjusts the columns width and minWidth to according to the
-		// content found in it's header.
-		//
-		// @param	column	object	Column Object
-		//
-		fitColumnToHeader = function (column) {
-
-			if (!initialized) return;
-
-			var currentWidth = column.width,
-				column_index = cache.columnsById[column.id],
-				headerWidth,
-				newWidth,
-				columnRightPosition;
-
-			headerWidth = getColumnHeaderWidth(column_index);
-			newWidth = Math.max(column.width, headerWidth);
-
-			column.minWidth = Math.max(column.minWidth, headerWidth);
-
-			if (currentWidth == newWidth) return;
-
-			lockColumnWidths(column_index);
-
-			var diff = newWidth - currentWidth;
-
-			columnRightPosition = cache.columnPosRight[column_index];
-
-			prepareLeeway(column_index, columnRightPosition);
-
-			// This will ensure you can't resize beyond the maximum allowed width
-			var delta = Math.min(maxPageX, Math.max(minPageX, columnRightPosition + diff)) - columnRightPosition;
-
-			resizeColumn(column_index, delta);
-		};
-
-
-		// fitColumnsToHeader()
-		// Adjusts the width and minWidth of all columns according to the
-		// content of its header.
-		//
-		// @param	column	object	Column Object
-		//
-		fitColumnsToHeader = function (silent) {
-
-			if (!initialized) return;
-
-			for (var i = 0, l = cache.activeColumns.length; i < l; i++) {
-				fitColumnToHeader(cache.activeColumns[i]);
-			}
-
-			applyHeaderAndColumnWidths();
-			submitColResize(silent);
 		};
 
 
@@ -4945,7 +4842,7 @@
 
 		/**
 		 * Returns the width of the content in the given column. Used for auto resizing
-		 * columns to their content via double-click on the resize handle. Ignores Group rows.
+		 * columns to their content via double-click on the resize handle.  Ignores Group rows.
 		 * @method getColumnContentWidth
 		 * @memberof DobyGrid
 		 * @private
@@ -4957,9 +4854,22 @@
 		getColumnContentWidth = function (column_index) {
 			if (!self.options.showHeader) return;
 
-			var cellWidths = [];
+			var columnElements = $headers.children(),
+				$column = $(columnElements[column_index]),
+				currentWidth = $column.width(),
+				headerPadding = parseInt($column.css('paddingLeft'), 10) + parseInt($column.css('paddingRight'), 10),
+				cellWidths = [];
 
-			cellWidths.push(getColumnHeaderWidth(column_index));
+			// Determine the width of the column name text
+			var name = $column.children('.' + classcolumnname + ':first');
+			name.css('overflow', 'visible');
+			$column.width('auto');
+			// The extra 1 is needed here because text-overflow: ellipsis
+			// seems to kick in 1 pixel too early.
+			var headerWidth = $column.width() + headerPadding + 1;
+			name.css('overflow', '');
+			$column.width(currentWidth);
+			cellWidths.push(headerWidth);
 
 			// Loop through the visible row nodes
 			var rowcls = 'r' + column_index, $node;
@@ -4993,35 +4903,6 @@
 
 			// If new width is smaller than min width - use min width
 			return Math.max.apply(null, cellWidths);
-		};
-
-		// getColumnHeaderWidth()
-		// Returns the width of the content in the given column header.
-		//
-		// Ignores Group rows.
-		//
-		// @param	column_index	integer		Index of the column to calculate data for
-		//
-		// @return integer
-		getColumnHeaderWidth = function (column_index) {
-			if (!self.options.showHeader) return;
-
-			var columnElements = $headers.children(),
-				$column = $(columnElements[column_index]),
-				currentWidth = $column.width(),
-				headerPadding = parseInt($column.css('paddingLeft'), 10) + parseInt($column.css('paddingRight'), 10);
-
-			// Determine the width of the column name text
-			var name = $column.children('.' + classcolumnname + ':first');
-			name.css('overflow', 'visible');
-			$column.width('auto');
-			// The extra 1 is needed here because text-overflow: ellipsis
-			// seems to kick in 1 pixel too early.
-			var headerWidth = $column.width() + headerPadding + 1;
-			name.css('overflow', '');
-			$column.width(currentWidth);
-
-			return headerWidth;
 		};
 
 
@@ -5484,27 +5365,6 @@
 
 
 		/**
-		 * Returns the currently selected rows including the item data
-		 * @method getSelectedRows
-		 * @memberof DobyGrid
-		 *
-		 * @returns {array}
-		 */
-		this.getSelectedRows = function () {
-			var rows = [];
-			if (this.selection) {
-				for (var i = 0, l = this.selection.length; i < l; i++) {
-					var selectedRows = this.selection[i].toRows();
-					for (var ir in selectedRows) {
-						rows.push(selectedRows[ir]);
-					}
-				}
-			}
-			return rows;
-		};
-
-
-		/**
 		 * Retrieves a configuration object for the state of all user customizations for the grid.
 		 * This allows you to easily restore states between page reloads.
 		 * @method getState
@@ -5676,7 +5536,7 @@
 			}
 
 			if (isNaN(rowTop)) rowTop = null;
-			if (isNaN(rowBottom)) rowBottom = null;
+            if (isNaN(rowBottom)) rowBottom = null;
 
 			return {
 				top: rowTop,
@@ -6078,75 +5938,32 @@
 
 			// Set clicked cells to active
 			if (canCellBeActive(cell.row, cell.cell)) {
+				// If holding down "Shift" key and another cell is already active - use this to
+				// select a cell range.
+				if (self.options.shiftSelect && e.shiftKey && self.active) {
+					// Deselect anything we had selected before
+					deselectCells();
 
-				var shiftUsed = self.options.shiftSelect && e.shiftKey,
-					ctrlUsed = self.options.ctrlSelect && (e.ctrlKey || e.metaKey);
+					self.selectCells(self.active.row, self.active.cell, cell.row, cell.cell);
+				}
 
-				// When row-based selection is used - we need to handle clicks differently
-				if (self.options.rowBasedSelection) {
+				// Support for "Ctrl" / "Command" clicks
+				if (self.options.ctrlSelect && (e.ctrlKey || e.metaKey) && self.active) {
 
-					// Support for "Ctrl" / "Command" clicks
-					if (ctrlUsed && self.active) {
-						if (isCellSelected(cell.row)) {
-							deselectRow(cell.row);
-						} else {
-							// Don't select the new row if the shift key is pressed since
-							// it will be selected with the range
-							if (!(self.options.shiftSelect && e.shiftKey)) {
-								self.selectRows(cell.row, cell.row, true);
-							}
-						}
-					}
-
-					// If holding down "Shift" key and another cell is already active - use this to
-					// select a cell range.
-					if (shiftUsed && self.active) {
-						// Keep selection if ctrlKey is also pressed
-						if (!(ctrlUsed && self.active)) {
-							// Deselect anything we had selected before
-							deselectCells();
-						} else {
-							// If ctrlKey is pressed, deselect the activeRow
-							deselectRow(self.active.row);
-						}
-						self.selectRows(self.active.row, cell.row, true);
-					}
-
-					if (!(ctrlUsed || shiftUsed)) {
-						deselectCells();
-						self.selectRows(cell.row, cell.row, true);
-					}
-
-					clearTextSelection();
-
-				} else {
-					// If holding down "Shift" key and another cell is already active - use this to
-					// select a cell range.
-					if (shiftUsed && self.active) {
-						// Deselect anything we had selected before
-						deselectCells();
-
-						self.selectCells(self.active.row, self.active.cell, cell.row, cell.cell);
-					}
-
-					// Support for "Ctrl" / "Command" clicks
-					if (ctrlUsed && self.active) {
-
-						// Is the cell already selected? If so - deselect it
-						if (isCellSelected(cell.row, cell.cell)) {
-							deselectCells(cell.row, cell.cell);
-							return;
-						}
-
-						// Select the currently active cell
-						if (!self.selection) {
-							self.selectCells(self.active.row, self.active.cell, self.active.row, self.active.cell, true);
-						}
-
-						// Select the cell the user chose
-						self.selectCells(cell.row, cell.cell, cell.row, cell.cell, true);
+					// Is the cell already selected? If so - deselect it
+					if (isCellSelected(cell.row, cell.cell)) {
+						deselectCells(cell.row, cell.cell);
 						return;
 					}
+
+					// Select the currently active cell
+					if (!self.selection) {
+						self.selectCells(self.active.row, self.active.cell, self.active.row, self.active.cell, true);
+					}
+
+					// Select the cell the user chose
+					self.selectCells(cell.row, cell.cell, cell.row, cell.cell, true);
+					return;
 				}
 
 				scrollRowIntoView(cell.row, false);
@@ -6879,15 +6696,6 @@
 			}), 10);
 		};
 
-		lockColumnWidths = function () {
-			// Columns may have been changed since the last time this ran - refetch children
-			var columnElements = $headers.children('.' + classheadercolumn);
-
-			columnElements.each(function (i) {
-				// The extra 1 here is to compensate for the border separator
-				cache.activeColumns[i].previousWidth = cache.activeColumns[i].width;
-			});
-		};
 
 		/**
 		 * Makes the currently active cell editable
@@ -7196,56 +7004,6 @@
 		Placeholder.prototype.toString = function () { return "Placeholder"; };
 
 
-		prepareLeeway = function (i, pageX) {
-
-			var columnElements = $headers.children('.' + classheadercolumn);
-			var shrinkLeewayOnRight = null,
-				stretchLeewayOnRight = null,
-				j, c;
-
-			if (self.options.autoColumnWidth) {
-				shrinkLeewayOnRight = 0;
-				stretchLeewayOnRight = 0;
-				// colums on right affect maxPageX/minPageX
-				for (j = i + 1; j < columnElements.length; j++) {
-					c = cache.activeColumns[j];
-					if (!c.resizable) continue;
-					if (stretchLeewayOnRight !== null) {
-						if (c.maxWidth) {
-							stretchLeewayOnRight += c.maxWidth - c.previousWidth;
-						} else {
-							stretchLeewayOnRight = null;
-						}
-					}
-					shrinkLeewayOnRight += c.previousWidth - Math.max(c.minWidth || 0, absoluteColumnMinWidth);
-				}
-			}
-			var shrinkLeewayOnLeft = 0,
-				stretchLeewayOnLeft = 0;
-			for (j = 0; j <= i; j++) {
-				// columns on left only affect minPageX
-				c = cache.activeColumns[j];
-				if (!c.resizable) continue;
-				if (stretchLeewayOnLeft !== null) {
-					if (c.maxWidth) {
-						stretchLeewayOnLeft += c.maxWidth - c.previousWidth;
-					} else {
-						stretchLeewayOnLeft = null;
-					}
-				}
-				shrinkLeewayOnLeft += c.previousWidth - Math.max(c.minWidth || 0, absoluteColumnMinWidth);
-			}
-
-			if (shrinkLeewayOnRight === null) shrinkLeewayOnRight = 100000;
-			if (shrinkLeewayOnLeft === null) shrinkLeewayOnLeft = 100000;
-			if (stretchLeewayOnRight === null) stretchLeewayOnRight = 100000;
-			if (stretchLeewayOnLeft === null) stretchLeewayOnLeft = 100000;
-
-			maxPageX = pageX + Math.min(shrinkLeewayOnRight, stretchLeewayOnLeft);
-			minPageX = pageX - Math.min(shrinkLeewayOnLeft, stretchLeewayOnRight);
-		};
-
-
 		/**
 		 * @class Range
 		 * @classdesc A structure containing a range of cells.
@@ -7282,13 +7040,10 @@
 		 */
 		Range.prototype.contains = function (row, cell) {
 			return row >= this.fromRow &&
-				row <= this.toRow && (
-					cell === undefined || cell === null || (
-						cell >= this.fromCell &&
-						cell <= this.toCell &&
-						!this.isExcludedCell(row, cell)
-					)
-				);
+				row <= this.toRow &&
+				cell >= this.fromCell &&
+				cell <= this.toCell &&
+				!this.isExcludedCell(row, cell);
 		};
 
 
@@ -7311,13 +7066,7 @@
 			}
 
 			// If deselecting a specific cell -- add it to the exclusion list
-			if (specific) {
-				this.exclusions.push([row, cell]);
-			} else if (row !== undefined && row !== null) {
-				for (var c = 0, l = cache.activeColumns.length; c < l; c++) {
-					this.exclusions.push([row, c]);
-				}
-			}
+			if (specific) this.exclusions.push([row, cell]);
 
 			// Get rows we want to deselect items
 			var selectedRows = [];
@@ -7333,7 +7082,7 @@
 			var clear = {}, styles = {};
 
 			// If we have a specific cell to deselect, just do that one
-			if (cell !== undefined && cell !== null) {
+			if (cell !== undefined && cell !== undefined) {
 				clear[cache.activeColumns[cell].id] = self.options.selectedClass;
 			} else {
 				for (var ic = 0, lc = cache.activeColumns.length; ic < lc; ic++) {
@@ -8447,7 +8196,7 @@
 					cellNodesByColumnIdx: [],
 
 					// Column indices of cell nodes that have been rendered, but not yet indexed in
-					// cellNodesByColumnIdx. These are in the same order as cell nodes added at the
+					// cellNodesByColumnIdx.  These are in the same order as cell nodes added at the
 					// end of the row.
 					cellRenderQueue: []
 				};
@@ -8587,71 +8336,6 @@
 			lastRenderedScrollLeft = -1;
 
 			if (rerender) render();
-		};
-
-
-		resizeColumn = function (i, d) {
-			var actualMinWidth, x, j, c, l;
-			var columnElements = $headers.children('.' + classheadercolumn);
-			x = d;
-			if (d < 0) { // shrink column
-				for (j = i; j >= 0; j--) {
-					c = cache.activeColumns[j];
-					if (!c.resizable) continue;
-					actualMinWidth = Math.max(c.minWidth || 0, absoluteColumnMinWidth);
-					if (x && c.previousWidth + x < actualMinWidth) {
-						x += c.previousWidth - actualMinWidth;
-						c.width = actualMinWidth;
-					} else {
-						c.width = c.previousWidth + x;
-						x = 0;
-					}
-				}
-
-				if (self.options.autoColumnWidth) {
-					x = -d;
-					for (j = i + 1; j < columnElements.length; j++) {
-						c = cache.activeColumns[j];
-						if (!c.resizable) continue;
-						if (x && c.maxWidth && (c.maxWidth - c.previousWidth < x)) {
-							x -= c.maxWidth - c.previousWidth;
-							c.width = c.maxWidth;
-						} else {
-							c.width = c.previousWidth + x;
-							x = 0;
-						}
-					}
-				}
-			} else { // stretch column
-				for (j = i; j >= 0; j--) {
-					c = cache.activeColumns[j];
-					if (!c.resizable) continue;
-					if (x && c.maxWidth && (c.maxWidth - c.previousWidth < x)) {
-						x -= c.maxWidth - c.previousWidth;
-						c.width = c.maxWidth;
-					} else {
-						c.width = c.previousWidth + x;
-						x = 0;
-					}
-				}
-
-				if (self.options.autoColumnWidth) {
-					x = -d;
-					for (j = i + 1, l = columnElements.length; j < l; j++) {
-						c = cache.activeColumns[j];
-						if (!c.resizable) continue;
-						actualMinWidth = Math.max(c.minWidth || 0, absoluteColumnMinWidth);
-						if (x && c.previousWidth + x < actualMinWidth) {
-							x += c.previousWidth - actualMinWidth;
-
-							c.width = actualMinWidth;
-						} else {
-							c.width = c.previousWidth + x;
-							x = 0;
-						}
-					}
-				}
-			}
 		};
 
 
@@ -9035,31 +8719,6 @@
 			this.trigger('selection', this._event, {
 				selection: this.selection
 			});
-		};
-
-
-		/**
-		 * Select a range of rows
-		 * @method selectRows
-		 * @memberof DobyGrid
-		 *
-		 * @param	{integer}		fromRow			- Index of the first row to select
-		 * @param	{integer}		toRow			- Index of the last row to select
-		 * @param	{boolean}		add				- If true, will add selection as a new range
-		 *
-		 * @return {object}
-		 */
-		this.selectRows = function (fromRow, toRow, add) {
-			// Select all rows in one batch, so it can be saved as a single selection range
-			this.selectCells(fromRow, 0, toRow, cache.activeColumns.length - 1, add);
-
-			// Go through all selected rows to add the selected css class
-			for (var i = fromRow; i <= toRow; i++) {
-				var rowNode = cache.nodes[i] ? cache.nodes[i].rowNode : null;
-				if (rowNode) $(rowNode).addClass(this.options.selectedClass);
-			}
-
-			return this;
 		};
 
 
@@ -9507,7 +9166,7 @@
 			// If resizable columns are disabled -- return
 			if (!self.options.resizableColumns) return;
 
-			var pageX, columnElements, firstResizable, lastResizable;
+			var j, c, l, pageX, columnElements, minPageX, maxPageX, firstResizable, lastResizable;
 
 			columnElements = $headers.children("." + classheadercolumn);
 			var $handle = columnElements.find("." + classhandle);
@@ -9520,6 +9179,149 @@
 
 			// No resizable columns found
 			if (firstResizable === undefined) return;
+
+			var lockColumnWidths = function () {
+				// Columns may have been changed since the last time this ran - refetch children
+				columnElements = $headers.children('.' + classheadercolumn);
+
+				columnElements.each(function (i) {
+					// The extra 1 here is to compensate for the border separator
+					cache.activeColumns[i].previousWidth = cache.activeColumns[i].width;
+				});
+			};
+
+			var resizeColumn = function (i, d) {
+				var actualMinWidth, x;
+				x = d;
+				if (d < 0) { // shrink column
+					for (j = i; j >= 0; j--) {
+						c = cache.activeColumns[j];
+						if (!c.resizable) continue;
+						actualMinWidth = Math.max(c.minWidth || 0, absoluteColumnMinWidth);
+						if (x && c.previousWidth + x < actualMinWidth) {
+							x += c.previousWidth - actualMinWidth;
+							c.width = actualMinWidth;
+						} else {
+							c.width = c.previousWidth + x;
+							x = 0;
+						}
+					}
+
+					if (self.options.autoColumnWidth) {
+						x = -d;
+						for (j = i + 1; j < columnElements.length; j++) {
+							c = cache.activeColumns[j];
+							if (!c.resizable) continue;
+							if (x && c.maxWidth && (c.maxWidth - c.previousWidth < x)) {
+								x -= c.maxWidth - c.previousWidth;
+								c.width = c.maxWidth;
+							} else {
+								c.width = c.previousWidth + x;
+								x = 0;
+							}
+						}
+					}
+				} else { // stretch column
+					for (j = i; j >= 0; j--) {
+						c = cache.activeColumns[j];
+						if (!c.resizable) continue;
+						if (x && c.maxWidth && (c.maxWidth - c.previousWidth < x)) {
+							x -= c.maxWidth - c.previousWidth;
+							c.width = c.maxWidth;
+						} else {
+							c.width = c.previousWidth + x;
+							x = 0;
+						}
+					}
+
+					if (self.options.autoColumnWidth) {
+						x = -d;
+						for (j = i + 1, l = columnElements.length; j < l; j++) {
+							c = cache.activeColumns[j];
+							if (!c.resizable) continue;
+							actualMinWidth = Math.max(c.minWidth || 0, absoluteColumnMinWidth);
+							if (x && c.previousWidth + x < actualMinWidth) {
+								x += c.previousWidth - actualMinWidth;
+
+								c.width = actualMinWidth;
+							} else {
+								c.width = c.previousWidth + x;
+								x = 0;
+							}
+						}
+					}
+				}
+			};
+
+			var prepareLeeway = function (i, pageX) {
+				var shrinkLeewayOnRight = null,
+					stretchLeewayOnRight = null;
+
+				if (self.options.autoColumnWidth) {
+					shrinkLeewayOnRight = 0;
+					stretchLeewayOnRight = 0;
+					// colums on right affect maxPageX/minPageX
+					for (j = i + 1; j < columnElements.length; j++) {
+						c = cache.activeColumns[j];
+						if (!c.resizable) continue;
+						if (stretchLeewayOnRight !== null) {
+							if (c.maxWidth) {
+								stretchLeewayOnRight += c.maxWidth - c.previousWidth;
+							} else {
+								stretchLeewayOnRight = null;
+							}
+						}
+						shrinkLeewayOnRight += c.previousWidth - Math.max(c.minWidth || 0, absoluteColumnMinWidth);
+					}
+				}
+				var shrinkLeewayOnLeft = 0,
+					stretchLeewayOnLeft = 0;
+				for (j = 0; j <= i; j++) {
+					// columns on left only affect minPageX
+					c = cache.activeColumns[j];
+					if (!c.resizable) continue;
+					if (stretchLeewayOnLeft !== null) {
+						if (c.maxWidth) {
+							stretchLeewayOnLeft += c.maxWidth - c.previousWidth;
+						} else {
+							stretchLeewayOnLeft = null;
+						}
+					}
+					shrinkLeewayOnLeft += c.previousWidth - Math.max(c.minWidth || 0, absoluteColumnMinWidth);
+				}
+
+				if (shrinkLeewayOnRight === null) shrinkLeewayOnRight = 100000;
+				if (shrinkLeewayOnLeft === null) shrinkLeewayOnLeft = 100000;
+				if (stretchLeewayOnRight === null) stretchLeewayOnRight = 100000;
+				if (stretchLeewayOnLeft === null) stretchLeewayOnLeft = 100000;
+
+				maxPageX = pageX + Math.min(shrinkLeewayOnRight, stretchLeewayOnLeft);
+				minPageX = pageX - Math.min(shrinkLeewayOnLeft, stretchLeewayOnRight);
+			};
+
+			var applyColWidths = function () {
+				applyColumnHeaderWidths();
+				if (self.options.resizeCells) applyColumnWidths();
+			};
+
+			var submitColResize = function () {
+				var newWidth;
+				for (j = 0; j < columnElements.length; j++) {
+					c = cache.activeColumns[j];
+					newWidth = $(columnElements[j]).outerWidth();
+
+					if (c.previousWidth !== newWidth && c.rerenderOnResize) {
+						invalidateAllRows();
+					}
+				}
+
+				updateCanvasWidth(true);
+				render();
+				self.trigger('columnresize', self._event, {
+					columns: self.options.columns
+				});
+				self.trigger('statechange', self._event);
+			};
 
 			// Assign double-click to auto-resize event
 			// This is done once for the whole header because event assignments are expensive
@@ -9537,7 +9339,7 @@
 				// Do nothing if width isn't changed
 				if (currentWidth == newWidth) return;
 
-				var pageX = event.pageX;
+				pageX = event.pageX;
 
 				lockColumnWidths(column_index);
 
@@ -9551,7 +9353,7 @@
 				var delta = Math.min(maxPageX, Math.max(minPageX, pageX + diff)) - pageX;
 
 				resizeColumn(column_index, delta);
-				applyHeaderAndColumnWidths();
+				applyColWidths();
 				submitColResize();
 			});
 
@@ -9577,14 +9379,13 @@
 						prepareLeeway(i, pageX);
 					})
 					.on('drag', function (event) {
-
 						var delta = Math.min(maxPageX, Math.max(minPageX, event.pageX)) - pageX;
 
 						// Sets the new column widths
 						resizeColumn(i, delta);
 
 						// Save changes
-						applyHeaderAndColumnWidths();
+						applyColWidths();
 					})
 					.on('dragend', function () {
 						$(this).parent().removeClass(classheadercolumndrag);
@@ -10089,31 +9890,6 @@
 						.addClass(col.sortAsc ? classsortindicatorasc : classsortindicatordesc);
 				}
 			});
-		};
-
-
-		submitColResize = function (silent) {
-			var newWidth, j, c;
-			var columnElements = $headers.children('.' + classheadercolumn);
-			for (j = 0; j < columnElements.length; j++) {
-				c = cache.activeColumns[j];
-				newWidth = $(columnElements[j]).outerWidth();
-
-				if (c.previousWidth !== newWidth && c.rerenderOnResize) {
-					invalidateAllRows();
-				}
-			}
-
-			updateCanvasWidth(true);
-			render();
-
-			if (!silent) {
-				self.trigger('columnresize', self._event, {
-					columns: self.options.columns
-				});
-			}
-
-			self.trigger('statechange', self._event);
 		};
 
 
