@@ -2791,9 +2791,6 @@
 					items = filteredItems,
 					current_aggregator = null;
 
-				// Reset the aggregators each time the aggregators are processsed
-				resetAggregators();
-
 				// Loop through the data and process the aggregators
 				for (i = 0, l = items.length; i < l; i++) {
 					item = items[i];
