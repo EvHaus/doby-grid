@@ -8367,14 +8367,6 @@
 			}
 		};
 
-		/**
-		 * Resets the grids selection
-		 * @method resetSelection
-		 * @memberof DobyGrid
-		 */
-		this.resetSelection = function () {
-			deselectCells();
-		};
 
 		/**
 		 * Force the resize and re-draw of the grid (for when coming out of an invisible element)
