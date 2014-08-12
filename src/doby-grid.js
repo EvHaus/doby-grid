@@ -4467,13 +4467,13 @@
 		};
 
 
-		/** 
+		/**
 		* Adjusts the columns width and minWidth to according to the content found in it's header.
 		* @method fitColumnToHeader
 		* @memberof DobyGrid
 		* @private
 		*
-		* @param	{}	column		- Column object
+		* @param	{object}	column		- Column object
 		*/
 		fitColumnToHeader = function (column) {
 
@@ -4507,13 +4507,13 @@
 		};
 
 
-		/** 
+		/**
 		* Adjusts the width and minWidth of all columns according to the content of its header.
 		* @method fitColumnsToHeader
 		* @memberof DobyGrid
 		* @private
 		*
-		* @param	{}	silent		- Do not trigger columnresize event
+		* @param	{boolean}	silent		- Do not trigger columnresize event
 		*/
 		fitColumnsToHeader = function (silent) {
 
