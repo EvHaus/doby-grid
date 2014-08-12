@@ -9173,7 +9173,7 @@
 				resizeCanvas(true);
 				applyColumnWidths();
 				handleScroll();
-				self.options.fitColumnsToHeader && fitColumnsToHeader();
+				self.options.fitColumnsToHeader && fitColumnsToHeader(true);
 			}
 		};
 
