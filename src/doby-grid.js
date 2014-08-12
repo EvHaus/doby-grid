@@ -4467,12 +4467,14 @@
 		};
 
 
-		// fitColumnToHeader()
-		// Adjusts the columns width and minWidth to according to the
-		// content found in it's header.
-		//
-		// @param	column	object	Column Object
-		//
+		/** 
+		* Adjusts the columns width and minWidth to according to the content found in it's header.
+		* @method fitColumnToHeader
+		* @memberof DobyGrid
+		* @private
+		*
+		* @param	{}	column		- Column object
+		*/
 		fitColumnToHeader = function (column) {
 
 			if (!initialized) return;
@@ -4505,12 +4507,14 @@
 		};
 
 
-		// fitColumnsToHeader()
-		// Adjusts the width and minWidth of all columns according to the
-		// content of its header.
-		//
-		// @param	column	object	Column Object
-		//
+		/** 
+		* Adjusts the width and minWidth of all columns according to the content of its header.
+		* @method fitColumnsToHeader
+		* @memberof DobyGrid
+		* @private
+		*
+		* @param	{}	silent		- Do not trigger columnresize event
+		*/
 		fitColumnsToHeader = function (silent) {
 
 			if (!initialized) return;
