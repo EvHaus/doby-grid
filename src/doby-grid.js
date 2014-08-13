@@ -6416,10 +6416,12 @@
 		 * @method handleWindowResize
 		 * @memberof DobyGrid
 		 * @private
+		 *
+		 * @param {object} evt - Javascript event object
 		 */
-		handleWindowResize = function () {
+		handleWindowResize = function (evt) {
 			// Only if the object is visible
-			if (!self.$el.is(':visible')) return;
+			if (evt.target !== window || !self.$el.is(':visible')) return;
 			self.resize();
 		};
 
