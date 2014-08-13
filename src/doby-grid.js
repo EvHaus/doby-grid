@@ -2786,6 +2786,7 @@
 					column_id, aggreg_idx,
 					items = filteredItems;
 
+
 				// Loop through the data and process the aggregators
 				for (i = 0, l = items.length; i < l; i++) {
 					item = items[i];
@@ -10140,6 +10141,9 @@
 							invalidateRows([ci]);
 						}
 					}
+
+					// Reset the aggregators each time the aggregators are processsed
+					resetAggregators();
 
 					// Re-process aggregators and re-render rows
 					self.collection.refresh();
