@@ -6355,7 +6355,7 @@
 			console.log(self.selection);
 
 			switch (event.which) {
-				// Down arrow
+			// Down arrow
 			case 40 :
 				handled = handleNavigateKey(function () {
 					navigate("down");
