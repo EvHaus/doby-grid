@@ -329,6 +329,7 @@
 		/**
 		 * @class NonDataItem
 		 * @classdesc A base class that all special / non-data rows (like Group) derive from.
+		 *
 		 * @param	{object}	data		- Data object for this item
 		 */
 		var NonDataItem = function (data) {
