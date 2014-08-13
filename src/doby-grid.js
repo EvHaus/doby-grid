@@ -2596,8 +2596,6 @@
 					filteredItems = items.concat();
 				}
 
-				filteredItems;
-
 				return {
 					totalRows: filteredItems.length,
 					rows: filteredItems
