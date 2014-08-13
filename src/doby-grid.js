@@ -225,6 +225,8 @@
 			handleHeaderContextMenu,
 			handleHeaderClick,
 			handleKeyDown,
+			handleKeyDownRowBased,
+			handleNavigateKey,
 			handleScroll,
 			handleWindowResize,
 			hasGrouping,
@@ -327,7 +329,6 @@
 		/**
 		 * @class NonDataItem
 		 * @classdesc A base class that all special / non-data rows (like Group) derive from.
-		 *
 		 * @param	{object}	data		- Data object for this item
 		 */
 		var NonDataItem = function (data) {
@@ -442,6 +443,7 @@
 			scrollLoader:			null,
 			selectable:				true,
 			selectedClass:			"selected",
+			selectOnNavigate:		false,
 			shiftSelect:			true,
 			showHeader:				true,
 			stickyFocus:			false,
@@ -791,7 +793,7 @@
 				$(document.body).on("click contextmenu", handleBodyClick);
 
 				$canvas
-					.on("keydown", handleKeyDown)
+					.on("keydown", self.options.rowBasedSelection ? handleKeyDownRowBased : handleKeyDown)
 					.on("click", handleClick)
 					.on("dblclick", handleDblClick)
 					.on("contextmenu", handleContextMenu);
@@ -6302,6 +6304,172 @@
 				// throws access denied exception for "Ctrl" (hitting control key only,
 				// nothing else), "Shift" (maybe others)
 				catch (error) {}
+			}
+		};
+
+
+		/**
+		 * Handle the keydown events for the row based selection model.
+		 * @method handleKeyDownRowBased
+		 * @memberof DobyGrid
+		 *
+		 * @param	{object}	event		- Javascript event object
+		*/
+		// TODO: Maybe code duplication between this method and handleKeyDown can further be reduced
+		handleKeyDownRowBased = function (event) {
+
+			if (self.active) {
+				self.trigger('keydown', event, {
+					row: self.active.row,
+					cell: self.active.cell
+				});
+			}
+
+			var handled = event.isImmediatePropagationStopped(),
+				shiftUsed = event.shiftKey;
+
+			var newestRange = self.selection && self.selection[self.selection.length - 1];
+
+			var reselectRow = function (up) {
+				if (! self.options.selectOnNavigate) return;
+				var row = self.active.row;
+				deselectCells();
+				if (shiftUsed && newestRange) {
+					if (row < newestRange.fromRow) {
+						self.selectRows(row, newestRange.toRow, true);
+					} else if (row > newestRange.toRow) {
+						self.selectRows(newestRange.fromRow, row, true);
+					} else {
+						if (up) {
+							self.selectRows(newestRange.fromRow, row, true);
+						} else {
+							self.selectRows(row, newestRange.toRow, true);
+						}
+					}
+				} else {
+					self.selectRows(row, row, true);
+				}
+			};
+
+			this._event = event;
+			console.log(self.selection);
+
+			switch (event.which) {
+				// Down arrow
+			case 40 :
+				handled = handleNavigateKey(function () {
+					navigate("down");
+					reselectRow();
+					return true;
+				});
+				break;
+			// Up Arrow
+			case 38 :
+				handled = handleNavigateKey(function () {
+					navigate("up");
+					reselectRow(true);
+					return true;
+				});
+				break;
+			// TAB
+			case 9 :
+				handled = handleNavigateKey(function () {
+					if (shiftUsed) {
+						shiftUsed = false;
+						navigate("up");
+						reselectRow(true);
+					} else {
+						navigate("down");
+						reselectRow();
+					}
+					return true;
+				});
+				break;
+			// Left arrow
+			case 37 :
+				handled = handleNavigateKey(function () {
+					return navigate("left");
+				});
+				break;
+			// Right Arrow
+			case 39 :
+				handled = handleNavigateKey(function () {
+					return navigate("right");
+				});
+				break;
+			// Page Down
+			case 34 :
+				scrollPage(1);
+				handled = true;
+				break;
+			// Page Up
+			case 33 :
+				scrollPage(-1);
+				handled = true;
+				break;
+			// Home
+			case 36 :
+				self.scrollToRow(0);
+				handled = true;
+				break;
+			// END
+			case 35 :
+				self.scrollToRow(self.collection.items.length - 1);
+				handled = true;
+				break;
+			// ESC
+			case 27 :
+				if (self.options.editable && self.currentEditor) {
+					self.currentEditor.cancel();
+					makeActiveCellNormal();
+
+					// Return focus back to the canvas
+					$canvas.focus();
+					handled = true;
+				} else if (self.selection) {
+					// If something is selected remove the selection range
+					deselectCells();
+				} else if (self.active) {
+					// If something is active - remove the active state
+					self.activate();
+				}
+				break;
+			}
+
+			this._event = null;
+
+			if (handled) {
+				// the event has been handled so don't let parent element
+				// (bubbling/propagation) or browser (default) handle it
+				event.stopPropagation();
+				event.preventDefault();
+
+				try {
+					// prevent default behaviour for special keys in IE browsers (F3, F5, etc.)
+					event.originalEvent.which = 0;
+				}
+				// ignore exceptions - setting the original event's keycode
+				// throws access denied exception for "Ctrl" (hitting control key only,
+				// nothing else), "Shift" (maybe others)
+				catch (error) {}
+			}
+		};
+
+		/**
+		* Helper function to handle events which involve cell navigation
+		* @method handleNavigateKey
+		* @memberof DobyGrid
+		*
+		* @param {function} callback	- function to execute when edit has been commited
+		*/
+		// TODO this function can also reduce code duplication in handleKeyDown function
+		handleNavigateKey = function (callback) {
+			if (self.options.editable && self.currentEditor) {
+				return commitCurrentEdit(function (result) {
+					if (result) callback();
+				});
+			} else {
+				return callback();
 			}
 		};
 
