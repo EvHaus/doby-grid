@@ -2599,8 +2599,6 @@
 					filteredItems = items.concat();
 				}
 
-				filteredItems;
-
 				return {
 					totalRows: filteredItems.length,
 					rows: filteredItems
@@ -5995,6 +5993,8 @@
 				// When row-based selection is used - we need to handle clicks differently
 				if (self.options.rowBasedSelection) {
 
+					var newestRange = self.selection && self.selection[self.selection.length - 1];
+
 					// Support for "Ctrl" / "Command" clicks
 					if (ctrlUsed && self.active) {
 						if (isCellSelected(cell.row)) {
@@ -6002,7 +6002,7 @@
 						} else {
 							// Don't select the new row if the shift key is pressed since
 							// it will be selected with the range
-							if (!(self.options.shiftSelect && e.shiftKey)) {
+							if (!(shiftUsed)) {
 								self.selectRows(cell.row, cell.row, true);
 							}
 						}
@@ -6011,15 +6011,38 @@
 					// If holding down "Shift" key and another cell is already active - use this to
 					// select a cell range.
 					if (shiftUsed && self.active) {
+						deselectRow(self.active.row);
+
 						// Keep selection if ctrlKey is also pressed
-						if (!(ctrlUsed && self.active)) {
-							// Deselect anything we had selected before
-							deselectCells();
-						} else {
+						if (ctrlUsed) {
 							// If ctrlKey is pressed, deselect the activeRow
-							deselectRow(self.active.row);
+							self.selectRows(self.active.row, cell.row, true);
+						} else {
+							if (newestRange) {
+								// Deselect everything so we can work with one single range
+								deselectCells();
+
+								var up = (self.active.row == newestRange.fromRow),
+									targetRow = up ? newestRange.toRow : newestRange.fromRow;
+
+								if (cell.row < newestRange.fromRow) {
+									// new cell is above the range
+									self.selectRows(cell.row, targetRow, true);
+								} else if (cell.row > newestRange.toRow) {
+									// new cell is below the range
+									self.selectRows(targetRow, cell.row, true);
+								} else {
+									// new cell is within the range
+									if (up) {
+										self.selectRows(cell.row, targetRow, true);
+									} else {
+										self.selectRows(targetRow, cell.row, true);
+									}
+								}
+							} else {
+								self.selectRows(self.active.row, cell.row, true);
+							}
 						}
-						self.selectRows(self.active.row, cell.row, true);
 					}
 
 					if (!(ctrlUsed || shiftUsed)) {
@@ -6585,10 +6608,12 @@
 		 * @method handleWindowResize
 		 * @memberof DobyGrid
 		 * @private
+		 *
+		 * @param {object} evt - Javascript event object
 		 */
-		handleWindowResize = function () {
+		handleWindowResize = function (evt) {
 			// Only if the object is visible
-			if (!self.$el.is(':visible')) return;
+			if (evt.target !== window || !self.$el.is(':visible')) return;
 			self.resize();
 		};
 
@@ -7305,7 +7330,7 @@
 						cell <= this.toCell &&
 						!this.isExcludedCell(row, cell)
 					)
-				);
+				) && !this.isExcludedRow(row);
 		};
 
 
@@ -7439,6 +7464,22 @@
 			}
 		};
 
+		/**
+		 * Returns whether a row is excluded from this range
+		 * @method isExcludedRow
+		 * @memberof Range
+		 *
+		 * @param	{integer}	row			- Row index for row to check
+		 */
+		Range.prototype.isExcludedRow = function (row) {
+			if (this.exclusions.length === 0) return false;
+			var excludedColumns = [];
+			for (var i = 0, l = this.exclusions.length; i < l; i++) {
+				if (this.exclusions[i][0] !== row) continue;
+				excludedColumns.push(this.exclusions[i]);
+			}
+			return (excludedColumns.length == cache.activeColumns.length);
+		};
 
 		/*
 		 * Returns whether a range represents a single cell
@@ -7527,7 +7568,7 @@
 		Range.prototype.toRows = function () {
 			var result = [];
 			for (var i = this.fromRow; i <= this.toRow; i++) {
-				result.push(cache.rows[i]);
+				if (!this.isExcludedRow(i)) result.push(cache.rows[i]);
 			}
 			return result;
 		};
@@ -10309,6 +10350,9 @@
 							invalidateRows([ci]);
 						}
 					}
+
+					// Reset the aggregators each time the aggregators are processsed
+					resetAggregators();
 
 					// Re-process aggregators and re-render rows
 					self.collection.refresh();
