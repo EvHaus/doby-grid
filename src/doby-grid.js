@@ -2786,7 +2786,6 @@
 					column_id, aggreg_idx,
 					items = filteredItems;
 
-
 				// Loop through the data and process the aggregators
 				for (i = 0, l = items.length; i < l; i++) {
 					item = items[i];
@@ -6010,14 +6009,16 @@
 					// select a cell range.
 					if (shiftUsed && self.active) {
 						deselectRow(self.active.row);
+
 						// Keep selection if ctrlKey is also pressed
 						if (ctrlUsed) {
 							// If ctrlKey is pressed, deselect the activeRow
 							self.selectRows(self.active.row, cell.row, true);
 						} else {
 							if (newestRange) {
-								// deselect everything so we can work with one single range
+								// Deselect everything so we can work with one single range
 								deselectCells();
+
 								var up = (self.active.row == newestRange.fromRow),
 									targetRow = up ? newestRange.toRow : newestRange.fromRow;
 
