@@ -6376,7 +6376,6 @@
 			};
 
 			this._event = event;
-			console.log(self.selection);
 
 			switch (event.which) {
 			// Down arrow
