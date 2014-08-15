@@ -9305,6 +9305,11 @@
 				}
 			}
 
+			// If toggling minColumnWidth options, need to refit column minwidths
+			if (options.minColumnWidth && options.minColumnWidth === "headerContent" && self.options.minColumnWidth !== options.minColumnWidth) {
+				fitColumnsToHeader();
+			}
+
 			// If changing row height, need to recalculate positions
 			var recalc_heights = options.rowHeight != self.options.rowHeight;
 
