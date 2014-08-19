@@ -7455,6 +7455,10 @@
 		 * @private
 		 */
 		remoteAllLoaded = function () {
+			
+			// If the pagination style is infinite we won't ever load all items
+			if (self.options.paginationStyle === "infinite") return false;
+
 			// Do we have any placeholders?
 			for (var i = 0, l = self.collection.items.length; i < l; i++) {
 				if (self.collection.items[i].__placeholder) {
