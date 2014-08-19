@@ -7455,7 +7455,7 @@
 		 * @private
 		 */
 		remoteAllLoaded = function () {
-			
+
 			// If the pagination style is infinite we won't ever load all items
 			if (self.options.paginationStyle === "infinite") return false;
 
