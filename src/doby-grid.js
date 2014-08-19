@@ -4115,7 +4115,7 @@
 
 				// When using infinite pagination style, no placeholders are needed
 				if (self.options.paginationStyle === "infinite") {
-					self.options.data.reset([], {silent: true});
+					self.options.data.reset([]);
 				} else {
 					// Refill the collection with placeholders
 					generatePlaceholders();
