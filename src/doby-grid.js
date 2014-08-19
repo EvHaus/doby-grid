@@ -4113,8 +4113,13 @@
 				// the grid correctly refetches the full page of results.
 				self.collection.length = self.collection.remote_length;
 
-				// Refill the collection with placeholders
-				generatePlaceholders();
+				// When using infinite pagination style, no placeholders are needed
+				if (self.options.paginationStyle === "infinite") {
+					self.options.data.reset([], {silent: true});
+				} else {
+					// Refill the collection with placeholders
+					generatePlaceholders();
+				}
 
 				// Refresh the grid to recalculate the cache for placeholder rows
 				self.collection.refresh();
