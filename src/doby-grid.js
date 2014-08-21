@@ -9668,7 +9668,6 @@
 						prepareLeeway(i, pageX);
 					})
 					.on('drag', function (event) {
-
 						var delta = Math.min(maxPageX, Math.max(minPageX, event.pageX)) - pageX;
 
 						// Sets the new column widths
@@ -9678,7 +9677,14 @@
 						applyHeaderAndColumnWidths();
 					})
 					.on('dragend', function () {
-						$(this).parent().removeClass(classheadercolumndrag);
+
+						// This timeout is a hacky solution to prevent the 'click' event for
+						// column sorting from firing when resizing the handle on top of the
+						// header cell. FIXME: There's got to be a better way!
+						setTimeout(function () {
+							$(this).parent().removeClass(classheadercolumndrag);
+						}.bind(this), 1);
+
 						submitColResize();
 					});
 			});
@@ -9698,8 +9704,8 @@
 				self._event = e;
 
 				// If clicking on drag handle - stop
-				var handle = $(e.target).closest("." + classhandle);
-				if (handle.length) return;
+				var preventClick = $(e.target).closest("." + classhandle).length || $(e.target).hasClass(classheadercolumndrag);
+				if (preventClick) return;
 
 				var column = getColumnFromEvent(e);
 				if (!column || !column.sortable) return;
