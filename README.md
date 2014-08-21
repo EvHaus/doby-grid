@@ -1,3 +1,4 @@
+[![Stories in Ready](https://badge.waffle.io/globexdesigns/doby-grid.png?label=ready&title=Ready)](https://waffle.io/globexdesigns/doby-grid)
 Doby Grid [![Build Status](https://travis-ci.org/globexdesigns/doby-grid.png)](https://travis-ci.org/globexdesigns/doby-grid)
 =========
 
