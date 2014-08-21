@@ -66,6 +66,7 @@
 			Aggregate,
 			applyColumnHeaderWidths,
 			applyColumnWidths,
+			applyHeaderAndColumnWidths,
 			asyncPostProcessRows,
 			autosizeColumns,
 			bindCellRangeSelect,
@@ -172,6 +173,8 @@
 			executeSorter,
 			findFirstFocusableCell,
 			findLastFocusableCell,
+			fitColumnToHeader,
+			fitColumnsToHeader,
 			garbageBin,
 			generatePlaceholders,
 			getActiveCell,
@@ -186,6 +189,7 @@
 			getColumnById,
 			getColumnCssRules,
 			getColumnContentWidth,
+			getColumnHeaderWidth,
 			getColumnFromEvent,
 			getColspan,
 			getDataItemValueForColumn,
@@ -245,9 +249,12 @@
 			isColumnSelected,
 			lastRenderedScrollLeft = 0,
 			lastRenderedScrollTop = 0,
+			lockColumnWidths,
 			bindToCollection,
 			makeActiveCellEditable,
 			makeActiveCellNormal,
+			maxPageX,
+			minPageX,
 			measureCellPadding,
 			mergeGroupSorting,
 			n,				// number of pages
@@ -260,6 +267,7 @@
 			Placeholder,
 			postProcessFromRow = null,
 			postProcessToRow = null,
+			prepareLeeway,
 			prevScrollLeft = 0,
 			prevScrollTop = 0,
 			Range,
@@ -284,6 +292,7 @@
 			resetActiveCell,
 			resetAggregators,
 			resizeCanvas,
+			resizeColumn,
 			resizeContainer,
 			scrollCellIntoView,
 			scrollLeft = 0,
@@ -305,6 +314,7 @@
 			stickyIds = [],
 			stylesheet,
 			styleSortColumns,
+			submitColResize,
 			suspend = false,	// suspends the refresh recalculation
 			tabbingDirection = 1,
 			th,				// virtual height
@@ -428,6 +438,7 @@
 			lineHeightOffset:		-1,
 			nestedAggregators:		true,
 			menuExtensions:			null,
+			minColumnWidth:			"",
 			multiColumnSort:		true,
 			quickFilter:			false,
 			remoteScrollTime:		200,
@@ -741,6 +752,9 @@
 				cacheRows();
 				resizeCanvas(true);
 
+				// Fit column widths to header contents
+				if (self.options.minColumnWidth === "headerContent") fitColumnsToHeader(true);
+
 				// If we're using remote data, start by fetching the data set length
 				if (this.fetcher) {
 					remoteCount(function () {
@@ -946,6 +960,17 @@
 				// The +1 here is to compensate for the border spacing between cells
 				x += c.width + 1;
 			}
+		};
+
+		/**
+		* Sets the widths of column headers and columns to what they should be
+		* @method applyHeaderAndColumnWidths
+		* @memberof DobyGrid
+		* @private
+		*/
+		applyHeaderAndColumnWidths = function () {
+			applyColumnHeaderWidths();
+			if (self.options.resizeCells) applyColumnWidths();
 		};
 
 
@@ -4446,6 +4471,65 @@
 
 
 		/**
+		* Adjusts the columns width and minWidth to according to the content found in it's header.
+		* @method fitColumnToHeader
+		* @memberof DobyGrid
+		* @private
+		*
+		* @param	{object}	column		- Column object
+		*/
+		fitColumnToHeader = function (column) {
+
+			if (!initialized) return;
+
+			var currentWidth = column.width,
+				column_index = cache.columnsById[column.id],
+				headerWidth = getColumnHeaderWidth(column_index),
+				newWidth = Math.max(column.width, headerWidth),
+				newMinWidth = Math.max(column.initMinWidth, headerWidth),
+				columnRightPosition;
+
+			column.minWidth = newMinWidth;
+
+			if (currentWidth == newWidth) return;
+
+			lockColumnWidths(column_index);
+
+			var diff = newWidth - currentWidth;
+
+			columnRightPosition = cache.columnPosRight[column_index];
+
+			prepareLeeway(column_index, columnRightPosition);
+
+			// This will ensure you can't resize beyond the maximum allowed width
+			var delta = Math.min(maxPageX, Math.max(minPageX, columnRightPosition + diff)) - columnRightPosition;
+
+			resizeColumn(column_index, delta);
+		};
+
+
+		/**
+		* Adjusts the width and minWidth of all columns according to the content of its header.
+		* @method fitColumnsToHeader
+		* @memberof DobyGrid
+		* @private
+		*
+		* @param	{boolean}	silent		- Do not trigger columnresize event
+		*/
+		fitColumnsToHeader = function (silent) {
+
+			if (!initialized) return;
+
+			for (var i = 0, l = cache.activeColumns.length; i < l; i++) {
+				fitColumnToHeader(cache.activeColumns[i]);
+			}
+
+			applyHeaderAndColumnWidths();
+			submitColResize(silent);
+		};
+
+
+		/**
 		 * Replaces the entire collection with Placeholder objects
 		 * @method generatePlaceholders
 		 * @memberof DobyGrid
@@ -4878,22 +4962,10 @@
 		getColumnContentWidth = function (column_index) {
 			if (!self.options.showHeader) return;
 
-			var columnElements = $headers.children(),
-				$column = $(columnElements[column_index]),
-				currentWidth = $column.width(),
-				headerPadding = parseInt($column.css('paddingLeft'), 10) + parseInt($column.css('paddingRight'), 10),
-				cellWidths = [];
+			var cellWidths = [];
 
 			// Determine the width of the column name text
-			var name = $column.children('.' + classcolumnname + ':first');
-			name.css('overflow', 'visible');
-			$column.width('auto');
-			// The extra 1 is needed here because text-overflow: ellipsis
-			// seems to kick in 1 pixel too early.
-			var headerWidth = $column.width() + headerPadding + 1;
-			name.css('overflow', '');
-			$column.width(currentWidth);
-			cellWidths.push(headerWidth);
+			cellWidths.push(getColumnHeaderWidth(column_index));
 
 			// Loop through the visible row nodes
 			var rowcls = 'r' + column_index, $node;
@@ -4927,6 +4999,44 @@
 
 			// If new width is smaller than min width - use min width
 			return Math.max.apply(null, cellWidths);
+		};
+
+		/**
+		 * Returns the width of the content in the given column header. Ignores Group rows.
+		 * @method getColumnHeaderWidth
+		 * @memberof DobyGrid
+		 * @private
+		 *
+		 * @param	{integer}	column_index		- Index of the column to calculate data for
+		 *
+		 * @returns {integer}	headerWidth			- The With of the columns header
+		 */
+		getColumnHeaderWidth = function (column_index) {
+			if (!self.options.showHeader) return;
+
+			var columnElements = $headers.children(),
+				column = cache.activeColumns[column_index],
+				$column = $(columnElements[column_index]),
+				currentWidth = $column.width(),
+				headerPadding = parseInt($column.css('paddingLeft'), 10) + parseInt($column.css('paddingRight'), 10);
+
+			// Determine the width of the column name text
+			var name = $column.children('.' + classcolumnname + ':first');
+			name.css('overflow', 'visible');
+			$column.width('auto');
+			// The extra 1 is needed here because text-overflow: ellipsis
+			// seems to kick in 1 pixel too early.
+			var headerWidth = $column.width() + headerPadding + 1;
+
+			if (hasSorting(column.id)) {
+				var $indicator = $column.find("." + classsortindicator);
+				headerWidth += $indicator.width();
+			}
+
+			name.css('overflow', '');
+			$column.width(currentWidth);
+
+			return headerWidth;
 		};
 
 
@@ -6811,6 +6921,21 @@
 			}), 10);
 		};
 
+		/**
+		 * Remembers the current width of each column header in the .previousWidth property
+		 * @method lockColumnWidths
+		 * @memberof DobyGrid
+		 * @private
+		 */
+		lockColumnWidths = function () {
+			// Columns may have been changed since the last time this ran - refetch children
+			var columnElements = $headers.children('.' + classheadercolumn);
+
+			columnElements.each(function (i) {
+				// The extra 1 here is to compensate for the border separator
+				cache.activeColumns[i].previousWidth = cache.activeColumns[i].width;
+			});
+		};
 
 		/**
 		 * Makes the currently active cell editable
@@ -7117,6 +7242,64 @@
 		Placeholder.prototype = new NonDataItem();
 		Placeholder.prototype.__placeholder = true;
 		Placeholder.prototype.toString = function () { return "Placeholder"; };
+
+		/**
+		 * Handles the width leeway for the column headers
+		 * @method prepareLeeway
+		 * @memberof DobyGrid
+		 * @private
+		 *
+		 * @param	{integer}	i		- The columns index
+		 * @param   {integer}	pageX	- The x coordinate of the right edge of the column
+		 */
+		prepareLeeway = function (i, pageX) {
+
+			var columnElements = $headers.children('.' + classheadercolumn);
+			var shrinkLeewayOnRight = null,
+				stretchLeewayOnRight = null,
+				j, c;
+
+			if (self.options.autoColumnWidth) {
+				shrinkLeewayOnRight = 0;
+				stretchLeewayOnRight = 0;
+				// colums on right affect maxPageX/minPageX
+				for (j = i + 1; j < columnElements.length; j++) {
+					c = cache.activeColumns[j];
+					if (!c.resizable) continue;
+					if (stretchLeewayOnRight !== null) {
+						if (c.maxWidth) {
+							stretchLeewayOnRight += c.maxWidth - c.previousWidth;
+						} else {
+							stretchLeewayOnRight = null;
+						}
+					}
+					shrinkLeewayOnRight += c.previousWidth - Math.max(c.minWidth || 0, absoluteColumnMinWidth);
+				}
+			}
+			var shrinkLeewayOnLeft = 0,
+				stretchLeewayOnLeft = 0;
+			for (j = 0; j <= i; j++) {
+				// columns on left only affect minPageX
+				c = cache.activeColumns[j];
+				if (!c.resizable) continue;
+				if (stretchLeewayOnLeft !== null) {
+					if (c.maxWidth) {
+						stretchLeewayOnLeft += c.maxWidth - c.previousWidth;
+					} else {
+						stretchLeewayOnLeft = null;
+					}
+				}
+				shrinkLeewayOnLeft += c.previousWidth - Math.max(c.minWidth || 0, absoluteColumnMinWidth);
+			}
+
+			if (shrinkLeewayOnRight === null) shrinkLeewayOnRight = 100000;
+			if (shrinkLeewayOnLeft === null) shrinkLeewayOnLeft = 100000;
+			if (stretchLeewayOnRight === null) stretchLeewayOnRight = 100000;
+			if (stretchLeewayOnLeft === null) stretchLeewayOnLeft = 100000;
+
+			maxPageX = pageX + Math.min(shrinkLeewayOnRight, stretchLeewayOnLeft);
+			minPageX = pageX - Math.min(shrinkLeewayOnLeft, stretchLeewayOnRight);
+		};
 
 
 		/**
@@ -8480,6 +8663,80 @@
 
 
 		/**
+		 * Given a column's index and width delta, changes the width of the column
+		 * @method resizeColumn
+		 * @memberof DobyGrid
+		 * @private
+		 *
+		 * @param	{integer}	i		- The columns index
+		 * @param   {integer}	d		- The delta by which to change the column width
+		 */
+		resizeColumn = function (i, d) {
+			var actualMinWidth, x, j, c, l;
+			var columnElements = $headers.children('.' + classheadercolumn);
+			x = d;
+			if (d < 0) { // shrink column
+				for (j = i; j >= 0; j--) {
+					c = cache.activeColumns[j];
+					if (!c.resizable) continue;
+					actualMinWidth = Math.max(c.minWidth || 0, absoluteColumnMinWidth);
+					if (x && c.previousWidth + x < actualMinWidth) {
+						x += c.previousWidth - actualMinWidth;
+						c.width = actualMinWidth;
+					} else {
+						c.width = c.previousWidth + x;
+						x = 0;
+					}
+				}
+
+				if (self.options.autoColumnWidth) {
+					x = -d;
+					for (j = i + 1; j < columnElements.length; j++) {
+						c = cache.activeColumns[j];
+						if (!c.resizable) continue;
+						if (x && c.maxWidth && (c.maxWidth - c.previousWidth < x)) {
+							x -= c.maxWidth - c.previousWidth;
+							c.width = c.maxWidth;
+						} else {
+							c.width = c.previousWidth + x;
+							x = 0;
+						}
+					}
+				}
+			} else { // stretch column
+				for (j = i; j >= 0; j--) {
+					c = cache.activeColumns[j];
+					if (!c.resizable) continue;
+					if (x && c.maxWidth && (c.maxWidth - c.previousWidth < x)) {
+						x -= c.maxWidth - c.previousWidth;
+						c.width = c.maxWidth;
+					} else {
+						c.width = c.previousWidth + x;
+						x = 0;
+					}
+				}
+
+				if (self.options.autoColumnWidth) {
+					x = -d;
+					for (j = i + 1, l = columnElements.length; j < l; j++) {
+						c = cache.activeColumns[j];
+						if (!c.resizable) continue;
+						actualMinWidth = Math.max(c.minWidth || 0, absoluteColumnMinWidth);
+						if (x && c.previousWidth + x < actualMinWidth) {
+							x += c.previousWidth - actualMinWidth;
+
+							c.width = actualMinWidth;
+						} else {
+							c.width = c.previousWidth + x;
+							x = 0;
+						}
+					}
+				}
+			}
+		};
+
+
+		/**
 		 * Resizes the tables outer container to fit the total height of all visible rows
 		 * (currently only used for options.autoHeight).
 		 * @method resizeContainer
@@ -8993,6 +9250,7 @@
 				resizeCanvas(true);
 				applyColumnWidths();
 				handleScroll();
+				self.options.minColumnWidth === "headerContent" && fitColumnsToHeader(true);
 			}
 		};
 
@@ -9045,6 +9303,11 @@
 				} else {
 					this.remove('-add-row-');
 				}
+			}
+
+			// If toggling minColumnWidth options, need to refit column minwidths
+			if (options.minColumnWidth && options.minColumnWidth === "headerContent" && self.options.minColumnWidth !== options.minColumnWidth) {
+				fitColumnsToHeader();
 			}
 
 			// If changing row height, need to recalculate positions
@@ -9228,6 +9491,9 @@
 				});
 
 				self.trigger('statechange', this._event);
+
+				// when sorting changed, make sure to recalculate min header with if applicable
+				self.options.minColumnWidth === "headerContent" && fitColumnsToHeader();
 			}
 
 			return this;
@@ -9331,7 +9597,7 @@
 			// If resizable columns are disabled -- return
 			if (!self.options.resizableColumns) return;
 
-			var j, c, l, pageX, columnElements, minPageX, maxPageX, firstResizable, lastResizable;
+			var pageX, columnElements, firstResizable, lastResizable;
 
 			columnElements = $headers.children("." + classheadercolumn);
 			var $handle = columnElements.find("." + classhandle);
@@ -9344,149 +9610,6 @@
 
 			// No resizable columns found
 			if (firstResizable === undefined) return;
-
-			var lockColumnWidths = function () {
-				// Columns may have been changed since the last time this ran - refetch children
-				columnElements = $headers.children('.' + classheadercolumn);
-
-				columnElements.each(function (i) {
-					// The extra 1 here is to compensate for the border separator
-					cache.activeColumns[i].previousWidth = cache.activeColumns[i].width;
-				});
-			};
-
-			var resizeColumn = function (i, d) {
-				var actualMinWidth, x;
-				x = d;
-				if (d < 0) { // shrink column
-					for (j = i; j >= 0; j--) {
-						c = cache.activeColumns[j];
-						if (!c.resizable) continue;
-						actualMinWidth = Math.max(c.minWidth || 0, absoluteColumnMinWidth);
-						if (x && c.previousWidth + x < actualMinWidth) {
-							x += c.previousWidth - actualMinWidth;
-							c.width = actualMinWidth;
-						} else {
-							c.width = c.previousWidth + x;
-							x = 0;
-						}
-					}
-
-					if (self.options.autoColumnWidth) {
-						x = -d;
-						for (j = i + 1; j < columnElements.length; j++) {
-							c = cache.activeColumns[j];
-							if (!c.resizable) continue;
-							if (x && c.maxWidth && (c.maxWidth - c.previousWidth < x)) {
-								x -= c.maxWidth - c.previousWidth;
-								c.width = c.maxWidth;
-							} else {
-								c.width = c.previousWidth + x;
-								x = 0;
-							}
-						}
-					}
-				} else { // stretch column
-					for (j = i; j >= 0; j--) {
-						c = cache.activeColumns[j];
-						if (!c.resizable) continue;
-						if (x && c.maxWidth && (c.maxWidth - c.previousWidth < x)) {
-							x -= c.maxWidth - c.previousWidth;
-							c.width = c.maxWidth;
-						} else {
-							c.width = c.previousWidth + x;
-							x = 0;
-						}
-					}
-
-					if (self.options.autoColumnWidth) {
-						x = -d;
-						for (j = i + 1, l = columnElements.length; j < l; j++) {
-							c = cache.activeColumns[j];
-							if (!c.resizable) continue;
-							actualMinWidth = Math.max(c.minWidth || 0, absoluteColumnMinWidth);
-							if (x && c.previousWidth + x < actualMinWidth) {
-								x += c.previousWidth - actualMinWidth;
-
-								c.width = actualMinWidth;
-							} else {
-								c.width = c.previousWidth + x;
-								x = 0;
-							}
-						}
-					}
-				}
-			};
-
-			var prepareLeeway = function (i, pageX) {
-				var shrinkLeewayOnRight = null,
-					stretchLeewayOnRight = null;
-
-				if (self.options.autoColumnWidth) {
-					shrinkLeewayOnRight = 0;
-					stretchLeewayOnRight = 0;
-					// colums on right affect maxPageX/minPageX
-					for (j = i + 1; j < columnElements.length; j++) {
-						c = cache.activeColumns[j];
-						if (!c.resizable) continue;
-						if (stretchLeewayOnRight !== null) {
-							if (c.maxWidth) {
-								stretchLeewayOnRight += c.maxWidth - c.previousWidth;
-							} else {
-								stretchLeewayOnRight = null;
-							}
-						}
-						shrinkLeewayOnRight += c.previousWidth - Math.max(c.minWidth || 0, absoluteColumnMinWidth);
-					}
-				}
-				var shrinkLeewayOnLeft = 0,
-					stretchLeewayOnLeft = 0;
-				for (j = 0; j <= i; j++) {
-					// columns on left only affect minPageX
-					c = cache.activeColumns[j];
-					if (!c.resizable) continue;
-					if (stretchLeewayOnLeft !== null) {
-						if (c.maxWidth) {
-							stretchLeewayOnLeft += c.maxWidth - c.previousWidth;
-						} else {
-							stretchLeewayOnLeft = null;
-						}
-					}
-					shrinkLeewayOnLeft += c.previousWidth - Math.max(c.minWidth || 0, absoluteColumnMinWidth);
-				}
-
-				if (shrinkLeewayOnRight === null) shrinkLeewayOnRight = 100000;
-				if (shrinkLeewayOnLeft === null) shrinkLeewayOnLeft = 100000;
-				if (stretchLeewayOnRight === null) stretchLeewayOnRight = 100000;
-				if (stretchLeewayOnLeft === null) stretchLeewayOnLeft = 100000;
-
-				maxPageX = pageX + Math.min(shrinkLeewayOnRight, stretchLeewayOnLeft);
-				minPageX = pageX - Math.min(shrinkLeewayOnLeft, stretchLeewayOnRight);
-			};
-
-			var applyColWidths = function () {
-				applyColumnHeaderWidths();
-				if (self.options.resizeCells) applyColumnWidths();
-			};
-
-			var submitColResize = function () {
-				var newWidth;
-				for (j = 0; j < columnElements.length; j++) {
-					c = cache.activeColumns[j];
-					newWidth = $(columnElements[j]).outerWidth();
-
-					if (c.previousWidth !== newWidth && c.rerenderOnResize) {
-						invalidateAllRows();
-					}
-				}
-
-				updateCanvasWidth(true);
-				render();
-				self.trigger('columnresize', self._event, {
-					columns: self.options.columns
-				});
-				self.trigger('statechange', self._event);
-			};
 
 			// Assign double-click to auto-resize event
 			// This is done once for the whole header because event assignments are expensive
@@ -9504,7 +9627,7 @@
 				// Do nothing if width isn't changed
 				if (currentWidth == newWidth) return;
 
-				pageX = event.pageX;
+				var pageX = event.pageX;
 
 				lockColumnWidths(column_index);
 
@@ -9518,7 +9641,7 @@
 				var delta = Math.min(maxPageX, Math.max(minPageX, pageX + diff)) - pageX;
 
 				resizeColumn(column_index, delta);
-				applyColWidths();
+				applyHeaderAndColumnWidths();
 				submitColResize();
 			});
 
@@ -9544,13 +9667,14 @@
 						prepareLeeway(i, pageX);
 					})
 					.on('drag', function (event) {
+
 						var delta = Math.min(maxPageX, Math.max(minPageX, event.pageX)) - pageX;
 
 						// Sets the new column widths
 						resizeColumn(i, delta);
 
 						// Save changes
-						applyColWidths();
+						applyHeaderAndColumnWidths();
 					})
 					.on('dragend', function () {
 						$(this).parent().removeClass(classheadercolumndrag);
@@ -10055,6 +10179,38 @@
 						.addClass(col.sortAsc ? classsortindicatorasc : classsortindicatordesc);
 				}
 			});
+		};
+
+		/**
+		 * Submits the column resize states and calls associated events
+		 * @method submitColResize
+		 * @memberof DobyGrid
+		 * @private
+		 *
+		 * @param	{boolean}	silent	- Submit column resize states but don't trigger associated events
+		 */
+		submitColResize = function (silent) {
+			var newWidth, j, c;
+			var columnElements = $headers.children('.' + classheadercolumn);
+			for (j = 0; j < columnElements.length; j++) {
+				c = cache.activeColumns[j];
+				newWidth = $(columnElements[j]).outerWidth();
+
+				if (c.previousWidth !== newWidth && c.rerenderOnResize) {
+					invalidateAllRows();
+				}
+			}
+
+			updateCanvasWidth(true);
+			render();
+
+			if (!silent) {
+				self.trigger('columnresize', self._event, {
+					columns: self.options.columns
+				});
+			}
+
+			self.trigger('statechange', self._event);
 		};
 
 
@@ -10795,6 +10951,11 @@
 				// If min/max width is set -- use it to reset given width
 				if (c.minWidth !== undefined && c.minWidth !== null && c.width < c.minWidth) c.width = c.minWidth;
 				if (c.maxWidth !== undefined && c.maxWidth !== null && c.width > c.maxWidth) c.width = c.maxWidth;
+
+				// Store the initial minWidth set by the user
+				// TODO: maybe not the right place to do this, and maybe it would be good to generally have access to
+				// all the original unmodified options set by the user.
+				c.initMinWidth = c.minWidth;
 
 				// These params must be functions
 				var fn_attrs = ['editor', 'exporter', 'formatter'], attr;
