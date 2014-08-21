@@ -2180,6 +2180,89 @@ describe("Grid Options", function () {
 	// ==========================================================================================
 
 
+	describe("options.minColumnWidth", function () {
+		it("should be enabled empty by default", function () {
+			var grid = resetGrid(defaultData());
+			expect(grid.options.minColumnWidth).toEqual("");
+		});
+
+
+		// ==========================================================================================
+
+
+		it("should resize columns to match the header content width when using 'headerContent'", function () {
+			var grid = resetGrid($.extend(defaultData(), {
+				columns: [{
+					id: 'id',
+					name: 'Make a header column name that is very long',
+					field: 'id'
+				}, {
+					id: 'name',
+					name: 'This is a really really long column header',
+					field: 'name'
+				}],
+				minColumnWidth: 'headerContent'
+			}));
+
+			_.each(grid.options.columns, function (c) {
+				// The _headerWidth property should get set for all columns
+				expect(typeof(c._headerWidth)).toEqual('number');
+
+				// The width of the column should be in the 250px range based on the text above
+				expect(c.width).toBeGreaterThan(250);
+			});
+		});
+
+
+		// ==========================================================================================
+
+
+		it("should be able to toggle the 'minColumnWidth' property using 'setOptions'", function () {
+			var grid = resetGrid($.extend(defaultData(), {
+				columns: [{
+					id: 'id',
+					name: 'Make a header column name that is very long',
+					field: 'id'
+				}, {
+					id: 'name',
+					name: 'This is a really really long column header',
+					field: 'name'
+				}]
+			}));
+
+			var $columns = grid.$el.find('.doby-grid-header-column');
+
+			_.each(grid.options.columns, function (c, i) {
+				// The _headerWidth property should not be set
+				expect(c._headerWidth).not.toBeDefined();
+
+				// The width of the column should be small
+				expect(c.width).toEqual(80);
+
+				// The column DOM should match the widths too
+				expect($columns.eq(i).outerWidth()).toEqual(c.width);
+			});
+
+			// Enable minColumnWidth
+			grid.setOptions({minColumnWidth: 'headerContent'});
+
+			_.each(grid.options.columns, function (c, i) {
+				// The _headerWidth property should get set for all columns
+				expect(typeof(c._headerWidth)).toEqual('number');
+
+				// The width of the column should be in the 250px range based on the text above
+				expect(c.width).toBeGreaterThan(250);
+
+				// The column DOM should match the widths too
+				expect($columns.eq(i).outerWidth()).toEqual(c.width);
+			});
+		});
+	});
+
+
+	// ==========================================================================================
+
+
 	describe("options.multiColumnSort", function () {
 		it("should be enabled by default", function () {
 			var grid = resetGrid(defaultData());
@@ -3432,8 +3515,6 @@ describe("Grid Options", function () {
 			expect(grid.selection[1].fromRow).toEqual(1);
 			expect(grid.selection[1].toCell).toEqual(0);
 			expect(grid.selection[1].toRow).toEqual(1);
-
-
 		});
 	});
 
