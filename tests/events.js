@@ -4,12 +4,16 @@
 // https://github.com/globexdesigns/doby-grid
 
 /*jshint loopfunc: true*/
-/*global $, DobyGrid*/
+/*global $, _, DobyGrid*/
 
 describe("Events", function () {
 	"use strict";
 
+	// Disable underscore's debounce until https://github.com/pivotal/jasmine/pull/455 is fixed
+	_.debounce = function (func) { return function () { func.apply(this, arguments);}; };
+
 	// ==========================================================================================
+
 
 	// Utilities for resetting the grid
 	var defaultData = function () {
@@ -558,46 +562,37 @@ describe("Events", function () {
 
 	// For each event
 	for (var event in events) {
-		describe(event, function () {
-			it("should be able to subscribe to this event", function () {
-				// Prepare grid
-				var grid = resetGrid(defaultData());
-				grid.on(event, function () {
-					// Do nothing
-				});
-			});
-
-
-			// ==========================================================================================
-
-
-			it("should return 'event' and 'args' objects back from the event trigger", function () {
-				// Prepare grid and trigger event
-				var result;
-
-				events[this.suite.description](function (event, args, expected) {
-					result = [event, args, expected];
+		describe(event, (function (event) {
+			return function () {
+				it("should be able to subscribe to this event", function () {
+					// Prepare grid
+					var grid = resetGrid(defaultData());
+					expect(function () {
+						grid.on(event, function () {});
+					}).not.toThrow();
 				});
 
-				waitsFor(function () {
-					return result;
-				}, 20, 'for "' + event + '" event to be triggered');
 
-				runs(function () {
-					if (result[0] && typeof(result[0]) == 'object') {
-						expect(typeof(result[0].target)).toEqual('object');
-					} else {
-						expect(result[0]).toEqual(null);
-					}
+				// =======================================================================================
 
-					expect(result[1]).toEqual(result[2]);
+
+				it("should return 'event' and 'args' objects back from the event trigger", function () {
+					// Prepare grid and trigger event
+					var eventSpy = jasmine.createSpy('eventSpy').and.callFake(function (event, actual, expected) {
+						if (event && typeof(event) === 'object') {
+							expect(event.target.toString()).toEqual('[object HTMLDivElement]');
+						} else {
+							expect(event).toEqual(null);
+						}
+
+						expect(actual).toEqual(expected);
+					});
+
+					events[event](eventSpy);
+					expect(eventSpy).toHaveBeenCalled();
 				});
-			});
-
-
-			// ==========================================================================================
-
-		});
+			};
+		}(event)));
 	}
 
 });
