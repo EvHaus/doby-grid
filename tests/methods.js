@@ -8,6 +8,9 @@
 describe("Methods and Data Manipulation", function () {
 	"use strict";
 
+	// Disable underscore's debounce until https://github.com/pivotal/jasmine/pull/455 is fixed
+	_.debounce = function (func) { return function () { func.apply(this, arguments);}; };
+
 	// Utilities for resetting the grid
 	var resetGrid = function (options) {
 		options = options || {};
@@ -149,7 +152,7 @@ describe("Methods and Data Manipulation", function () {
 			expect(function () {
 				grid.add(item, {forced: true});
 				grid.add(item, {forced: true});
-			}).toThrow('You are not allowed to add() items without a unique \'id\' value. A row with id \'' + item.data.id + '\' already exists.');
+			}).toThrowError('You are not allowed to add() items without a unique \'id\' value. A row with id \'' + item.data.id + '\' already exists.');
 		});
 
 
@@ -273,7 +276,7 @@ describe("Methods and Data Manipulation", function () {
 
 			expect(function () {
 				grid.addColumn(col_def);
-			}).toThrow("Unable to addColumn() because a column with id '" + col_def.id + "' already exists. Did you want to {merge: true} maybe?");
+			}).toThrowError("Unable to addColumn() because a column with id '" + col_def.id + "' already exists. Did you want to {merge: true} maybe?");
 		});
 
 
@@ -287,7 +290,7 @@ describe("Methods and Data Manipulation", function () {
 			_.each(bad_data, function (bd) {
 				expect(function () {
 					grid.addColumn(bd);
-				}).toThrow("Unable to addColumn() because the given 'data' param is invalid.");
+				}).toThrowError("Unable to addColumn() because the given 'data' param is invalid.");
 			});
 		});
 	});
@@ -301,7 +304,7 @@ describe("Methods and Data Manipulation", function () {
 			var grid = resetGrid();
 			expect(function () {
 				grid.addGrouping();
-			}).toThrow("Unable to add grouping to grid because the 'column_id' value is missing.");
+			}).toThrowError("Unable to add grouping to grid because the 'column_id' value is missing.");
 		});
 
 
@@ -312,7 +315,7 @@ describe("Methods and Data Manipulation", function () {
 			var grid = resetGrid();
 			expect(function () {
 				grid.addGrouping('armadillo');
-			}).toThrow("Cannot add grouping for column \"armadillo\" because no such column could be found.");
+			}).toThrowError("Cannot add grouping for column \"armadillo\" because no such column could be found.");
 		});
 
 
@@ -626,7 +629,7 @@ describe("Methods and Data Manipulation", function () {
 			var grid = resetGrid();
 			var fixture = setFixtures('<div class="test"></div>');
 			grid.appendTo(fixture);
-			expect(fixture).toContain('div.doby-grid');
+			expect(fixture).toContainElement('div.doby-grid');
 		});
 
 
@@ -656,7 +659,7 @@ describe("Methods and Data Manipulation", function () {
 			_.each(bad_tests, function (format) {
 				expect(function () {
 					grid.export(format);
-				}).toThrow('Sorry, "' + format + '" is not a supported format for export.');
+				}).toThrowError('Sorry, "' + format + '" is not a supported format for export.');
 			});
 
 			// Valid exports
@@ -671,7 +674,7 @@ describe("Methods and Data Manipulation", function () {
 		// ==========================================================================================
 
 
-		it("should correctly export() to CSV", function () {
+		it("should correctly export() to CSV", function (done) {
 			// Prepare for test
 			var grid = resetGrid({
 				columns: [
@@ -691,15 +694,8 @@ describe("Methods and Data Manipulation", function () {
 			var result;
 			grid.export('csv', function (r) {
 				result = r;
-			});
-
-			waitsFor(function () {
-				return result;
-			});
-
-			runs(function () {
-				// Check er!
 				expect(result).toEqual('"ID","Name"\n"1","one"\n"2","two"');
+				done();
 			});
 		});
 
@@ -707,7 +703,7 @@ describe("Methods and Data Manipulation", function () {
 		// ==========================================================================================
 
 
-		it("should correctly export() to HTML", function () {
+		it("should correctly export() to HTML", function (done) {
 			// Prepare for test
 			var grid = resetGrid({
 				columns: [{id: 'id', name: 'ID', field: 'id'}, {id: 'name', name: 'Name', field: 'name'}],
@@ -724,15 +720,8 @@ describe("Methods and Data Manipulation", function () {
 			var result;
 			grid.export('html', function (r) {
 				result = r;
-			});
-
-			waitsFor(function () {
-				return result;
-			});
-
-			runs(function () {
-				// Check er!
 				expect(result).toEqual('<table><thead><tr><th>ID</th><th>Name</th></tr></thead><tbody><tr><td>1</td><td>one</td></tr><tr><td>2</td><td>two</td></tr></tbody></table>');
+				done();
 			});
 		});
 
@@ -740,7 +729,7 @@ describe("Methods and Data Manipulation", function () {
 		// ==========================================================================================
 
 
-		it("should correctly handle Backbone Collection data", function () {
+		it("should correctly handle Backbone Collection data", function (done) {
 			var collection = new Backbone.Collection([
 				{id: 'asd1', name: 'one'},
 				{id: 'asd2', name: 'two'}
@@ -759,15 +748,8 @@ describe("Methods and Data Manipulation", function () {
 			var result;
 			grid.export('csv', function (r) {
 				result = r;
-			});
-
-			waitsFor(function () {
-				return result;
-			});
-
-			runs(function () {
-				// Check er!
 				expect(result).toEqual('"ID","Name"\n"asd1","one"\n"asd2","two"');
+				done();
 			});
 		});
 	});
@@ -812,7 +794,7 @@ describe("Methods and Data Manipulation", function () {
 			_.each(tests, function (test) {
 				expect(function () {
 					grid.filter(test.test);
-				}).toThrow(test.error);
+				}).toThrowError(test.error);
 			});
 		});
 
@@ -846,7 +828,7 @@ describe("Methods and Data Manipulation", function () {
 			_.each(bad_filters, function (bad_filter) {
 				expect(function () {
 					grid.filter(bad_filter);
-				}).toThrow('Cannot apply filter because the give filter set contains an invalid filter item: ' + JSON.stringify(bad_filter[0]) + '.');
+				}).toThrowError('Cannot apply filter because the give filter set contains an invalid filter item: ' + JSON.stringify(bad_filter[0]) + '.');
 			});
 		});
 
@@ -857,7 +839,7 @@ describe("Methods and Data Manipulation", function () {
 		it("should not be able to filter() by invalid columns", function () {
 			expect(function () {
 				grid.filter([['mama-mia', '=', 'a']]);
-			}).toThrow('Unable to filter by "mama-mia" because no such columns exists in the grid.');
+			}).toThrowError('Unable to filter by "mama-mia" because no such columns exists in the grid.');
 		});
 
 
@@ -870,7 +852,7 @@ describe("Methods and Data Manipulation", function () {
 			_.each(bad_operators, function (bo) {
 				expect(function () {
 					grid.filter([['id', bo, 1]]);
-				}).toThrow('Unable to filter by "id" because "' + bo + '" is not a valid operator.');
+				}).toThrowError('Unable to filter by "id" because "' + bo + '" is not a valid operator.');
 			});
 		});
 
@@ -948,7 +930,7 @@ describe("Methods and Data Manipulation", function () {
 			_.each(['test', 1, {}, null, undefined], function (v) {
 				expect(function () {
 					grid.filter([['id', 'IN', v]]);
-				}).toThrow('The "IN" filter operator must be used with an array. ' + v + ' was given instead.');
+				}).toThrowError('The "IN" filter operator must be used with an array. ' + v + ' was given instead.');
 			});
 		});
 
@@ -1203,7 +1185,7 @@ describe("Methods and Data Manipulation", function () {
 
 			// Aggregator should display correct value
 			expect(rows.length).toEqual(0);
-			expect(grid.$el).toContain('.doby-grid-empty');
+			expect(grid.$el).toContainElement('.doby-grid-empty');
 		});
 	});
 
@@ -1476,7 +1458,7 @@ describe("Methods and Data Manipulation", function () {
 
 			expect(function () {
 				grid.hideColumn(3);
-			}).toThrow('Unable to hide column "3" because no such column could be found.');
+			}).toThrowError('Unable to hide column "3" because no such column could be found.');
 		});
 	});
 
@@ -1503,8 +1485,8 @@ describe("Methods and Data Manipulation", function () {
 
 			// Should clear the canvas and show the custom overlay
 			var $viewport = grid.$el.find('.doby-grid-canvas');
-			expect($viewport).not.toContain('.doby-grid-overlay');
-			expect($viewport).toContain('.doby-grid-row');
+			expect($viewport).not.toContainElement('.doby-grid-overlay');
+			expect($viewport).toContainElement('.doby-grid-row');
 		});
 	});
 
@@ -1518,7 +1500,7 @@ describe("Methods and Data Manipulation", function () {
 
 			expect(function () {
 				grid.refetch();
-			}).toThrow('The "refetch" method can only be used with Doby Grid instances which use a remote data set.');
+			}).toThrowError('The "refetch" method can only be used with Doby Grid instances which use a remote data set.');
 		});
 	});
 
@@ -1632,7 +1614,9 @@ describe("Methods and Data Manipulation", function () {
 		it("should not throw any error when trying to resize() a destroyed grid", function () {
 			var grid = new DobyGrid({});
 			grid.destroy();
-			grid.resize();
+			expect(function () {
+				grid.resize();
+			}).not.toThrow();
 		});
 	});
 
@@ -1734,7 +1718,7 @@ describe("Methods and Data Manipulation", function () {
 
 			expect(function () {
 				grid.removeColumn(3);
-			}).toThrow('Cannot remove column "3" because no such column exists.');
+			}).toThrowError('Cannot remove column "3" because no such column exists.');
 		});
 
 
@@ -2562,10 +2546,8 @@ describe("Methods and Data Manipulation", function () {
 			// Change the row's id
 			grid.setItem(1, {id: 2, data: {id: 2}});
 
-			// Cell's value should be 2 after debouncing
-			waitsFor(function () {
-				return grid.$el.find('.doby-grid-cell').text() == '2';
-			}, 20);
+			// Cell's value should be 2
+			expect(grid.$el.find('.doby-grid-cell').text()).toEqual('2');
 		});
 
 
@@ -2581,7 +2563,7 @@ describe("Methods and Data Manipulation", function () {
 			// Try to give setItem a non Model
 			expect(function () {
 				grid.setItem(1, {rows: []});
-			}).toThrow("Sorry, Backbone.Collection data sets must be given a valid Backbone.Model in the setItem() method.");
+			}).toThrowError("Sorry, Backbone.Collection data sets must be given a valid Backbone.Model in the setItem() method.");
 		});
 
 
@@ -2598,10 +2580,7 @@ describe("Methods and Data Manipulation", function () {
 
 			grid.setItem(1, new Backbone.Model({id: 1, name: 'aloha!'}));
 
-			// Wait for debounce
-			waitsFor(function () {
-				return grid.$el.find('.doby-grid-cell').text() === 'aloha!';
-			}, 20);
+			expect(grid.$el.find('.doby-grid-cell').text()).toEqual('aloha!');
 		});
 
 
@@ -2617,7 +2596,7 @@ describe("Methods and Data Manipulation", function () {
 			// Change the row's id
 			expect(function () {
 				grid.setItem(1, new Backbone.Model({id: 200}));
-			}).toThrow("Sorry, but Backbone does not support changing a model's id value, and as a result, this is not supported in Doby Grid either.");
+			}).toThrowError("Sorry, but Backbone does not support changing a model's id value, and as a result, this is not supported in Doby Grid either.");
 		});
 
 
@@ -2643,10 +2622,7 @@ describe("Methods and Data Manipulation", function () {
 
 			grid.setItem(1, update);
 
-			// Wait for debounce
-			waitsFor(function () {
-				return grid.$el.find('.doby-grid-cell').eq(1).text() === 'NEW ONE';
-			}, 20);
+			expect(grid.$el.find('.doby-grid-cell').eq(1).text()).toEqual('NEW ONE');
 		});
 
 
@@ -2699,33 +2675,29 @@ describe("Methods and Data Manipulation", function () {
 			secondModel.rows[0].collapsed = false;
 			grid.setItem(secondModel.id, secondModel);
 
-			// Wait for debounce to redraw the grid
-			waitsFor(function () {
-				return grid.$el.find('.doby-grid-row').length === 5;
+			expect(grid.$el.find('.doby-grid-row').length).toEqual(5);
+
+
+			// Ensure that all rows are in the order expected
+			var rows = grid.$el.find('.doby-grid-row:not(.doby-grid-group)');
+
+			// Make sure rows are sorted by their top offset
+			rows = _.sortBy(rows, function (row) {
+				// For some reason jasmine-grunt doesn't like .css('top') here, which returns NaN
+				// But attr('style') seems to return the right thing. Wat?
+				return parseInt($(row).attr('style').replace('top:', ''), 10);
 			});
 
-			runs(function () {
-				// Ensure that all rows are in the order expected
-				var rows = grid.$el.find('.doby-grid-row:not(.doby-grid-group)');
-
-				// Make sure rows are sorted by their top offset
-				rows = _.sortBy(rows, function (row) {
-					// For some reason jasmine-grunt doesn't like .css('top') here, which returns NaN
-					// But attr('style') seems to return the right thing. Wat?
-					return parseInt($(row).attr('style').replace('top:', ''), 10);
-				});
-
-				_.each(rows, function (row, i) {
-					if (i === 0) {
-						expect($(row).find('.l1')).toHaveText('row1');
-					} else if (i === 1) {
-						expect($(row).find('.l1')).toHaveText('row2');
-					} else if (i === 2) {
-						expect($(row).find('.l1')).toHaveText('row2-subrow1');
-					} else if (i === 3) {
-						expect($(row).find('.l1')).toHaveText('row3');
-					}
-				});
+			_.each(rows, function (row, i) {
+				if (i === 0) {
+					expect($(row).find('.l1')).toHaveText('row1');
+				} else if (i === 1) {
+					expect($(row).find('.l1')).toHaveText('row2');
+				} else if (i === 2) {
+					expect($(row).find('.l1')).toHaveText('row2-subrow1');
+				} else if (i === 3) {
+					expect($(row).find('.l1')).toHaveText('row3');
+				}
 			});
 		});
 
@@ -2747,10 +2719,12 @@ describe("Methods and Data Manipulation", function () {
 				data: items
 			});
 
-			grid.setItem(1, {
-				id: 1,
-				self_ref_2: items
-			});
+			expect(function () {
+				grid.setItem(1, {
+					id: 1,
+					self_ref_2: items
+				});
+			}).not.toThrow();
 		});
 	});
 
@@ -2776,27 +2750,22 @@ describe("Methods and Data Manipulation", function () {
 				groupNulls: false
 			});
 
-			waitsFor(function () {
-				return grid.$el.find('.doby-grid-group').length;
+
+			// Rows should sorted in the right direction
+			var $rows = grid.$el.find('.doby-grid-row');
+
+			// Make sure rows are in correct order
+			$rows = _.sortBy($rows, function (i) {
+				return parseInt($(i).css('top'), 10);
 			});
 
-			runs(function () {
-				// Rows should sorted in the right direction
-				var $rows = grid.$el.find('.doby-grid-row');
-
-				// Make sure rows are in correct order
-				$rows = _.sortBy($rows, function (i) {
-					return parseInt($(i).css('top'), 10);
-				});
-
-				// Check the rows that got rendered
-				$.each($rows, function (i, row) {
-					if (i === 0) {
-						expect($(row)).toHaveClass('doby-grid-group');
-					} else {
-						expect($(row).find('.doby-grid-cell:first')).toHaveText(289);
-					}
-				});
+			// Check the rows that got rendered
+			$.each($rows, function (i, row) {
+				if (i === 0) {
+					expect($(row)).toHaveClass('doby-grid-group');
+				} else {
+					expect($(row).find('.doby-grid-cell:first')).toHaveText(289);
+				}
 			});
 		});
 
@@ -2822,15 +2791,9 @@ describe("Methods and Data Manipulation", function () {
 				class: custom_class
 			});
 
-			waitsFor(function () {
-				return grid.$el.find('.doby-grid-group').length;
-			});
-
-			runs(function () {
-				// Rows should sorted in the right direction
-				grid.$el.find('.doby-grid-group').each(function () {
-					expect($(this)).toHaveClass(custom_class);
-				});
+			// Rows should sorted in the right direction
+			grid.$el.find('.doby-grid-group').each(function () {
+				expect($(this)).toHaveClass(custom_class);
 			});
 		});
 
@@ -2859,15 +2822,9 @@ describe("Methods and Data Manipulation", function () {
 				class: custom_class
 			});
 
-			waitsFor(function () {
-				return grid.$el.find('.doby-grid-group').length;
-			});
-
-			runs(function () {
-				// Rows should sorted in the right direction
-				grid.$el.find('.doby-grid-group').each(function () {
-					expect($(this)).toHaveClass(custom_class());
-				});
+			// Rows should sorted in the right direction
+			grid.$el.find('.doby-grid-group').each(function () {
+				expect($(this)).toHaveClass(custom_class());
 			});
 		});
 
@@ -3105,34 +3062,30 @@ describe("Methods and Data Manipulation", function () {
 
 
 		it("should fire the 'columnresize' event when 'autoColumnWidth' is toggled via setOptions()", function () {
-			var called = 0,
-				grid = resetGrid({
-					columns: [{id: 'id', field: 'id'}, {id: 'id2', field: 'id2'}]
-				});
-
-			grid.on('columnresize', function () {
-				called++;
+			var grid = resetGrid({
+				columns: [{id: 'id', field: 'id'}, {id: 'id2', field: 'id2'}]
 			});
+
+			var columnResizeCallback = jasmine.createSpy('columnResizeCallback');
+
+			// Bind and spy on event callback
+			grid.on('columnresize', columnResizeCallback);
 
 			// Toggle
 			grid.setOptions({
 				autoColumnWidth: !grid.options.autoColumnWidth
 			});
 
-			waitsFor(function () {
-				return called === 1;
-			}, 100, 'waiting for columnresize event to be called');
+			expect(columnResizeCallback).toHaveBeenCalled();
+			expect(columnResizeCallback.calls.count()).toEqual(1);
 
-			runs(function () {
-				// Toggle back
-				grid.setOptions({
-					autoColumnWidth: !grid.options.autoColumnWidth
-				});
+			// Toggle back
+			grid.setOptions({
+				autoColumnWidth: !grid.options.autoColumnWidth
 			});
 
-			waitsFor(function () {
-				return called === 2;
-			}, 100, 'waiting for columnresize event to be called');
+			expect(columnResizeCallback).toHaveBeenCalled();
+			expect(columnResizeCallback.calls.count()).toEqual(2);
 		});
 
 
@@ -3140,7 +3093,23 @@ describe("Methods and Data Manipulation", function () {
 
 
 		it("should re-render the grid when changing 'rowHeight' via setOptions()", function () {
-			var grid = resetGrid();
+			var grid = resetGrid({
+				data: [{
+					id: 1,
+					data: {id: 1, name: 'one', quantity: 1}
+				}, {
+					id: 2,
+					data: {id: 2, name: 'one', quantity: 2}
+				}]
+			});
+
+			// Make sure we have rows to test
+			expect(grid.$el.find('.doby-grid-row').length).toBeGreaterThan(0);
+
+			// Check initial row heights
+			grid.$el.find('.doby-grid-row').each(function () {
+				expect($(this).height()).toEqual(grid.options.rowHeight);
+			});
 
 			// Set new row heights
 			grid.setOptions({rowHeight: 151});
@@ -3225,8 +3194,10 @@ describe("Methods and Data Manipulation", function () {
 
 		it("should not throw an error when calling destroy() more than once", function () {
 			var grid = resetGrid();
-			grid.destroy();
-			grid.destroy();
+			expect(function () {
+				grid.destroy();
+				grid.destroy();
+			}).not.toThrow();
 		});
 
 
@@ -3246,19 +3217,26 @@ describe("Methods and Data Manipulation", function () {
 				]
 			});
 
+			// Start clock
+			jasmine.clock().install();
+
 			// Simulate context click on the grid
 			grid.$el.find('.doby-grid-cell:first').simulate('contextmenu');
 
 			// Make sure the context menu comes up
-			expect($(document.body)).toContain('.doby-grid-dropdown');
+			expect($(document.body)).toContainElement('.doby-grid-dropdown');
 
 			// Now destroy the grid
 			grid.destroy();
 
+			// Step forward in time
+			jasmine.clock().tick(500);
+
 			// Wait for the dropdown to disappear (it's on a timeout)
-			waitsFor(function () {
-				return $(document.body).find('.doby-grid-dropdown').length === 0;
-			}, 500);
+			expect($(document.body).find('.doby-grid-dropdown').length).toEqual(0);
+
+			// Remove
+			jasmine.clock().uninstall();
 		});
 	});
 
