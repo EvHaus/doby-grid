@@ -296,10 +296,9 @@ describe("Data Options", function () {
 			var result;
 			grid.export('csv', function (r) {
 				result = r;
+				expect(result).toEqual('"id","name"\n"My Special Value id1","My Special Value name1"\n"2","test 1"');
 				done();
 			});
-
-			expect(result).toEqual('"id","name"\n"My Special Value id1","My Special Value name1"\n"2","test 1"');
 		});
 	});
 
@@ -308,10 +307,10 @@ describe("Data Options", function () {
 
 
 	describe("options.focusable", function () {
-		it("should be null by default", function () {
+		it("should be undefined by default", function () {
 			var grid = resetGrid(defaultData());
 			_.each(grid.collection.items, function (item) {
-				expect(item.focusable).toEqual(null);
+				expect(item.focusable).toEqual(undefined);
 			});
 		});
 
@@ -359,10 +358,10 @@ describe("Data Options", function () {
 
 
 	describe("options.height", function () {
-		it("should be null by default", function () {
+		it("should be undefined by default", function () {
 			var grid = resetGrid(defaultData());
 			_.each(grid.collection.items, function (item) {
-				expect(item.height).toEqual(null);
+				expect(item.height).toEqual(undefined);
 			});
 		});
 
@@ -517,10 +516,10 @@ describe("Data Options", function () {
 
 
 	describe("options.resizable", function () {
-		it("should be null by default", function () {
+		it("should be undefined by default", function () {
 			var grid = resetGrid(defaultData());
 			_.each(grid.collection.items, function (item) {
-				expect(item.resizable).toEqual(null);
+				expect(item.resizable).toEqual(undefined);
 			});
 		});
 
@@ -563,10 +562,10 @@ describe("Data Options", function () {
 
 
 	describe("options.rows", function () {
-		it("should be null by default", function () {
+		it("should be undefined by default", function () {
 			var grid = resetGrid(defaultData());
 			_.each(grid.collection.items, function (item) {
-				expect(item.rows).toEqual(null);
+				expect(item.rows).toEqual(undefined);
 			});
 		});
 
@@ -743,10 +742,10 @@ describe("Data Options", function () {
 
 
 	describe("options.selectable", function () {
-		it("should be null by default", function () {
+		it("should be undefined by default", function () {
 			var grid = resetGrid(defaultData());
 			_.each(grid.collection.items, function (item) {
-				expect(item.selectable).toEqual(null);
+				expect(item.selectable).toEqual(undefined);
 			});
 		});
 
