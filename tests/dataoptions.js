@@ -9,6 +9,10 @@ describe("Data Options", function () {
 	"use strict";
 
 
+	// Disable underscore's debounce until https://github.com/pivotal/jasmine/pull/455 is fixed
+	_.debounce = function (func) { return function () { func.apply(this, arguments);}; };
+
+
 	// ==========================================================================================
 
 
@@ -44,10 +48,10 @@ describe("Data Options", function () {
 
 
 	describe("options.class", function () {
-		it("should be null by default", function () {
+		it("should be undefined by default", function () {
 			var grid = resetGrid(defaultData());
-			_.each(grid.collection.item, function (item) {
-				expect(item.class).toEqual(null);
+			_.each(grid.collection.items, function (item) {
+				expect(item.class).not.toBeDefined();
 			});
 		});
 
@@ -98,8 +102,8 @@ describe("Data Options", function () {
 	describe("options.columns", function () {
 		it("should be null by default", function () {
 			var grid = resetGrid(defaultData());
-			_.each(grid.collection.item, function (item) {
-				expect(item.columns).toEqual(null);
+			_.each(grid.collection.items, function (item) {
+				expect(item.columns).not.toBeDefined();
 			});
 		});
 
@@ -199,11 +203,9 @@ describe("Data Options", function () {
 
 
 	describe("options.data", function () {
-		it("should be null by default", function () {
-			var grid = resetGrid(defaultData());
-			_.each(grid.collection.item, function (item) {
-				expect(item.data).toEqual(null);
-			});
+		it("should be an empty array by default", function () {
+			var grid = new DobyGrid();
+			expect(grid.collection.items).toEqual([]);
 		});
 	});
 
@@ -212,10 +214,10 @@ describe("Data Options", function () {
 
 
 	describe("options.editable", function () {
-		it("should be null by default", function () {
+		it("should be undefined by default", function () {
 			var grid = resetGrid(defaultData());
-			_.each(grid.collection.item, function (item) {
-				expect(item.editable).toEqual(null);
+			_.each(grid.collection.items, function (item) {
+				expect(item.editable).toEqual(undefined);
 			});
 		});
 
@@ -243,11 +245,11 @@ describe("Data Options", function () {
 					if (i === 0) {
 						// Make sure all cells in first row are editable
 						$(this).simulate("dblclick");
-						expect($(this)).toContain("input");
+						expect($(this)).toContainElement("input");
 					} else {
 						// But all cells in second row are not
 						$(this).simulate("dblclick");
-						expect($(this)).not.toContain("input");
+						expect($(this)).not.toContainElement("input");
 					}
 				});
 			});
@@ -261,10 +263,10 @@ describe("Data Options", function () {
 
 
 	describe("options.exporter", function () {
-		it("should be null by default", function () {
+		it("should be undefined by default", function () {
 			var grid = resetGrid(defaultData());
-			_.each(grid.collection.item, function (item) {
-				expect(item.exporter).toEqual(null);
+			_.each(grid.collection.items, function (item) {
+				expect(item.exporter).toEqual(undefined);
 			});
 		});
 
@@ -272,7 +274,7 @@ describe("Data Options", function () {
 		// ==========================================================================================
 
 
-		it("should be used for formatting data during data export", function () {
+		it("should be used for formatting data during data export", function (done) {
 			var grid = resetGrid({
 				columns: [
 					{id: 'id', field: 'id', name: 'id'},
@@ -294,15 +296,10 @@ describe("Data Options", function () {
 			var result;
 			grid.export('csv', function (r) {
 				result = r;
+				done();
 			});
 
-			waitsFor(function () {
-				return result;
-			}, 100, 'waiting for export callback to fire');
-
-			runs(function () {
-				expect(result).toEqual('"id","name"\n"My Special Value id1","My Special Value name1"\n"2","test 1"');
-			});
+			expect(result).toEqual('"id","name"\n"My Special Value id1","My Special Value name1"\n"2","test 1"');
 		});
 	});
 
@@ -313,7 +310,7 @@ describe("Data Options", function () {
 	describe("options.focusable", function () {
 		it("should be null by default", function () {
 			var grid = resetGrid(defaultData());
-			_.each(grid.collection.item, function (item) {
+			_.each(grid.collection.items, function (item) {
 				expect(item.focusable).toEqual(null);
 			});
 		});
@@ -364,7 +361,7 @@ describe("Data Options", function () {
 	describe("options.height", function () {
 		it("should be null by default", function () {
 			var grid = resetGrid(defaultData());
-			_.each(grid.collection.item, function (item) {
+			_.each(grid.collection.items, function (item) {
 				expect(item.height).toEqual(null);
 			});
 		});
@@ -483,8 +480,8 @@ describe("Data Options", function () {
 			// Check to make sure the canvas height is correct
 			expect(grid.$el.find('.doby-grid-canvas').height()).toEqual(data.length * grid.options.rowHeight + data.length - 1);
 		});
-		
-		
+
+
 		// ==========================================================================================
 
 
@@ -522,7 +519,7 @@ describe("Data Options", function () {
 	describe("options.resizable", function () {
 		it("should be null by default", function () {
 			var grid = resetGrid(defaultData());
-			_.each(grid.collection.item, function (item) {
+			_.each(grid.collection.items, function (item) {
 				expect(item.resizable).toEqual(null);
 			});
 		});
@@ -568,7 +565,7 @@ describe("Data Options", function () {
 	describe("options.rows", function () {
 		it("should be null by default", function () {
 			var grid = resetGrid(defaultData());
-			_.each(grid.collection.item, function (item) {
+			_.each(grid.collection.items, function (item) {
 				expect(item.rows).toEqual(null);
 			});
 		});
@@ -748,7 +745,7 @@ describe("Data Options", function () {
 	describe("options.selectable", function () {
 		it("should be null by default", function () {
 			var grid = resetGrid(defaultData());
-			_.each(grid.collection.item, function (item) {
+			_.each(grid.collection.items, function (item) {
 				expect(item.selectable).toEqual(null);
 			});
 		});
