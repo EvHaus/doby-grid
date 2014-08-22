@@ -8,6 +8,9 @@
 describe("Remote Data", function () {
 	"use strict";
 
+	// Disable underscore's debounce until https://github.com/pivotal/jasmine/pull/455 is fixed
+	_.debounce = function (func) { return function () { func.apply(this, arguments);}; };
+
 	// Replicates a server's database filter
 	var remote_filter = function (options, item) {
 		var result = true;
@@ -61,9 +64,11 @@ describe("Remote Data", function () {
 		var grid;
 
 		beforeEach(function () {
+			// Start Jasmine Clock
+			jasmine.clock().install();
+
 			var data = [],
-				count = 100,
-				empty = this.description == 'should display an empty row when remote data is empty';
+				count = 100;
 
 			for (var i = 0; i < count; i++) {
 				data.push({
@@ -98,59 +103,51 @@ describe("Remote Data", function () {
 				}],
 				data: function () {
 					this.count = function (options, callback) {
-						if (empty) {
-							callback(0);
-						} else {
-							callback(_.filter(data, function (item) {
-								return remote_filter(options, item);
-							}).length);
-						}
+						callback(_.filter(data, function (item) {
+							return remote_filter(options, item);
+						}).length);
 					};
 
 					this.fetch = function (options, callback) {
 						return setTimeout(function () {
-							if (empty) {
-								callback([]);
-							} else {
-								var mydata = JSON.parse(JSON.stringify(data));
-								mydata = _.filter(mydata, function (item) {
-									return remote_filter(options, item);
-								});
-								if (options.order.length) {
-									mydata.sort(function (dataRow1, dataRow2) {
-										var result = 0, column, value1, value2, val;
+							var mydata = JSON.parse(JSON.stringify(data));
+							mydata = _.filter(mydata, function (item) {
+								return remote_filter(options, item);
+							});
+							if (options.order.length) {
+								mydata.sort(function (dataRow1, dataRow2) {
+									var result = 0, column, value1, value2, val;
 
-										// Loops through the columns by which we are sorting
-										for (var i = 0, l = options.order.length; i < l; i++) {
-											column = options.order[i].columnId;
-											value1 = dataRow1.data[column];
-											value2 = dataRow2.data[column];
+									// Loops through the columns by which we are sorting
+									for (var i = 0, l = options.order.length; i < l; i++) {
+										column = options.order[i].columnId;
+										value1 = dataRow1.data[column];
+										value2 = dataRow2.data[column];
 
-											// Nulls always on the bottom
-											if (value1 === null) return 1;
-											if (value2 === null) return -1;
+										// Nulls always on the bottom
+										if (value1 === null) return 1;
+										if (value2 === null) return -1;
 
-											if (value1 !== value2) {
-												val = options.order[i].sortAsc ? (value1 > value2) ? 1 : -1 : (value1 < value2) ? 1 : -1;
-												if (val !== 0) return val;
-											}
+										if (value1 !== value2) {
+											val = options.order[i].sortAsc ? (value1 > value2) ? 1 : -1 : (value1 < value2) ? 1 : -1;
+											if (val !== 0) return val;
 										}
-
-										return result;
-									});
-								}
-
-								if (options.offset !== null && options.offset !== undefined) {
-									if (options.limit !== null && options.limit !== undefined) {
-										mydata = mydata.slice(options.offset, options.offset + options.limit);
-									} else {
-										mydata = mydata.slice(options.offset);
 									}
-								}
 
-								// Apply fake offset and fake limit
-								callback(mydata);
+									return result;
+								});
 							}
+
+							if (options.offset !== null && options.offset !== undefined) {
+								if (options.limit !== null && options.limit !== undefined) {
+									mydata = mydata.slice(options.offset, options.offset + options.limit);
+								} else {
+									mydata = mydata.slice(options.offset);
+								}
+							}
+
+							// Apply fake offset and fake limit
+							callback(mydata);
 						}, 5);
 					};
 
@@ -231,23 +228,19 @@ describe("Remote Data", function () {
 
 			grid.appendTo(fixture);
 
-			var loaded = false;
-			grid.on('remoteloaded', function () {
-				loaded = true;
-			});
+			var loaded = jasmine.createSpy("remoteLoaded");
+			grid.on('remoteloaded', loaded);
 
-			var waitForRefresh;
+			// Wait for data load
+			jasmine.clock().tick(2000);
 
-			// Manual delay to wait for refresh
-			runs(function () {
-				setTimeout(function () {
-					waitForRefresh = true;
-				}, 500);
-			});
+			// Make sure remote data has been loaded
+			expect(loaded).toHaveBeenCalled();
+		});
 
-			waitsFor(function () {
-				return waitForRefresh && loaded;
-			}, "Fetching the first page", 2000);
+		afterEach(function () {
+			// Remove clock
+			jasmine.clock().uninstall();
 		});
 
 
@@ -273,7 +266,7 @@ describe("Remote Data", function () {
 			expect(function () {
 				grid.reset();
 				grid.refetch();
-			}).toThrow('Your count() method must return a number. It returned a string of value "bad value" instead.');
+			}).toThrowError('Your count() method must return a number. It returned a string of value "bad value" instead.');
 
 			// Put value back
 			grid.fetcher.count = oldCount;
@@ -292,9 +285,7 @@ describe("Remote Data", function () {
 
 
 		it("should automatically load the first page", function () {
-			runs(function () {
-				expect(grid.collection.items[0].toString()).toEqual('[object Object]');
-			});
+			expect(grid.collection.items[0].toString()).toEqual('[object Object]');
 		});
 
 
@@ -303,28 +294,13 @@ describe("Remote Data", function () {
 
 		it("should correctly load the second page", function () {
 			// Scroll to second page
-			runs(function () {
-				grid.scrollToRow(20);
-			});
+			grid.scrollToRow(20);
 
 			// Wait for first page to load
-			waitsFor(function () {
-				return grid.collection.items[20].toString() !== 'Placeholder';
-			}, "Fetching the second page", 2000);
+			jasmine.clock().tick(500);
 
-			runs(function () {
-				expect(grid.collection.items[20].toString()).toEqual('[object Object]');
-			});
-		});
-
-
-		// ==========================================================================================
-
-
-		it("should display an empty row when remote data is empty", function () {
-			var rows = grid.$el.find('.doby-grid-row');
-			expect(rows.length).toEqual(0);
-			expect(grid.$el).toContain('.doby-grid-empty');
+			// Check second page
+			expect(grid.collection.items[20].toString()).toEqual('[object Object]');
 		});
 
 
@@ -351,18 +327,15 @@ describe("Remote Data", function () {
 				}
 			});
 
-			waitsFor(function () {
-				row = grid.$el.find('.doby-grid-row:nth-child(2)').first();
-				return row.text().indexOf('test') >= 0;
-			}, 50);
+			// Wait for reload
+			jasmine.clock().tick(500);
 
+			// Confirm reload
+			row = grid.$el.find('.doby-grid-row:nth-child(2)').first();
+			expect(row.text().indexOf('test')).toBeGreaterThan(-1);
 
-			runs(function () {
-				// Make sure the inserted row is 200 pixels high
-				row = grid.$el.find('.doby-grid-row:nth-child(2)').first();
-				expect(row.height()).toEqual(200);
-			});
-
+			// Make sure the inserted row is 200 pixels high
+			expect(row.height()).toEqual(200);
 		});
 
 
@@ -370,22 +343,22 @@ describe("Remote Data", function () {
 
 
 		it("should refetch grid if it has been resized and gotten bigger", function () {
-			var wrapper = grid.$el.parent(),
-				remoteloaded = false;
+			var wrapper = grid.$el.parent();
 
 			wrapper.css('height', 800);
 
+			var loaded = jasmine.createSpy('remoteLoaded');
+
 			// Listen for refetch event
-			grid.on('remoteloaded', function () {
-				remoteloaded = true;
-			});
+			grid.on('remoteloaded', loaded);
 
 			// Trigger resize
 			grid.resize();
 
-			waitsFor(function () {
-				return remoteloaded;
-			}, 400, 'waiting for data to be fetched');
+			// Wait for reload
+			jasmine.clock().tick(500);
+
+			expect(loaded).toHaveBeenCalled();
 		});
 
 
@@ -398,24 +371,18 @@ describe("Remote Data", function () {
 				var column_id = "city";
 
 				// Add grouping
-				runs(function () {
-					grid.addGrouping(column_id);
-				});
+				grid.addGrouping(column_id);
 
-				// Wait for the groups to be fetched and calculated
-				waitsFor(function () {
-					return grid.collection.groups.length && grid.collection.groups[0].rows.length;
-				});
+				// Wait for reload
+				jasmine.clock().tick(500);
 
-				runs(function () {
-					// Groups should be generated
-					expect(grid.collection.groups.length).toEqual(1);
-					expect(grid.collection.groups[0].column_id).toEqual(column_id);
+				// Groups should be generated
+				expect(grid.collection.groups.length).toEqual(1);
+				expect(grid.collection.groups[0].column_id).toEqual(column_id);
 
-					// Only group rows should be drawn
-					grid.$el.find('.doby-grid-row').each(function () {
-						expect($(this)).toHaveClass('doby-grid-group');
-					});
+				// Only group rows should be drawn
+				grid.$el.find('.doby-grid-row').each(function () {
+					expect($(this)).toHaveClass('doby-grid-group');
 				});
 			});
 
@@ -428,49 +395,35 @@ describe("Remote Data", function () {
 					another_column_id = "age";
 
 				// Add grouping
-				runs(function () {
-					grid.addGrouping(column_id);
-				});
+				grid.addGrouping(column_id);
 
-				// Wait for the groups to be fetched and calculated
-				waitsFor(function () {
-					return grid.collection.groups.length && grid.collection.groups[0].rows.length;
-				});
+				// Wait for reload
+				jasmine.clock().tick(500);
 
-				runs(function () {
-					// Groups should be generated
-					expect(grid.collection.groups.length).toEqual(1);
-					expect(grid.collection.groups[0].column_id).toEqual(column_id);
+				// Groups should be generated
+				expect(grid.collection.groups.length).toEqual(1);
+				expect(grid.collection.groups[0].column_id).toEqual(column_id);
 
-					// Only group rows should be drawn
-					grid.$el.find('.doby-grid-row').each(function () {
-						expect($(this)).toHaveClass('doby-grid-group');
-						expect($(this).find('.doby-grid-group-title strong').first()).toHaveText('City:');
-					});
+				// Only group rows should be drawn
+				grid.$el.find('.doby-grid-row').each(function () {
+					expect($(this)).toHaveClass('doby-grid-group');
+					expect($(this).find('.doby-grid-group-title strong').first()).toHaveText('City:');
 				});
 
 				// Now group by another column
-				runs(function () {
-					grid.setGrouping([{column_id: another_column_id}]);
-				});
+				grid.setGrouping([{column_id: another_column_id}]);
 
-				// Wait for the groups to be fetched and calculated
-				waitsFor(function () {
-					return grid.collection.groups.length &&
-						grid.collection.groups[0].column_id == another_column_id &&
-						grid.collection.groups[0].rows.length;
-				});
+				// Wait for reload
+				jasmine.clock().tick(500);
 
-				runs(function () {
-					// Groups should be generated
-					expect(grid.collection.groups.length).toEqual(1);
-					expect(grid.collection.groups[0].column_id).toEqual(another_column_id);
+				// Groups should be generated
+				expect(grid.collection.groups.length).toEqual(1);
+				expect(grid.collection.groups[0].column_id).toEqual(another_column_id);
 
-					// Only group rows should be drawn
-					grid.$el.find('.doby-grid-row').each(function () {
-						expect($(this)).toHaveClass('doby-grid-group');
-						expect($(this).find('.doby-grid-group-title strong').first()).toHaveText('Age:');
-					});
+				// Only group rows should be drawn
+				grid.$el.find('.doby-grid-row').each(function () {
+					expect($(this)).toHaveClass('doby-grid-group');
+					expect($(this).find('.doby-grid-group-title strong').first()).toHaveText('Age:');
 				});
 			});
 
@@ -482,55 +435,43 @@ describe("Remote Data", function () {
 				var column_id = "city";
 
 				// Add grouping
-				runs(function () {
-					grid.addGrouping(column_id);
+				grid.addGrouping(column_id);
+
+				// Wait for reload
+				jasmine.clock().tick(500);
+
+				// Groups should be generated
+				expect(grid.collection.groups.length).toEqual(1);
+				expect(grid.collection.groups[0].column_id).toEqual(column_id);
+
+				// Only group rows should be drawn
+				var $rows = grid.$el.find('.doby-grid-row');
+				$rows.each(function () {
+					expect($(this)).toHaveClass('doby-grid-group');
 				});
 
-				// Wait for the groups to be fetched and calculated
-				waitsFor(function () {
-					return grid.collection.groups.length && grid.collection.groups[0].rows.length;
-				}, 1000, 'groups to be fetched and calculated');
-
-				runs(function () {
-					// Groups should be generated
-					expect(grid.collection.groups.length).toEqual(1);
-					expect(grid.collection.groups[0].column_id).toEqual(column_id);
-
-					// Only group rows should be drawn
-					var $rows = grid.$el.find('.doby-grid-row');
-					$rows.each(function () {
-						expect($(this)).toHaveClass('doby-grid-group');
-					});
-
-					// Expand the second row
-					$rows.eq(0).find('.doby-grid-cell').simulate('click');
-				});
+				// Expand the second row
+				$rows.eq(0).find('.doby-grid-cell').simulate('click');
 
 				// Wait for some non-placeholder row data to be fetched
-				waitsFor(function () {
-					return _.filter(grid.collection.items, function (item) {
-						return !item.__nonDataRow;
-					}).length;
-				}, 1000, 'some non-placeholder row data to be fetched');
+				jasmine.clock().tick(500);
 
-				runs(function () {
-					// Find the group row that got expanded
-					var expandedgroup = _.findWhere(grid.collection.groups[0].rows, {collapsed: 0});
+				// Find the group row that got expanded
+				var expandedgroup = _.findWhere(grid.collection.groups[0].rows, {collapsed: 0});
 
-					// Expect the correct grid.collection item values to have been fetched
-					_.each(grid.collection.items, function (item) {
-						if (!item.__nonDataRow) {
-							expect(item.data[column_id]).toEqual(expandedgroup.value);
-						}
-					});
+				// Expect the correct grid.collection item values to have been fetched
+				_.each(grid.collection.items, function (item) {
+					if (!item.__nonDataRow) {
+						expect(item.data[column_id]).toEqual(expandedgroup.value);
+					}
+				});
 
-					// And expect only those rows to have been rendered
-					grid.$el.find('.doby-grid-row').each(function () {
-						if (!$(this).hasClass('doby-grid-group')) {
-							var $cell = $(this).find('.doby-grid-cell').last();
-							if ($cell.text()) expect($cell).toHaveText(expandedgroup.value);
-						}
-					});
+				// And expect only those rows to have been rendered
+				grid.$el.find('.doby-grid-row').each(function () {
+					if (!$(this).hasClass('doby-grid-group')) {
+						var $cell = $(this).find('.doby-grid-cell').last();
+						if ($cell.text()) expect($cell).toHaveText(expandedgroup.value);
+					}
 				});
 			});
 
@@ -540,89 +481,102 @@ describe("Remote Data", function () {
 
 			it("should be able to sort grouped results", function () {
 				var column_id = "city",
-					sorting_column_id = "id",
-					sorted = false,
-					opened = false;
+					sorting_column_id = "id";
 
 				// Add grouping
-				runs(function () {
-					grid.addGrouping(column_id);
+				grid.addGrouping(column_id);
+
+				// Wait for reload
+				jasmine.clock().tick(500);
+
+				// Groups should be generated
+				expect(grid.collection.groups.length).toEqual(1);
+				expect(grid.collection.groups[0].column_id).toEqual(column_id);
+
+				// Only group rows should be drawn
+				var $rows = grid.$el.find('.doby-grid-row');
+				$rows.each(function () {
+					expect($(this)).toHaveClass('doby-grid-group');
 				});
 
-				// Wait for the groups to be fetched and calculated
-				waitsFor(function () {
-					return grid.collection.groups.length && grid.collection.groups[0].rows.length;
-				});
-
-				runs(function () {
-					// Groups should be generated
-					expect(grid.collection.groups.length).toEqual(1);
-					expect(grid.collection.groups[0].column_id).toEqual(column_id);
-
-					// Only group rows should be drawn
-					var $rows = grid.$el.find('.doby-grid-row');
-					$rows.each(function () {
-						expect($(this)).toHaveClass('doby-grid-group');
-					});
-
-					grid.once('remotegroupsloaded', function () {
-						sorted = true;
-					});
-
-					// Apply sorting by a column
-					grid.sortBy(sorting_column_id);
-				});
+				// Apply sorting by a column
+				grid.sortBy(sorting_column_id);
 
 				// Wait for some non-placeholder row data to be fetched
-				waitsFor(function () {
-					return sorted;
-				});
+				jasmine.clock().tick(500);
 
-				runs(function () {
-					grid.once('remoteloaded', function () {
-						opened = true;
-					});
-
-					// Expand the first group
-					grid.$el.find('.doby-grid-group:first .doby-grid-cell:first').simulate('click', {});
-				});
+				// Expand the first group
+				grid.$el.find('.doby-grid-group:first .doby-grid-cell:first').simulate('click', {});
 
 				// Wait for some non-placeholder row data to be fetched
-				waitsFor(function () {
-					return opened;
+				jasmine.clock().tick(500);
+
+				// Get viewport height
+				var viewportH = grid.$el.find('.doby-grid-viewport').height(),
+					rowH = grid.$el.find('.doby-grid-row:first').outerHeight(),
+					num_rows_visible = Math.floor(viewportH / rowH);
+
+				// Make sure all visible rows have the correct data
+				var rows = _.sortBy(grid.$el.find('.doby-grid-row:not(.doby-grid-group)'), function (row) {
+					// For some reason jasmine-grunt doesn't like .css('top') here, which returns NaN
+					// But attr('style') seems to return the right thing. Wat?
+					return parseInt($(row).attr('style').replace('top:', ''), 10);
 				});
 
-				runs(function () {
-					// Get viewport height
-					var viewportH = grid.$el.find('.doby-grid-viewport').height(),
-						rowH = grid.$el.find('.doby-grid-row:first').outerHeight(),
-						num_rows_visible = Math.floor(viewportH / rowH);
+				var $row;
+				for (var i = 0; i < num_rows_visible; i++) {
+					$row = $(rows[i]);
 
-					// Make sure all visible rows have the correct data
-					var rows = _.sortBy(grid.$el.find('.doby-grid-row:not(.doby-grid-group)'), function (row) {
-						// For some reason jasmine-grunt doesn't like .css('top') here, which returns NaN
-						// But attr('style') seems to return the right thing. Wat?
-						return parseInt($(row).attr('style').replace('top:', ''), 10);
-					});
+					if ($row.hasClass('doby-grid-group')) {
+						expect($row).toHaveClass('expanded');
+					} else {
+						// Make sure we have at least some text rendered (ie. not a placeholder)
+						expect($row.find('.doby-grid-cell.l0:first').first().text()).not.toEqual('');
 
-					var $row;
-					for (var i = 0; i < num_rows_visible; i++) {
-						$row = $(rows[i]);
+						if (i > 1) {
+							// Now make sure it's in the right sorting order
+							var this_id = parseInt($row.find('.doby-grid-cell.l0:first').first().text(), 10),
+								prev_id = parseInt($(rows[i - 1]).find('.doby-grid-cell:first').first().text(), 10);
 
-						if ($row.hasClass('doby-grid-group')) {
-							expect($row).toHaveClass('expanded');
-						} else {
-							// Make sure we have at least some text rendered (ie. not a placeholder)
-							expect($row.find('.doby-grid-cell.l0:first').first().text()).not.toEqual('');
-
-							if (i > 1) {
-								// Now make sure it's in the right sorting order
-								var this_id = parseInt($row.find('.doby-grid-cell.l0:first').first().text(), 10),
-									prev_id = parseInt($(rows[i - 1]).find('.doby-grid-cell:first').first().text(), 10);
-
-								expect(this_id).toBeGreaterThan(prev_id);
-							}
+							expect(this_id).toBeGreaterThan(prev_id);
 						}
+					}
+				}
+			});
+
+
+			// ==========================================================================================
+
+
+			it("should be reverse grouped order when changing sort direction of column", function () {
+				var column_id = "city";
+
+				// Add grouping
+				grid.addGrouping(column_id);
+
+				// Wait for reload
+				jasmine.clock().tick(500);
+
+				// Apply sorting by a column
+				grid.sortBy(column_id);
+
+				// Click on header to reverse sorting
+				var $header = grid.$el.find('.doby-grid-header-column[id*="' + column_id + '"]:first').first();
+
+				$header.simulate('click');
+
+				// Wait for reload
+				jasmine.clock().tick(500);
+
+				var groups = _.sortBy(grid.$el.find('.doby-grid-group'), function (row) {
+					return parseInt($(row).attr('style').replace('top:', ''), 10);
+				});
+
+				var $group;
+				_.each(groups, function (group, i) {
+					$group = $(group);
+					if (i > 0) {
+						expect($group.find('.doby-grid-group-title').text()).toBeLessThan($(groups[i - 1]).find('.doby-grid-group-title').text());
 					}
 				});
 			});
@@ -631,117 +585,43 @@ describe("Remote Data", function () {
 			// ==========================================================================================
 
 
-			it("should be reverse grouped order when changing sort direction of column", function () {
-				var column_id = "city",
-					sorted = false;
-
-				// Add grouping
-				runs(function () {
-					grid.addGrouping(column_id);
-				});
-
-				// Wait for the groups to be fetched and calculated
-				waitsFor(function () {
-					return grid.collection.groups.length && grid.collection.groups[0].rows.length;
-				});
-
-				runs(function () {
-					// Apply sorting by a column
-					grid.sortBy(column_id);
-
-					grid.once('remotegroupsloaded', function () {
-						sorted = true;
-					});
-
-					// Click on header to reverse sorting
-					var $header = grid.$el.find('.doby-grid-header-column[id*="' + column_id + '"]:first').first();
-
-					$header.simulate('click');
-				});
-
-				waitsFor(function () {
-					return sorted;
-				});
-
-				runs(function () {
-					var groups = _.sortBy(grid.$el.find('.doby-grid-group'), function (row) {
-						return parseInt($(row).attr('style').replace('top:', ''), 10);
-					});
-
-
-					var $group;
-					_.each(groups, function (group, i) {
-						$group = $(group);
-						if (i > 0) {
-							expect($group.find('.doby-grid-group-title').text()).toBeLessThan($(groups[i - 1]).find('.doby-grid-group-title').text());
-						}
-					});
-				});
-			});
-
-
-			// ==========================================================================================
-
-
 			it("should be able to fetch grouped result rows when sorting in reverse order", function () {
-				var column_id = "age",
-					sorted = false,
-					opened = false;
+				var column_id = "age";
 
 				// Add grouping
-				runs(function () {
-					grid.addGrouping(column_id);
+				grid.addGrouping(column_id);
+
+				// Wait for reload
+				jasmine.clock().tick(500);
+
+				// Apply sorting by a column
+				grid.sortBy(column_id);
+
+				// Click on header to reverse sorting
+				var $header = grid.$el.find('.doby-grid-header-column[id*="' + column_id + '"]:first').first();
+
+				$header.simulate('click');
+
+				// Wait for reload
+				jasmine.clock().tick(500);
+
+				// Expand the first group
+				grid.$el.find('.doby-grid-group:first .doby-grid-cell:first').simulate('click', {});
+
+				// Wait for reload
+				jasmine.clock().tick(500);
+
+				var rows = _.sortBy(grid.$el.find('.doby-grid-row:not(.doby-grid-group)'), function (row) {
+					// For some reason jasmine-grunt doesn't like .css('top') here, which returns NaN
+					// But attr('style') seems to return the right thing. Wat?
+					return parseInt($(row).attr('style').replace('top:', ''), 10);
 				});
 
-				// Wait for the groups to be fetched and calculated
-				waitsFor(function () {
-					return grid.collection.groups.length && grid.collection.groups[0].rows.length;
-				});
-
-				runs(function () {
-					// Apply sorting by a column
-					grid.sortBy(column_id);
-
-					grid.once('remotegroupsloaded', function () {
-						sorted = true;
-					});
-
-					// Click on header to reverse sorting
-					var $header = grid.$el.find('.doby-grid-header-column[id*="' + column_id + '"]:first').first();
-
-					$header.simulate('click');
-				});
-
-				waitsFor(function () {
-					return sorted;
-				});
-
-				runs(function () {
-					grid.once('remoteloaded', function () {
-						opened = true;
-					});
-
-					// Expand the first group
-					grid.$el.find('.doby-grid-group:first .doby-grid-cell:first').simulate('click', {});
-				});
-
-				waitsFor(function () {
-					return opened;
-				});
-
-				runs(function () {
-					var rows = _.sortBy(grid.$el.find('.doby-grid-row:not(.doby-grid-group)'), function (row) {
-						// For some reason jasmine-grunt doesn't like .css('top') here, which returns NaN
-						// But attr('style') seems to return the right thing. Wat?
-						return parseInt($(row).attr('style').replace('top:', ''), 10);
-					});
-
-					// Make sure at least first 3 rows have visible data loaded
-					_.each(rows, function (row, i) {
-						if (i < 3) {
-							expect($(row).find('.doby-grid-cell.l2')).toHaveText(27);
-						}
-					});
+				// Make sure at least first 3 rows have visible data loaded
+				_.each(rows, function (row, i) {
+					if (i < 3) {
+						expect($(row).find('.doby-grid-cell.l2')).toHaveText(27);
+					}
 				});
 			});
 
@@ -751,88 +631,62 @@ describe("Remote Data", function () {
 
 			it("should be able to sort grouped results after a group has been expanded", function () {
 				var column_id = "city",
-					sorting_column_id = "age",
-					sorted = false,
-					opened = false;
+					sorting_column_id = "age";
 
 				// Add grouping
-				runs(function () {
-					grid.addGrouping(column_id);
+				grid.addGrouping(column_id);
+
+				// Wait for reload
+				jasmine.clock().tick(500);
+
+				// Groups should be generated
+				expect(grid.collection.groups.length).toEqual(1);
+				expect(grid.collection.groups[0].column_id).toEqual(column_id);
+
+				// Only group rows should be drawn
+				var $rows = grid.$el.find('.doby-grid-row');
+				$rows.each(function () {
+					expect($(this)).toHaveClass('doby-grid-group');
 				});
 
-				// Wait for the groups to be fetched and calculated
-				waitsFor(function () {
-					return grid.collection.groups.length && grid.collection.groups[0].rows.length;
+				// Expand the second group
+				grid.$el.find('.doby-grid-group:nth-child(2) .doby-grid-cell:first').simulate('click', {});
+
+				// Wait for reload
+				jasmine.clock().tick(500);
+
+				// Apply sorting by a column
+				grid.sortBy(sorting_column_id);
+
+				// Wait for reload
+				jasmine.clock().tick(500);
+
+				// Check to make sure all expanded rows have the correct data
+				var rows = _.sortBy(grid.$el.find('.doby-grid-row:not(.doby-grid-group)'), function (row) {
+					// For some reason jasmine-grunt doesn't like .css('top') here, which returns NaN
+					// But attr('style') seems to return the right thing. Wat?
+					return parseInt($(row).attr('style').replace('top:', ''), 10);
 				});
 
-				runs(function () {
-					// Groups should be generated
-					expect(grid.collection.groups.length).toEqual(1);
-					expect(grid.collection.groups[0].column_id).toEqual(column_id);
+				// Number of rows which we're expecting to be visible at this point
+				var viewportH = grid.$el.find('.doby-grid-viewport').height(),
+					rowH = grid.$el.find('.doby-grid-row:first').outerHeight(),
+					num_rows_visible = Math.floor(viewportH / rowH);
 
-					// Only group rows should be drawn
-					var $rows = grid.$el.find('.doby-grid-row');
-					$rows.each(function () {
-						expect($(this)).toHaveClass('doby-grid-group');
-					});
-				});
+				// Remove the extra collapsed group row above
+				num_rows_visible--;
 
-				runs(function () {
-					grid.once('remoteloaded', function () {
-						opened = true;
-					});
+				_.each(rows, function (row, i) {
+					if (i > num_rows_visible) return;
 
-					// Expand the second group
-					grid.$el.find('.doby-grid-group:nth-child(2) .doby-grid-cell:first').simulate('click', {});
-				});
+					expect($(row).children('.l2').text()).not.toEqual('');
 
-				// Wait for some non-placeholder row data to be fetched
-				waitsFor(function () {
-					return opened;
-				});
+					if (i > 0) {
+						var left = $(row).children('.l2').text(),
+							right = $(rows[i - 1]).children('.l2').text();
 
-				runs(function () {
-					grid.once('remoteloaded', function () {
-						sorted = true;
-					});
-
-					// Apply sorting by a column
-					grid.sortBy(sorting_column_id);
-				});
-
-				// Wait for some non-placeholder row data to be fetched
-				waitsFor(function () {
-					return sorted;
-				});
-
-				runs(function () {
-					// Check to make sure all expanded rows have the correct data
-					var rows = _.sortBy(grid.$el.find('.doby-grid-row:not(.doby-grid-group)'), function (row) {
-						// For some reason jasmine-grunt doesn't like .css('top') here, which returns NaN
-						// But attr('style') seems to return the right thing. Wat?
-						return parseInt($(row).attr('style').replace('top:', ''), 10);
-					});
-
-					// Number of rows which we're expecting to be visible at this point
-					var viewportH = grid.$el.find('.doby-grid-viewport').height(),
-						rowH = grid.$el.find('.doby-grid-row:first').outerHeight(),
-						num_rows_visible = Math.floor(viewportH / rowH);
-
-					// Remove the extra collapsed group row above
-					num_rows_visible--;
-
-					_.each(rows, function (row, i) {
-						if (i > num_rows_visible) return;
-
-						expect($(row).children('.l2').text()).not.toEqual('');
-
-						if (i > 0) {
-							var left = $(row).children('.l2').text(),
-								right = $(rows[i - 1]).children('.l2').text();
-
-							expect(left).not.toBeLessThan(right);
-						}
-					});
+						expect(left).not.toBeLessThan(right);
+					}
 				});
 			});
 
@@ -841,55 +695,31 @@ describe("Remote Data", function () {
 
 
 			it("should fetch the correct row data when grouped results are scrolled before being expanded", function () {
-				var column_id = "id",
-					scrolled = true,
-					opened = false;
+				var column_id = "id";
 
 				// Add grouping
-				runs(function () {
-					grid.addGrouping(column_id);
-				});
+				grid.addGrouping(column_id);
 
-				// Wait for the groups to be fetched and calculated
-				waitsFor(function () {
-					return grid.collection.groups.length && grid.collection.groups[0].rows.length;
-				});
+				// Wait for reload
+				jasmine.clock().tick(500);
 
-				runs(function () {
-					grid.once('remoteloaded', function () {
-						scrolled = true;
-					});
+				// Scroll to the bottom
+				grid.scrollToRow(grid.collection.length);
 
-					// Scroll to the bottom
-					grid.scrollToRow(grid.collection.length);
-				});
+				// Wait for reload
+				jasmine.clock().tick(500);
 
-				// Wait for some non-placeholder row data to be fetched
-				waitsFor(function () {
-					return scrolled;
-				});
+				// Expand a group in the middle of the last page
+				grid.$el.find('.doby-grid-group:nth-child(10) .doby-grid-cell:first').simulate('click', {});
 
-				runs(function () {
-					grid.once('remoteloaded', function () {
-						opened = true;
-					});
+				// Wait for reload
+				jasmine.clock().tick(500);
 
-					// Expand a group in the middle of the last page
-					grid.$el.find('.doby-grid-group:nth-child(10) .doby-grid-cell:first').simulate('click', {});
-				});
+				// Find the non-group row
+				var $row = grid.$el.find('.doby-grid-row:not(.doby-grid-group)');
 
-				// Wait for some non-placeholder row data to be fetched
-				waitsFor(function () {
-					return opened;
-				});
-
-				runs(function () {
-					// Find the non-group row
-					var $row = grid.$el.find('.doby-grid-row:not(.doby-grid-group)');
-
-					// Should not be a placeholder
-					expect($row.find('.l0')).not.toBeEmpty();
-				});
+				// Should not be a placeholder
+				expect($row.find('.l0')).not.toBeEmpty();
 			});
 
 
@@ -899,105 +729,86 @@ describe("Remote Data", function () {
 			it("should be able to correctly fetch and render nested groupings", function () {
 				var group1_column_id = "age",
 					group2_column_id = "city",
-					opened2 = false,
 					rows;
 
 				// Add grouping
-				runs(function () {
-					grid.setGrouping([{column_id: group1_column_id}, {column_id: group2_column_id}]);
+				grid.setGrouping([{column_id: group1_column_id}, {column_id: group2_column_id}]);
+
+				// Wait for reload
+				jasmine.clock().tick(500);
+
+				// Groups should be generated
+				expect(grid.collection.groups.length).toEqual(2);
+				expect(grid.collection.groups[0].column_id).toEqual(group1_column_id);
+
+				// Only group rows should be drawn
+				var $rows = grid.$el.find('.doby-grid-row');
+				$rows.each(function () {
+					expect($(this)).toHaveClass('doby-grid-group');
 				});
 
-				// Wait for the groups to be fetched and calculated
-				waitsFor(function () {
-					return grid.collection.groups.length == 2 && grid.collection.groups[0].rows.length;
+				rows = _.sortBy(grid.$el.find('.doby-grid-group'), function (row) {
+					// For some reason jasmine-grunt doesn't like .css('top') here, which returns NaN
+					// But attr('style') seems to return the right thing. Wat?
+					return parseInt($(row).attr('style').replace('top:', ''), 10);
 				});
 
-				runs(function () {
-					// Groups should be generated
-					expect(grid.collection.groups.length).toEqual(2);
-					expect(grid.collection.groups[0].column_id).toEqual(group1_column_id);
-
-					// Only group rows should be drawn
-					var $rows = grid.$el.find('.doby-grid-row');
-					$rows.each(function () {
-						expect($(this)).toHaveClass('doby-grid-group');
-					});
-
-					rows = _.sortBy(grid.$el.find('.doby-grid-group'), function (row) {
-						// For some reason jasmine-grunt doesn't like .css('top') here, which returns NaN
-						// But attr('style') seems to return the right thing. Wat?
-						return parseInt($(row).attr('style').replace('top:', ''), 10);
-					});
-
-					// Expand the first group
-					$(rows[0]).find('.doby-grid-cell:first').simulate('click', {});
-				});
+				// Expand the first group
+				$(rows[0]).find('.doby-grid-cell:first').simulate('click', {});
 
 				// Wait for some secondary group rows to be fetched
-				waitsFor(function () {
-					return grid.$el.find('.doby-grid-group').length > rows.length;
-				}, 500, 'some secondary group rows to be fetched');
+				jasmine.clock().tick(500);
 
-				runs(function () {
-					// All rows should still be groups
-					var $rows = grid.$el.find('.doby-grid-row');
-					$rows.each(function () {
-						expect($(this)).toHaveClass('doby-grid-group');
-					});
-
-					grid.once('remoteloaded', function () {
-						opened2 = true;
-					});
-
-					rows = _.sortBy(grid.$el.find('.doby-grid-group'), function (row) {
-						// For some reason jasmine-grunt doesn't like .css('top') here, which returns NaN
-						// But attr('style') seems to return the right thing. Wat?
-						return parseInt($(row).attr('style').replace('top:', ''), 10);
-					});
-
-					// Expand the first group's first group
-					$(rows[1]).find('.doby-grid-cell:first').simulate('click', {});
+				// All rows should still be groups
+				$rows = grid.$el.find('.doby-grid-row');
+				$rows.each(function () {
+					expect($(this)).toHaveClass('doby-grid-group');
 				});
+
+				rows = _.sortBy(grid.$el.find('.doby-grid-group'), function (row) {
+					// For some reason jasmine-grunt doesn't like .css('top') here, which returns NaN
+					// But attr('style') seems to return the right thing. Wat?
+					return parseInt($(row).attr('style').replace('top:', ''), 10);
+				});
+
+				// Expand the first group's first group
+				$(rows[1]).find('.doby-grid-cell:first').simulate('click', {});
 
 				// Wait for some non-placeholder row data to be fetched
-				waitsFor(function () {
-					return opened2;
+				jasmine.clock().tick(500);
+
+				// At this point we should have one regular row visible
+				$rows = grid.$el.find('.doby-grid-row:not(.doby-grid-group)');
+
+				// First make sure none of the opened rows are placeholders
+				$rows.each(function () {
+					expect($(this).find('.doby-grid-cell').html()).not.toBeEmpty();
 				});
 
-				runs(function () {
-					// At this point we should have one regular row visible
-					var $rows = grid.$el.find('.doby-grid-row:not(.doby-grid-group)');
+				// Make sure the right group was opened. Find the groups which are expanded
+				// and use those to verify the data.
+				var open_groups = [];
+				_.each(grid.collection.groups[0].rows, function (g) {
+					if (g.collapsed === 0) {
+						open_groups.push({
+							column: g.predef.column_id,
+							value: g.value
+						});
 
-					// First make sure none of the opened rows are placeholders
-					$rows.each(function () {
-						expect($(this).find('.doby-grid-cell').html()).not.toBeEmpty();
-					});
+						_.each(g.groups, function (s) {
+							if (s.collapsed === 0) {
+								open_groups.push({
+									column: s.predef.column_id,
+									value: s.value
+								});
+							}
+						});
+					}
+				});
 
-					// Make sure the right group was opened. Find the groups which are expanded
-					// and use those to verify the data.
-					var open_groups = [];
-					_.each(grid.collection.groups[0].rows, function (g) {
-						if (g.collapsed === 0) {
-							open_groups.push({
-								column: g.predef.column_id,
-								value: g.value
-							});
-
-							_.each(g.groups, function (s) {
-								if (s.collapsed === 0) {
-									open_groups.push({
-										column: s.predef.column_id,
-										value: s.value
-									});
-								}
-							});
-						}
-					});
-
-					$rows.each(function () {
-						expect($(this).find('.doby-grid-cell.l2').html()).toBe(open_groups[0].value.toString());
-						expect($(this).find('.doby-grid-cell.l3').html()).toBe(open_groups[1].value.toString());
-					});
+				$rows.each(function () {
+					expect($(this).find('.doby-grid-cell.l2').html()).toBe(open_groups[0].value.toString());
+					expect($(this).find('.doby-grid-cell.l3').html()).toBe(open_groups[1].value.toString());
 				});
 			});
 
@@ -1009,34 +820,32 @@ describe("Remote Data", function () {
 				var column_id1 = "city",
 					column_id2a = "age",
 					column_id2b = "name",
-					updated = false;
+					loaded = jasmine.createSpy('remoteLoaded');
+
+				grid.on('remoteloaded', loaded);
 
 				// Add grouping
-				runs(function () {
-					grid.setGrouping([
-						{column_id: column_id1, collapsed: false},
-						{column_id: column_id2a, collapsed: false}
-					]);
-				});
+				grid.setGrouping([
+					{column_id: column_id1, collapsed: false},
+					{column_id: column_id2a, collapsed: false}
+				]);
 
-				// Wait for the groups to be fetched and calculated
-				waitsFor(function () {
-					return grid.collection.groups.length == 2 && grid.collection.groups[0].rows.length;
-				}, 500, 'groups should be fetched');
+				// Wait for reload
+				jasmine.clock().tick(500);
+
+				expect(loaded).toHaveBeenCalled();
 
 				// Change grouping
-				runs(function () {
-					grid.on('remoteloaded', function () {
-						updated = true;
-					});
+				grid.setGrouping([
+					{column_id: column_id1, collapsed: false},
+					{column_id: column_id2b, collapsed: false}
+				]);
 
-					grid.setGrouping([{column_id: column_id1}, {column_id: column_id2b}]);
-				});
+				jasmine.clock().tick(500);
 
-				// Wait for data to be refetched
-				waitsFor(function () {
-					return updated;
-				}, 500, 'fetch should be called again');
+				// Should be called again
+				expect(loaded).toHaveBeenCalled();
+				expect(loaded.calls.count()).toEqual(2);
 			});
 		});
 
@@ -1048,32 +857,21 @@ describe("Remote Data", function () {
 
 			it("should be able to filter remote results", function () {
 				var column_id = "city",
-					value = 'Vancouver',
-					updated = 0;
+					value = 'Vancouver';
 
 				// Filter
-				runs(function () {
-					grid.on('remoteloaded', function () {
-						updated++;
-					});
+				grid.filter([[column_id, '=', value]]);
 
-					grid.filter([[column_id, '=', value]]);
-				});
+				// Wait for reload
+				jasmine.clock().tick(500);
 
-				// Wait for data to be refetched
-				waitsFor(function () {
-					return updated;
-				});
-
-				runs(function () {
-					// Verify that only Vancouver rows are left visible
-					var $rows = grid.$el.find('.doby-grid-row'), $cell;
-					$rows.each(function () {
-						$cell = $(this).children('.doby-grid-cell.l3');
-						if ($cell.text() !== '') {
-							expect($cell).toHaveText(value);
-						}
-					});
+				// Verify that only Vancouver rows are left visible
+				var $rows = grid.$el.find('.doby-grid-row'), $cell;
+				$rows.each(function () {
+					$cell = $(this).children('.doby-grid-cell.l3');
+					if ($cell.text() !== '') {
+						expect($cell).toHaveText(value);
+					}
 				});
 			});
 
@@ -1083,40 +881,25 @@ describe("Remote Data", function () {
 
 			it("should be able to filter remote results when results are grouped", function () {
 				var column_id = "city",
-					value = 'Vancouver',
-					updated = false;
+					value = 'Vancouver';
 
 				// Add grouping
-				runs(function () {
-					grid.setGrouping([{column_id: column_id}]);
-				});
+				grid.setGrouping([{column_id: column_id}]);
 
-				// Wait for the groups to be fetched and calculated
-				waitsFor(function () {
-					return grid.collection.groups.length == 1 && grid.collection.groups[0].rows.length;
-				});
+				// Wait for reload
+				jasmine.clock().tick(500);
 
 				// Filter
-				runs(function () {
-					grid.on('remotegroupsloaded', function () {
-						updated = true;
-					});
+				grid.filter([[column_id, '=', value]]);
 
-					grid.filter([[column_id, '=', value]]);
-				});
+				// Wait for reload
+				jasmine.clock().tick(500);
 
-				// Wait for data to be refetched
-				waitsFor(function () {
-					return updated;
-				});
-
-				runs(function () {
-					// Verify that only Vancouver rows are left visible
-					var $rows = grid.$el.find('.doby-grid-row'), $cell;
-					$rows.each(function () {
-						$cell = $(this).find('.doby-grid-group-title:first').text();
-						expect($cell).toContain(value);
-					});
+				// Verify that only Vancouver rows are left visible
+				var $rows = grid.$el.find('.doby-grid-row'), $cell;
+				$rows.each(function () {
+					$cell = $(this).find('.doby-grid-group-title:first').text();
+					expect($cell).toContain(value);
 				});
 			});
 
@@ -1125,47 +908,35 @@ describe("Remote Data", function () {
 
 
 			it("should not fire filter events when Quick Filter value has not changed", function () {
-				var updated = false,
-					manualWait = false;
+				var loaded = jasmine.createSpy('remoteLoaded');
 
-				runs(function () {
-					// Launch the grid context menu
-					grid.$el.find('.doby-grid-cell').simulate('contextmenu');
+				// Launch the grid context menu
+				grid.$el.find('.doby-grid-cell').simulate('contextmenu');
 
-					// Popup the Quick Filter menu
-					$(document.body).find('.doby-grid-contextmenu .doby-grid-dropdown-menu .doby-grid-dropdown-menu .doby-grid-dropdown-item:first').each(function () {
-						if ($(this).text().indexOf('Quick Filter') >= 0) {
-							$(this).simulate('click');
-						}
-					});
-
-					// Make sure the Quick Filter popped out
-					expect(grid.$el).toContain('.doby-grid-header-filter');
-
-					// Focus on the first filter input cell
-					var $firstInput = grid.$el.find('.doby-grid-header-filter-cell input:first');
-					$firstInput.simulate('click');
-
-					// Simulate pressing down arrow
-					$firstInput.simulate('keyup', {keyCode: 40});
-
-					grid.on('remoteloaded', function () {
-						updated = true;
-					});
-
-					setTimeout(function () {
-						manualWait = true;
-					}, 500);
+				// Popup the Quick Filter menu
+				$(document.body).find('.doby-grid-contextmenu .doby-grid-dropdown-menu .doby-grid-dropdown-menu .doby-grid-dropdown-item:first').each(function () {
+					if ($(this).text().indexOf('Quick Filter') >= 0) {
+						$(this).simulate('click');
+					}
 				});
 
-				waitsFor(function () {
-					return manualWait;
-				});
+				// Make sure the Quick Filter popped out
+				expect(grid.$el).toContainElement('.doby-grid-header-filter');
 
-				runs(function () {
-					// Grid should not has been updated
-					expect(updated).toEqual(false);
-				});
+				grid.on('remoteloaded', loaded);
+
+				// Focus on the first filter input cell
+				var $firstInput = grid.$el.find('.doby-grid-header-filter-cell input:first');
+				$firstInput.simulate('click');
+
+				// Simulate pressing down arrow
+				$firstInput.simulate('keyup', {keyCode: 40});
+
+				// Wait for reload
+				jasmine.clock().tick(500);
+
+				// Grid should not has been updated
+				expect(loaded).not.toHaveBeenCalled();
 			});
 
 
@@ -1174,29 +945,18 @@ describe("Remote Data", function () {
 
 			it("should only display an 'empty' message row when filters return 0 results", function () {
 				var column_id = "city",
-					value = 'BADVALUE--NORESULS',
-					updated = 0;
+					value = 'BADVALUE--NORESULS';
 
 				// Filter
-				runs(function () {
-					grid.on('remoteloaded', function () {
-						updated++;
-					});
+				grid.filter([[column_id, '=', value]]);
 
-					grid.filter([[column_id, '=', value]]);
-				});
+				// Wait for reload
+				jasmine.clock().tick(500);
 
-				// Wait for data to be refetched
-				waitsFor(function () {
-					return updated;
-				});
-
-				runs(function () {
-					// Verify that empty message comes up
-					var $rows = grid.$el.find('.doby-grid-row');
-					expect($rows.length).toEqual(0);
-					expect(grid.$el).toContain('.doby-grid-empty');
-				});
+				// Verify that empty message comes up
+				var $rows = grid.$el.find('.doby-grid-row');
+				expect($rows.length).toEqual(0);
+				expect(grid.$el).toContainElement('.doby-grid-empty');
 			});
 
 
@@ -1208,31 +968,24 @@ describe("Remote Data", function () {
 					value = 'NoMatches';
 
 				// Add grouping
-				runs(function () {
-					grid.setGrouping([{column_id: column_id}]);
-				});
+				grid.setGrouping([{column_id: column_id}]);
 
-				// Wait for the groups to be fetched and calculated
-				waitsFor(function () {
-					return grid.collection.groups.length == 1 && grid.collection.groups[0].rows.length;
-				});
+				// Wait for reload
+				jasmine.clock().tick(500);
 
 				// Filter
-				runs(function () {
-					grid.filter([[column_id, '=', value]]);
-				});
+				grid.filter([[column_id, '=', value]]);
 
-				// Wait for grid to be reloaded
-				waitsFor(function () {
-					return grid.collection.remote_length === 0;
-				}, 50);
+				// Wait for reload
+				jasmine.clock().tick(500);
 
-				runs(function () {
-					// Verify that only 1 row is visible
-					var $rows = grid.$el.find('.doby-grid-row');
-					expect($rows.length).toEqual(0);
-					expect(grid.$el).toContain('.doby-grid-empty');
-				});
+				// Confirm remote
+				expect(grid.collection.remote_length).toEqual(0);
+
+				// Verify that only 1 row is visible
+				var $rows = grid.$el.find('.doby-grid-row');
+				expect($rows.length).toEqual(0);
+				expect(grid.$el).toContainElement('.doby-grid-empty');
 			});
 		});
 
@@ -1246,17 +999,16 @@ describe("Remote Data", function () {
 				var column_id = "id";
 
 				// Sort
-				runs(function () {
-					grid.sortBy(column_id, false);
-				});
+				grid.sortBy(column_id, false);
+
+				// Wait for reload
+				jasmine.clock().tick(500);
 
 				// Wait for the groups to be fetched and calculated
-				waitsFor(function () {
-					var rows = _.sortBy(grid.$el.find('.doby-grid-row'), function (row) {
-						return parseInt($(row).attr('style').replace('top:', ''), 10);
-					});
-					return $(rows[0]).children('.l0').text() == '99';
-				}, 300, 'waiting for the grid to resort itself correctly');
+				var rows = _.sortBy(grid.$el.find('.doby-grid-row'), function (row) {
+					return parseInt($(row).attr('style').replace('top:', ''), 10);
+				});
+				expect($(rows[0]).children('.l0').text()).toEqual('99');
 			});
 		});
 
@@ -1271,6 +1023,9 @@ describe("Remote Data", function () {
 		var grid, data, count, adds;
 
 		beforeEach(function () {
+			// Start Jasmine Clock
+			jasmine.clock().install();
+
 			data = new Backbone.Collection();
 			count = 100;
 			adds = [];
@@ -1279,8 +1034,7 @@ describe("Remote Data", function () {
 				adds.push(model);
 			});
 
-			var empty = this.description == 'should display an empty row when remote data is empty',
-				testdata = new Backbone.Collection();
+			var testdata = new Backbone.Collection();
 
 			for (var i = 0; i < count; i++) {
 				testdata.add({
@@ -1293,54 +1047,46 @@ describe("Remote Data", function () {
 
 			data.DobyGridRemote = {
 				count: function (options, callback) {
-					if (empty) {
-						callback(0);
-					} else {
-						callback(testdata.filter(function (item) {
-							return remote_filter(options, item);
-						}).length);
-					}
+					callback(testdata.filter(function (item) {
+						return remote_filter(options, item);
+					}).length);
 				},
 
 				fetch: function (options, callback) {
 					return setTimeout(function () {
-						if (empty) {
-							callback([]);
-						} else {
-							var mydata = testdata.filter(function (item) {
-								return remote_filter(options, item);
-							});
-							if (options.order.length) {
-								mydata.sort(function (dataRow1, dataRow2) {
-									var result = 0, column, value1, value2, val;
+						var mydata = testdata.filter(function (item) {
+							return remote_filter(options, item);
+						});
+						if (options.order.length) {
+							mydata.sort(function (dataRow1, dataRow2) {
+								var result = 0, column, value1, value2, val;
 
-									// Loops through the columns by which we are sorting
-									for (var i = 0, l = options.order.length; i < l; i++) {
-										column = options.order[i].columnId;
-										value1 = dataRow1.get(column);
-										value2 = dataRow2.get(column);
+								// Loops through the columns by which we are sorting
+								for (var i = 0, l = options.order.length; i < l; i++) {
+									column = options.order[i].columnId;
+									value1 = dataRow1.get(column);
+									value2 = dataRow2.get(column);
 
-										if (value1 !== value2) {
-											val = options.order[i].sortAsc ? (value1 > value2) ? 1 : -1 : (value1 < value2) ? 1 : -1;
-											if (val !== 0) return val;
-										}
+									if (value1 !== value2) {
+										val = options.order[i].sortAsc ? (value1 > value2) ? 1 : -1 : (value1 < value2) ? 1 : -1;
+										if (val !== 0) return val;
 									}
-
-									return result;
-								});
-							}
-
-							if (options.offset !== null && options.offset !== undefined) {
-								if (options.limit !== null && options.limit !== undefined) {
-									mydata = mydata.slice(options.offset, options.offset + options.limit);
-								} else {
-									mydata = mydata.slice(options.offset);
 								}
-							}
 
-							// Apply fake offset and fake limit
-							callback(mydata);
+								return result;
+							});
 						}
+
+						if (options.offset !== null && options.offset !== undefined) {
+							if (options.limit !== null && options.limit !== undefined) {
+								mydata = mydata.slice(options.offset, options.offset + options.limit);
+							} else {
+								mydata = mydata.slice(options.offset);
+							}
+						}
+
+						// Apply fake offset and fake limit
+						callback(mydata);
 					}, 5);
 				}
 			};
@@ -1377,12 +1123,20 @@ describe("Remote Data", function () {
 
 			grid.appendTo(fixture);
 
-			waitsFor(function () {
-				var rows = _.sortBy(grid.$el.find('.doby-grid-row'), function (row) {
-					return parseInt($(row).attr('style').replace('top:', ''), 10);
-				});
-				return $(rows[10]).children('.l0').text();
-			}, "Fetching the first page", 2000);
+			// Wait for load
+			jasmine.clock().tick(500);
+
+			var rows = _.sortBy(grid.$el.find('.doby-grid-row'), function (row) {
+				return parseInt($(row).attr('style').replace('top:', ''), 10);
+			});
+
+			// Confirm load
+			expect($(rows[10]).children('.l0').text()).toEqual('10');
+		});
+
+		afterEach(function () {
+			// End Jasmine Clock
+			jasmine.clock().uninstall();
 		});
 
 
@@ -1417,17 +1171,15 @@ describe("Remote Data", function () {
 
 
 		it("should automatically load the first page", function () {
-			runs(function () {
-				expect(grid.collection.items[0].toString()).toEqual('[object Object]');
-				expect(grid.collection.items.length).toEqual(count);
+			expect(grid.collection.items[0].toString()).toEqual('[object Object]');
+			expect(grid.collection.items.length).toEqual(count);
 
-				var rows = _.sortBy(grid.$el.find('.doby-grid-row'), function (row) {
-					return parseInt($(row).attr('style').replace('top:', ''), 10);
-				});
+			var rows = _.sortBy(grid.$el.find('.doby-grid-row'), function (row) {
+				return parseInt($(row).attr('style').replace('top:', ''), 10);
+			});
 
-				$(rows[0]).find('.doby-grid-cell').each(function () {
-					expect($(this)).not.toBeEmpty();
-				});
+			$(rows[0]).find('.doby-grid-cell').each(function () {
+				expect($(this)).not.toBeEmpty();
 			});
 		});
 
@@ -1436,9 +1188,7 @@ describe("Remote Data", function () {
 
 
 		it("should fire 'add' Backbone.Collection events when fetching data", function () {
-			runs(function () {
-				expect(adds.length).toBeGreaterThan(0);
-			});
+			expect(adds.length).toBeGreaterThan(0);
 		});
 
 
@@ -1450,30 +1200,28 @@ describe("Remote Data", function () {
 				var column_id = "id";
 
 				// Sort
-				runs(function () {
-					grid.sortBy(column_id, false);
-				});
+				grid.sortBy(column_id, false);
 
-				// Wait for the sorting
-				waitsFor(function () {
-					var rows = _.sortBy(grid.$el.find('.doby-grid-row'), function (row) {
-						return parseInt($(row).attr('style').replace('top:', ''), 10);
-					});
-					return $(rows[0]).children('.l0').text() == '99';
-				}, 300, 'waiting for the grid to resort itself correctly');
+				// Wait for reload
+				jasmine.clock().tick(500);
+
+				// COnfirm sort
+				var rows = _.sortBy(grid.$el.find('.doby-grid-row'), function (row) {
+					return parseInt($(row).attr('style').replace('top:', ''), 10);
+				});
+				expect($(rows[0]).children('.l0').text()).toEqual('99');
 
 				// Sort back to validate collection resets
-				runs(function () {
-					grid.sortBy(column_id, true);
-				});
+				grid.sortBy(column_id, true);
 
-				// Wait for the sorting
-				waitsFor(function () {
-					var rows = _.sortBy(grid.$el.find('.doby-grid-row'), function (row) {
-						return parseInt($(row).attr('style').replace('top:', ''), 10);
-					});
-					return $(rows[0]).children('.l0').text() == '0';
-				}, 300, 'waiting for the grid to resort itself correctly');
+				// Wait for reload
+				jasmine.clock().tick(500);
+
+				// Confirm reverse
+				rows = _.sortBy(grid.$el.find('.doby-grid-row'), function (row) {
+					return parseInt($(row).attr('style').replace('top:', ''), 10);
+				});
+				expect($(rows[0]).children('.l0').text()).toEqual('0');
 			});
 		});
 
@@ -1482,28 +1230,19 @@ describe("Remote Data", function () {
 
 
 		describe("Exporting", function () {
-			it("should be able to export the full set of grid results", function () {
-				var result;
+			it("should be able to export the full set of grid results", function (done) {
+				// Don't use a fake clock for this tests because it has nested timeouts,
+				// and we have a callback we can use anyway.
+				jasmine.clock().uninstall();
 
-				runs(function () {
-					// Automatically confirm the confirm() popup
-					spyOn(window, 'confirm').andReturn(true);
+				// Automatically confirm the confirm() popup
+				spyOn(window, 'confirm').and.returnValue(true);
 
-					grid.export('csv', function (r) {
-						result = r;
-					});
-				});
-
-				// Wait for the export
-				waitsFor(function () {
-					return result;
-				});
-
-				runs(function () {
+				grid.export('csv', function (result) {
 					// Should have the last row exported
 					expect(result).toMatch('"99"');
+					done();
 				});
-
 			});
 		});
 
@@ -1517,7 +1256,7 @@ describe("Remote Data", function () {
 describe("Remote Data Edge Cases", function () {
 	"use strict";
 
-	it("should not attempt to refetch data after changing filters if the grid hasn't been initialized yet", function () {
+	it("should display an empty row when remote data is empty", function () {
 		// Render Grid
 		var fetch;
 		var grid = new DobyGrid({
@@ -1527,7 +1266,7 @@ describe("Remote Data Edge Cases", function () {
 			],
 			data: function () {
 				this.count = function (options, callback) {
-					callback(10);
+					callback(0);
 				};
 				this.fetch = function () {
 					fetch = true;
@@ -1535,23 +1274,52 @@ describe("Remote Data Edge Cases", function () {
 			}
 		});
 
+		var fixture = setFixtures();
+
+		// This is needed for grunt-jasmine tests which doesn't read the CSS
+		// from the HTML version of jasmine.
+		fixture.attr('style', 'position:absolute;top:0;left:0;opacity:0;height:300px;width:300px');
+
+		grid.appendTo(fixture);
+
+		var rows = grid.$el.find('.doby-grid-row');
+		expect(rows.length).toEqual(0);
+		expect(grid.$el).toContainElement('.doby-grid-empty');
+	});
+
+
+	// ==========================================================================================
+
+
+	it("should not attempt to refetch data after changing filters if the grid hasn't been initialized yet", function () {
+		// Start Clock
+		jasmine.clock().install();
+
+		// Render Grid
+		var fetch = jasmine.createSpy('fetcher');
+		var grid = new DobyGrid({
+			columns: [
+				{id: 'id', field: 'id', name: 'id', width: 600},
+				{id: 'name', field: 'name', name: 'name'}
+			],
+			data: function () {
+				this.count = function (options, callback) {
+					callback(10);
+				};
+				this.fetch = fetch;
+			}
+		});
+
 		// Execute filter
 		grid.filter([['id', '=', 189]]);
 
-		var waitABit;
-		setTimeout(function () {
-			waitABit = true;
-		}, 200);
+		jasmine.clock().tick(100);
 
-		// Only fetchGroups should be called. 'fetch' should NOT be called here.
-		waitsFor(function () {
-			return waitABit;
-		}, 250, 'fetch to not be called');
+		// Fetch should not be called
+		expect(fetch).not.toHaveBeenCalled();
 
-		runs(function () {
-			expect(fetch).toEqual(null);
-		});
-
+		// Remove Clock
+		jasmine.clock().uninstall();
 	});
 
 
@@ -1562,6 +1330,9 @@ describe("Remote Data Edge Cases", function () {
 	// if it's faster than the delay on the remote data sets. Here we need to test calling appendTo
 	// immediately, vs. calling appendTo after several seconds of a delay.
 	xit("should not attempt to fetch remote data after initialization if groupings are configured", function () {
+		// Start Clock
+		jasmine.clock().install();
+
 		// Render Grid
 		var fetch, fetchGroups;
 		var grid = new DobyGrid({
@@ -1600,19 +1371,13 @@ describe("Remote Data Edge Cases", function () {
 		// Then initialize the grid
 		grid.appendTo(fixture);
 
-		var waitABit;
-		setTimeout(function () {
-			waitABit = true;
-		}, 500);
+		jasmine.clock().tick(100);
 
 		// Only fetchGroups should be called. 'fetch' should NOT be called here.
-		waitsFor(function () {
-			return waitABit;
-		}, 550, 'fetch to not be called');
+		expect(fetch).toEqual(null);
+		expect(fetchGroups).toEqual(true);
 
-		runs(function () {
-			expect(fetch).toEqual(null);
-			expect(fetchGroups).toEqual(true);
-		});
+		// Remove Clock
+		jasmine.clock().uninstall();
 	});
 });

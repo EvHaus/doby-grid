@@ -691,9 +691,7 @@ describe("Methods and Data Manipulation", function () {
 			});
 
 			// Export
-			var result;
-			grid.export('csv', function (r) {
-				result = r;
+			grid.export('csv', function (result) {
 				expect(result).toEqual('"ID","Name"\n"1","one"\n"2","two"');
 				done();
 			});
@@ -717,9 +715,7 @@ describe("Methods and Data Manipulation", function () {
 			});
 
 			// Export
-			var result;
-			grid.export('html', function (r) {
-				result = r;
+			grid.export('html', function (result) {
 				expect(result).toEqual('<table><thead><tr><th>ID</th><th>Name</th></tr></thead><tbody><tr><td>1</td><td>one</td></tr><tr><td>2</td><td>two</td></tr></tbody></table>');
 				done();
 			});
@@ -745,9 +741,7 @@ describe("Methods and Data Manipulation", function () {
 			});
 
 			// Export
-			var result;
-			grid.export('csv', function (r) {
-				result = r;
+			grid.export('csv', function (result) {
 				expect(result).toEqual('"ID","Name"\n"asd1","one"\n"asd2","two"');
 				done();
 			});

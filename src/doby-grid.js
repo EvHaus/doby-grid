@@ -7242,6 +7242,7 @@
 		Placeholder.prototype.__placeholder = true;
 		Placeholder.prototype.toString = function () { return "Placeholder"; };
 
+
 		/**
 		 * Handles the width leeway for the column headers
 		 * @method prepareLeeway
