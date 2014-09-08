@@ -1,21 +1,36 @@
 /*jshint loopfunc: true*/
 /*global _, $, define */
 
-define(['dobygrid'], function (DobyGrid) {
+define(['dobygrid', 'backbone'], function (DobyGrid, Backbone) {
 	"use strict";
+
+	// Set to true to use Backbone Collections
+	var useBackbone = false;
 
 	return [function () {
 
 		// Generate Data
-		var data = [];
+		var data = useBackbone ? new Backbone.Collection() : [], rowdata, model;
 		for (var i = 0; i < 50; i++) {
-			data.push({
+			rowdata = {
 				id: 'product_' + i,
-				data: {
-					id: 'product_' + i,
-					name: _.sample(["Coffee Pot", "Mug", "Frying Pan", "Rice Cooker"]),
-					price: _.sample(["$2.00", "$20.15", "$4.99"])
-				},
+				name: _.sample(["Coffee Pot", "Mug", "Frying Pan", "Rice Cooker"]),
+				price: _.sample(["$2.00", "$20.15", "$4.99"])
+			};
+
+			if (useBackbone) {
+				model = new Backbone.Model(rowdata);
+				data.add(model);
+			} else {
+				model = {
+					id: rowdata.id,
+					data: rowdata
+				};
+				data.push(model);
+			}
+
+			// These properties must be attached to the model, not to the data key
+			$.extend(model, {
 				columns: {
 					0: {
 						class: "nopad"
