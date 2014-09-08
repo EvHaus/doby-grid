@@ -2230,7 +2230,7 @@ describe("Grid Options", function () {
 				}],
 				minColumnWidth: 'headerContent'
 			}));
-			
+
 			_.each(grid.options.columns, function (c) {
 				// The _headerWidth property should get set for all columns
 				expect(typeof(c._headerWidth)).toEqual('number');
@@ -2239,7 +2239,7 @@ describe("Grid Options", function () {
 				// Fonts on Windows and Mac are slightly different, so this can't be pixel
 				// perfect test.
 				expect(c.width).toBeGreaterThan(247);
-				expect(c.width).toBeLessThan(307);
+				expect(c.width).toBeLessThan(308);
 			});
 		});
 
@@ -2284,7 +2284,7 @@ describe("Grid Options", function () {
 				// Fonts on Windows and Mac are slightly different, so this can't be pixel
 				// perfect test.
 				expect(c.width).toBeGreaterThan(247);
-				expect(c.width).toBeLessThan(307);
+				expect(c.width).toBeLessThan(308);
 
 				// The column DOM should match the widths too
 				expect($columns.eq(i).outerWidth()).toEqual(c.width);
