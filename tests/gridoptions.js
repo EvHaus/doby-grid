@@ -2239,7 +2239,7 @@ describe("Grid Options", function () {
 				// Fonts on Windows and Mac are slightly different, so this can't be pixel
 				// perfect test.
 				expect(c.width).toBeGreaterThan(247);
-				expect(c.width).toBeLessThan(278);
+				expect(c.width).toBeLessThan(307);
 			});
 		});
 
@@ -2284,7 +2284,7 @@ describe("Grid Options", function () {
 				// Fonts on Windows and Mac are slightly different, so this can't be pixel
 				// perfect test.
 				expect(c.width).toBeGreaterThan(247);
-				expect(c.width).toBeLessThan(278);
+				expect(c.width).toBeLessThan(307);
 
 				// The column DOM should match the widths too
 				expect($columns.eq(i).outerWidth()).toEqual(c.width);
