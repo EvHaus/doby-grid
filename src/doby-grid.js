@@ -5980,6 +5980,10 @@
 				if (this.predef.rowSpacing !== undefined && this.predef.rowSpacing !== null) {
 					this.rowSpacing = this.predef.rowSpacing;
 				}
+				
+				if (this.predef.colspan !== undefined) {
+					this.columns[0].colspan = this.predef.colspan;
+				}
 			}
 		};
 
