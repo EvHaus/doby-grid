@@ -2938,6 +2938,33 @@ describe("Methods and Data Manipulation", function () {
 			expect(ensureHeightGroup).toEqual(true);
 			expect(ensureRowSpacingGroup).toEqual(true);
 		});
+		
+		
+		// ==========================================================================================
+
+
+		it("should allow you to remove the colspan for group rows", function () {
+			// Prepare for test
+			var grid = resetGrid({
+				columns: [
+					{name: 'ID', field: 'id', id: 'id'},
+					{name: 'Name', field: 'name', id: 'name'}
+				],
+				data: [
+					{data: {id: 189, name: 'test'}, id: 189},
+					{data: {id: 289, name: null}, id: 289}
+				]
+			});
+
+			grid.addGrouping('id', {
+				colspan: false
+			});
+
+			// Ensure group rows have 2 cells
+			grid.$el.find('.doby-grid-group').each(function () {
+				expect($(this).children('.doby-grid-cell').length).toEqual(2);
+			});
+		});
 	});
 
 
