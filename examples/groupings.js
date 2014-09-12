@@ -71,7 +71,28 @@ define([], function () {
 		grid.setGrouping([{
 			column_id: 'language',
 			collapsed: true,
-			groupNulls: false
+			colspan: false,
+			groupNulls: false,
+			formatter: function (row, cell, value, columnDef) {
+				// The "id" column will function similar to a transition colspan row with
+				// and icon defining the state of the group collapse.
+				if (columnDef.id === 'id') {
+					return '<div style="text-align:center"><span class="icon"></span></div>';
+				} else {
+					// All other rows will display totals for the groups
+					return value;
+				}
+			},
+			dataExtractor: function (data, columnDef) {
+				var total = columnDef.id === 'language' || columnDef.id == 'city' ? columnDef.name : 0;
+				for (var i = 0, l = data.grouprows.length; i < l; i++) {
+					if (columnDef.id !== 'language' && columnDef.id !== 'city') {
+						total += data.grouprows[i].data[columnDef.field];
+					}
+				}
+
+				return total;
+			}
 		}]);
 	}];
 });

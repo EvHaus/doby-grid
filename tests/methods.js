@@ -2938,8 +2938,8 @@ describe("Methods and Data Manipulation", function () {
 			expect(ensureHeightGroup).toEqual(true);
 			expect(ensureRowSpacingGroup).toEqual(true);
 		});
-		
-		
+
+
 		// ==========================================================================================
 
 
@@ -2963,6 +2963,42 @@ describe("Methods and Data Manipulation", function () {
 			// Ensure group rows have 2 cells
 			grid.$el.find('.doby-grid-group').each(function () {
 				expect($(this).children('.doby-grid-cell').length).toEqual(2);
+			});
+		});
+
+
+		// ==========================================================================================
+
+
+		it("should allow you to specify a custom dataExtractor for group rows", function () {
+			// Prepare for test
+			var grid = resetGrid({
+				columns: [
+					{name: 'ID', field: 'id', id: 'id'},
+					{name: 'Name', field: 'name', id: 'name'}
+				],
+				data: [
+					{data: {id: 189, name: 'test'}, id: 189},
+					{data: {id: 289, name: null}, id: 289}
+				]
+			});
+
+			grid.addGrouping('id', {
+				colspan: false,
+				dataExtractor: function (item, columnDef) {
+					return columnDef.id;
+				}
+			});
+
+			// Ensure group rows have correct values in the cells
+			grid.$el.find('.doby-grid-group').each(function () {
+				$(this).children('.doby-grid-cell').each(function (i) {
+					if (i % 2) {
+						expect($(this)).toHaveText('name');
+					} else {
+						expect($(this)).toHaveText('id');
+					}
+				});
 			});
 		});
 	});

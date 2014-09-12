@@ -5088,7 +5088,9 @@
 			if (item instanceof Backbone.Model) return item.get(columnDef.field);
 
 			// Group headers
-			if (item._groupRow) return item.value;
+			if (item._groupRow) {
+				return item.predef.dataExtractor ? item.predef.dataExtractor(item, columnDef) : item.value;
+			}
 
 			return item.data ? item.data[columnDef.field] : null;
 		};
@@ -5176,8 +5178,13 @@
 		 * @returns {function}
 		 */
 		getGroupFormatter = function () {
-			// Otherwise use the default
 			return function (row, cell, value, columnDef, item) {
+				// If colspan isn't full - use custom value.
+				// This is more useful when using a custom dataExtractor.
+				if (item.columns[0].colspan !== '*') {
+					return value;
+				}
+
 				var column = getColumnById(item.column_id),
 					indent = item.level * 15,
 					h = [
