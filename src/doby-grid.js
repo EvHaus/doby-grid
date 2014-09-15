@@ -1990,12 +1990,9 @@
 			var column = getColumnById(grouping.column_id);
 
 			var result = $.extend({
-
 				collapsed: true,	// All groups start off being collapsed
-
 				column_id: column.id,
-
-				comparer: function (a, b) {
+				comparator: function (a, b) {
 					// Null groups always on the bottom
 					if (self.options.keepNullsAtBottom) {
 						if (a.value === null) return 1;
@@ -2014,13 +2011,10 @@
 					var sorted = naturalSort(a.value, b.value);
 					return asc ? sorted : -sorted;
 				},
-
 				getter: function (item) {
 					return getDataItemValueForColumn(item, column);
 				},
-
 				rows: []
-
 			}, grouping);
 
 			return result;
@@ -2358,7 +2352,7 @@
 					val,
 					groups = [],
 					groupsByVal = {},
-					r, gr,
+					r, gr, grl,
 					level = parentGroup ? parentGroup.level + 1 : 0,
 					gi = self.groups[level],
 					i, l, aggregateRow, addRow, nullRows = [];
@@ -2455,6 +2449,18 @@
 						if (!grid.fetcher) group.count++;
 					}
 
+					// If we have a custom dataExtractor -- general data values for this row
+					// so that it can be sorted by any columns.
+					for (gr = 0, grl = groups.length; gr < grl; gr++) {
+						if (!groups[gr].predef.dataExtractor) continue;
+						if (groups[gr].predef.dataExtractor) {
+							groups[gr].data = {};
+							for (var gri = 0, gril = grid.options.columns.length; gri < gril; gri++) {
+								groups[gr].data[grid.options.columns[gri].field] = groups[gr].predef.dataExtractor(groups[gr], grid.options.columns[gri]);
+							}
+						}
+					}
+
 					// Nest groups
 					if (level < self.groups.length - 1) {
 						var setGroups = function (result) {
@@ -2476,7 +2482,7 @@
 
 					// Sort the groups if they're not remotely fetched. Remote groups
 					// are expected to already be in the right order.
-					if (!remote_groups) groups.sort(self.groups[level].comparer);
+					if (!remote_groups) groups.sort(self.groups[level].comparator.bind(grid));
 
 					// If null rows are collected - put it at the bottom of the grid
 					if (nullRows.length) {
@@ -3370,19 +3376,19 @@
 			 * @method sort
 			 * @memberof Collection
 			 *
-			 * @param	{function}	comparer		- The function to use to render
+			 * @param	{function}	comparator		- The function to use to render
 			 * @param	{boolean}	ascending		- Is the direction ascending?
 			 */
-			this.sort = function (comparer, ascending) {
+			this.sort = function (comparator, ascending) {
 				sortAsc = ascending;
-				sortComparer = comparer;
+				sortComparer = comparator;
 
 				if (ascending === false) {
 					this.items.reverse();
 				}
 
 				// Backbone Collection sorting is done through a defined comparator
-				this.items.sort(comparer);
+				this.items.sort(comparator);
 
 				if (ascending === false) this.items.reverse();
 
@@ -4153,7 +4159,7 @@
 			}
 
 			self.collection.sort(function (dataRow1, dataRow2) {
-				var column, field, sign, value1, value2, result = 0, val;
+				var column, field, sign, value1, value2, val;
 
 				// Do not attempt to sort Aggregators. They will always go to the bottom.
 				if (dataRow1._aggregateRow) return 1;
@@ -4168,7 +4174,7 @@
 					value1 = getDataItemValueForColumn(dataRow1, column);
 					value2 = getDataItemValueForColumn(dataRow2, column);
 
-					// Use custom column comparer if it exists
+					// Use custom column comparator if it exists
 					if (typeof(column.comparator) === 'function') {
 						val = column.comparator(value1, value2) * sign;
 						if (val !== 0) return val;
@@ -4188,7 +4194,7 @@
 					}
 				}
 
-				return result;
+				return 0;
 			});
 		};
 
@@ -5978,8 +5984,8 @@
 				value: null				// Grouping value
 			}, options);
 
-			// If group row height or spacing was manipulated - use that value
 			if (this.predef) {
+				// If group row height or spacing was manipulated - use that value
 				if (this.predef.height !== undefined && this.predef.height !== null) {
 					this.height = this.predef.height;
 				}
