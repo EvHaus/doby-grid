@@ -9934,6 +9934,8 @@
 			applyColumnHeaderWidths();
 
 			handleResize();
+
+			return this;
 		};
 
 
