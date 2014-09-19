@@ -7266,7 +7266,7 @@
 		 * @private
 		 *
 		 * @param	{integer}	i		- The columns index
-		 * @param   {integer}	pageX	- The x coordinate of the right edge of the column
+		 * @param	{integer}	pageX	- The x coordinate of the right edge of the column
 		 */
 		prepareLeeway = function (i, pageX) {
 
@@ -8685,7 +8685,7 @@
 		 * @private
 		 *
 		 * @param	{integer}	i		- The columns index
-		 * @param   {integer}	d		- The delta by which to change the column width
+		 * @param	{integer}	d		- The delta by which to change the column width
 		 */
 		resizeColumn = function (i, d) {
 			var actualMinWidth, headerContentWidth, x, j, c, l;
@@ -9809,7 +9809,7 @@
 		 * @memberof DobyGrid
 		 *
 		 * @param	{?string}	[column_id]		- ID of the column we want to focus. Passing in null
-		 * 										will toggle the quick filter.
+		 *										will toggle the quick filter.
 		 *
 		 * NOTE: Many optimizations can be done here.
 		 *
