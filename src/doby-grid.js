@@ -307,7 +307,6 @@
 			setupColumnReorder,
 			setupColumnResize,
 			setupColumnSort,
-			showQuickFilter,
 			showTooltip,
 			startPostProcessing,
 			stickGroupHeaders,
@@ -9808,7 +9807,6 @@
 		 * Slide out a quick search header bar
 		 * @method showQuickFilter
 		 * @memberof DobyGrid
-		 * @private
 		 *
 		 * @param	{object}	focus		- Column definition object for the column we want to focus.
 		 *									Passing in null will toggle the quick filter.
@@ -9816,7 +9814,7 @@
 		 * NOTE: Many optimizations can be done here.
 		 *
 		 */
-		showQuickFilter = function (focus) {
+		this.showQuickFilter = function (focus) {
 			if (!self.options.showHeader) return;
 
 			var handleResize = function () {
@@ -9846,7 +9844,7 @@
 			var onKeyUp = function (event) {
 				// Esc closes the quick filter
 				if (event.keyCode == 27) {
-					showQuickFilter();
+					this.showQuickFilter();
 					return;
 				}
 
@@ -10407,14 +10405,14 @@
 					enabled: column,
 					name: column ? getLocale('column.filter', {name: column.name}) : '',
 					fn: function () {
-						showQuickFilter(column);
+						this.showQuickFilter(column);
 						self.dropdown.hide();
 					}
 				}, {
 					enabled: $headerFilter !== undefined,
 					name: getLocale('global.hide_filter'),
 					fn: function () {
-						showQuickFilter();
+						this.showQuickFilter();
 						self.dropdown.hide();
 					}
 				}]
