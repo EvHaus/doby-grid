@@ -3238,6 +3238,60 @@ describe("Methods and Data Manipulation", function () {
 	// ==========================================================================================
 
 
+	describe("showQuickFilter()", function () {
+		it("should show the Quick Filter bar", function () {
+			var grid = resetGrid({
+				columns: [
+					{id: 'id', field: 'id'},
+					{id: 'name', field: 'name'}
+				],
+				data: [
+					{id: 1, data: {id: 1, name: 'one'}},
+					{id: 2, data: {id: 2, name: 'two'}}
+				]
+			});
+
+			// Execute
+			grid.showQuickFilter('id');
+
+			// Should clear the canvas and show the custom overlay
+			expect(grid.$el).toContainElement('.doby-grid-header-filter');
+		});
+
+
+		// ==========================================================================================
+
+
+		it("should hide the Quick Filter bar when 'column_id' is null", function () {
+			var grid = resetGrid({
+				columns: [
+					{id: 'id', field: 'id'},
+					{id: 'name', field: 'name'}
+				],
+				data: [
+					{id: 1, data: {id: 1, name: 'one'}},
+					{id: 2, data: {id: 2, name: 'two'}}
+				]
+			});
+
+			// Show
+			grid.showQuickFilter('id');
+
+			// Ensure the quick filter is shown
+			expect(grid.$el).toContainElement('.doby-grid-header-filter');
+
+			// Hide
+			grid.showQuickFilter();
+
+			// Ensure the quick filter is removed
+			expect(grid.$el).not.toContainElement('.doby-grid-header-filter');
+		});
+	});
+
+
+	// ==========================================================================================
+
+
 	describe("destroy()", function () {
 		it("should be able to destroy() the grid", function () {
 			var grid = resetGrid();

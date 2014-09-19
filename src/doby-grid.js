@@ -9808,13 +9808,13 @@
 		 * @method showQuickFilter
 		 * @memberof DobyGrid
 		 *
-		 * @param	{object}	focus		- Column definition object for the column we want to focus.
-		 *									Passing in null will toggle the quick filter.
+		 * @param	{?string}	[column_id]		- ID of the column we want to focus. Passing in null
+		 * 										will toggle the quick filter.
 		 *
 		 * NOTE: Many optimizations can be done here.
 		 *
 		 */
-		this.showQuickFilter = function (focus) {
+		this.showQuickFilter = function (column_id) {
 			if (!self.options.showHeader) return;
 
 			var handleResize = function () {
@@ -9827,7 +9827,7 @@
 			};
 
 			// Toggle off
-			if (focus === undefined && $headerFilter) {
+			if ((column_id === undefined || column_id === null) && $headerFilter) {
 				removeElement($headerFilter[0]);
 				$headerFilter = undefined;
 
@@ -9844,7 +9844,7 @@
 			var onKeyUp = function (event) {
 				// Esc closes the quick filter
 				if (event.keyCode == 27) {
-					this.showQuickFilter();
+					self.showQuickFilter();
 					return;
 				}
 
@@ -9875,6 +9875,9 @@
 					self.filter(filterset);
 				}, 150);
 			};
+
+			// Get column object for the focused column
+			var focusedColumn = cache.columnsById[column_id];
 
 			// Draw new filter bar
 			if (!$headerFilter) {
@@ -9918,13 +9921,13 @@
 						.on('keyup', onKeyUp);
 
 					// Focus input
-					if (focus && focus.id == column.id) {
+					if (column_id == column.id) {
 						column.quickFilterInput.select().focus();
 					}
 				}
-			} else if (focus && focus.quickFilterInput) {
+			} else if (focusedColumn && focusedColumn.quickFilterInput) {
 				// Just focus
-				focus.quickFilterInput.select().focus();
+				focusedColumn.quickFilterInput.select().focus();
 			}
 
 			// Set column widths
@@ -10405,14 +10408,14 @@
 					enabled: column,
 					name: column ? getLocale('column.filter', {name: column.name}) : '',
 					fn: function () {
-						this.showQuickFilter(column);
+						self.showQuickFilter(column.id);
 						self.dropdown.hide();
 					}
 				}, {
 					enabled: $headerFilter !== undefined,
 					name: getLocale('global.hide_filter'),
 					fn: function () {
-						this.showQuickFilter();
+						self.showQuickFilter();
 						self.dropdown.hide();
 					}
 				}]
