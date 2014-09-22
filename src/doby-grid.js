@@ -9353,6 +9353,7 @@
 				invalidateAllRows();
 				removeCssRules();
 				createCssRules();
+				cacheRows();
 				resizeCanvas(true);
 				applyColumnWidths();
 			}
