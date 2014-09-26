@@ -432,6 +432,7 @@
 			fullWidthRows:			true,
 			groupable:				true,
 			idProperty:				"id",
+			infinitePageSize:		35,
 			keepNullsAtBottom:		true,
 			keyboardNavigation:		true,
 			lineHeightOffset:		-1,
@@ -439,6 +440,7 @@
 			menuExtensions:			null,
 			minColumnWidth:			"",
 			multiColumnSort:		true,
+			paginationStyle:		"default",
 			quickFilter:			false,
 			remoteScrollTime:		200,
 			resizableColumns:		true,
@@ -2131,7 +2133,7 @@
 
 					// For remote models, check if we're inserting 'at' an index with place holders
 					if (grid.fetcher && at !== undefined) {
-						if (this.items[at + i].__placeholder) {
+						if (this.items[at + i] && this.items[at + i].__placeholder) {
 							existing = this.items[at + i];
 						}
 					}
@@ -4141,8 +4143,13 @@
 				// the grid correctly refetches the full page of results.
 				self.collection.length = self.collection.remote_length;
 
-				// Refill the collection with placeholders
-				generatePlaceholders();
+				// When using infinite pagination style, no placeholders are needed
+				if (self.options.paginationStyle === "infinite") {
+					self.options.data.reset([]);
+				} else {
+					// Refill the collection with placeholders
+					generatePlaceholders();
+				}
 
 				// Refresh the grid to recalculate the cache for placeholder rows
 				self.collection.refresh();
@@ -7652,6 +7659,10 @@
 		 * @private
 		 */
 		remoteAllLoaded = function () {
+
+			// If the pagination style is infinite we won't ever load all items
+			if (self.options.paginationStyle === "infinite") return false;
+
 			// Do we have any placeholders?
 			for (var i = 0, l = self.collection.items.length; i < l; i++) {
 				if (self.collection.items[i].__placeholder) {
@@ -7676,6 +7687,19 @@
 			var options = {
 				filters: typeof(self.collection.filter) != 'function' ? self.collection.filter : null
 			};
+
+			if (!self.fetcher.count) {
+				if (self.options.paginationStyle !== "infinite") {
+					throw new Error("You must either specify a valid count() method in your fetcher or use a different pagination style. (see grid.options.paginationStyle)");
+				}
+			}
+
+			if (self.options.paginationStyle === "infinite") {
+				updateRowCount();
+				self.collection.refresh();
+				callback();
+				return;
+			}
 
 			self.fetcher.count(options, function (result) {
 				// Grid was destroyed before the callback finished
@@ -7722,7 +7746,8 @@
 		remoteFetch = function () {
 			var vp = getVisibleRange(),
 				from = vp.top,
-				to = vp.bottom;
+				to = vp.bottom,
+				count = to - from;
 
 			// If scrolling fast, abort pending requests
 			var silentRemoteLoaded = true;
@@ -7737,15 +7762,19 @@
 			// Also cancel previous execution entirely (if scrolling really really fast)
 			if (remoteTimer !== null) clearTimeout(remoteTimer);
 
-			// Don't attempt to fetch more results than there are
 			if (from < 0) from = 0;
-			if (self.collection.length > 0) to = Math.min(to, self.collection.length - 1);
+
+			if (self.options.paginationStyle !== "infinite") {
+				// Don't attempt to fetch more results than there are
+				if (self.collection.length > 0) to = Math.min(to, self.collection.length - 1);
+			}
 
 			// If there are groups - we need to scan from the very top to ensure we calculate
 			// the correct data offsets.
 			var start = self.collection.groups.length ? 0 : from,
 				newFrom,
 				newTo,
+				newLimit,
 				r,
 				nonDataOffset = 0,
 				collapsedOffset = 0;
@@ -7788,11 +7817,21 @@
 				return;
 			}
 
+			newLimit = newTo - newFrom + 1;
+
+			if (self.options.paginationStyle === "infinite") {
+				if (self.options.infinitePageSize) {
+					newLimit = Math.max(newLimit, self.options.infinitePageSize);
+				} else {
+					newLimit = count + 1;
+				}
+			}
+
 			// Run the fetcher
 			remoteFetcher({
 				columns: cache.activeColumns,
 				filters: typeof(self.collection.filter) != 'function' ? self.collection.filter : null,
-				limit: newTo - newFrom + 1,
+				limit: newLimit,
 				offset: newFrom,
 				order: self.sorting
 			}, function (results) {
@@ -7813,6 +7852,10 @@
 
 				// Fire loaded function to process the changes
 				remoteLoaded((newFrom - collapsedOffset), (newTo + nonDataOffset - collapsedOffset));
+
+				if (self.options.paginationStyle === "infinite") {
+					self.collection.refresh();
+				}
 			});
 		};
 
