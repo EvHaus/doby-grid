@@ -3,10 +3,14 @@
 // For all details and documentation:
 // https://github.com/globexdesigns/doby-grid
 
-/*global $, Backbone, DobyGrid*/
+/*global $, _, Backbone, DobyGrid*/
 
 describe("Editors", function () {
 	"use strict";
+
+	// Disable underscore's debounce until https://github.com/pivotal/jasmine/pull/455 is fixed
+	_.debounce = function (func) { return function () { func.apply(this, arguments);}; };
+
 
 	// ==========================================================================================
 
@@ -382,6 +386,9 @@ describe("Editors", function () {
 
 
 	it("should be able to perform a batch edit on cells with nested rows (when using Backbone Collections)", function () {
+		// Start clock
+		jasmine.clock().install();
+
 		// Prepare grid
 		var grid = resetGrid(defaultData(), true, true),
 			edit = 'edited';
@@ -390,7 +397,7 @@ describe("Editors", function () {
 		grid.selectCells(0, 1, 1, 1);
 
 		// Enable first cell for editing
-		var $cell = grid.$el.find('.doby-grid-cell.selected:first').first();
+		var $cell = grid.$el.find('.doby-grid-cell.selected').last();
 		$cell.simulate('click');
 
 		// Simulate edit
@@ -401,22 +408,17 @@ describe("Editors", function () {
 
 		expect(grid.$el.find('.doby-grid-cell').length).toBeGreaterThan(0);
 
-		var waitForRedraw = false;
-		setTimeout(function () {
-			waitForRedraw = true;
-		}, 10);
+		// Wait for redraw
+		jasmine.clock().tick(1000);
 
-		waitsFor(function () {
-			return waitForRedraw;
+		grid.$el.find('.doby-grid-cell').each(function () {
+			if ($(this).hasClass('l1')) {
+				expect($(this)).toHaveText(edit);
+			}
 		});
 
-		runs(function () {
-			grid.$el.find('.doby-grid-cell').each(function (i) {
-				if (i % 2) {
-					expect($(this)).toHaveText(edit);
-				}
-			});
-		});
+		// Remove clock
+		jasmine.clock().uninstall();
 	});
 
 
@@ -478,7 +480,7 @@ describe("Editors", function () {
 
 		grid.$el.find('.doby-grid-cell').each(function (i) {
 			if (i % 2) {
-				expect($(this)).toContain('input');
+				expect($(this)).toContainElement('input');
 				expect($(this)).toHaveClass('invalid');
 			}
 		});

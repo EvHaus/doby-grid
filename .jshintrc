@@ -7,16 +7,14 @@
 		"define": true,
 		"require": true,
 
+		"afterEach": true,
 		"beforeEach": true,
 		"describe": true,
 		"expect": true,
 		"it": true,
 		"jasmine": true,
-		"runs": true,
 		"setFixtures": true,
 		"spyOn": true,
-		"waits": true,
-		"waitsFor": true,
 		"xit": true
 	},
 

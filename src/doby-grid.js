@@ -66,6 +66,7 @@
 			Aggregate,
 			applyColumnHeaderWidths,
 			applyColumnWidths,
+			applyHeaderAndColumnWidths,
 			asyncPostProcessRows,
 			autosizeColumns,
 			bindCellRangeSelect,
@@ -172,6 +173,8 @@
 			executeSorter,
 			findFirstFocusableCell,
 			findLastFocusableCell,
+			fitColumnToHeader,
+			fitColumnsToHeader,
 			garbageBin,
 			generatePlaceholders,
 			getActiveCell,
@@ -186,6 +189,7 @@
 			getColumnById,
 			getColumnCssRules,
 			getColumnContentWidth,
+			getColumnHeaderWidth,
 			getColumnFromEvent,
 			getColspan,
 			getDataItemValueForColumn,
@@ -247,9 +251,12 @@
 			isColumnSelected,
 			lastRenderedScrollLeft = 0,
 			lastRenderedScrollTop = 0,
+			lockColumnWidths,
 			bindToCollection,
 			makeActiveCellEditable,
 			makeActiveCellNormal,
+			maxPageX,
+			minPageX,
 			measureCellPadding,
 			mergeGroupSorting,
 			n,				// number of pages
@@ -262,6 +269,7 @@
 			Placeholder,
 			postProcessFromRow = null,
 			postProcessToRow = null,
+			prepareLeeway,
 			prevScrollLeft = 0,
 			prevScrollTop = 0,
 			Range,
@@ -286,6 +294,7 @@
 			resetActiveCell,
 			resetAggregators,
 			resizeCanvas,
+			resizeColumn,
 			resizeContainer,
 			scrollCellIntoView,
 			scrollLeft = 0,
@@ -300,13 +309,13 @@
 			setupColumnReorder,
 			setupColumnResize,
 			setupColumnSort,
-			showQuickFilter,
 			showTooltip,
 			startPostProcessing,
 			stickGroupHeaders,
 			stickyIds = [],
 			stylesheet,
 			styleSortColumns,
+			submitColResize,
 			suspend = false,	// suspends the refresh recalculation
 			tabbingDirection = 1,
 			th,				// virtual height
@@ -430,6 +439,7 @@
 			lineHeightOffset:		-1,
 			nestedAggregators:		true,
 			menuExtensions:			null,
+			minColumnWidth:			"",
 			multiColumnSort:		true,
 			quickFilter:			false,
 			remoteScrollTime:		200,
@@ -744,6 +754,9 @@
 				cacheRows();
 				resizeCanvas(true);
 
+				// Fit column widths to header contents
+				if (self.options.minColumnWidth === "headerContent") fitColumnsToHeader(true);
+
 				// If we're using remote data, start by fetching the data set length
 				if (this.fetcher) {
 					remoteCount(function () {
@@ -949,6 +962,17 @@
 				// The +1 here is to compensate for the border spacing between cells
 				x += c.width + 1;
 			}
+		};
+
+		/**
+		* Sets the widths of column headers and columns to what they should be
+		* @method applyHeaderAndColumnWidths
+		* @memberof DobyGrid
+		* @private
+		*/
+		applyHeaderAndColumnWidths = function () {
+			applyColumnHeaderWidths();
+			if (self.options.resizeCells) applyColumnWidths();
 		};
 
 
@@ -1968,12 +1992,9 @@
 			var column = getColumnById(grouping.column_id);
 
 			var result = $.extend({
-
 				collapsed: true,	// All groups start off being collapsed
-
 				column_id: column.id,
-
-				comparer: function (a, b) {
+				comparator: function (a, b) {
 					// Null groups always on the bottom
 					if (self.options.keepNullsAtBottom) {
 						if (a.value === null) return 1;
@@ -1992,13 +2013,10 @@
 					var sorted = naturalSort(a.value, b.value);
 					return asc ? sorted : -sorted;
 				},
-
 				getter: function (item) {
 					return getDataItemValueForColumn(item, column);
 				},
-
 				rows: []
-
 			}, grouping);
 
 			return result;
@@ -2336,7 +2354,7 @@
 					val,
 					groups = [],
 					groupsByVal = {},
-					r, gr,
+					r, gr, grl,
 					level = parentGroup ? parentGroup.level + 1 : 0,
 					gi = self.groups[level],
 					i, l, aggregateRow, addRow, nullRows = [];
@@ -2433,6 +2451,18 @@
 						if (!grid.fetcher) group.count++;
 					}
 
+					// If we have a custom dataExtractor -- general data values for this row
+					// so that it can be sorted by any columns.
+					for (gr = 0, grl = groups.length; gr < grl; gr++) {
+						if (!groups[gr].predef.dataExtractor) continue;
+						if (groups[gr].predef.dataExtractor) {
+							groups[gr].data = {};
+							for (var gri = 0, gril = grid.options.columns.length; gri < gril; gri++) {
+								groups[gr].data[grid.options.columns[gri].field] = groups[gr].predef.dataExtractor(groups[gr], grid.options.columns[gri]);
+							}
+						}
+					}
+
 					// Nest groups
 					if (level < self.groups.length - 1) {
 						var setGroups = function (result) {
@@ -2454,7 +2484,7 @@
 
 					// Sort the groups if they're not remotely fetched. Remote groups
 					// are expected to already be in the right order.
-					if (!remote_groups) groups.sort(self.groups[level].comparer);
+					if (!remote_groups) groups.sort(self.groups[level].comparator.bind(grid));
 
 					// If null rows are collected - put it at the bottom of the grid
 					if (nullRows.length) {
@@ -3348,19 +3378,19 @@
 			 * @method sort
 			 * @memberof Collection
 			 *
-			 * @param	{function}	comparer		- The function to use to render
+			 * @param	{function}	comparator		- The function to use to render
 			 * @param	{boolean}	ascending		- Is the direction ascending?
 			 */
-			this.sort = function (comparer, ascending) {
+			this.sort = function (comparator, ascending) {
 				sortAsc = ascending;
-				sortComparer = comparer;
+				sortComparer = comparator;
 
 				if (ascending === false) {
 					this.items.reverse();
 				}
 
 				// Backbone Collection sorting is done through a defined comparator
-				this.items.sort(comparer);
+				this.items.sort(comparator);
 
 				if (ascending === false) this.items.reverse();
 
@@ -4131,7 +4161,7 @@
 			}
 
 			self.collection.sort(function (dataRow1, dataRow2) {
-				var column, field, sign, value1, value2, result = 0, val;
+				var column, field, sign, value1, value2, val;
 
 				// Do not attempt to sort Aggregators. They will always go to the bottom.
 				if (dataRow1._aggregateRow) return 1;
@@ -4146,7 +4176,7 @@
 					value1 = getDataItemValueForColumn(dataRow1, column);
 					value2 = getDataItemValueForColumn(dataRow2, column);
 
-					// Use custom column comparer if it exists
+					// Use custom column comparator if it exists
 					if (typeof(column.comparator) === 'function') {
 						val = column.comparator(value1, value2) * sign;
 						if (val !== 0) return val;
@@ -4166,7 +4196,7 @@
 					}
 				}
 
-				return result;
+				return 0;
 			});
 		};
 
@@ -4445,6 +4475,64 @@
 				cell += getColspan(row, cell);
 			}
 			return lastFocusableCell;
+		};
+
+
+		/**
+		* Adjusts the columns width and minWidth to according to the content found in it's header.
+		* @method fitColumnToHeader
+		* @memberof DobyGrid
+		* @private
+		*
+		* @param	{object}	column		- Column object
+		*/
+		fitColumnToHeader = function (column) {
+
+			if (!initialized) return;
+
+			var currentWidth = column.width,
+				column_index = cache.columnsById[column.id];
+
+			column._headerWidth = getColumnHeaderWidth(column_index);
+
+			var newWidth = Math.max(column.width, column._headerWidth),
+				columnRightPosition;
+
+			if (currentWidth == newWidth) return;
+
+			lockColumnWidths(column_index);
+
+			var diff = newWidth - currentWidth;
+
+			columnRightPosition = cache.columnPosRight[column_index];
+
+			prepareLeeway(column_index, columnRightPosition);
+
+			// This will ensure you can't resize beyond the maximum allowed width
+			var delta = Math.min(maxPageX, Math.max(minPageX, columnRightPosition + diff)) - columnRightPosition;
+
+			resizeColumn(column_index, delta);
+		};
+
+
+		/**
+		* Adjusts the width and minWidth of all columns according to the content of its header.
+		* @method fitColumnsToHeader
+		* @memberof DobyGrid
+		* @private
+		*
+		* @param	{boolean}	silent		- Do not trigger columnresize event
+		*/
+		fitColumnsToHeader = function (silent) {
+
+			if (!initialized) return;
+
+			for (var i = 0, l = cache.activeColumns.length; i < l; i++) {
+				fitColumnToHeader(cache.activeColumns[i]);
+			}
+
+			applyHeaderAndColumnWidths();
+			submitColResize(silent);
 		};
 
 
@@ -4881,22 +4969,10 @@
 		getColumnContentWidth = function (column_index) {
 			if (!self.options.showHeader) return;
 
-			var columnElements = $headers.children(),
-				$column = $(columnElements[column_index]),
-				currentWidth = $column.width(),
-				headerPadding = parseInt($column.css('paddingLeft'), 10) + parseInt($column.css('paddingRight'), 10),
-				cellWidths = [];
+			var cellWidths = [];
 
 			// Determine the width of the column name text
-			var name = $column.children('.' + classcolumnname + ':first');
-			name.css('overflow', 'visible');
-			$column.width('auto');
-			// The extra 1 is needed here because text-overflow: ellipsis
-			// seems to kick in 1 pixel too early.
-			var headerWidth = $column.width() + headerPadding + 1;
-			name.css('overflow', '');
-			$column.width(currentWidth);
-			cellWidths.push(headerWidth);
+			cellWidths.push(getColumnHeaderWidth(column_index));
 
 			// Loop through the visible row nodes
 			var rowcls = 'r' + column_index, $node;
@@ -4930,6 +5006,44 @@
 
 			// If new width is smaller than min width - use min width
 			return Math.max.apply(null, cellWidths);
+		};
+
+		/**
+		 * Returns the width of the content in the given column header. Ignores Group rows.
+		 * @method getColumnHeaderWidth
+		 * @memberof DobyGrid
+		 * @private
+		 *
+		 * @param	{integer}	column_index		- Index of the column to calculate data for
+		 *
+		 * @returns {integer}	headerWidth			- The With of the columns header
+		 */
+		getColumnHeaderWidth = function (column_index) {
+			if (!self.options.showHeader) return;
+
+			var columnElements = $headers.children(),
+				column = cache.activeColumns[column_index],
+				$column = $(columnElements[column_index]),
+				currentWidth = $column.width(),
+				headerPadding = parseInt($column.css('paddingLeft'), 10) + parseInt($column.css('paddingRight'), 10);
+
+			// Determine the width of the column name text
+			var name = $column.children('.' + classcolumnname + ':first');
+			name.css('overflow', 'visible');
+			$column.width('auto');
+			// The extra 1 is needed here because text-overflow: ellipsis
+			// seems to kick in 1 pixel too early.
+			var headerWidth = $column.width() + headerPadding + 1;
+
+			if (hasSorting(column.id)) {
+				var $indicator = $column.find("." + classsortindicator);
+				headerWidth += $indicator.width();
+			}
+
+			name.css('overflow', '');
+			$column.width(currentWidth);
+
+			return headerWidth;
 		};
 
 
@@ -4982,7 +5096,9 @@
 			if (item instanceof Backbone.Model) return item.get(columnDef.field);
 
 			// Group headers
-			if (item._groupRow) return item.value;
+			if (item._groupRow) {
+				return item.predef.dataExtractor ? item.predef.dataExtractor(item, columnDef) : item.value;
+			}
 
 			return item.data ? item.data[columnDef.field] : null;
 		};
@@ -5070,8 +5186,13 @@
 		 * @returns {function}
 		 */
 		getGroupFormatter = function () {
-			// Otherwise use the default
 			return function (row, cell, value, columnDef, item) {
+				// If colspan isn't full - use custom value.
+				// This is more useful when using a custom dataExtractor.
+				if (item.columns[0].colspan !== '*') {
+					return value;
+				}
+
 				var column = getColumnById(item.column_id),
 					indent = item.level * 15,
 					h = [
@@ -5865,14 +5986,18 @@
 				value: null				// Grouping value
 			}, options);
 
-			// If group row height or spacing was manipulated - use that value
 			if (this.predef) {
+				// If group row height or spacing was manipulated - use that value
 				if (this.predef.height !== undefined && this.predef.height !== null) {
 					this.height = this.predef.height;
 				}
 
 				if (this.predef.rowSpacing !== undefined && this.predef.rowSpacing !== null) {
 					this.rowSpacing = this.predef.rowSpacing;
+				}
+
+				if (this.predef.colspan !== undefined) {
+					this.columns[0].colspan = this.predef.colspan;
 				}
 			}
 		};
@@ -6979,6 +7104,21 @@
 			}), 10);
 		};
 
+		/**
+		 * Remembers the current width of each column header in the .previousWidth property
+		 * @method lockColumnWidths
+		 * @memberof DobyGrid
+		 * @private
+		 */
+		lockColumnWidths = function () {
+			// Columns may have been changed since the last time this ran - refetch children
+			var columnElements = $headers.children('.' + classheadercolumn);
+
+			columnElements.each(function (i) {
+				// The extra 1 here is to compensate for the border separator
+				cache.activeColumns[i].previousWidth = cache.activeColumns[i].width;
+			});
+		};
 
 		/**
 		 * Makes the currently active cell editable
@@ -7285,6 +7425,65 @@
 		Placeholder.prototype = new NonDataItem();
 		Placeholder.prototype.__placeholder = true;
 		Placeholder.prototype.toString = function () { return "Placeholder"; };
+
+
+		/**
+		 * Handles the width leeway for the column headers
+		 * @method prepareLeeway
+		 * @memberof DobyGrid
+		 * @private
+		 *
+		 * @param	{integer}	i		- The columns index
+		 * @param	{integer}	pageX	- The x coordinate of the right edge of the column
+		 */
+		prepareLeeway = function (i, pageX) {
+
+			var columnElements = $headers.children('.' + classheadercolumn);
+			var shrinkLeewayOnRight = null,
+				stretchLeewayOnRight = null,
+				j, c;
+
+			if (self.options.autoColumnWidth) {
+				shrinkLeewayOnRight = 0;
+				stretchLeewayOnRight = 0;
+				// colums on right affect maxPageX/minPageX
+				for (j = i + 1; j < columnElements.length; j++) {
+					c = cache.activeColumns[j];
+					if (!c.resizable) continue;
+					if (stretchLeewayOnRight !== null) {
+						if (c.maxWidth) {
+							stretchLeewayOnRight += c.maxWidth - c.previousWidth;
+						} else {
+							stretchLeewayOnRight = null;
+						}
+					}
+					shrinkLeewayOnRight += c.previousWidth - Math.max(c.minWidth || 0, absoluteColumnMinWidth);
+				}
+			}
+			var shrinkLeewayOnLeft = 0,
+				stretchLeewayOnLeft = 0;
+			for (j = 0; j <= i; j++) {
+				// columns on left only affect minPageX
+				c = cache.activeColumns[j];
+				if (!c.resizable) continue;
+				if (stretchLeewayOnLeft !== null) {
+					if (c.maxWidth) {
+						stretchLeewayOnLeft += c.maxWidth - c.previousWidth;
+					} else {
+						stretchLeewayOnLeft = null;
+					}
+				}
+				shrinkLeewayOnLeft += c.previousWidth - Math.max(c.minWidth || 0, absoluteColumnMinWidth);
+			}
+
+			if (shrinkLeewayOnRight === null) shrinkLeewayOnRight = 100000;
+			if (shrinkLeewayOnLeft === null) shrinkLeewayOnLeft = 100000;
+			if (stretchLeewayOnRight === null) stretchLeewayOnRight = 100000;
+			if (stretchLeewayOnLeft === null) stretchLeewayOnLeft = 100000;
+
+			maxPageX = pageX + Math.min(shrinkLeewayOnRight, stretchLeewayOnLeft);
+			minPageX = pageX - Math.min(shrinkLeewayOnLeft, stretchLeewayOnRight);
+		};
 
 
 		/**
@@ -8648,6 +8847,82 @@
 
 
 		/**
+		 * Given a column's index and width delta, changes the width of the column
+		 * @method resizeColumn
+		 * @memberof DobyGrid
+		 * @private
+		 *
+		 * @param	{integer}	i		- The columns index
+		 * @param	{integer}	d		- The delta by which to change the column width
+		 */
+		resizeColumn = function (i, d) {
+			var actualMinWidth, headerContentWidth, x, j, c, l;
+			var columnElements = $headers.children('.' + classheadercolumn);
+			x = d;
+			if (d < 0) { // shrink column
+				for (j = i; j >= 0; j--) {
+					c = cache.activeColumns[j];
+					headerContentWidth = self.options.minColumnWidth === 'headerContent' ? c._headerWidth : 0;
+					if (!c.resizable) continue;
+					actualMinWidth = Math.max(c.minWidth || 0, absoluteColumnMinWidth, headerContentWidth);
+
+					if (x && c.previousWidth + x < actualMinWidth) {
+						x += c.previousWidth - actualMinWidth;
+						c.width = actualMinWidth;
+					} else {
+						c.width = c.previousWidth + x;
+						x = 0;
+					}
+				}
+
+				if (self.options.autoColumnWidth) {
+					x = -d;
+					for (j = i + 1; j < columnElements.length; j++) {
+						c = cache.activeColumns[j];
+						if (!c.resizable) continue;
+						if (x && c.maxWidth && (c.maxWidth - c.previousWidth < x)) {
+							x -= c.maxWidth - c.previousWidth;
+							c.width = c.maxWidth;
+						} else {
+							c.width = c.previousWidth + x;
+							x = 0;
+						}
+					}
+				}
+			} else { // stretch column
+				for (j = i; j >= 0; j--) {
+					c = cache.activeColumns[j];
+					if (!c.resizable) continue;
+					if (x && c.maxWidth && (c.maxWidth - c.previousWidth < x)) {
+						x -= c.maxWidth - c.previousWidth;
+						c.width = c.maxWidth;
+					} else {
+						c.width = c.previousWidth + x;
+						x = 0;
+					}
+				}
+
+				if (self.options.autoColumnWidth) {
+					x = -d;
+					for (j = i + 1, l = columnElements.length; j < l; j++) {
+						c = cache.activeColumns[j];
+						if (!c.resizable) continue;
+						actualMinWidth = Math.max(c.minWidth || 0, absoluteColumnMinWidth);
+						if (x && c.previousWidth + x < actualMinWidth) {
+							x += c.previousWidth - actualMinWidth;
+
+							c.width = actualMinWidth;
+						} else {
+							c.width = c.previousWidth + x;
+							x = 0;
+						}
+					}
+				}
+			}
+		};
+
+
+		/**
 		 * Resizes the tables outer container to fit the total height of all visible rows
 		 * (currently only used for options.autoHeight).
 		 * @method resizeContainer
@@ -9161,6 +9436,7 @@
 				resizeCanvas(true);
 				applyColumnWidths();
 				handleScroll();
+				self.options.minColumnWidth === "headerContent" && fitColumnsToHeader(true);
 			}
 		};
 
@@ -9215,6 +9491,11 @@
 				}
 			}
 
+			// If toggling minColumnWidth options, need to refit column minwidths
+			if (options.minColumnWidth && options.minColumnWidth === "headerContent" && self.options.minColumnWidth !== options.minColumnWidth) {
+				fitColumnsToHeader();
+			}
+
 			// If changing row height, need to recalculate positions
 			var recalc_heights = options.rowHeight != self.options.rowHeight;
 
@@ -9240,6 +9521,7 @@
 				invalidateAllRows();
 				removeCssRules();
 				createCssRules();
+				cacheRows();
 				resizeCanvas(true);
 				applyColumnWidths();
 			}
@@ -9396,6 +9678,9 @@
 				});
 
 				self.trigger('statechange', this._event);
+
+				// when sorting changed, make sure to recalculate min header with if applicable
+				self.options.minColumnWidth === "headerContent" && fitColumnsToHeader();
 			}
 
 			return this;
@@ -9499,7 +9784,7 @@
 			// If resizable columns are disabled -- return
 			if (!self.options.resizableColumns) return;
 
-			var j, c, l, pageX, columnElements, minPageX, maxPageX, firstResizable, lastResizable;
+			var pageX, columnElements, firstResizable, lastResizable;
 
 			columnElements = $headers.children("." + classheadercolumn);
 			var $handle = columnElements.find("." + classhandle);
@@ -9512,149 +9797,6 @@
 
 			// No resizable columns found
 			if (firstResizable === undefined) return;
-
-			var lockColumnWidths = function () {
-				// Columns may have been changed since the last time this ran - refetch children
-				columnElements = $headers.children('.' + classheadercolumn);
-
-				columnElements.each(function (i) {
-					// The extra 1 here is to compensate for the border separator
-					cache.activeColumns[i].previousWidth = cache.activeColumns[i].width;
-				});
-			};
-
-			var resizeColumn = function (i, d) {
-				var actualMinWidth, x;
-				x = d;
-				if (d < 0) { // shrink column
-					for (j = i; j >= 0; j--) {
-						c = cache.activeColumns[j];
-						if (!c.resizable) continue;
-						actualMinWidth = Math.max(c.minWidth || 0, absoluteColumnMinWidth);
-						if (x && c.previousWidth + x < actualMinWidth) {
-							x += c.previousWidth - actualMinWidth;
-							c.width = actualMinWidth;
-						} else {
-							c.width = c.previousWidth + x;
-							x = 0;
-						}
-					}
-
-					if (self.options.autoColumnWidth) {
-						x = -d;
-						for (j = i + 1; j < columnElements.length; j++) {
-							c = cache.activeColumns[j];
-							if (!c.resizable) continue;
-							if (x && c.maxWidth && (c.maxWidth - c.previousWidth < x)) {
-								x -= c.maxWidth - c.previousWidth;
-								c.width = c.maxWidth;
-							} else {
-								c.width = c.previousWidth + x;
-								x = 0;
-							}
-						}
-					}
-				} else { // stretch column
-					for (j = i; j >= 0; j--) {
-						c = cache.activeColumns[j];
-						if (!c.resizable) continue;
-						if (x && c.maxWidth && (c.maxWidth - c.previousWidth < x)) {
-							x -= c.maxWidth - c.previousWidth;
-							c.width = c.maxWidth;
-						} else {
-							c.width = c.previousWidth + x;
-							x = 0;
-						}
-					}
-
-					if (self.options.autoColumnWidth) {
-						x = -d;
-						for (j = i + 1, l = columnElements.length; j < l; j++) {
-							c = cache.activeColumns[j];
-							if (!c.resizable) continue;
-							actualMinWidth = Math.max(c.minWidth || 0, absoluteColumnMinWidth);
-							if (x && c.previousWidth + x < actualMinWidth) {
-								x += c.previousWidth - actualMinWidth;
-
-								c.width = actualMinWidth;
-							} else {
-								c.width = c.previousWidth + x;
-								x = 0;
-							}
-						}
-					}
-				}
-			};
-
-			var prepareLeeway = function (i, pageX) {
-				var shrinkLeewayOnRight = null,
-					stretchLeewayOnRight = null;
-
-				if (self.options.autoColumnWidth) {
-					shrinkLeewayOnRight = 0;
-					stretchLeewayOnRight = 0;
-					// colums on right affect maxPageX/minPageX
-					for (j = i + 1; j < columnElements.length; j++) {
-						c = cache.activeColumns[j];
-						if (!c.resizable) continue;
-						if (stretchLeewayOnRight !== null) {
-							if (c.maxWidth) {
-								stretchLeewayOnRight += c.maxWidth - c.previousWidth;
-							} else {
-								stretchLeewayOnRight = null;
-							}
-						}
-						shrinkLeewayOnRight += c.previousWidth - Math.max(c.minWidth || 0, absoluteColumnMinWidth);
-					}
-				}
-				var shrinkLeewayOnLeft = 0,
-					stretchLeewayOnLeft = 0;
-				for (j = 0; j <= i; j++) {
-					// columns on left only affect minPageX
-					c = cache.activeColumns[j];
-					if (!c.resizable) continue;
-					if (stretchLeewayOnLeft !== null) {
-						if (c.maxWidth) {
-							stretchLeewayOnLeft += c.maxWidth - c.previousWidth;
-						} else {
-							stretchLeewayOnLeft = null;
-						}
-					}
-					shrinkLeewayOnLeft += c.previousWidth - Math.max(c.minWidth || 0, absoluteColumnMinWidth);
-				}
-
-				if (shrinkLeewayOnRight === null) shrinkLeewayOnRight = 100000;
-				if (shrinkLeewayOnLeft === null) shrinkLeewayOnLeft = 100000;
-				if (stretchLeewayOnRight === null) stretchLeewayOnRight = 100000;
-				if (stretchLeewayOnLeft === null) stretchLeewayOnLeft = 100000;
-
-				maxPageX = pageX + Math.min(shrinkLeewayOnRight, stretchLeewayOnLeft);
-				minPageX = pageX - Math.min(shrinkLeewayOnLeft, stretchLeewayOnRight);
-			};
-
-			var applyColWidths = function () {
-				applyColumnHeaderWidths();
-				if (self.options.resizeCells) applyColumnWidths();
-			};
-
-			var submitColResize = function () {
-				var newWidth;
-				for (j = 0; j < columnElements.length; j++) {
-					c = cache.activeColumns[j];
-					newWidth = $(columnElements[j]).outerWidth();
-
-					if (c.previousWidth !== newWidth && c.rerenderOnResize) {
-						invalidateAllRows();
-					}
-				}
-
-				updateCanvasWidth(true);
-				render();
-				self.trigger('columnresize', self._event, {
-					columns: self.options.columns
-				});
-				self.trigger('statechange', self._event);
-			};
 
 			// Assign double-click to auto-resize event
 			// This is done once for the whole header because event assignments are expensive
@@ -9672,7 +9814,7 @@
 				// Do nothing if width isn't changed
 				if (currentWidth == newWidth) return;
 
-				pageX = event.pageX;
+				var pageX = event.pageX;
 
 				lockColumnWidths(column_index);
 
@@ -9686,7 +9828,7 @@
 				var delta = Math.min(maxPageX, Math.max(minPageX, pageX + diff)) - pageX;
 
 				resizeColumn(column_index, delta);
-				applyColWidths();
+				applyHeaderAndColumnWidths();
 				submitColResize();
 			});
 
@@ -9718,10 +9860,17 @@
 						resizeColumn(i, delta);
 
 						// Save changes
-						applyColWidths();
+						applyHeaderAndColumnWidths();
 					})
 					.on('dragend', function () {
-						$(this).parent().removeClass(classheadercolumndrag);
+
+						// This timeout is a hacky solution to prevent the 'click' event for
+						// column sorting from firing when resizing the handle on top of the
+						// header cell. FIXME: There's got to be a better way!
+						setTimeout(function () {
+							$(this).parent().removeClass(classheadercolumndrag);
+						}.bind(this), 1);
+
 						submitColResize();
 					});
 			});
@@ -9741,8 +9890,8 @@
 				self._event = e;
 
 				// If clicking on drag handle - stop
-				var handle = $(e.target).closest("." + classhandle);
-				if (handle.length) return;
+				var preventClick = $(e.target).closest("." + classhandle).length || $(e.target).hasClass(classheadercolumndrag);
+				if (preventClick) return;
 
 				var column = getColumnFromEvent(e);
 				if (!column || !column.sortable) return;
@@ -9827,15 +9976,14 @@
 		 * Slide out a quick search header bar
 		 * @method showQuickFilter
 		 * @memberof DobyGrid
-		 * @private
 		 *
-		 * @param	{object}	focus		- Column definition object for the column we want to focus.
-		 *									Passing in null will toggle the quick filter.
+		 * @param	{?string}	[column_id]		- ID of the column we want to focus. Passing in null
+		 *										will toggle the quick filter.
 		 *
 		 * NOTE: Many optimizations can be done here.
 		 *
 		 */
-		showQuickFilter = function (focus) {
+		this.showQuickFilter = function (column_id) {
 			if (!self.options.showHeader) return;
 
 			var handleResize = function () {
@@ -9848,7 +9996,7 @@
 			};
 
 			// Toggle off
-			if (focus === undefined && $headerFilter) {
+			if ((column_id === undefined || column_id === null) && $headerFilter) {
 				removeElement($headerFilter[0]);
 				$headerFilter = undefined;
 
@@ -9865,7 +10013,7 @@
 			var onKeyUp = function (event) {
 				// Esc closes the quick filter
 				if (event.keyCode == 27) {
-					showQuickFilter();
+					self.showQuickFilter();
 					return;
 				}
 
@@ -9896,6 +10044,9 @@
 					self.filter(filterset);
 				}, 150);
 			};
+
+			// Get column object for the focused column
+			var focusedColumn = cache.columnsById[column_id];
 
 			// Draw new filter bar
 			if (!$headerFilter) {
@@ -9939,19 +10090,21 @@
 						.on('keyup', onKeyUp);
 
 					// Focus input
-					if (focus && focus.id == column.id) {
+					if (column_id == column.id) {
 						column.quickFilterInput.select().focus();
 					}
 				}
-			} else if (focus && focus.quickFilterInput) {
+			} else if (focusedColumn && focusedColumn.quickFilterInput) {
 				// Just focus
-				focus.quickFilterInput.select().focus();
+				focusedColumn.quickFilterInput.select().focus();
 			}
 
 			// Set column widths
 			applyColumnHeaderWidths();
 
 			handleResize();
+
+			return this;
 		};
 
 
@@ -10225,6 +10378,38 @@
 			});
 		};
 
+		/**
+		 * Submits the column resize states and calls associated events
+		 * @method submitColResize
+		 * @memberof DobyGrid
+		 * @private
+		 *
+		 * @param	{boolean}	silent	- Submit column resize states but don't trigger associated events
+		 */
+		submitColResize = function (silent) {
+			var newWidth, j, c;
+			var columnElements = $headers.children('.' + classheadercolumn);
+			for (j = 0; j < columnElements.length; j++) {
+				c = cache.activeColumns[j];
+				newWidth = $(columnElements[j]).outerWidth();
+
+				if (c.previousWidth !== newWidth && c.rerenderOnResize) {
+					invalidateAllRows();
+				}
+			}
+
+			updateCanvasWidth(true);
+			render();
+
+			if (!silent) {
+				self.trigger('columnresize', self._event, {
+					columns: self.options.columns
+				});
+			}
+
+			self.trigger('statechange', self._event);
+		};
+
 
 		/**
 		 * Returns a readable representation of a Doby Grid Object
@@ -10394,14 +10579,14 @@
 					enabled: column,
 					name: column ? getLocale('column.filter', {name: column.name}) : '',
 					fn: function () {
-						showQuickFilter(column);
+						self.showQuickFilter(column.id);
 						self.dropdown.hide();
 					}
 				}, {
 					enabled: $headerFilter !== undefined,
 					name: getLocale('global.hide_filter'),
 					fn: function () {
-						showQuickFilter();
+						self.showQuickFilter();
 						self.dropdown.hide();
 					}
 				}]

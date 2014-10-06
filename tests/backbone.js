@@ -8,6 +8,9 @@
 describe("Backbone Integration", function () {
 	"use strict";
 
+	// Disable underscore's debounce until https://github.com/pivotal/jasmine/pull/455 is fixed
+	_.debounce = function (func) { return function () { func.apply(this, arguments);}; };
+
 	var resetGrid = function (opts) {
 		opts = opts || {};
 
@@ -58,35 +61,23 @@ describe("Backbone Integration", function () {
 	it("should automatically insert a new row when an item is added to the Backbone.Collection", function () {
 		var results, grid, collection, timeout = false;
 
-		runs(function () {
-			results = resetGrid();
-			grid = results[0];
-			collection = results[1];
+		results = resetGrid();
+		grid = results[0];
+		collection = results[1];
 
-			// Add an item to the collection
-			collection.add({
-				id: collection.length + 1,
-				name: "Bobby McFerrin",
-				age: "old",
-				city: "Somewhere"
-			});
-
-			setTimeout(function () {
-				timeout = true;
-			}, 20);
+		// Add an item to the collection
+		collection.add({
+			id: collection.length + 1,
+			name: "Bobby McFerrin",
+			age: "old",
+			city: "Somewhere"
 		});
 
-		waitsFor(function () {
-			return timeout;
-		});
+		var rows = grid.$el.find('.doby-grid-row');
 
-		runs(function () {
-			var rows = grid.$el.find('.doby-grid-row');
-
-			// New row should be inserted at the bottom of the grid
-			expect(rows.length).toEqual(collection.length);
-			expect(rows.last().children('.doby-grid-cell.l1.r1')).toHaveText('Bobby McFerrin');
-		});
+		// New row should be inserted at the bottom of the grid
+		expect(rows.length).toEqual(collection.length);
+		expect(rows.last().children('.doby-grid-cell.l1.r1')).toHaveText('Bobby McFerrin');
 	});
 
 
@@ -106,15 +97,12 @@ describe("Backbone Integration", function () {
 		// Sort collection using the new comparator
 		collection.sort();
 
-		// First row should now be the last item in the collection, after debouncing
-		waitsFor(function () {
-			// Make sure rows are sorted by their position
-			var rows = $(_.sortBy(grid.$el.find('.doby-grid-row'), function (item) {
-				return parseInt($(item).css('top'), 10);
-			}));
+		// Make sure rows are sorted by their position
+		var rows = $(_.sortBy(grid.$el.find('.doby-grid-row'), function (item) {
+			return parseInt($(item).css('top'), 10);
+		}));
 
-			return $(rows[0]).children('.l0').text().indexOf(collection.length) >= 0;
-		}, 20);
+		expect($(rows[0]).children('.l0').text().indexOf(collection.length)).toBeGreaterThan(-1);
 	});
 
 
@@ -150,20 +138,16 @@ describe("Backbone Integration", function () {
 		}));
 
 		// New row should be inserted at the top of the grid
-		waitsFor(function () {
-			return grid.$el.find('.doby-grid-row').length == collection.length;
-		}, 20);
+		expect(grid.$el.find('.doby-grid-row').length).toEqual(collection.length);
 
-		runs(function () {
-			newrows = grid.$el.find('.doby-grid-row');
+		newrows = grid.$el.find('.doby-grid-row');
 
-			// Make sure rows are sorted by their position
-			newrows = $(_.sortBy(newrows, function (item) {
-				return parseInt($(item).css('top'), 10);
-			}));
+		// Make sure rows are sorted by their position
+		newrows = $(_.sortBy(newrows, function (item) {
+			return parseInt($(item).css('top'), 10);
+		}));
 
-			expect(newrows.first().children('.doby-grid-cell.l1.r1')).toHaveText('Robert Miles');
-		});
+		expect(newrows.first().children('.doby-grid-cell.l1.r1')).toHaveText('Robert Miles');
 	});
 
 
@@ -182,17 +166,15 @@ describe("Backbone Integration", function () {
 			city: "Europe?"
 		});
 
-		waitsFor(function () {
-			var rows = grid.$el.find('.doby-grid-row');
+		var rows = grid.$el.find('.doby-grid-row');
 
-			// Make sure rows are sorted by their position
-			rows = $(_.sortBy(rows, function (item) {
-				return parseInt($(item).css('top'), 10);
-			}));
+		// Make sure rows are sorted by their position
+		rows = $(_.sortBy(rows, function (item) {
+			return parseInt($(item).css('top'), 10);
+		}));
 
-			// First row should be updated with new data
-			return rows.first().children('.doby-grid-cell.l1.r1').text().indexOf('Houdini') >= 0;
-		}, 20);
+		// First row should be updated with new data
+		expect(rows.first().children('.doby-grid-cell.l1.r1').text().indexOf('Houdini')).toBeGreaterThan(-1);
 	});
 
 
@@ -229,7 +211,7 @@ describe("Backbone Integration", function () {
 		// Should have "empty message" row, with one cell
 		var $rows = grid.$el.find('.doby-grid-row');
 		expect($rows.length).toEqual(0);
-		expect(grid.$el).toContain('.doby-grid-empty');
+		expect(grid.$el).toContainElement('.doby-grid-empty');
 	});
 
 
@@ -247,7 +229,7 @@ describe("Backbone Integration", function () {
 		// Should have "empty message" row, with one cell
 		var $rows = grid.$el.find('.doby-grid-row');
 		expect($rows.length).toEqual(0);
-		expect(grid.$el).toContain('.doby-grid-empty');
+		expect(grid.$el).toContainElement('.doby-grid-empty');
 	});
 
 
@@ -267,15 +249,11 @@ describe("Backbone Integration", function () {
 			city: "Somewhere"
 		});
 
-		waitsFor(function () {
-			// Should have 1 row
-			var $rows = grid.$el.find(".doby-grid-row:not('.doby-grid-alert')");
-			return $rows.length == 1;
-		});
+		// Should have 1 row
+		var $rows = grid.$el.find(".doby-grid-row:not('.doby-grid-alert')");
+		expect($rows.length).toEqual(1);
 
-		runs(function () {
-			expect(grid.$el.find('.doby-grid-row:first .doby-grid-cell:first').first()).toHaveText(20);
-		});
+		expect(grid.$el.find('.doby-grid-row:first .doby-grid-cell:first').first()).toHaveText(20);
 	});
 
 
@@ -300,15 +278,11 @@ describe("Backbone Integration", function () {
 			city: "Somewhere"
 		});
 
-		waitsFor(function () {
-			// Should have 1 row
-			var $rows = grid.$el.find(".doby-grid-row:not('.doby-grid-alert')");
-			return $rows.length == 1;
-		});
+		// Should have 1 row
+		var $rows = grid.$el.find(".doby-grid-row:not('.doby-grid-alert')");
+		expect($rows.length).toEqual(1);
 
-		runs(function () {
-			expect(grid.$el.find('.doby-grid-row:first .doby-grid-cell:first').first()).toHaveText(20);
-		});
+		expect(grid.$el.find('.doby-grid-row:first .doby-grid-cell:first').first()).toHaveText(20);
 	});
 
 
@@ -334,28 +308,21 @@ describe("Backbone Integration", function () {
 			}),
 			grid = results[0];
 
-		waitsFor(function () {
-			// Wait until rows are rendered
-			var $rows = grid.$el.find(".doby-grid-row:not('.doby-grid-alert')");
-			return $rows.length > 1;
-		}, 100);
+		// Wait until rows are rendered
+		var $rows = grid.$el.find(".doby-grid-row:not('.doby-grid-alert')");
+		expect($rows.length).toBeGreaterThan(1);
 
-		runs(function () {
-			// Add some grouping
-			grid.addGrouping('city', {collapsed: true});
-		});
+		// Add some grouping
+		grid.addGrouping('city', {collapsed: true});
 
-		waitsFor(function () {
-			// Wait until groups are collapsed
-			var $rows = grid.$el.find(".doby-grid-row");
-			return ($rows.length == 2) && $rows.hasClass('doby-grid-group');
-		}, 100);
+		// Wait until groups are collapsed
+		$rows = grid.$el.find(".doby-grid-row");
+		expect($rows.length).toEqual(2);
+		expect($rows).toHaveClass('doby-grid-group');
 
-		runs(function () {
-			// Now try to update an item
-			var model = collection.at(45);
-			model.set({age: 'veryold'});
-		});
+		// Now try to update an item
+		var model = collection.at(45);
+		model.set({age: 'veryold'});
 	});
 
 
@@ -383,16 +350,12 @@ describe("Backbone Integration", function () {
 		// Add data to collection after the grid has been rendered
 		collection.add(data);
 
-		waitsFor(function () {
-			// Wait until rows are rendered
-			var $rows = grid.$el.find(".doby-grid-row:not('.doby-grid-alert')");
-			return $rows.length === 1;
-		}, 100, 'grid should be rendered');
+		// Wait until rows are rendered
+		var $rows = grid.$el.find(".doby-grid-row:not('.doby-grid-alert')");
+		expect($rows.length).toEqual(1);
 
-		runs(function () {
-			// Make sure data is rendered
-			expect(grid.collection.items.length).toEqual(1);
-		});
+		// Make sure data is rendered
+		expect(grid.collection.items.length).toEqual(1);
 	});
 
 
@@ -419,16 +382,12 @@ describe("Backbone Integration", function () {
 		// Add data to collection after the grid has been rendered
 		collection.reset(data);
 
-		waitsFor(function () {
-			// Wait until rows are rendered
-			var $rows = grid.$el.find(".doby-grid-row:not('.doby-grid-alert')");
-			return $rows.length === 1;
-		}, 100, 'grid should be rendered');
+		// Wait until rows are rendered
+		var $rows = grid.$el.find(".doby-grid-row:not('.doby-grid-alert')");
+		expect($rows.length).toEqual(1);
 
-		runs(function () {
-			// Make sure data is rendered
-			expect(grid.collection.items.length).toEqual(1);
-		});
+		// Make sure data is rendered
+		expect(grid.collection.items.length).toEqual(1);
 	});
 
 });

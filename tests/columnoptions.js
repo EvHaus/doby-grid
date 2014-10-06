@@ -44,10 +44,10 @@ describe("Column Options", function () {
 
 
 	describe("options.aggregators", function () {
-		it("should be null by default", function () {
+		it("should be undefined by default", function () {
 			var grid = resetGrid(defaultData());
 			_.each(grid.options.columns, function (col) {
-				expect(col.aggregators).toEqual(null);
+				expect(col.aggregators).toEqual(undefined);
 			});
 		});
 
@@ -64,7 +64,7 @@ describe("Column Options", function () {
 							aggregators: test
 						}]
 					}));
-				}).toThrow('A column\'s "aggregators" value must be array. Invalid value given for column "' + i + '"');
+				}).toThrowError('A column\'s "aggregators" value must be array. Invalid value given for column "' + i + '"');
 			});
 		});
 
@@ -181,7 +181,7 @@ describe("Column Options", function () {
 						}]
 					}]
 				}));
-			}).toThrow("The column aggregator for \"id\" is missing a valid 'process' function.");
+			}).toThrowError("The column aggregator for \"id\" is missing a valid 'process' function.");
 		});
 
 
@@ -259,6 +259,9 @@ describe("Column Options", function () {
 
 
 		it("should cache the HTML value of cells when enabled and postprocessing is on", function () {
+			// Start fake timer
+			jasmine.clock().install();
+
 			var poem = "I'm a little teapot",
 				verse1 = "S & S",
 				verse2 = "Something Something",
@@ -303,40 +306,40 @@ describe("Column Options", function () {
 			});
 
 			// Wait until postprocessing has rendered and cached everything
-			waitsFor(function () {
-				return grid.$el.find('.doby-grid-cell:empty').length === 0 && callbackcount === 4;
-			}, 500);
+			jasmine.clock().tick(500);
+			expect(callbackcount).toEqual(4);
 
-			runs(function () {
-				// Expect cells to have new data
-				grid.$el.find('.doby-grid-row').each(function () {
-					$(this).children('.doby-grid-cell').each(function (i) {
-						if (i === 0) {
-							expect($(this).text()).toEqual(poem);
-						} else if (i == 1) {
-							expect($(this).text()).toEqual(verse1);
-						} else if (i == 2) {
-							expect($(this).text()).toEqual(verse2);
-						}
-					});
-				});
-
-				// Force the grid to be re-rendered via resize(). This is a big of a hack.
-				grid.resize();
-
-				// First column should be empty, but the others should be cached
-				grid.$el.find('.doby-grid-row').each(function () {
-					$(this).children('.doby-grid-cell').each(function (i) {
-						if (i === 0) {
-							expect($(this).text()).toEqual('');
-						} else if (i == 1) {
-							expect($(this).text()).toEqual(verse1);
-						} else if (i == 2) {
-							expect($(this).text()).toEqual(verse2);
-						}
-					});
+			// Expect cells to have new data
+			grid.$el.find('.doby-grid-row').each(function () {
+				$(this).children('.doby-grid-cell').each(function (i) {
+					if (i === 0) {
+						expect($(this).text()).toEqual(poem);
+					} else if (i == 1) {
+						expect($(this).text()).toEqual(verse1);
+					} else if (i == 2) {
+						expect($(this).text()).toEqual(verse2);
+					}
 				});
 			});
+
+			// Force the grid to be re-rendered via resize(). This is a big of a hack.
+			grid.resize();
+
+			// First column should be empty, but the others should be cached
+			grid.$el.find('.doby-grid-row').each(function () {
+				$(this).children('.doby-grid-cell').each(function (i) {
+					if (i === 0) {
+						expect($(this).text()).toEqual('');
+					} else if (i == 1) {
+						expect($(this).text()).toEqual(verse1);
+					} else if (i == 2) {
+						expect($(this).text()).toEqual(verse2);
+					}
+				});
+			});
+
+			// Remove fake timer
+			jasmine.clock().uninstall();
 		});
 
 
@@ -344,6 +347,9 @@ describe("Column Options", function () {
 
 
 		it("should recache when the grid is re-ordered", function () {
+			// Start fake timer
+			jasmine.clock().install();
+
 			var grid = resetGrid({
 				columns: [{
 					cache: true,
@@ -365,28 +371,30 @@ describe("Column Options", function () {
 				})
 			});
 
+			jasmine.clock().tick(500);
+
 			// Wait until postprocessing has rendered at least the first row
-			waitsFor(function () {
-				return grid.$el.find('.doby-grid-cell').eq(0).text() == 'post-0' && grid.$el.find('.doby-grid-cell').eq(1).text() == 'post-1';
+			expect(grid.$el.find('.doby-grid-cell').eq(0).text()).toEqual('post-0');
+			expect(grid.$el.find('.doby-grid-cell').eq(1).text()).toEqual('post-1');
+
+			// Expect cells to have data in the right order
+			grid.$el.find('.doby-grid-cell').each(function (i) {
+				if ($(this).text().indexOf('post-') >= 0) {
+					expect($(this).text()).toEqual('post-' + i);
+				}
 			});
 
-			runs(function () {
-				// Expect cells to have data in the right order
-				grid.$el.find('.doby-grid-cell').each(function (i) {
-					if ($(this).text().indexOf('post-') >= 0) {
-						expect($(this).text()).toEqual('post-' + i);
-					}
-				});
-
-				// Reverse grid sort
-				grid.sortBy('id', false);
-			});
+			// Reverse grid sort
+			grid.sortBy('id', false);
 
 			// Wait until postprocessing has rendered at least the first row
 			// in the right order!
-			waitsFor(function () {
-				return grid.$el.find('.doby-grid-cell:first').text() === '99';
-			}, "the grid to update the cache after sorting");
+			jasmine.clock().tick(500);
+
+			expect(grid.$el.find('.doby-grid-cell:first').text()).toEqual('post-99');
+
+			// Remove fake timer
+			jasmine.clock().uninstall();
 		});
 
 
@@ -394,6 +402,9 @@ describe("Column Options", function () {
 
 
 		it("should recache when a grid's item is updated", function () {
+			// Start fake timer
+			jasmine.clock().install();
+
 			var grid = resetGrid({
 				columns: [{
 					cache: true,
@@ -415,19 +426,18 @@ describe("Column Options", function () {
 			});
 
 			// Wait until postprocessing has rendered the row
-			waitsFor(function () {
-				return grid.$el.find('.doby-grid-cell').eq(0).text() == 'post-1';
-			});
+			jasmine.clock().tick(500);
+			expect(grid.$el.find('.doby-grid-cell').eq(0).text()).toEqual('post-1');
 
-			runs(function () {
-				// Update the value of the row
-				grid.setItem(1, {data: {count: 2}});
-			});
+			// Update the value of the row
+			grid.setItem(1, {data: {count: 2}});
 
 			// Wait until postprocessing has re-rendered the row with the updated value
-			waitsFor(function () {
-				return grid.$el.find('.doby-grid-cell').eq(0).text() == 'post-2';
-			}, 500);
+			jasmine.clock().tick(500);
+			expect(grid.$el.find('.doby-grid-cell').eq(0).text()).toEqual('post-2');
+
+			// Remove fake timer
+			jasmine.clock().uninstall();
 		});
 
 
@@ -435,6 +445,9 @@ describe("Column Options", function () {
 
 
 		it("should recache when a grid's nested rows are updated", function () {
+			// Start fake timer
+			jasmine.clock().install();
+
 			var grid = resetGrid({
 				columns: [{
 					cache: true,
@@ -465,40 +478,43 @@ describe("Column Options", function () {
 			});
 
 			// Wait until postprocessing has rendered the row
-			waitsFor(function () {
-				var $cells = grid.$el.find('.doby-grid-cell'),
-					$firstcell = $cells.eq(0),
-					$secondcell = $cells.eq(1);
-				return $firstcell.text() == 'post-1' && $secondcell.text() == 'post-1';
-			});
+			jasmine.clock().tick(500);
 
-			runs(function () {
-				// Update the value of the nested row
-				grid.setItem(1, {
+			var $cells = grid.$el.find('.doby-grid-cell'),
+				$firstcell = $cells.eq(0),
+				$secondcell = $cells.eq(1);
+			expect($firstcell.text()).toEqual('post-1');
+			expect($secondcell.text()).toEqual('post-1');
+
+			// Update the value of the nested row
+			grid.setItem(1, {
+				id: 1,
+				data: {
 					id: 1,
-					data: {
-						id: 1,
-						count: 1
-					},
-					rows: {
-						0: {
+					count: 1
+				},
+				rows: {
+					0: {
+						id: 2,
+						data: {
 							id: 2,
-							data: {
-								id: 2,
-								count: 2
-							}
+							count: 2
 						}
 					}
-				});
+				}
 			});
 
 			// Wait until postprocessing has re-rendered the row with the updated value
-			waitsFor(function () {
-				var $cells = grid.$el.find('.doby-grid-cell'),
-					$firstcell = $cells.eq(0),
-					$secondcell = $cells.eq(1);
-				return $firstcell.text() == 'post-1' && $secondcell.text() == 'post-2';
-			}, 500);
+			jasmine.clock().tick(500);
+
+			$cells = grid.$el.find('.doby-grid-cell');
+			$firstcell = $cells.eq(0);
+			$secondcell = $cells.eq(1);
+			expect($firstcell.text()).toEqual('post-1');
+			expect($secondcell.text()).toEqual('post-2');
+
+			// Remove fake timer
+			jasmine.clock().uninstall();
 		});
 
 
@@ -506,6 +522,9 @@ describe("Column Options", function () {
 
 
 		it("should recache nested rows when the parent row is updated", function () {
+			// Start fake timer
+			jasmine.clock().install();
+
 			var grid = resetGrid({
 				columns: [{
 					cache: true,
@@ -536,40 +555,43 @@ describe("Column Options", function () {
 			});
 
 			// Wait until postprocessing has rendered the row
-			waitsFor(function () {
-				var $cells = grid.$el.find('.doby-grid-cell'),
-					$firstcell = $cells.eq(0),
-					$secondcell = $cells.eq(1);
-				return $firstcell.text() == 'post-1' && $secondcell.text() == 'post-1';
-			});
+			jasmine.clock().tick(500);
 
-			runs(function () {
-				// Update the value of the nested row
-				grid.setItem(1, {
+			var $cells = grid.$el.find('.doby-grid-cell'),
+				$firstcell = $cells.eq(0),
+				$secondcell = $cells.eq(1);
+			expect($firstcell.text()).toEqual('post-1');
+			expect($secondcell.text()).toEqual('post-1');
+
+			// Update the value of the nested row
+			grid.setItem(1, {
+				id: 1,
+				data: {
 					id: 1,
-					data: {
-						id: 1,
-						count: 1
-					},
-					rows: {
-						0: {
+					count: 1
+				},
+				rows: {
+					0: {
+						id: 2,
+						data: {
 							id: 2,
-							data: {
-								id: 2,
-								count: 2
-							}
+							count: 2
 						}
 					}
-				});
+				}
 			});
 
 			// Wait until postprocessing has re-rendered the row with the updated value
-			waitsFor(function () {
-				var $cells = grid.$el.find('.doby-grid-cell'),
-					$firstcell = $cells.eq(0),
-					$secondcell = $cells.eq(1);
-				return $firstcell.text() == 'post-1' && $secondcell.text() == 'post-2';
-			}, 500);
+			jasmine.clock().tick(500);
+
+			$cells = grid.$el.find('.doby-grid-cell');
+			$firstcell = $cells.eq(0);
+			$secondcell = $cells.eq(1);
+			expect($firstcell.text()).toEqual('post-1');
+			expect($secondcell.text()).toEqual('post-2');
+
+			// Remove fake timer
+			jasmine.clock().uninstall();
 		});
 
 
@@ -577,6 +599,9 @@ describe("Column Options", function () {
 
 
 		it("should be able to hide a cached column", function () {
+			// Start fake timer
+			jasmine.clock().install();
+
 			var grid = resetGrid({
 				columns: [{
 					cache: true,
@@ -598,15 +623,18 @@ describe("Column Options", function () {
 			});
 
 			// Wait until postprocessing has rendered the row
-			waitsFor(function () {
-				var $cells = grid.$el.find('.doby-grid-cell'),
-					$firstcell = $cells.eq(0);
-				return $firstcell.text() == 'post-1';
-			}, 50);
+			jasmine.clock().tick(500);
 
-			runs(function () {
+			var $cells = grid.$el.find('.doby-grid-cell'),
+				$firstcell = $cells.eq(0);
+			expect($firstcell.text()).toEqual('post-1');
+
+			expect(function () {
 				grid.hideColumn('count');
-			});
+			}).not.toThrow();
+
+			// Remove fake timer
+			jasmine.clock().uninstall();
 		});
 	});
 
@@ -615,10 +643,10 @@ describe("Column Options", function () {
 
 
 	describe("options.category", function () {
-		it("should be null by default", function () {
+		it("should be undefined by default", function () {
 			var grid = resetGrid(defaultData());
 			_.each(grid.options.columns, function (col) {
-				expect(col.category).toEqual(null);
+				expect(col.category).toEqual(undefined);
 			});
 		});
 
@@ -640,24 +668,17 @@ describe("Column Options", function () {
 			}));
 
 			// Bring up the context menu
-			grid.$el.find('.doby-grid-cell').simulate('contextmenu');
+			grid.$el.find('.doby-grid-cell:first').simulate('contextmenu');
 
-			waitsFor(function () {
-				// I'm not sure why this is necessary, but without it we see like 16 context menus come up
-				return $(document.body).find('.doby-grid-dropdown').length === 1;
-			});
+			var item_a = $(document.body).find('.doby-grid-dropdown-item .doby-grid-dropdown-item:contains(\'' + category_a + '\')'),
+				item_b = $(document.body).find('.doby-grid-dropdown-item .doby-grid-dropdown-item:contains(\'' + category_b + '\')');
 
-			runs(function () {
-				var item_a = $(document.body).find('.doby-grid-dropdown-item .doby-grid-dropdown-item:contains(\'' + category_a + '\')'),
-					item_b = $(document.body).find('.doby-grid-dropdown-item .doby-grid-dropdown-item:contains(\'' + category_b + '\')');
+			// Find a dropdown item for all the cagetories
+			expect(item_a.length).toEqual(1);
+			expect(item_b.length).toEqual(1);
 
-				// Find a dropdown item for all the cagetories
-				expect(item_a.length).toEqual(1);
-				expect(item_b.length).toEqual(1);
-
-				// Close dropdowns
-				$(document.body).find('.doby-grid-dropdown').remove();
-			});
+			// Close dropdowns
+			$(document.body).find('.doby-grid-dropdown').remove();
 		});
 	});
 
@@ -765,7 +786,7 @@ describe("Column Options", function () {
 		it("should be null by default", function () {
 			var grid = resetGrid(defaultData());
 			_.each(grid.options.columns, function (col) {
-				expect(col.dataExtractor).toEqual(null);
+				expect(col.dataExtractor).toEqual(undefined);
 			});
 		});
 
@@ -839,11 +860,11 @@ describe("Column Options", function () {
 					if (i === 0) {
 						// Make sure all cells in first column are editable
 						$(this).simulate("dblclick");
-						expect($(this)).toContain("input");
+						expect($(this)).toContainElement("input");
 					} else {
 						// But all cells in second column are not
 						$(this).simulate("dblclick");
-						expect($(this)).not.toContain("input");
+						expect($(this)).not.toContainElement("input");
 					}
 				});
 			});
@@ -873,7 +894,7 @@ describe("Column Options", function () {
 				$(this).children('.doby-grid-cell').each(function () {
 					// Clicking on cells should not do anything
 					$(this).simulate("dblclick");
-					expect($(this)).not.toContain("input");
+					expect($(this)).not.toContainElement("input");
 				});
 			});
 		});
@@ -887,7 +908,7 @@ describe("Column Options", function () {
 		it("should be null by default", function () {
 			var grid = resetGrid(defaultData());
 			_.each(grid.options.columns, function (col) {
-				expect(col.editor).toEqual(null);
+				expect(col.editor).toEqual(undefined);
 			});
 		});
 
@@ -904,7 +925,7 @@ describe("Column Options", function () {
 							editor: test
 						}]
 					}));
-				}).toThrow('Column editors must be functions. Invalid editor given for column "' + i + '"');
+				}).toThrowError('Column editors must be functions. Invalid editor given for column "' + i + '"');
 			});
 		});
 	});
@@ -917,7 +938,7 @@ describe("Column Options", function () {
 		it("should be null by default", function () {
 			var grid = resetGrid(defaultData());
 			_.each(grid.options.columns, function (col) {
-				expect(col.exporter).toEqual(null);
+				expect(col.exporter).toEqual(undefined);
 			});
 		});
 
@@ -934,7 +955,7 @@ describe("Column Options", function () {
 							exporter: test
 						}]
 					}));
-				}).toThrow('Column exporters must be functions. Invalid exporter given for column "' + i + '"');
+				}).toThrowError('Column exporters must be functions. Invalid exporter given for column "' + i + '"');
 			});
 		});
 	});
@@ -979,7 +1000,7 @@ describe("Column Options", function () {
 				if (i === 0) {
 					expect($(this)).toBeEmpty();
 				} else {
-					expect($(this)).toContain('.doby-grid-editor');
+					expect($(this)).toContainElement('.doby-grid-editor');
 				}
 			});
 
@@ -1043,7 +1064,7 @@ describe("Column Options", function () {
 		it("should be null by default", function () {
 			var grid = resetGrid(defaultData());
 			_.each(grid.options.columns, function (col) {
-				expect(col.formatter).toEqual(null);
+				expect(col.formatter).toEqual(undefined);
 			});
 		});
 
@@ -1089,7 +1110,7 @@ describe("Column Options", function () {
 							formatter: test
 						}]
 					}));
-				}).toThrow('Column formatters must be functions. Invalid formatter given for column "' + i + '"');
+				}).toThrowError('Column formatters must be functions. Invalid formatter given for column "' + i + '"');
 			});
 		});
 	});
@@ -1122,12 +1143,12 @@ describe("Column Options", function () {
 			// Attempt to group via addGrouping()
 			expect(function () {
 				grid.addGrouping('id');
-			}).toThrow('Cannot add grouping for column "id" because "options.groupable" is disabled for that column.');
+			}).toThrowError('Cannot add grouping for column "id" because "options.groupable" is disabled for that column.');
 
 			// Attempt to group via setGrouping()
 			expect(function () {
 				grid.setGrouping([{column_id: 'id'}]);
-			}).toThrow('Cannot add grouping for column "id" because "options.groupable" is disabled for that column.');
+			}).toThrowError('Cannot add grouping for column "id" because "options.groupable" is disabled for that column.');
 		});
 	});
 
@@ -1320,6 +1341,9 @@ describe("Column Options", function () {
 
 
 		it("should execute postprocessing on column cells when enabled", function () {
+			// Start fake timer
+			jasmine.clock().install();
+
 			var grid = resetGrid($.extend(defaultData(), {
 				columns: [{
 					name: 'id',
@@ -1335,25 +1359,21 @@ describe("Column Options", function () {
 			var cells = grid.$el.find('.doby-grid-cell');
 
 			// Expect everything to be empty
+			expect(cells.length).toBeGreaterThan(0);
 			cells.each(function () {
 				expect($(this).text()).toEqual('');
 			});
 
 			// Wait until postprocessing has rendered everything
-			waitsFor(function () {
-				var result = true;
-				cells.each(function () {
-					if ($(this).text() === '') result = false;
-				});
-				return result;
+			jasmine.clock().tick(500);
+
+			// Expect cells to have new data
+			cells.each(function () {
+				expect($(this).text()).toEqual("I'm a little teapot");
 			});
 
-			runs(function () {
-				// Expect cells to have new data
-				cells.each(function () {
-					expect($(this).text()).toEqual("I'm a little teapot");
-				});
-			});
+			// Remove fake timer
+			jasmine.clock().uninstall();
 		});
 	});
 
@@ -1390,7 +1410,7 @@ describe("Column Options", function () {
 			// Removing second column should throw an exception
 			expect(function () {
 				grid.removeColumn('name');
-			}).toThrow('Cannot remove column "name" because it is not removable.');
+			}).toThrowError('Cannot remove column "name" because it is not removable.');
 
 		});
 	});
@@ -1569,7 +1589,7 @@ describe("Column Options", function () {
 
 			expect(function () {
 				grid.sortBy('id');
-			}).toThrow('Doby Grid cannot sort by "id" because that column is not sortable.');
+			}).toThrowError('Doby Grid cannot sort by "id" because that column is not sortable.');
 		});
 	});
 

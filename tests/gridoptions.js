@@ -9,6 +9,10 @@ describe("Grid Options", function () {
 	"use strict";
 
 
+	// Disable underscore's debounce until https://github.com/pivotal/jasmine/pull/455 is fixed
+	_.debounce = function (func) { return function () { func.apply(this, arguments);}; };
+
+
 	// ==========================================================================================
 
 
@@ -272,6 +276,9 @@ describe("Grid Options", function () {
 		it("should correctly delay the editor loading", function () {
 			var delay = 500;
 
+			// Start Jasmine Clock
+			jasmine.clock().install();
+
 			// Prepare data for test
 			var grid = resetGrid($.extend(defaultData(), {
 				asyncEditorLoading: true,
@@ -289,13 +296,17 @@ describe("Grid Options", function () {
 			// Nothing should happen immediately
 			expect(firstCell.html()).toEqual(originalValue);
 
-			waitsFor(function () {
-				return firstCell.find('input').length;
-			}, "Cell editor was never generated.", delay);
+			// Should be no editor yet
+			expect(firstCell.find('input').length).toEqual(0);
 
-			runs(function () {
-				expect(firstCell.find('input').length).toEqual(1);
-			});
+			// Step forward in time
+			jasmine.clock().tick(delay);
+
+			// Input should be rendered after the delay
+			expect(firstCell.find('input').length).toEqual(1);
+
+			// Stop Jasmine Clock
+			jasmine.clock().uninstall();
 		});
 	});
 
@@ -315,6 +326,9 @@ describe("Grid Options", function () {
 
 		it("options.asyncPostRenderDelay should correctly affect the delay of postprocess", function () {
 			var delay = 500;
+
+			// Start Jasmine Clock
+			jasmine.clock().install();
 
 			// Prepare for test
 			var grid = resetGrid($.extend(defaultData(), {
@@ -336,18 +350,17 @@ describe("Grid Options", function () {
 				expect($(cell).html()).toEqual('');
 			});
 
-			// But expect an image to be there after the delay
-			waitsFor(function () {
-				return cells.last().find('img').length;
-			}, "Postprocessor never generated an image", (delay * cells.length));
+			// Step forward in time
+			jasmine.clock().tick(delay * cells.length);
 
-			runs(function () {
-				// Expect cells to have an image
-				var cells = grid.$el.find('.doby-grid-cell');
-				_.each(cells, function (cell) {
-					expect($(cell).find('img').length).toEqual(1);
-				});
+			// Expect cells to have an image
+			cells = grid.$el.find('.doby-grid-cell');
+			_.each(cells, function (cell) {
+				expect($(cell).find('img').length).toEqual(1);
 			});
+
+			// Stop Jasmine Clock
+			jasmine.clock().uninstall();
 		});
 	});
 
@@ -498,27 +511,35 @@ describe("Grid Options", function () {
 				autoHeight: true
 			});
 
+			// Start Jasmine Clock
+			jasmine.clock().install();
+
+			// Add a row
 			grid.add({id: 1, data: {id: 1}});
 
-			waitsFor(function () {
-				return grid.$el.find('.doby-grid-row').length === 1;
-			}, 100);
+			// Step forward in time a bit (to handle the refresh debounce)
+			jasmine.clock().tick(20);
 
-			var oldHeight;
+			// Ensure row was rendered
+			expect(grid.$el.find('.doby-grid-row').length).toEqual(1);
 
-			runs(function () {
-				oldHeight = grid.$el.height();
-				grid.add({id: 2, data: {id: 2}});
-			});
+			var oldHeight = grid.$el.height();
 
-			waitsFor(function () {
-				return grid.$el.find('.doby-grid-row').length === 2;
-			}, 100);
+			// Add another row
+			grid.add({id: 2, data: {id: 2}});
 
-			runs(function () {
-				var newHeight = grid.$el.height();
-				expect(oldHeight).toBeLessThan(newHeight);
-			});
+			// Step forward in time a bit
+			jasmine.clock().tick(20);
+
+			// Ensure row was rendered
+			expect(grid.$el.find('.doby-grid-row').length).toEqual(2);
+
+			// Ensure height grew
+			var newHeight = grid.$el.height();
+			expect(oldHeight).toBeLessThan(newHeight);
+
+			// Remove Jasmine Clock
+			jasmine.clock().uninstall();
 		});
 	});
 
@@ -1136,9 +1157,11 @@ describe("Grid Options", function () {
 
 
 		it("should be able to initialize grid with a Backbone.Collection data set", function () {
-			resetGrid($.extend(defaultData(), {
-				data: new Backbone.Collection()
-			}));
+			expect(function () {
+				resetGrid($.extend(defaultData(), {
+					data: new Backbone.Collection()
+				}));
+			}).not.toThrow();
 		});
 	});
 
@@ -1413,7 +1436,7 @@ describe("Grid Options", function () {
 			grid.reset();
 
 			// Check to see if alert was rendered
-			expect(grid.$el).toContain('.doby-grid-empty');
+			expect(grid.$el).toContainElement('.doby-grid-empty');
 		});
 
 
@@ -1431,8 +1454,8 @@ describe("Grid Options", function () {
 			grid.addGrouping('test');
 
 			// Check to see if alert was rendered and no groups are rendered
-			expect(grid.$el).toContain('.doby-grid-empty');
-			expect(grid.$el).not.toContain('.doby-grid-group');
+			expect(grid.$el).toContainElement('.doby-grid-empty');
+			expect(grid.$el).not.toContainElement('.doby-grid-group');
 		});
 
 
@@ -1450,8 +1473,8 @@ describe("Grid Options", function () {
 			grid.addGrouping('test');
 
 			// Check to see if alert was rendered and no groups are rendered
-			expect(grid.$el).toContain('.doby-grid-empty');
-			expect(grid.$el).not.toContain('.doby-grid-group');
+			expect(grid.$el).toContainElement('.doby-grid-empty');
+			expect(grid.$el).not.toContainElement('.doby-grid-group');
 		});
 
 
@@ -1469,7 +1492,7 @@ describe("Grid Options", function () {
 				});
 
 			// Check to see if alert was rendered and no groups are rendered
-			expect(grid.$el).toContain('.doby-grid-empty');
+			expect(grid.$el).toContainElement('.doby-grid-empty');
 			expect(grid.$el.find('.doby-grid-empty')).toHaveHtml(html);
 		});
 	});
@@ -1587,11 +1610,11 @@ describe("Grid Options", function () {
 
 			expect(function () {
 				grid.addGrouping(grid.options.columns[0].id);
-			}).toThrow('Cannot execute "addGrouping" because "options.groupable" is disabled.');
+			}).toThrowError('Cannot execute "addGrouping" because "options.groupable" is disabled.');
 
 			expect(function () {
 				grid.setGrouping(grid.options.columns[0].id);
-			}).toThrow('Cannot execute "setGrouping" because "options.groupable" is disabled.');
+			}).toThrowError('Cannot execute "setGrouping" because "options.groupable" is disabled.');
 		});
 	});
 
@@ -1622,12 +1645,14 @@ describe("Grid Options", function () {
 			}));
 
 			// Attempt to edit cell using setItem
-			grid.setItem('test', {
-				cid: 'test',
-				data: {
-					name: 'blah'
-				}
-			});
+			expect(function () {
+				grid.setItem('test', {
+					cid: 'test',
+					data: {
+						name: 'blah'
+					}
+				});
+			}).not.toThrow();
 		});
 
 
@@ -1652,8 +1677,10 @@ describe("Grid Options", function () {
 			}]);
 
 			// Click grouping header to toggle collapsing
-			var $grouprow = grid.$el.find('.doby-grid-group .doby-grid-cell').first();
-			$grouprow.trigger('click');
+			expect(function () {
+				var $grouprow = grid.$el.find('.doby-grid-group .doby-grid-cell').first();
+				$grouprow.trigger('click');
+			}).not.toThrow();
 		});
 	});
 
@@ -2107,7 +2134,7 @@ describe("Grid Options", function () {
 			grid.$el.find('.doby-grid-cell:first').simulate('contextmenu');
 
 			// Make sure the menu loaded
-			expect($(document.body)).toContain('.doby-grid-dropdown');
+			expect($(document.body)).toContainElement('.doby-grid-dropdown');
 			var $dropdown = $(document.body).find('.doby-grid-dropdown');
 
 			expect($dropdown.find('.doby-grid-dropdown-title').eq(0)).toHaveText('Column Options');
@@ -2141,7 +2168,7 @@ describe("Grid Options", function () {
 			grid.$el.find('.doby-grid-cell:first').simulate('contextmenu');
 
 			// Make sure the context menu comes up
-			expect($(document.body)).toContain('.doby-grid-dropdown');
+			expect($(document.body)).toContainElement('.doby-grid-dropdown');
 
 			// Close dropdowns
 			$(document.body).find('.doby-grid-dropdown').remove();
@@ -2164,7 +2191,7 @@ describe("Grid Options", function () {
 			grid.$el.find('.doby-grid-cell:first').simulate('contextmenu');
 
 			// Make sure the context menu comes up
-			expect($(document.body)).toContain('.doby-grid-dropdown');
+			expect($(document.body)).toContainElement('.doby-grid-dropdown');
 
 			var $dropdown = $(document.body).find('.doby-grid-dropdown:first');
 
@@ -2173,6 +2200,95 @@ describe("Grid Options", function () {
 
 			// Close dropdowns
 			$(document.body).find('.doby-grid-dropdown').remove();
+		});
+	});
+
+
+	// ==========================================================================================
+
+
+	describe("options.minColumnWidth", function () {
+		it("should be enabled empty by default", function () {
+			var grid = resetGrid(defaultData());
+			expect(grid.options.minColumnWidth).toEqual("");
+		});
+
+
+		// ==========================================================================================
+
+
+		it("should resize columns to match the header content width when using 'headerContent'", function () {
+			var grid = resetGrid($.extend(defaultData(), {
+				columns: [{
+					id: 'id',
+					name: 'Make a header column name that is very long',
+					field: 'id'
+				}, {
+					id: 'name',
+					name: 'This is a really really long column header',
+					field: 'name'
+				}],
+				minColumnWidth: 'headerContent'
+			}));
+
+			_.each(grid.options.columns, function (c) {
+				// The _headerWidth property should get set for all columns
+				expect(typeof(c._headerWidth)).toEqual('number');
+
+				// The width of the column should be in this range based on the text above.
+				// Fonts on Windows and Mac are slightly different, so this can't be pixel
+				// perfect test.
+				expect(c.width).toBeGreaterThan(247);
+				expect(c.width).toBeLessThan(308);
+			});
+		});
+
+
+		// ==========================================================================================
+
+
+		it("should be able to toggle the 'minColumnWidth' property using 'setOptions'", function () {
+			var grid = resetGrid($.extend(defaultData(), {
+				columns: [{
+					id: 'id',
+					name: 'Make a header column name that is very long',
+					field: 'id'
+				}, {
+					id: 'name',
+					name: 'This is a really really long column header',
+					field: 'name'
+				}]
+			}));
+
+			var $columns = grid.$el.find('.doby-grid-header-column');
+
+			_.each(grid.options.columns, function (c, i) {
+				// The _headerWidth property should not be set
+				expect(c._headerWidth).not.toBeDefined();
+
+				// The width of the column should be small
+				expect(c.width).toEqual(80);
+
+				// The column DOM should match the widths too
+				expect($columns.eq(i).outerWidth()).toEqual(c.width);
+			});
+
+			// Enable minColumnWidth
+			grid.setOptions({minColumnWidth: 'headerContent'});
+
+			_.each(grid.options.columns, function (c, i) {
+				// The _headerWidth property should get set for all columns
+				expect(typeof(c._headerWidth)).toEqual('number');
+
+				// The width of the column should be in this range based on the text above.
+				// Fonts on Windows and Mac are slightly different, so this can't be pixel
+				// perfect test.
+				expect(c.width).toBeGreaterThan(247);
+				expect(c.width).toBeLessThan(308);
+
+				// The column DOM should match the widths too
+				expect($columns.eq(i).outerWidth()).toEqual(c.width);
+			});
 		});
 	});
 
@@ -2234,7 +2350,7 @@ describe("Grid Options", function () {
 			// Apply sort
 			expect(function () {
 				grid.setSorting(sort);
-			}).toThrow('Doby Grid cannot set the sorting given because "multiColumnSort" is disabled and the given sorting options contain multiple columns.');
+			}).toThrowError('Doby Grid cannot set the sorting given because "multiColumnSort" is disabled and the given sorting options contain multiple columns.');
 
 			// Make sure sort isn't set
 			expect(grid.sorting).not.toEqual(sort);
@@ -2511,7 +2627,7 @@ describe("Grid Options", function () {
 				}
 			});
 
-			expect(grid.$el).toContain('.doby-grid-header-filter');
+			expect(grid.$el).toContainElement('.doby-grid-header-filter');
 
 			// Close dropdowns
 			$(document.body).find('.doby-grid-dropdown').remove();
@@ -2901,35 +3017,20 @@ describe("Grid Options", function () {
 			// Get new height
 			var newHeight = grid.$el.find('.doby-grid-group:first').first().height();
 
-			var wait = false;
-			setTimeout(function () {
-				wait = true;
-			}, 25);
+			// Compare heights
+			expect(newHeight).toEqual(oldHeight + 20);
 
-			// Add micro delay to wait for grid to re-draw?
-			waitsFor(function () {
-				return wait;
-			});
+			// Now expand the group
+			var $firstgroup = grid.$el.find('.doby-grid-group:first');
 
-			runs(function () {
-				// Compare heights
-				expect(newHeight).toEqual(oldHeight + 20);
+			// TODO: Find out why jasmine needs to have this click() in here... Without it
+			// the test will fail to call the event.
+			$firstgroup.find('.doby-grid-cell:first').click().simulate('click');
 
-				// Now expand the group
-				grid.$el.find('.doby-grid-group:first .doby-grid-cell:first').simulate('click');
-			});
-
-			// Wait for group to expand
-			waitsFor(function () {
-				var $firstgroup = grid.$el.find('.doby-grid-group:first');
-				return $firstgroup.hasClass('expanded');
-			}, 500, 'group should expand');
-
-			runs(function () {
-				// Make sure the height is still the same
-				var $firstgroup = grid.$el.find('.doby-grid-group:first');
-				expect($firstgroup.height()).toEqual(newHeight);
-			});
+			// Make sure the height is still the same
+			$firstgroup = grid.$el.find('.doby-grid-group:first');
+			expect($firstgroup.hasClass('expanded')).toEqual(true);
+			expect($firstgroup.height()).toEqual(newHeight);
 		});
 	});
 
@@ -3326,7 +3427,7 @@ describe("Grid Options", function () {
 			}));
 
 			// Spacer should be created
-			expect(grid.$el).toContain('.doby-grid-column-spacer');
+			expect(grid.$el).toContainElement('.doby-grid-column-spacer');
 		});
 	});
 
@@ -3363,14 +3464,14 @@ describe("Grid Options", function () {
 				}
 			}));
 
-			var viewport = grid.$el.find('.doby-grid-viewport')[0];
-			viewport.scrollTop = viewport.scrollTop + 1000;
+			var $viewport = grid.$el.find('.doby-grid-viewport');
+			$viewport[0].scrollTop += 1000;
 
-			waitsFor(function () {
-				var $scrollLoader = grid.$el.find('.doby-grid-scroll-loader');
-				return $scrollLoader.length;
-			}, 100, 'scroll loader element to appear');
+			// Manually call the event to trigger it
+			$viewport.scroll();
 
+			var $scrollLoader = grid.$el.find('.doby-grid-scroll-loader');
+			expect($scrollLoader.length).toEqual(1);
 		});
 	});
 
@@ -3475,8 +3576,6 @@ describe("Grid Options", function () {
 			expect(grid.selection[1].fromRow).toEqual(1);
 			expect(grid.selection[1].toCell).toEqual(0);
 			expect(grid.selection[1].toRow).toEqual(1);
-
-
 		});
 	});
 
@@ -3622,7 +3721,7 @@ describe("Grid Options", function () {
 				showHeader: false
 			}));
 
-			expect(grid.$el).not.toContain('.doby-grid-header');
+			expect(grid.$el).not.toContainElement('.doby-grid-header');
 		});
 
 	});
@@ -3656,23 +3755,10 @@ describe("Grid Options", function () {
 			// Click outside the grid
 			grid.$el.find('.doby-grid-canvas').simulate('blur');
 
-			// Wait a little bit to ensure grid isn't destroyed when the blur event fires
-			var waited = false;
-
-			setTimeout(function () {
-				waited = true;
-			}, 20);
-
-			waitsFor(function () {
-				return waited;
-			}, 50);
-
-			runs(function () {
-				expect(grid.active.cell).toEqual(0);
-				expect(grid.active.row).toEqual(0);
-				expect(grid.selection.length).toEqual(1);
-				return true;
-			});
+			// Ensure active cell is still set
+			expect(grid.active.cell).toEqual(0);
+			expect(grid.active.row).toEqual(0);
+			expect(grid.selection.length).toEqual(1);
 		});
 
 
@@ -3694,23 +3780,10 @@ describe("Grid Options", function () {
 			// Click outside the grid
 			$(document.body).simulate('click');
 
-			// Wait a little bit to ensure grid isn't destroyed when the blur event fires
-			var waited = false;
-
-			setTimeout(function () {
-				waited = true;
-			}, 20);
-
-			waitsFor(function () {
-				return waited;
-			}, 50);
-
-			runs(function () {
-				expect(grid.active.cell).toEqual(null);
-				expect(grid.active.row).toEqual(null);
-				expect(grid.selection).toEqual(null);
-				return true;
-			});
+			// Ensure active cell is still set
+			expect(grid.active.cell).toEqual(null);
+			expect(grid.active.row).toEqual(null);
+			expect(grid.selection).toEqual(null);
 		});
 	});
 
@@ -3838,17 +3911,19 @@ describe("Grid Options", function () {
 			}));
 
 			// Group grid
-			grid.setGrouping([{
-				column_id: 'test',
-				collapsed: false,
-				groupNulls: false
-			}, {
-				column_id: 'id',
-				collapsed: false
-			}]);
+			expect(function () {
+				grid.setGrouping([{
+					column_id: 'test',
+					collapsed: false,
+					groupNulls: false
+				}, {
+					column_id: 'id',
+					collapsed: false
+				}]);
 
-			// Scroll to middle
-			grid.scrollToRow(25);
+				// Scroll to middle
+				grid.scrollToRow(25);
+			}).not.toThrow();
 		});
 	});
 
@@ -3891,7 +3966,7 @@ describe("Grid Options", function () {
 			_.each(['a', 1, [], {}, true, false, -1], function (test) {
 				expect(function () {
 					resetGrid($.extend(defaultData(), {tooltipType: test}));
-				}).toThrow('The "tooltipType" option be either "title" or "popup", not "' + test + '".');
+				}).toThrowError('The "tooltipType" option be either "title" or "popup", not "' + test + '".');
 			});
 		});
 	});
