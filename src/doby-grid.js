@@ -6481,23 +6481,27 @@
 
 			var reselectRow = function (up) {
 				if (! self.options.selectOnNavigate) return;
-				var row = self.active.row;
-				deselectCells();
-				if (shiftUsed && newestRange) {
-					if (row < newestRange.fromRow) {
-						self.selectRows(row, newestRange.toRow, true);
-					} else if (row > newestRange.toRow) {
-						self.selectRows(newestRange.fromRow, row, true);
-					} else {
-						if (up) {
+				var row = self.active && self.active.row;
+				if(typeof row !== "undefined") {
+					deselectCells();
+					if (shiftUsed && newestRange) {
+						if (row < newestRange.fromRow) {
+							self.selectRows(row, newestRange.toRow, true);
+						} else if (row > newestRange.toRow) {
 							self.selectRows(newestRange.fromRow, row, true);
 						} else {
-							self.selectRows(row, newestRange.toRow, true);
+							if (up) {
+								self.selectRows(newestRange.fromRow, row, true);
+							} else {
+								self.selectRows(row, newestRange.toRow, true);
+							}
 						}
-					}
+					} else {
+						self.selectRows(row, row, true);
+					}	
 				} else {
-					self.selectRows(row, row, true);
-				}
+					self.selectRows(0, 0, true);
+				}			
 			};
 
 			this._event = event;
