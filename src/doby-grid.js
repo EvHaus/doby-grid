@@ -6501,6 +6501,7 @@
 					}
 				} else {
 					self.selectRows(0, 0, true);
+					setActiveCellInternal(getCellNode(0, 0), false);
 				}
 			};
 
