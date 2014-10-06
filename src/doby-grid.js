@@ -6482,7 +6482,7 @@
 			var reselectRow = function (up) {
 				if (! self.options.selectOnNavigate) return;
 				var row = self.active && self.active.row;
-				if(typeof row !== "undefined") {
+				if (typeof row !== "undefined") {
 					deselectCells();
 					if (shiftUsed && newestRange) {
 						if (row < newestRange.fromRow) {
@@ -6498,10 +6498,10 @@
 						}
 					} else {
 						self.selectRows(row, row, true);
-					}	
+					}
 				} else {
 					self.selectRows(0, 0, true);
-				}			
+				}
 			};
 
 			this._event = event;
