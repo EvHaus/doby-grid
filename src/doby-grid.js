@@ -6658,7 +6658,7 @@
 			if ($overlay && $overlay.length) {
 				removeElement($overlay[0]);
 				$overlay = null;
-				
+
 				// Reset canvas width
 				updateCanvasWidth();
 
@@ -9799,7 +9799,7 @@
 			if ($canvas) {
 				h = null;			// Resets the current canvas height cache
 				canvasWidth = null;	// Resets the current canvas width cache
-				
+
 				$canvas.height('100%').width('100%');
 				scrollTo(0);
 			}
