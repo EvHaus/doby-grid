@@ -11,6 +11,9 @@ describe("Remote Data", function () {
 	// Disable underscore's debounce until https://github.com/pivotal/jasmine/pull/455 is fixed
 	_.debounce = function (func) { return function () { func.apply(this, arguments);}; };
 
+	// Will control variable row height mode results in the grid
+	var variableRowHeightMode = false;
+
 	// Replicates a server's database filter
 	var remote_filter = function (options, item) {
 		var result = true;
@@ -112,6 +115,8 @@ describe("Remote Data", function () {
 						return setTimeout(function () {
 							var mydata = JSON.parse(JSON.stringify(data));
 							mydata = _.filter(mydata, function (item) {
+								if (variableRowHeightMode) item.height = 10;
+
 								return remote_filter(options, item);
 							});
 							if (options.order.length) {
@@ -359,6 +364,35 @@ describe("Remote Data", function () {
 			jasmine.clock().tick(500);
 
 			expect(loaded).toHaveBeenCalled();
+		});
+
+
+		// ==========================================================================================
+
+
+		it("should correctly handle situations where remote data fetching enabled variableRowHeight mode", function () {
+			// Enable variable row heights
+			variableRowHeightMode = true;
+
+			var loaded = jasmine.createSpy('remoteLoaded');
+
+			// Force refetch
+			grid.reset();
+			grid.resize(); // TODO: This is needed because reset() doesn't force reload for remote grids. Bug?
+
+			// Listen for refetch event
+			grid.on('remoteloaded', loaded);
+
+			// Fetch again
+			grid.refetch();
+
+			// Go fetch stuff!
+			jasmine.clock().tick(500);
+
+			expect(loaded).toHaveBeenCalled();
+
+			// Disable variable row heights
+			variableRowHeightMode = false;
 		});
 
 

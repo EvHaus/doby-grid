@@ -7791,6 +7791,8 @@
 				return;
 			}
 
+			var oldvariableRowHeight;
+
 			// Run the fetcher
 			remoteFetcher({
 				columns: cache.activeColumns,
@@ -7814,8 +7816,38 @@
 					self.collection.add(results, {at: newFrom, merge: true, silent: true});
 				}
 
+				var topRow = (newFrom - collapsedOffset),
+					bottomRow = (newTo + nonDataOffset - collapsedOffset);
+
+				// After the items are fetched, we need to reset some caching if variableRowHeight
+				// mode was changed.
+				if (oldvariableRowHeight !== variableRowHeight) {
+					// First, ensure rows are re-cached to ensure the grid can be rendered properly
+					cacheRows();
+
+					// We'll need to invalidate everything, since we don't know where the new row
+					// heights will end up.
+					invalidate();
+				}
+
 				// Fire loaded function to process the changes
-				remoteLoaded((newFrom - collapsedOffset), (newTo + nonDataOffset - collapsedOffset));
+				remoteLoaded(topRow, bottomRow);
+
+				// If variableRowHeight mode got enabled,
+				// we need to check to see if the viewport got filled. It's possible that the rows
+				// fetched are smaller than originally predicted, and we will need to fetch more.
+				if (oldvariableRowHeight !== variableRowHeight) {
+					// TODO: This behavior might not be desireable as it may take many fetches
+					// to fill up the viewport... We may want to think about another way to handle this.
+					// Perhaps calculate the average height of the previous rows and use that to
+					// better estimate how many rows we should fetch next time?
+
+					// The new viewport is smaller than it was before
+					if (getVisibleRange().bottom > to) {
+						// Fetch more rows
+						remoteFetch();
+					}
+				}
 			});
 		};
 
@@ -7876,6 +7908,7 @@
 			// Put the request on a timer so that when users scroll quickly they don't fire off
 			// hundreds of requests for no good reason.
 			if (remoteTimer) clearTimeout(remoteTimer);
+
 			remoteTimer = setTimeout(function () {
 				try {
 					// Fire onLoading callback
