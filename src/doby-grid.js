@@ -6658,10 +6658,13 @@
 			if ($overlay && $overlay.length) {
 				removeElement($overlay[0]);
 				$overlay = null;
-			}
+				
+				// Reset canvas width
+				updateCanvasWidth();
 
-			// Redraw grid
-			invalidate();
+				// Redraw grid
+				invalidate();
+			}
 
 			return this;
 		};
@@ -9791,6 +9794,15 @@
 
 			// First, clear the viewport
 			invalidateAllRows();
+
+			// Scroll all the way up and remove scrollbars
+			if ($canvas) {
+				h = null;			// Resets the current canvas height cache
+				canvasWidth = null;	// Resets the current canvas width cache
+				
+				$canvas.height('100%').width('100%');
+				scrollTo(0);
+			}
 
 			// Create an overlay
 			if ($overlay && $overlay.length) removeElement($overlay[0]);
