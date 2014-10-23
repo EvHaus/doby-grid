@@ -2377,7 +2377,7 @@
 						});
 
 						// Assign id property
-						grp[grid.options.idProperty] = '__group' + (parentGroup ? parentGroup.id + groupingDelimiter : '') + value;
+						grp[grid.options.idProperty] = '__group' + (parentGroup ? parentGroup[grid.options.idProperty] + groupingDelimiter : '') + value;
 
 						if (g) grp.count = g.count;
 
