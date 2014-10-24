@@ -3203,6 +3203,10 @@
 				// Reset group cache
 				var i, l, groups = [], col;
 				for (i = 0, l = options.length; i < l; i++) {
+					if (options[i] === undefined || options[i] === null) {
+						throw new Error('Invalid grouping value defined. Make sure your setGrouping options do not contain null or undefined values.');
+					}
+
 					col = getColumnById(options[i].column_id);
 
 					if (col === undefined) {
