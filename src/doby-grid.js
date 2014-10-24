@@ -8482,6 +8482,10 @@
 					(row % 2 === 1 ? " odd" : ""),
 				top, pos = {};
 
+			if (d === undefined) {
+				throw new Error("Unable to render row at index " + row + " because no such row could be found.");
+			}
+
 			if (variableRowHeight) {
 				pos = cache.rowPositions[row];
 				top = (pos.top - offset);
@@ -8662,9 +8666,7 @@
 
 			var oldHeight = viewportH;
 
-			if (self.options.autoHeight) {
-				resizeContainer();
-			}
+			if (self.options.autoHeight) resizeContainer();
 
 			// Resize the grid
 			resizeCanvas();
@@ -8675,9 +8677,7 @@
 			invalidate();
 
 			// If viewport got bigger and we're using remote data - fetch more items to populate the grid
-			if (oldHeight < viewportH && this.fetcher) {
-				remoteFetch();
-			}
+			if (oldHeight < viewportH && this.fetcher) remoteFetch();
 
 			return this;
 		};
