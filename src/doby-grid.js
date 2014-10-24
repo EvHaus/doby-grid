@@ -2389,6 +2389,11 @@
 
 					// If we are given a set of remote_groups, use them to generate new group objects
 					if (remote_groups) {
+						// Simple validation for remote grouping object
+						if (remote_groups[level] === undefined) {
+							throw new Error("Unable to group rows because the data returned from your remote fetchGroups method is missing a definition for `" + gi.column_id + "` column at array position `" + level + "`.");
+						}
+
 						var rm_g;
 						for (var m = 0, n = remote_groups[level].groups.length; m < n; m++) {
 							rm_g = remote_groups[level].groups[m];
