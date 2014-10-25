@@ -2711,7 +2711,11 @@
 									self.groups.length && eitherIsNonData &&
 									(item && item._groupRow) && (item[grid.options.idProperty] != r[grid.options.idProperty]) ||
 									(item && item._groupRow) && (item.collapsed != r.collapsed) ||
-									(item && item._groupRow) && (item.count != r.count)
+									(item && item._groupRow) && (item.count != r.count) ||
+
+									// If the items in the group have changed (like if placeholders
+									// got replaced with real items).
+									(item && item._groupRow && item.grouprows.length && r.grouprows.length) && (item.grouprows[0] != r.grouprows[0])
 								) ||
 								// Compare between different non-data types
 								(
@@ -3372,6 +3376,7 @@
 				if (!updated) updated = {};
 				updated[id] = true;
 				if (id !== data[grid.options.idProperty]) updated[data[grid.options.idProperty]] = true;
+
 
 				// This needs to be debounced for when it's called via Backbone Events (when many
 				// collection items are changed all at once)
