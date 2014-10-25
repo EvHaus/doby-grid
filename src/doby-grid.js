@@ -3273,7 +3273,7 @@
 				if (grid.fetcher && !fullyLoaded && grouping_changed) {
 					remoteGroupRefetch();
 				} else {
-					// Reload the grid with the new grouping
+					// Reload the grid with the new grouping.
 					this.refresh();
 				}
 
