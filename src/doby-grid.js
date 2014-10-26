@@ -2356,6 +2356,24 @@
 					gi = self.groups[level],
 					i, l, aggregateRow, addRow, nullRows = [];
 
+				var checkRemoteGroup = function (level, group, pGroup) {
+					// No parent groupsyet
+					if (!pGroup) return true;
+
+					// Recursively walks up the parentGroup until it reaches a value
+					var getParentGroupValue = function (level, g) {
+						if (level === 0) return g.value;
+						return getParentGroupValue(level - 1, g.parentGroup);
+					};
+
+					// Walk up the parent until you find a value match
+					for (var i = 0, l = group.parent.length; i < l; i++) {
+						if (group.parent[level - i - 1] != getParentGroupValue(level - i - 1, pGroup)) return false;
+					}
+
+					return true;
+				};
+
 				// Reset grouping row references
 				gi.rows = [];
 
@@ -2397,7 +2415,11 @@
 						var rm_g;
 						for (var m = 0, n = remote_groups[level].groups.length; m < n; m++) {
 							rm_g = remote_groups[level].groups[m];
-							if (parentGroup && rm_g.parent[level - 1] != parentGroup.value) continue;
+
+							// For each parent, walk up the hierarchy of group parents and
+							// confirm that this sub-group belongs there
+							if (!checkRemoteGroup(level, rm_g, parentGroup)) continue;
+
 							group = createGroupObject(rm_g);
 							groups.push(group);
 							groupsByVal[group.value] = group;
@@ -2504,7 +2526,7 @@
 
 				// Remote groups needs to be extracted from the remote source.
 				// Do not re-fetch if all data is already loaded.
-				if (grid.fetcher && !remoteAllLoaded()) {
+				if (grid.fetcher) {
 					// remoteFetchGroups will cache the results after the first request,
 					// so there is no fear of this being re-querying the server on every grouping loop
 					remoteFetchGroups(function (results) {
@@ -3202,7 +3224,7 @@
 				var fullyLoaded = grid.fetcher ? remoteAllLoaded() : true;
 
 				// Reset remote grouping cache
-				if (!fullyLoaded) cache.remoteGroups = null;
+				cache.remoteGroups = null;
 
 				// Reset group cache
 				var i, l, groups = [], col;
