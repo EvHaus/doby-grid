@@ -2366,6 +2366,9 @@
 						return getParentGroupValue(level - 1, g.parentGroup);
 					};
 
+					// Ensure 'parent' value is always an array
+					if (!$.isArray(group.parent)) group.parent = [group.parent];
+
 					// Walk up the parent until you find a value match
 					for (var i = 0, l = group.parent.length; i < l; i++) {
 						if (group.parent[level - i - 1] != getParentGroupValue(level - i - 1, pGroup)) return false;
@@ -2734,6 +2737,11 @@
 									(item && item._groupRow) && (item[grid.options.idProperty] != r[grid.options.idProperty]) ||
 									(item && item._groupRow) && (item.collapsed != r.collapsed) ||
 									(item && item._groupRow) && (item.count != r.count) ||
+
+									// If item has no rows, but has nested groups - we have to redraw
+									// because we can't assume that the nested groups haven't changed
+									(item && item._groupRow && item.grouprows.length === 0 && item.groups && item.groups.length > 0) ||
+									(r && r._groupRow && r.grouprows.length === 0 && r.groups && r.groups.length > 0) ||
 
 									// If the items in the group have changed (like if placeholders
 									// got replaced with real items).
