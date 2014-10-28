@@ -43,7 +43,7 @@
     "jquery": "2.1.1",
     "jquery-ui": "1.11.0",
     "jquery.event.drag-drop": "2.2.1",
-    "underscore": "1.6.0"
+    "underscore": "1.7.0"
   },
   "devDependencies": {
     "Faker": "1.0.1",

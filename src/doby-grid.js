@@ -5359,9 +5359,9 @@
 			}
 
 			// Parse data object and return locale string
-			return _.template(string, data, {
+			return _.template(string, {
 				interpolate: /\{\{(.+?)\}\}/gim
-			});
+			})(data);
 		};
 
 
