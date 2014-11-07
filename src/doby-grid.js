@@ -8008,17 +8008,17 @@
 				self.fetcher.request = self.fetcher.fetchGroups(options, function (results) {
 					// Empty the request variable so it doesn't get aborted on scroll
 					self.fetcher.request = null;
-					
+
 					// Validate results
 					if (!$.isArray(results)) throw new Error("Unable to group rows because the data returned from your remote fetchGroups method is not valid. It must be an array.");
-					
+
 					var gr, groupsByName;
 					for (var i = 0, l = results.length; i < l; i++) {
 						groupsByName = {};
 						for (var g = 0, gl = results[i].groups.length; g < gl; g++) {
 							gr = results[i].groups[g];
 							if (!groupsByName[gr.value]) groupsByName[gr.value] = {};
-							
+
 							if (
 								(!gr.parent && groupsByName[gr.value] === 1) ||
 								(gr.parent && groupsByName[gr.value][gr.parent.toString()])
