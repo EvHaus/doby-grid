@@ -326,6 +326,7 @@
 			updateRowCount,
 			validateColumns,
 			validateOptions,
+			validateRemoteGroups,
 			variableRowHeight,
 			viewportH,
 			viewportHasHScroll,
@@ -7710,7 +7711,7 @@
 
 
 		/**
-		 * Executes a remote data count fetch, savs it as the collection length
+		 * Executes a remote data count fetch, saves it as the collection length
 		 * then calls the callback.
 		 * @method remoteCount
 		 * @memberof DobyGrid
@@ -7724,39 +7725,55 @@
 				filters: typeof(self.collection.filter) != 'function' ? self.collection.filter : null
 			};
 
-			self.fetcher.count(options, function (result) {
-				// Grid was destroyed before the callback finished
-				if (self.destroyed) return;
+			var req = function () {
+				var	dfd = new $.Deferred();
 
-				// Validate
-				if (typeof(result) !== 'number') {
-					throw new Error('Your count() method must return a number. It returned a ' + typeof(result) + ' of value "' + result + '" instead.');
-				}
+				self.fetcher.count(options, function (result) {
+					// Grid was destroyed before the callback finished
+					if (self.destroyed) return dfd.resolve();
 
-				// Sets the current collection length
-				self.collection.length = result;
+					// Validate
+					if (typeof(result) !== 'number') {
+						throw new Error('Your count() method must return a number. It returned a ' + typeof(result) + ' of value "' + result + '" instead.');
+					}
 
-				// Sets the total remote collection length
-				self.collection.remote_length = result;
+					// Sets the current collection length
+					self.collection.length = result;
 
-				if (result === 0) {
-					// When there are no results - reset
-					self.collection.reset();
-					insertEmptyOverlay();
-				} else {
-					// Fill the collection with placeholders
-					generatePlaceholders();
-				}
+					// Sets the total remote collection length
+					self.collection.remote_length = result;
 
-				// Updating the row count here will ensure the scrollbar is rendered the right size
-				updateRowCount();
+					if (result === 0) {
+						// When there are no results - reset
+						self.collection.reset();
+						insertEmptyOverlay();
+					} else {
+						// Fill the collection with placeholders
+						generatePlaceholders();
+					}
 
-				// Now that we have placeholders and the right row count - update the viewport with blanks
-				self.collection.refresh();
+					// Updating the row count here will ensure the scrollbar is
+					// rendered the right size
+					updateRowCount();
 
-				// Now go and fetch the real items
-				callback();
-			});
+					// Now that we have placeholders and the right row count - update
+					// the viewport with blanks
+					self.collection.refresh();
+
+					// Now go and fetch the real items
+					callback();
+
+					// Resolve promise
+					dfd.resolve();
+				});
+
+				return dfd.promise();
+			};
+
+			self.fetcher.queue = self.fetcher.queue
+				.then(function () {
+					return req();
+				});
 		};
 
 
@@ -7958,15 +7975,28 @@
 					// Fire onLoading callback
 					if (typeof self.fetcher.onLoading === 'function') self.fetcher.onLoading();
 
-					self.fetcher.request = self.fetcher.fetch(options, function (results) {
-						// Empty the request variable so it doesn't get aborted on scroll
-						self.fetcher.request = null;
+					var req = function () {
+						var dfd = new $.Deferred();
 
-						callback(results);
+						self.fetcher.request = self.fetcher.fetch(options, function (results) {
+							// Empty the request variable so it doesn't get aborted on scroll
+							self.fetcher.request = null;
 
-						// Fire onLoaded callback
-						if (typeof self.fetcher.onLoaded === 'function') self.fetcher.onLoaded();
-					});
+							callback(results);
+
+							// Fire onLoaded callback
+							if (typeof self.fetcher.onLoaded === 'function') self.fetcher.onLoaded();
+
+							dfd.resolve();
+						});
+
+						return dfd.promise();
+					};
+
+					self.fetcher.queue = self.fetcher.queue
+						.then(function () {
+							return req();
+						});
 				} catch (err) {
 					throw new Error('Doby Grid remote fetching failed due to: ' + err);
 				}
@@ -8004,47 +8034,38 @@
 				// Fire onLoading callback
 				if (typeof self.fetcher.onLoading === 'function') self.fetcher.onLoading();
 
-				// Begin remote fetch request
-				self.fetcher.request = self.fetcher.fetchGroups(options, function (results) {
-					// Empty the request variable so it doesn't get aborted on scroll
-					self.fetcher.request = null;
+				var req = function () {
+					var dfd = new $.Deferred();
 
-					// Validate results
-					if (!$.isArray(results)) throw new Error("Unable to group rows because the data returned from your remote fetchGroups method is not valid. It must be an array.");
+					// Begin remote fetch request
+					self.fetcher.request = self.fetcher.fetchGroups(options, function (results) {
+						// Empty the request variable so it doesn't get aborted on scroll
+						self.fetcher.request = null;
 
-					var gr, groupsByName;
-					for (var i = 0, l = results.length; i < l; i++) {
-						groupsByName = {};
-						for (var g = 0, gl = results[i].groups.length; g < gl; g++) {
-							gr = results[i].groups[g];
-							if (!groupsByName[gr.value]) groupsByName[gr.value] = {};
+						// Validate results
+						validateRemoteGroups(results);
 
-							if (
-								(!gr.parent && groupsByName[gr.value] === 1) ||
-								(gr.parent && groupsByName[gr.value][gr.parent.toString()])
-							) {
-								console.warn("The data returned from your remote fetchGroups method is not valid. More than 1 group with the value `" + gr.value + "` and parents `" + (gr.parent ? gr.parent.toString() : '') + "` detected at grouping level " + i + ".");
-							} else {
-								if (gr.parent) {
-									groupsByName[gr.value][gr.parent.toString()] = 1;
-								} else {
-									groupsByName[gr.value] = 1;
-								}
-							}
-						}
-					}
+						// Cache the results for this column
+						cache.remoteGroups = results;
 
-					// Cache the results for this column
-					cache.remoteGroups = results;
+						// Return results via callback
+						callback(results);
 
-					// Return results via callback
-					callback(results);
+						self.trigger('remotegroupsloaded', self._event, {});
 
-					self.trigger('remotegroupsloaded', self._event, {});
+						// Fire onLoaded callback
+						if (typeof self.fetcher.onLoaded === 'function') self.fetcher.onLoaded();
 
-					// Fire onLoaded callback
-					if (typeof self.fetcher.onLoaded === 'function') self.fetcher.onLoaded();
-				});
+						dfd.resolve();
+					});
+
+					return dfd.promise();
+				};
+
+				self.fetcher.queue = self.fetcher.queue
+					.then(function () {
+						return req();
+					});
 			}
 		};
 
@@ -11167,7 +11188,10 @@
 					self.fetcher = self.options.data.DobyGridRemote;
 				}
 
-				if (self.fetcher) self.fetcher.grid = self;
+				if (self.fetcher) {
+					self.fetcher.grid = self;
+					self.fetcher.queue = $.when();
+				}
 			}
 
 			// Ensure "tooltipType" is one of the allowed values
@@ -11191,6 +11215,39 @@
 
 			// If the given dataset is a Backbone.Collection - hook up the grid to collection events
 			if (self.options.data instanceof Backbone.Collection) bindToCollection();
+		};
+
+
+		/**
+		 * Ensures that the results coming back from fetchGroups() are valid.
+		 * @method validateRemoteGroups
+		 * @memberof DobyGrid
+		 * @private
+		 */
+		validateRemoteGroups = function (groups) {
+			if (!$.isArray(groups)) throw new Error("Unable to group rows because the data returned from your remote fetchGroups method is not valid. It must be an array.");
+
+			var gr, groupsByName;
+			for (var i = 0, l = groups.length; i < l; i++) {
+				groupsByName = {};
+				for (var g = 0, gl = groups[i].groups.length; g < gl; g++) {
+					gr = groups[i].groups[g];
+					if (!groupsByName[gr.value]) groupsByName[gr.value] = {};
+
+					if (
+						(!gr.parent && groupsByName[gr.value] === 1) ||
+						(gr.parent && groupsByName[gr.value][gr.parent.toString()])
+					) {
+						console.warn("The data returned from your remote fetchGroups method is not valid. More than 1 group with the value `" + gr.value + "` and parents `" + (gr.parent ? gr.parent.toString() : '') + "` detected at grouping level " + i + ".");
+					} else {
+						if (gr.parent) {
+							groupsByName[gr.value][gr.parent.toString()] = 1;
+						} else {
+							groupsByName[gr.value] = 1;
+						}
+					}
+				}
+			}
 		};
 
 
