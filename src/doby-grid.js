@@ -429,6 +429,7 @@
 			editorType:				"selection",
 			emptyNotice:			true,
 			exportFileName:			"doby-grid-export",
+			fetchCollapsed:			false,
 			formatter:				null,
 			fullWidthRows:			true,
 			groupable:				true,
@@ -3302,7 +3303,7 @@
 
 				// If groupings have changed - refetch groupings
 				if (grid.fetcher && !fullyLoaded && grouping_changed) {
-					remoteGroupRefetch();
+                    remoteGroupRefetch();
 				} else {
 					// Reload the grid with the new grouping.
 					this.refresh();
@@ -3312,7 +3313,7 @@
 				// will cause the row sizes to be changed.
 				if (variableRowHeight) resizeCanvas(true);
 
-				if (grid.fetcher && !fullyLoaded && groups.length === 0) {
+				if (grid.fetcher && !fullyLoaded && (groups.length === 0 || grid.options.fetchCollapsed)) {
 					// If all groupings are removed - refetch the data
 					remoteFetch();
 				}
@@ -7784,11 +7785,7 @@
 		 * @private
 		 */
 		remoteFetch = function () {
-			var vp = getVisibleRange(),
-				from = vp.top,
-				to = vp.bottom;
-
-			// If scrolling fast, abort pending requests
+            // If scrolling fast, abort pending requests
 			var silentRemoteLoaded = true;
 			if (self.fetcher.request && typeof self.fetcher.request.abort === 'function') {
 				self.fetcher.request.abort();
@@ -7801,115 +7798,152 @@
 			// Also cancel previous execution entirely (if scrolling really really fast)
 			if (remoteTimer !== null) clearTimeout(remoteTimer);
 
-			// Don't attempt to fetch more results than there are
-			if (from < 0) from = 0;
-			if (self.collection.length > 0) to = Math.min(to, self.collection.length - 1);
-
-			// If there are groups - we need to scan from the very top to ensure we calculate
-			// the correct data offsets.
-			var start = self.collection.groups.length ? 0 : from,
-				newFrom,
-				newTo,
-				r,
-				nonDataOffset = 0,
-				collapsedOffset = 0;
-
-			// Strip out the range that is already loaded
-			for (var i = start; i <= to; i++) {
-				r = cache.rows[i];
-
-				// When encountering Group rows - keep in mind how many collapsed rows
-				// we need to skip over
-				if (r && r._groupRow && r.collapsed && newFrom === undefined) {
-					collapsedOffset += r.count;
-					nonDataOffset++;
-					continue;
-				}
-
-				// When encountering NonData rows - ignore them for index calculation since
-				// collection.items doesn't store such values and we need to reliably determine
-				// what collection.items index we're currently on
-				if (r && r instanceof NonDataItem && !r.__placeholder) {
-					nonDataOffset++;
-				}
-
-				// When groups are enabled we need to scan all data to parse the offsets,
-				// but we don't need to fetch all data above -- make sure we set from limit
-				// back to the current page only.
-				if (i < from) continue;
-
-				if (!r || r.__placeholder) {
-					if (newFrom === undefined) {
-						newFrom = i - nonDataOffset + collapsedOffset;
-					}
-					newTo = i - nonDataOffset + collapsedOffset;
-				}
-			}
-
-			// If everything is already loaded - simply process the rows via remoteLoaded()
-			if (newFrom === undefined) {
-				remoteLoaded(null, null, {silent: silentRemoteLoaded});
-				return;
-			}
-
-			var oldvariableRowHeight;
-
-			// Run the fetcher
-			remoteFetcher({
-				columns: cache.activeColumns,
-				filters: typeof(self.collection.filter) != 'function' ? self.collection.filter : null,
-				limit: newTo - newFrom + 1,
-				offset: newFrom,
-				order: self.sorting
-			}, function (results) {
-				// Grid was destroyed before the callback finished
-				if (self.destroyed) return;
-
-				// Add items to Backbone.Collection dataset
-				// TODO: We may want to make this optional as users way want to control
-				// what's added to their collections manually.
-				if (self.options.data instanceof Backbone.Collection) {
-					for (var i = 0, l = results.length; i < l; i++) {
-						self.options.data.add(results[i], {at: newFrom + i, merge: true, silentDobyRefresh: true});
-					}
+			// Helper method for getting the first grouprow in a nested grouping
+			var getFirstRow = function (group) {
+				if (!group.groups) {
+					if (group.grouprows && group.grouprows.length) return group.grouprows[0];
+					return null;
 				} else {
-					// Item items to internal collection
-					self.collection.add(results, {at: newFrom, merge: true, silent: true});
+					if (group.groups.length) return getFirstRow(group.groups[0]);
+					return null;
 				}
+			};
 
-				var topRow = (newFrom - collapsedOffset),
-					bottomRow = (newTo + nonDataOffset - collapsedOffset);
+			var req = function () {
+				var dfd = new $.Deferred(),
+					vp = getVisibleRange(),
+					from = vp.top,
+					to = vp.bottom;
 
-				// After the items are fetched, we need to reset some caching if variableRowHeight
-				// mode was changed.
-				if (oldvariableRowHeight !== variableRowHeight) {
-					// First, ensure rows are re-cached to ensure the grid can be rendered properly
-					cacheRows();
+                // Don't attempt to fetch more results than there are
+				if (from < 0) from = 0;
+				if (self.collection.length > 0) to = Math.min(to, self.collection.length - 1);
 
-					// We'll need to invalidate everything, since we don't know where the new row
-					// heights will end up.
-					invalidate();
-				}
+				// If there are groups - we need to scan from the very top to ensure we calculate
+				// the correct data offsets.
+				var start = self.collection.groups.length ? 0 : from,
+					newFrom,
+					newTo,
+					r,
+					nonDataOffset = 0,
+					collapsedOffset = 0;
 
-				// Fire loaded function to process the changes
-				remoteLoaded(topRow, bottomRow);
+                // Strip out the range that is already loaded
+                for (var i = start; i <= to; i++) {
+					r = cache.rows[i];
 
-				// If variableRowHeight mode got enabled,
-				// we need to check to see if the viewport got filled. It's possible that the rows
-				// fetched are smaller than originally predicted, and we will need to fetch more.
-				if (oldvariableRowHeight !== variableRowHeight) {
-					// TODO: This behavior might not be desireable as it may take many fetches
-					// to fill up the viewport... We may want to think about another way to handle this.
-					// Perhaps calculate the average height of the previous rows and use that to
-					// better estimate how many rows we should fetch next time?
+					// When encountering Group rows - keep in mind how many collapsed rows
+					// we need to skip over
+					if (r && r._groupRow && r.collapsed && (newFrom === undefined || self.options.fetchCollapsed)) {
+						nonDataOffset++;
+						collapsedOffset += r.count;
 
-					// The new viewport is smaller than it was before
-					if (getVisibleRange().bottom > to) {
-						// Fetch more rows
-						remoteFetch();
+						if (!self.options.fetchCollapsed || (r.count && !getFirstRow(r).__placeholder)) {
+							continue;
+						}
+					}
+
+					// When encountering NonData rows - ignore them for index calculation since
+					// collection.items doesn't store such values and we need to reliably determine
+					// what collection.items index we're currently on
+					if (r && r instanceof NonDataItem && !r.__placeholder && !self.options.fetchCollapsed) {
+						nonDataOffset++;
+					}
+
+					// When groups are enabled we need to scan all data to parse the offsets,
+					// but we don't need to fetch all data above -- make sure we set from limit
+					// back to the current page only.
+					if (i < from) continue;
+
+                    if (!r || r.__placeholder || (self.options.fetchCollapsed && r._groupRow && r.count && getFirstRow(r).__placeholder)) {
+						if (newFrom === undefined) {
+							if (self.options.fetchCollapsed) {
+								newFrom = i;
+							} else {
+								newFrom = i - nonDataOffset + collapsedOffset;
+							}
+						}
+
+						newTo = i - nonDataOffset + collapsedOffset;
 					}
 				}
-			});
+
+				// If everything is already loaded - simply process the rows via remoteLoaded()
+				if (newFrom === undefined) {
+					remoteLoaded(null, null, {silent: silentRemoteLoaded});
+					return dfd.resolve().promise();
+				}
+
+				var oldvariableRowHeight;
+
+				// Run the fetcher
+				remoteFetcher({
+					columns: cache.activeColumns,
+					filters: typeof(self.collection.filter) != 'function' ? self.collection.filter : null,
+					limit: newTo - newFrom + 1,
+					offset: newFrom,
+					order: self.sorting
+				}, function (results) {
+					// Grid was destroyed before the callback finished
+					if (self.destroyed) return dfd.resolve();
+
+					// Add items to Backbone.Collection dataset
+					// TODO: We may want to make this optional as users way want to control
+					// what's added to their collections manually.
+					if (self.options.data instanceof Backbone.Collection) {
+						for (var i = 0, l = results.length; i < l; i++) {
+							self.options.data.add(results[i], {at: newFrom + i, merge: true, silentDobyRefresh: true});
+						}
+					} else {
+						// Item items to internal collection
+						self.collection.add(results, {at: newFrom, merge: true, silent: true});
+					}
+
+					var topRow = (newFrom - collapsedOffset),
+						bottomRow = (newTo + nonDataOffset - collapsedOffset);
+
+					// After the items are fetched, we need to reset some caching if variableRowHeight
+					// mode was changed.
+					if (oldvariableRowHeight !== variableRowHeight) {
+						// First, ensure rows are re-cached to ensure the grid can be rendered properly
+						cacheRows();
+
+						// We'll need to invalidate everything, since we don't know where the new row
+						// heights will end up.
+						invalidate();
+					}
+
+					// Fire loaded function to process the changes
+					remoteLoaded(topRow, bottomRow);
+
+					// If variableRowHeight mode got enabled,
+					// we need to check to see if the viewport got filled. It's possible that the rows
+					// fetched are smaller than originally predicted, and we will need to fetch more.
+					if (oldvariableRowHeight !== variableRowHeight) {
+						// TODO: This behavior might not be desireable as it may take many fetches
+						// to fill up the viewport... We may want to think about another way to handle this.
+						// Perhaps calculate the average height of the previous rows and use that to
+						// better estimate how many rows we should fetch next time?
+
+						// The new viewport is smaller than it was before
+						if (getVisibleRange().bottom > to) {
+							// Fetch more rows
+							remoteFetch();
+						}
+					}
+
+					dfd.resolve();
+				}, function () {
+					dfd.resolve();
+				});
+
+				return dfd.promise();
+			};
+
+			self.fetcher.queue = self.fetcher.queue
+				.then(function () {
+					return req();
+				});
 		};
 
 
@@ -7955,12 +7989,14 @@
 		 * @memberof DobyGrid
 		 * @private
 		 *
-		 * @param	{object}	options		- Fetching options
-		 * @param	{function}	callback	- Callback function
+		 * @param	{object}	options			- Fetching options
+		 * @param	{function}	callback		- Callback function
+		 * @param	{function}	clear_callback	- Callback fired if the timeout was cleared
 		 *
 		 */
-		remoteFetcher = function (options, callback) {
+		remoteFetcher = function (options, callback, clear_callback) {
 			callback = callback || function () {};
+			clear_callback = clear_callback || function () {};
 
 			// Ensure basic options are defined
 			if (!options.offset) options.offset = 0;
@@ -7968,35 +8004,25 @@
 
 			// Put the request on a timer so that when users scroll quickly they don't fire off
 			// hundreds of requests for no good reason.
-			if (remoteTimer) clearTimeout(remoteTimer);
+			if (remoteTimer) {
+				clearTimeout(remoteTimer);
+				clear_callback();
+			}
 
 			remoteTimer = setTimeout(function () {
 				try {
 					// Fire onLoading callback
 					if (typeof self.fetcher.onLoading === 'function') self.fetcher.onLoading();
 
-					var req = function () {
-						var dfd = new $.Deferred();
+					self.fetcher.request = self.fetcher.fetch(options, function (results) {
+						// Empty the request variable so it doesn't get aborted on scroll
+						self.fetcher.request = null;
 
-						self.fetcher.request = self.fetcher.fetch(options, function (results) {
-							// Empty the request variable so it doesn't get aborted on scroll
-							self.fetcher.request = null;
+						callback(results);
 
-							callback(results);
-
-							// Fire onLoaded callback
-							if (typeof self.fetcher.onLoaded === 'function') self.fetcher.onLoaded();
-
-							dfd.resolve();
-						});
-
-						return dfd.promise();
-					};
-
-					self.fetcher.queue = self.fetcher.queue
-						.then(function () {
-							return req();
-						});
+						// Fire onLoaded callback
+						if (typeof self.fetcher.onLoaded === 'function') self.fetcher.onLoaded();
+					});
 				} catch (err) {
 					throw new Error('Doby Grid remote fetching failed due to: ' + err);
 				}
@@ -8081,7 +8107,7 @@
 			// Clear the grouping cache
 			cache.remoteGroups = null;
 
-			// Subscribe to an event that will tell us once the refresh
+            // Subscribe to an event that will tell us once the refresh
 			// (and group fetching is done)
 			var waitForGroups = function () {
 				// Only call remoteFetch if at least 1 group is open
@@ -8096,7 +8122,7 @@
 					}
 				}
 
-				if (!allClosed) remoteFetch();
+                if (!allClosed || self.options.fetchCollapsed) remoteFetch();
 			};
 
 			self.once('remotegroupsloaded', waitForGroups);
