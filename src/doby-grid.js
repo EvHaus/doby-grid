@@ -2358,25 +2358,26 @@
 					gi = self.groups[level],
 					i, l, aggregateRow, addRow, nullRows = [];
 
+				// Get the value of a group at a specific level
+				var getParentGroupValue = function (lvl, g) {
+					if (g.level === lvl) return g.value;
+					return getParentGroupValue(lvl - 1, g.parentGroup);
+				};
+
 				var checkRemoteGroup = function (level, group, pGroup) {
-					// No parent groupsyet
+					// No parent groups yet
 					if (!pGroup) return true;
 
-					// Recursively walks up the parentGroup until it reaches a value
-					var getParentGroupValue = function (level, g) {
-						if (level === 0) return g.value;
-						return getParentGroupValue(level - 1, g.parentGroup);
-					};
+					var pass = group.parent[level - 1] === getParentGroupValue(level - 1, pGroup);
 
-					// Ensure 'parent' value is always an array
-					if (!$.isArray(group.parent)) group.parent = [group.parent];
-
-					// Walk up the parent until you find a value match
-					for (var i = 0, l = group.parent.length; i < l; i++) {
-						if (group.parent[level - i - 1] != getParentGroupValue(level - i - 1, pGroup)) return false;
+					if (!pass) {
+						return false;
+					} else if (level === 1) {
+						return true;
+					} else {
+						// Continue checking next level
+						return checkRemoteGroup(level - 1, group, pGroup.parentGroup);
 					}
-
-					return true;
 				};
 
 				// Reset grouping row references
@@ -7798,13 +7799,19 @@
 			// Also cancel previous execution entirely (if scrolling really really fast)
 			if (remoteTimer !== null) clearTimeout(remoteTimer);
 
-			// Helper method for getting the first grouprow in a nested grouping
-			var getFirstRow = function (group) {
+			// Helper method for determining if group or any of its subgroups have a placeholder row
+			var hasPlaceholderRow = function (group) {
 				if (!group.groups) {
-					if (group.grouprows && group.grouprows.length) return group.grouprows[0];
+					if (group.grouprows && group.grouprows.length) {
+						return _.findWhere(group.grouprows, {'__placeholder': true}) ? true : false;
+					}
 					return null;
 				} else {
-					if (group.groups.length) return getFirstRow(group.groups[0]);
+					if (group.groups.length) {
+						for (var gg = 0, ggl = group.groups.length; gg < ggl; gg++) {
+							if (hasPlaceholderRow(group.groups[gg])) return true;
+						}
+					}
 					return null;
 				}
 			};
@@ -7825,46 +7832,69 @@
 					newFrom,
 					newTo,
 					r,
+					realRowOffset = 0,
 					nonDataOffset = 0,
 					collapsedOffset = 0;
 
-                // Strip out the range that is already loaded
-                for (var i = start; i <= to; i++) {
-					r = cache.rows[i];
+				// fetchCollapsed mode has a completely different rule set for determining
+				// offset and limits because it accounts for collapsed groups.
+				if (self.options.fetchCollapsed && self.collection.groups.length) {
+					for (var ifc = start; ifc <= to; ifc++) {
+						r = cache.rows[ifc];
 
-					// When encountering Group rows - keep in mind how many collapsed rows
-					// we need to skip over
-					if (r && r._groupRow && r.collapsed && (newFrom === undefined || self.options.fetchCollapsed)) {
-						nonDataOffset++;
-						collapsedOffset += r.count;
+						// If no start is set yet, and group doesn't have placeholders
+						if (newFrom === undefined && r && (r.__placeholder || (r._groupRow && hasPlaceholderRow(r)))) {
+							newFrom = Math.max(ifc - nonDataOffset + collapsedOffset - realRowOffset, 0);
+						}
 
-						if (!self.options.fetchCollapsed || (r.count && !getFirstRow(r).__placeholder)) {
+						// If encoutering a Group row
+						if (r && r._groupRow) {
+							// Account for the row itself
+							nonDataOffset++;
+						}
+
+						// If encountering a top-level Group row
+						if (r && r._groupRow && !r.parentGroup) {
+							collapsedOffset += r.count;
+						}
+
+						// If encoutering real rows
+						if (r && !(r instanceof NonDataItem)) realRowOffset++;
+
+						if (newFrom !== undefined) newTo = collapsedOffset - 1;
+					}
+				} else {
+
+					// Strip out the range that is already loaded
+					for (var i = start; i <= to; i++) {
+						r = cache.rows[i];
+
+						// When encountering Group rows - keep in mind how many collapsed rows
+						// we need to skip over
+						if (r && r._groupRow && r.collapsed && newFrom === undefined) {
+							nonDataOffset++;
+							collapsedOffset += r.count;
 							continue;
 						}
-					}
 
-					// When encountering NonData rows - ignore them for index calculation since
-					// collection.items doesn't store such values and we need to reliably determine
-					// what collection.items index we're currently on
-					if (r && r instanceof NonDataItem && !r.__placeholder && !self.options.fetchCollapsed) {
-						nonDataOffset++;
-					}
-
-					// When groups are enabled we need to scan all data to parse the offsets,
-					// but we don't need to fetch all data above -- make sure we set from limit
-					// back to the current page only.
-					if (i < from) continue;
-
-                    if (!r || r.__placeholder || (self.options.fetchCollapsed && r._groupRow && r.count && getFirstRow(r).__placeholder)) {
-						if (newFrom === undefined) {
-							if (self.options.fetchCollapsed) {
-								newFrom = i;
-							} else {
-								newFrom = i - nonDataOffset + collapsedOffset;
-							}
+						// collection.items doesn't store such values and we need to reliably determine
+						// what collection.items index we're currently on
+						if (r && r instanceof NonDataItem && !r.__placeholder) {
+							nonDataOffset++;
 						}
 
-						newTo = i - nonDataOffset + collapsedOffset;
+						// When groups are enabled we need to scan all data to parse the offsets,
+						// but we don't need to fetch all data above -- make sure we set from limit
+						// back to the current page only.
+						if (i < from) continue;
+
+						if (!r || r.__placeholder) {
+							if (newFrom === undefined) {
+								newFrom = i - nonDataOffset + collapsedOffset;
+							}
+
+							newTo = i - nonDataOffset + collapsedOffset;
+						}
 					}
 				}
 
@@ -11256,6 +11286,10 @@
 			var gr, groupsByName;
 			for (var i = 0, l = groups.length; i < l; i++) {
 				groupsByName = {};
+
+				// Ensure 'parent' value is always an array
+				if (!$.isArray(groups[i].parent)) groups[i].parent = [groups[i].parent];
+
 				for (var g = 0, gl = groups[i].groups.length; g < gl; g++) {
 					gr = groups[i].groups[g];
 					if (!groupsByName[gr.value]) groupsByName[gr.value] = {};
