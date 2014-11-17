@@ -27,6 +27,17 @@
 }(this, function (root, $, _, Backbone) {
 	"use strict";
 
+	var Aggregate 			= require('./classes/Aggregate'),
+		DefaultEditor		= require('./classes/DefaultEditor'),
+		DefaultFormatter	= require('./classes/DefaultFormatter'),
+		Dropdown			= require('./classes/Dropdown'),
+		NonDataItem 		= require('./classes/NonDataItem'),
+		Placeholder			= require('./classes/Placeholder'),
+
+		CLS 				= require('./utils/classes'),
+		naturalSort			= require('./uitls/naturalSort'),
+		removeElement 		= require('./utils/removeElement');
+
 	/**
 	 * The Doby Grid class instance.
 	 * @class DobyGrid
@@ -63,7 +74,6 @@
 			$viewport,
 			absoluteColumnMinWidth,
 			activePosX,
-			Aggregate,
 			applyColumnHeaderWidths,
 			applyColumnWidths,
 			applyHeaderAndColumnWidths,
@@ -95,59 +105,6 @@
 			CellRangeDecorator,
 			cellWidthDiff = 0,
 			cj,				// "jumpiness" coefficient
-			classautoheight = this.NAME + "-autoheight",
-			classcell = this.NAME + '-cell',
-			classcellunselectable = classcell + '-unselectable',
-			classclipboard = this.NAME + '-clipboard',
-			classcollapsed = 'collapsed',
-			classcolumnname = this.NAME + '-column-name',
-			classcolumnspacer = this.NAME + '-column-spacer',
-			classcontextmenu = this.NAME + '-contextmenu',
-			classdropdown = this.NAME + '-dropdown',
-			classdropdownmenu = classdropdown + '-menu',
-			classdropdownitem = classdropdown + '-item',
-			classdropdowndivider = classdropdown + '-divider',
-			classdropdownarrow = classdropdown + '-arrow',
-			classdropdownicon = classdropdown + '-icon',
-			classdropdownleft = classdropdown + '-left',
-			classdropdowntitle = classdropdown + '-title',
-			classeditor = this.NAME + '-editor',
-			classempty = this.NAME + '-empty',
-			classexpanded = 'expanded',
-			classgroup = this.NAME + '-group',
-			classgrouptitle = this.NAME + '-group-title',
-			classgrouptoggle = this.NAME + '-group-toggle',
-			classhandle = this.NAME + '-resizable-handle',
-			classheader = this.NAME + '-header',
-			classheadercolumns = this.NAME + '-header-columns',
-			classheadercolumn = this.NAME + '-header-column',
-			classheadercolumnactive = this.NAME + '-header-column-active',
-			classheadercolumndrag = this.NAME + '-header-column-dragging',
-			classheadercolumnsorted = this.NAME + '-header-column-sorted',
-			classheaderfilter = this.NAME + '-header-filter',
-			classheaderfiltercell = classheaderfilter + '-cell',
-			classheaderfilterdisabled = classheaderfilter + '-disabled',
-			classheadersortable = 'sortable',
-			classinvalid = 'invalid',
-			classinvalidicon = this.NAME + '-invalid-icon',
-			classleft = this.NAME + '-scrollbar-left',
-			classnoright = this.NAME + '-no-right',
-			classplaceholder = this.NAME + '-sortable-placeholder',
-			classrangedecorator = this.NAME + '-range-decorator',
-			classrangedecoratorstat = classrangedecorator + '-stats',
-			classrow = this.NAME + '-row',
-			classrowdragcontainer = this.NAME + '-row-drag-container',
-			classrowhandle = this.NAME + '-row-handle',
-			classrowtotal = this.NAME + '-row-total',
-			classscrollloader = this.NAME + '-scroll-loader',
-			classsortindicator = this.NAME + '-sort-indicator',
-			classsortindicatorasc = classsortindicator + '-asc',
-			classsortindicatordesc = classsortindicator + '-desc',
-			classsticky = this.NAME + '-sticky',
-			classtooltip = this.NAME + '-tooltip',
-			classtooltiparrow = this.NAME + '-tooltip-arrow',
-			classviewport = this.NAME + '-viewport',
-			classcanvas = this.NAME + '-canvas',
 			cleanUpAndRenderCells,
 			cleanUpCells,
 			cleanupRows,
@@ -161,12 +118,9 @@
 			createCssRules,
 			createGrid,
 			createGroupingObject,
-			defaultEditor,
-			defaultFormatter,
 			deselectCells,
 			deselectRow,
 			disableSelection,
-			Dropdown,
 			enableAsyncPostRender = false,	// Does grid have any columns that require post-processing
 			enforceWidthLimits,
 			ensureCellNodesInRowsCache,
@@ -175,12 +129,10 @@
 			findLastFocusableCell,
 			fitColumnToHeader,
 			fitColumnsToHeader,
-			garbageBin,
 			generatePlaceholders,
 			getActiveCell,
 			getBrowserData,
 			getCanvasWidth,
-			getCaretPosition,
 			getCellFromEvent,
 			getCellFromNode,
 			getCellFromPoint,
@@ -258,13 +210,11 @@
 			measureCellPadding,
 			mergeGroupSorting,
 			n,				// number of pages
-			naturalSort,
 			navigate,
 			numVisibleRows,
 			offset = 0,		// current page offset
 			page = 0,		// current page
 			ph,				// page height
-			Placeholder,
 			postProcessFromRow = null,
 			postProcessToRow = null,
 			prepareLeeway,
@@ -280,7 +230,6 @@
 			remoteGroupRefetch,
 			remoteTimer = null,
 			removeCssRules,
-			removeElement,
 			removeInvalidRanges,
 			removeRowFromCache,
 			render,
@@ -333,18 +282,6 @@
 			viewportHasVScroll,
 			viewportW,
 			vScrollDir = 1;
-
-		/**
-		 * @class NonDataItem
-		 * @classdesc A base class that all special / non-data rows (like Group) derive from.
-		 *
-		 * @param	{object}	data		- Data object for this item
-		 */
-		var NonDataItem = function (data) {
-			this.__nonDataRow = true;
-			if (data) $.extend(this, data);
-		};
-		NonDataItem.prototype.toString = function () { return "NonDataItem"; };
 
 		// Default Grid Options
 
@@ -665,61 +602,6 @@
 			return this;
 		};
 
-
-		/**
-		 * @class Aggregate
-		 * @classdesc Information about data totals.
-		 * @augments NonDataItem
-		 *
-		 * An instance of Aggregate will be created for each totals row and passed to the aggregators
-		 * so that they can store arbitrary data in it. That data can later be accessed by group totals
-		 * formatters during the display.
-		 *
-		 * @param	{array}		aggregators		- List of aggregators for this object
-		 *
-		 * @returns {object}
-		 */
-		Aggregate = function (aggregators) {
-			this.aggregators = aggregators;
-			this.class = classrowtotal;
-			this.columns = {};
-			this.editable = false;
-			this.focusable = true;
-			this.selectable = false;
-		};
-
-		Aggregate.prototype = new NonDataItem();
-		Aggregate.prototype._aggregateRow = true;
-
-		Aggregate.prototype.toString = function () { return "Aggregate"; };
-
-		Aggregate.prototype.exporter = function (columnDef) {
-			if (this.aggregators[columnDef.id]) {
-				var aggr;
-				for (var aggr_idx in this.aggregators[columnDef.id]) {
-					aggr = this.aggregators[columnDef.id][aggr_idx];
-					if (aggr.active && aggr.exporter) {
-						return aggr.exporter();
-					}
-				}
-			}
-			return "";
-		};
-
-		Aggregate.prototype.formatter = function (row, cell, value, columnDef) {
-			if (this.aggregators[columnDef.id]) {
-				var aggr;
-				for (var aggr_idx in this.aggregators[columnDef.id]) {
-					aggr = this.aggregators[columnDef.id][aggr_idx];
-					if (aggr.active && aggr.formatter) {
-						return aggr.formatter();
-					}
-				}
-			}
-			return "";
-		};
-
-
 		/**
 		 * Duplicates the jQuery appendTo() function
 		 * @method appendTo
@@ -837,7 +719,7 @@
 					if (event.type == 'mouseenter' && self.options.canvasFocus) {
 						var ae = document.activeElement;
 						if (ae != this && !$(this).has($(ae)).length && (
-							(self.options.quickFilter && !$(ae).closest('.' + classheaderfiltercell).length) ||
+							(self.options.quickFilter && !$(ae).closest('.' + CLS.headerfiltercell).length) ||
 							!self.options.quickFilter
 						)) {
 
@@ -895,7 +777,7 @@
 		 */
 		applyColumnHeaderWidths = function (headers) {
 			if (!initialized || !self.options.showHeader) return;
-			if (!headers) headers = $headers.children('.' + classheadercolumn);
+			if (!headers) headers = $headers.children('.' + CLS.headercolumn);
 
 			// Auto-sizes the quick filter headers too
 			var qHeaders = null;
@@ -932,9 +814,9 @@
 
 			// If scrollbar is on the left - we need to add a spacer
 			if ($headers) {
-				$headers.children('.' + classcolumnspacer).remove();
+				$headers.children('.' + CLS.columnspacer).remove();
 				if (self.options.scrollbarPosition === 'left' && viewportHasVScroll) {
-					$headers.prepend('<span class="' + classcolumnspacer + '" style="width:' + window.scrollbarDimensions.height + 'px"></span>');
+					$headers.prepend('<span class="' + CLS.columnspacer + '" style="width:' + window.scrollbarDimensions.height + 'px"></span>');
 				}
 			}
 
@@ -1152,7 +1034,7 @@
 			var decorator = new CellRangeDecorator(),
 				_dragging = null,
 				handleSelector = function () {
-					return $(this).closest('.' + classcellunselectable).length > 0;
+					return $(this).closest('.' + CLS.cellunselectable).length > 0;
 				};
 
 			$canvas
@@ -1248,7 +1130,7 @@
 			// event binding conflict with each other.
 			$canvas
 				.on('dragstart', function (event, dd) {
-					if (!$(event.target).hasClass(classrowhandle)) return;
+					if (!$(event.target).hasClass(CLS.rowhandle)) return;
 					event.stopImmediatePropagation();
 
 					dd._row = getRowFromNode($(event.target).parent()[0]);
@@ -1263,7 +1145,7 @@
 					});
 
 					// Put the rows below into a temporary container
-					$(dd._rowsBelow).wrapAll('<div class="' + classrowdragcontainer + '"></div>');
+					$(dd._rowsBelow).wrapAll('<div class="' + CLS.rowdragcontainer + '"></div>');
 					dd._container = $(dd._rowsBelow).parent();
 				})
 				.on('drag', function (event, dd) {
@@ -1490,9 +1372,9 @@
 
 			this.show = function (range) {
 				if (!this.$el) {
-					this.$el = $('<div class="' + classrangedecorator + '"></div>')
+					this.$el = $('<div class="' + CLS.rangedecorator + '"></div>')
 						.appendTo($canvas);
-					this.$stats = $('<span class="' + classrangedecoratorstat + '"></span>')
+					this.$stats = $('<span class="' + CLS.rangedecoratorstat + '"></span>')
 						.appendTo(this.$el);
 				}
 
@@ -1899,7 +1781,7 @@
 			// and letting the browser execute the default clipboard behavior. Similar to:
 			// http://stackoverflow.com/questions/17527870/how-does-trello-access-the-users-clipboard
 			if (result) {
-				$('<textarea class="' + classclipboard + '"></textarea>')
+				$('<textarea class="' + CLS.clipboard + '"></textarea>')
 					.val(result)
 					.appendTo(self.$el)
 					.focus()
@@ -1921,7 +1803,7 @@
 			$style = $('<style type="text/css" rel="stylesheet"></style>').appendTo($("head"));
 			var rowHeight = self.options.rowHeight - cellHeightDiff;
 			var rules = [
-				"#" + uid + " ." + classrow + "{height:" + rowHeight + "px;line-height:" + (rowHeight + self.options.lineHeightOffset) + "px}"
+				"#" + uid + " ." + CLS.row + "{height:" + rowHeight + "px;line-height:" + (rowHeight + self.options.lineHeightOffset) + "px}"
 			];
 
 			for (var i = 0, l = cache.activeColumns.length; i < l; i++) {
@@ -1946,29 +1828,29 @@
 			// Create the container
 			var cclasses = [self.NAME];
 			if (self.options.class) cclasses.push(self.options.class);
-			if (self.options.scrollbarPosition === 'left') cclasses.push(classleft);
+			if (self.options.scrollbarPosition === 'left') cclasses.push(CLS.left);
 
 			self.$el = $('<div class="' + cclasses.join(' ') + '" id="' + uid + '"></div>');
 
 			// Create the global grid elements
 			if (self.options.showHeader) {
-				$headerScroller = $('<div class="' + classheader + '"></div>')
+				$headerScroller = $('<div class="' + CLS.header + '"></div>')
 						.appendTo(self.$el);
 
-				$headers = $('<div class="' + classheadercolumns + '"></div>')
+				$headers = $('<div class="' + CLS.headercolumns + '"></div>')
 					.appendTo($headerScroller)
 					.width(getHeadersWidth());
 			}
 
 			$viewport = $([
-				'<div class="', classviewport,
-				(self.options.autoHeight ? ' ' + classautoheight : ''),
+				'<div class="', CLS.viewport,
+				(self.options.autoHeight ? ' ' + CLS.autoheight : ''),
 				'"></div>'
 			].join('')).appendTo(self.$el);
 
 			// The tabindex here ensures we can focus on this element
 			// otherwise we can't assign keyboard events
-			$canvas = $('<div class="' + classcanvas + '" tabindex="0"></div>').appendTo($viewport);
+			$canvas = $('<div class="' + CLS.canvas + '" tabindex="0"></div>').appendTo($viewport);
 
 		};
 
@@ -2325,7 +2207,7 @@
 				var cacheEntry = cache.nodes[row];
 				if (cacheEntry) {
 					if (cacheEntry.cellRenderQueue.length) {
-						var lastChild = $(cacheEntry.rowNode).children('.' + classcell + '').last()[0];
+						var lastChild = $(cacheEntry.rowNode).children('.' + CLS.cell + '').last()[0];
 						while (cacheEntry.cellRenderQueue.length) {
 							var columnIdx = cacheEntry.cellRenderQueue.pop();
 							cacheEntry.cellNodesByColumnIdx[columnIdx] = lastChild;
@@ -3504,286 +3386,6 @@
 
 
 		/**
-		 * Default editor object that handles cell reformatting and processing of edits
-		 * @class defaultEditor
-		 *
-		 * @param	{object}	options		- Editor arguments
-		 */
-		defaultEditor = function (options) {
-
-			/**
-			 * The editor is actived when an active cell in the grid is focused.
-			 * This should generate any DOM elements you want to use for your editor.
-			 * @method initialize
-			 * @memberof defaultEditor
-			 */
-			this.initialize = function () {
-				// Will hold the current value of the item being edited
-				this.loadValue(options.item);
-
-				var value = this.currentValue;
-				if (value === null || value === undefined) value = "";
-
-				this.$input = $('<input type="text" class="' + classeditor + '" value="' + value + '"/>')
-					.appendTo(options.cell)
-					.on("keydown", function (event) {
-						// Escape out of here on 'Tab', 'Enter', 'Home, 'End', 'Page Up' and 'Page Down'
-						// so that the grid can capture that event
-						if ([9, 13, 33, 34, 35, 36].indexOf(event.which) >= 0) {
-							event.preventDefault();
-							return;
-						}
-
-						// Esc
-						if (event.which == 27) return;
-
-						// Check if position of cursor is on the ends, if it's not then
-						// left or right arrow keys will prevent editor from saving
-						// results and will instead, move the text cursor
-						var pos = getCaretPosition(this);
-
-						if ((pos === null && event.which != 38 && event.which != 40) ||
-							(pos > 0 && event.which === 37) ||
-							(pos < $(this).val().length && event.which === 39)
-						) {
-							event.stopImmediatePropagation();
-						}
-					});
-			};
-
-
-			/**
-			 * This is the function that will update the data model in the grid.
-			 * @method applyValue
-			 * @memberof defaultEditor
-			 *
-			 * @param	{array}		items		- Array of row data to update
-			 * @param	{string}	value		- The user-input value being entered
-			 *
-			 */
-			this.applyValue = function (items, value) {
-				var item;
-
-				for (var i = 0, l = items.length; i < l; i++) {
-					item = items[i];
-
-					// Make sure we always have an id for our item
-					if (!(self.options.idProperty in item.item) && item.column.field == self.options.idProperty) {
-						item.item[self.options.idProperty] = value;
-					}
-
-					if (item.item instanceof Backbone.Model) {
-						item.item.set(item.column.field, value);
-					} else {
-						// This might be a nested row with no data
-						if (item.item.data) {
-							item.item.data[item.column.field] = value;
-						}
-					}
-				}
-			};
-
-
-			/**
-			 * Cancel the edit and return the cell to its default state
-			 * @method cancel
-			 * @memberof defaultEditor
-			 */
-			this.cancel = function () {};
-
-
-			/**
-			 * Destroys any elements your editor has created.
-			 * @method destroy
-			 * @memberof defaultEditor
-			 */
-			this.destroy = function () {
-				// Clear any invalid cells
-				options.grid.$el.find('.' + classinvalid).removeClass(classinvalid);
-				this.$input.remove();
-			};
-
-
-			/**
-			 * When the cell with an initialized editor is focused
-			 * @method focus
-			 * @memberof defaultEditor
-			 */
-			this.focus = function () {
-				this.$input.focus().select();
-			};
-
-
-			/**
-			 * Gets the current value of whatever the user has inputted
-			 * @method getValue
-			 * @memberof defaultEditor
-			 *
-			 * @returns {string}
-			 */
-			this.getValue = function () {
-				return this.$input.val();
-			};
-
-
-			/**
-			 * Determines whether or not the value has changed
-			 * @method isValueChanged
-			 * @memberof defaultEditor
-			 *
-			 * @returns {boolean}
-			 */
-			this.isValueChanged = function () {
-				return (!(this.$input.val() === "" && this.currentValue === null)) && (this.$input.val() != this.currentValue);
-			};
-
-
-			/**
-			 * Loads the current value for the item
-			 * @method loadValue
-			 * @memberof defaultEditor
-			 *
-			 * @param	{object}	item		- Data model object that is being edited
-			 */
-			this.loadValue = function (item) {
-				if (!item) return null;
-				var value = item instanceof Backbone.Model ? item.get(options.column.field) : item.data ? item.data[options.column.field] : null;
-				this.currentValue = value || "";
-				return this.currentValue;
-			};
-
-
-			/**
-			 * Process the input value before submitting it
-			 * @method serializeValue
-			 * @memberof defaultEditor
-			 */
-			this.serializeValue = function () {
-				return this.$input.val();
-			};
-
-
-			/**
-			 * Sets the value inside your editor, in case some internal grid calls needs to do
-			 * it dynamically.
-			 * @method setValue
-			 * @memberof defaultEditor
-			 *
-			 * @param	{string}	val			- Value to set
-			 */
-			this.setValue = function (val) {
-				this.$input.val(val);
-			};
-
-
-			/**
-			 * What to do when the validation for an edit fails. Here you can highlight the cell
-			 * and show the user the error message.
-			 * @method showInvalid
-			 * @memberof defaultEditor
-			 *
-			 * @param	{array}		results		- Results array from your validate() function
-			 */
-			this.showInvalid = function (results) {
-				var result;
-				for (var i = 0, l = results.length; i < l; i++) {
-					result = results[i];
-
-					// Add Invalid Icon
-					result.$cell.append([
-						'<span class="', classinvalidicon, '" title="', result.msg, '"></span>'
-					].join(''));
-
-					// Highlight Cell
-					result.$cell
-						.removeClass(classinvalid)
-						.width(); // Force layout
-					result.$cell.addClass(classinvalid);
-				}
-			};
-
-
-			/**
-			 * Validation step for the value before allowing a save. Should return back either
-			 * true or an array of objects like this:
-			 * @method validate
-			 * @memberof defaultEditor
-			 *
-			 * @example
-			 * [{
-			 *	row: 1,
-			 *	cell: 1,
-			 *	$cell: $(..),
-			 *	msg: 'Your failure message here.'
-			 * }, {
-			 *	row: 1,
-			 *	cell: 2,
-			 *	$cell: $(..),
-			 *	msg: 'Your failure message here.'
-			 * }]
-			 *
-			 * @param	{array}		items		- Array of edits to validate
-			 * @param	{function}	callback	- Callback function
-			 *
-			 */
-			this.validate = function (items, callback) {
-				var results = [];
-
-				// Sample code for validation failure
-				/*
-				for (var i = 0, l = items.length; i < l; i++) {
-					results.push({
-						row: items[i].row,
-						cell: items[i].cell,
-						$cell: items[i].$cell,
-						msg: "You cannot use " + this.getValue() + " as your value."
-					});
-				}
-				*/
-
-				// No errors
-				if (results.length === 0) results = true;
-
-				callback(results);
-			};
-
-			return this.initialize();
-		};
-
-
-		/**
-		 * Default formatting functions for all cell rendering. Returns an HTML string.
-		 * @method defaultFormatter
-		 * @memberof DobyGrid
-		 * @private
-		 *
-		 * @param	{integer}	row			- Index of the row is located
-		 * @param	{integer}	cell		- Index of the
-		 * @param	{string}	value		- The value of this cell from the data object for this row
-		 * @param	{object}	[columnDef]	- The column definition object for the given column
-		 * @param	{object}	[data]		- The full data object for the given cell
-		 *
-		 * @returns {string}
-		 */
-		defaultFormatter = function (row, cell, value, columnDef, data) {
-			// These variables aren't used in the default editor, but are available to you
-			// for customization. This line is left here for JSDoc reasons.
-			if (columnDef || data) {}
-
-			// Never write "undefined" or "null" in the grid -- that's just bad programming
-			if (value === undefined || value === null) {
-				return "";
-			}
-
-			// Some simple HTML escaping
-			return (value + "")
-				.replace(/&/g, "&amp;")
-				.replace(/</g, "&lt;")
-				.replace(/>/g, "&gt;");
-		};
-
-
-		/**
 		 * Deselects all selected cell ranges, or a specific cell specified.
 		 * @method deselectCells
 		 * @memberof DobyGrid
@@ -3928,8 +3530,7 @@
 			cache = null;
 
 			// Remove the garbage bin
-			$(garbageBin).remove();
-			garbageBin = null;
+			$('#' + CLS.garbage).remove();
 		};
 
 
@@ -3956,196 +3557,6 @@
 					.on("selectstart.ui", function () {
 					return false;
 				}); // from jquery:ui.core.js 1.7.2
-			}
-		};
-
-
-		/**
-		 * Creates a new dropdown menu.
-		 * @class Dropdown
-		 *
-		 * @param	{object}	[event]			- Javascript event object
-		 * @param	{object}	[options]		- Additional dropdown options
-		 *
-		 * @returns {object}
-		 */
-		Dropdown = function (event, options) {
-
-			// Is the dropdown currently shown?
-			this.open = false;
-
-			/**
-			 * Initializes the class
-			 * @method initialize
-			 * @memberof Dropdown
-			 */
-			this.initialize = function () {
-				this.$parent = options.parent || $(event.currentTarget);
-				this.$el = options.menu;
-				this.id = [uid, classdropdown, options.id].join('_');
-
-				// Create data store in the parent object if it doesn't already exist
-				var existing = null;
-				if (!this.$parent.data(classdropdown)) {
-					this.$parent.data(classdropdown, []);
-				} else {
-					// Also find the existing dropdown for this id (if it exists)
-					existing = this.$parent.data(classdropdown).filter(function (i) {
-						return i.id == this.id;
-					}.bind(this));
-					if (existing) existing = existing[0];
-				}
-
-				// If this parent already has a dropdown enabled -- initializing will close it
-				if (existing && existing.open) {
-					existing.hide();
-				} else {
-					// Ensure dropdown has the right styling
-					this.$el.attr('id', this.id);
-					this.$el.addClass(['off', classdropdown].join(' '));
-					this.show();
-				}
-
-				// Clicking outside - closes the dropdown
-				var bodyClose;
-				bodyClose = function (e) {
-					if (e.target == event.target) return;
-					this.hide();
-					$(document).off('click', bodyClose);
-					$(document).off('context', bodyClose);
-				}.bind(this);
-
-				$(document).on('click', bodyClose);
-				$(document).on('contextmenu', bodyClose);
-
-				// Esc - closes the dropdown
-				var bodyEscape;
-				bodyEscape = function (e) {
-					if (e.keyCode == 27) {
-						this.hide();
-						$(document).off('keydown', bodyEscape);
-					}
-				}.bind(this);
-				$(document).one('keydown', bodyEscape);
-
-				return this;
-			};
-
-
-			/**
-			 * Positions the dropdown in the right spot
-			 * @method position
-			 * @memberof Dropdown
-			 */
-			this.position = function () {
-				var top = event.pageY,
-					left = event.pageX,
-					menu_width = this.$el.outerWidth(),
-					menu_height = this.$el.outerHeight(),
-					required_width = event.clientX + menu_width,
-					required_height = event.clientY + menu_height,
-					b = $(document.body),
-					available_width = b.width(),
-					available_height = b.height();
-
-				// Determine position of main dropdown
-
-				// If no room on the right side, throw dropdown to the left
-				if (available_width < required_width) {
-					left -= menu_width;
-				}
-
-				// If no room on the right side for submenu, throw submenus to the left
-				if (available_width < required_width + menu_width) {
-					this.$el.addClass(classdropdownleft);
-				}
-
-				// If no room on the bottom, throw dropdown upwards
-				if (available_height < required_height) {
-					top -= menu_height;
-				}
-
-				this.$el.css({
-					left: Math.max(left, 0),
-					top: Math.max(top, 0)
-				});
-
-				// Now, loop through all of the submenus and determine which way they should drop
-				// depending on how much screen space there is
-				var pos, off, height, width, leftright, parentWidth;
-				this.$el.children('.' + classdropdownmenu + ':first').find('.' + classdropdownmenu).each(function () {
-					pos = $(this).position();
-					off = $(this).offset();
-					height = $(this).outerHeight();
-					width = $(this).outerWidth();
-					parentWidth = $(this).parent().outerWidth();
-
-					// Determine whether to drop to left or right
-					leftright = (off.left + parentWidth) - Math.min(pos.left, 0) + width > available_width ? 'drop-left' : 'drop-right';
-					$(this).addClass(leftright);
-
-					// When dropping left - need to set correct position
-					if (leftright == 'drop-left') {
-						$(this).css('left', -width + 'px');
-					}
-
-					// Determine whether to drop to up or down
-					$(this).addClass(event.clientY + height > available_height ? 'drop-up' : 'drop-down');
-				});
-			};
-
-			return this.initialize();
-		};
-
-
-		/**
-		 * Displays the dropdown
-		 * @method show
-		 * @memberof Dropdown
-		 */
-		Dropdown.prototype.show = function () {
-			if (this.open) return;
-
-			this.$el.appendTo(document.body);
-
-			this.position();
-
-			var store = this.$parent.data(classdropdown);
-			store.push(this);
-			this.$parent.data(classdropdown, store);
-
-			// Animate fade in
-			setTimeout(function () {
-				this.$el.removeClass('off');
-			}.bind(this), 150);
-
-			this.open = true;
-		};
-
-
-		/**
-		 * Hides the dropdown
-		 * @method hide
-		 * @memberof Dropdown
-		 */
-		Dropdown.prototype.hide = function () {
-			if (!this.open || !this.$parent) return;
-
-			if (this.$parent.data(classdropdown)) {
-				var store = this.$parent.data(classdropdown).filter(function (i) {
-					return i != this;
-				}.bind(this));
-
-				this.$parent.data(classdropdown, store);
-
-				this.$el.addClass('off');
-
-				// Animate fade out
-				setTimeout(function () {
-					removeElement(this.$el[0]);
-				}.bind(this), 150);
-
-				this.open = false;
 			}
 		};
 
@@ -4725,37 +4136,6 @@
 
 
 		/**
-		 * Given an input field object, will tell you where the cursor is positioned
-		 * @method getCaretPosition
-		 * @memberof DobyGrid
-		 * @private
-		 *
-		 * @param	{DOMObject}		input		- Input dom element
-		 *
-		 * @returns {integer}
-		 */
-		getCaretPosition = function (input) {
-			var pos = 0;
-
-			if (document.selection) {
-				// IE Specific
-				input.focus();
-				var oSel = document.selection.createRange();
-				oSel.moveStart('character', -input.value.length);
-				pos = oSel.text.length;
-			} else if (input.selectionStart !== input.selectionEnd) {
-				// If text is selected -- return null
-				return null;
-			} else if (input.selectionStart || input.selectionStart == '0') {
-				// Find cursor position
-				pos = input.selectionStart;
-			}
-
-			return pos;
-		};
-
-
-		/**
 		 * Given a cell node, returns the cell index in that row
 		 * @method getCellFromNode
 		 * @memberof DobyGrid
@@ -4890,7 +4270,7 @@
 		 * @returns {object}
 		 */
 		getCellFromEvent = function (e) {
-			var $cell = $(e.target).closest("." + classcell, $canvas);
+			var $cell = $(e.target).closest("." + CLS.cell, $canvas);
 			if (!$cell.length) return null;
 
 			var row = getRowFromNode($cell[0].parentNode);
@@ -5072,7 +4452,7 @@
 				headerPadding = parseInt($column.css('paddingLeft'), 10) + parseInt($column.css('paddingRight'), 10);
 
 			// Determine the width of the column name text
-			var name = $column.children('.' + classcolumnname + ':first');
+			var name = $column.children('.' + CLS.columnname + ':first');
 			name.css('overflow', 'visible');
 			$column.width('auto');
 			// The extra 1 is needed here because text-overflow: ellipsis
@@ -5080,7 +4460,7 @@
 			var headerWidth = $column.width() + headerPadding + 1;
 
 			if (hasSorting(column.id)) {
-				var $indicator = $column.find("." + classsortindicator);
+				var $indicator = $column.find("." + CLS.sortindicator);
 				headerWidth += $indicator.width();
 			}
 
@@ -5103,7 +4483,7 @@
 		 */
 		getColumnFromEvent = function (event) {
 			// Attempt to find column in header
-			var $column = $(event.target).closest("." + classheadercolumn + ':not(.' + classplaceholder + ')');
+			var $column = $(event.target).closest("." + CLS.headercolumn + ':not(.' + CLS.placeholder + ')');
 
 			// Attempt to find column in body
 			if (!$column.length) {
@@ -5186,8 +4566,8 @@
 				return columnMetadata[cell].editor;
 			}
 
-			// If no column editor, use editor in the options, otherwise use defaultEditor
-			return column.editor || self.options.editor || defaultEditor;
+			// If no column editor, use editor in the options, otherwise use default editor
+			return column.editor || self.options.editor || DefaultEditor.bind(null, self);
 		};
 
 
@@ -5215,7 +4595,7 @@
 				// Then the grid formatter as defined by the user
 				self.options.formatter ||
 				// Then the default formatter
-				defaultFormatter;
+				DefaultFormatter;
 
 			return f.bind(self);
 		};
@@ -5249,7 +4629,7 @@
 
 				return [(indent ? '<span style="margin-left:' + indent + 'px">' : ''),
 					'<span class="icon"></span>',
-					'<span class="' + classgrouptitle + '">',
+					'<span class="' + CLS.grouptitle + '">',
 					h.join(''),
 					'</span>',
 					(indent ? '</span>' : '')
@@ -5456,7 +4836,7 @@
 		 * @returns {object}
 		 */
 		this.getRowFromEvent = function (event) {
-			var $row = $(event.target).closest("." + classrow, $canvas);
+			var $row = $(event.target).closest("." + CLS.row, $canvas);
 			if (!$row.length) return null;
 			return cache.rows[getRowFromNode($row[0])];
 		};
@@ -6049,8 +5429,8 @@
 		Group.prototype = new NonDataItem();
 		Group.prototype._groupRow = true;
 		Group.prototype.class = function (row, item) {
-			var collapseclass = (item.collapsed ? classcollapsed : classexpanded),
-				classes = [classgroup, self.options.collapsible ? classgrouptoggle : null, collapseclass];
+			var collapseclass = (item.collapsed ? CLS.collapsed : CLS.expanded),
+				classes = [CLS.group, self.options.collapsible ? CLS.grouptoggle : null, collapseclass];
 			if (item.predef.class) {
 				if (typeof(item.predef.class) === 'function') {
 					// Group class functions will use the first column as the argument
@@ -6125,7 +5505,7 @@
 
 			// Handle group expand/collapse
 			if (self.options.collapsible && item && item._groupRow) {
-				var isToggler = $(e.target).hasClass(classgrouptoggle) || $(e.target).closest('.' + classgrouptoggle).length;
+				var isToggler = $(e.target).hasClass(CLS.grouptoggle) || $(e.target).closest('.' + CLS.grouptoggle).length;
 
 				if (isToggler) {
 					if (item.collapsed) {
@@ -6267,7 +5647,7 @@
 		 *
 		 */
 		handleContextMenu = function (e) {
-			var $cell = $(e.target).closest("." + classcell, $canvas);
+			var $cell = $(e.target).closest("." + CLS.cell, $canvas);
 			if ($cell.length === 0) return;
 
 			// Deactivate active cell
@@ -6578,7 +5958,7 @@
 					} else {
 
 						if (self.options.scrollLoader && !scrollLoader) {
-							scrollLoader = $('<div class="' + classscrollloader + '">' + self.options.scrollLoader() + '</div>').appendTo(self.$el);
+							scrollLoader = $('<div class="' + CLS.crollloader + '">' + self.options.scrollLoader() + '</div>').appendTo(self.$el);
 						}
 
 						h_render = setTimeout(function () {
@@ -6839,7 +6219,7 @@
 			}
 
 			self.showOverlay({
-				class: classempty,
+				class: CLS.empty,
 				html: html
 			});
 		};
@@ -6994,7 +6374,7 @@
 		 */
 		lockColumnWidths = function () {
 			// Columns may have been changed since the last time this ran - refetch children
-			var columnElements = $headers.children('.' + classheadercolumn);
+			var columnElements = $headers.children('.' + CLS.headercolumn);
 
 			columnElements.each(function (i) {
 				// The extra 1 here is to compensate for the border separator
@@ -7107,7 +6487,7 @@
 				el;
 
 			if (self.options.showHeader) {
-				el = $('<div class="' + classheadercolumn + '" style="visibility:hidden">-</div>')
+				el = $('<div class="' + CLS.headercolumn + '" style="visibility:hidden">-</div>')
 					.appendTo($headers);
 
 				headerColumnWidthDiff = headerColumnHeightDiff = 0;
@@ -7127,8 +6507,8 @@
 				removeElement(el[0]);
 			}
 
-			var r = $('<div class="' + classrow + '"></div>').appendTo($canvas);
-			el = $('<div class="' + classcell + '" style="visibility:hidden">-</div>').appendTo(r);
+			var r = $('<div class="' + CLS.row + '"></div>').appendTo($canvas);
+			el = $('<div class="' + CLS.cell + '" style="visibility:hidden">-</div>').appendTo(r);
 			cellWidthDiff = cellHeightDiff = 0;
 
 			if (
@@ -7195,59 +6575,6 @@
 
 
 		/**
-		 * Natural Sort algorithm for Javascript - Version 0.7 - Released under MIT license
-		 * Author: Jim Palmer (based on chunking idea from Dave Koelle)
-		 * @method naturalSort
-		 * @memberof DobyGrid
-		 * @private
-		 */
-		naturalSort = function (a, b) {
-			var re = /(^-?[0-9]+(\.?[0-9]*)[df]?e?[0-9]?$|^0x[0-9a-f]+$|[0-9]+)/gi,
-				sre = /(^[ ]*|[ ]*$)/g,
-				dre = /(^([\w ]+,?[\w ]+)?[\w ]+,?[\w ]+\d+:\d+(:\d+)?[\w ]?|^\d{1,4}[\/\-]\d{1,4}[\/\-]\d{1,4}|^\w+, \w+ \d+, \d{4})/,
-				hre = /^0x[0-9a-f]+$/i,
-				ore = /^0/,
-				i = function (s) {
-					return ('' + s).toLowerCase() || '' + s;
-				},
-				// convert all to strings strip whitespace
-				x = i(a).replace(sre, '') || '',
-				y = i(b).replace(sre, '') || '',
-				// chunk/tokenize
-				xN = x.replace(re, '\0$1\0').replace(/\0$/, '').replace(/^\0/, '').split('\0'),
-				yN = y.replace(re, '\0$1\0').replace(/\0$/, '').replace(/^\0/, '').split('\0'),
-				// numeric, hex or date detection
-				xD = parseInt(x.match(hre), 10) || (xN.length != 1 && x.match(dre) && Date.parse(x)),
-				yD = parseInt(y.match(hre), 10) || xD && y.match(dre) && Date.parse(y) || null,
-				oFxNcL, oFyNcL;
-			// first try and sort Hex codes or Dates
-			if (yD)
-				if (xD < yD) {
-					return -1;
-				} else if (xD > yD) {
-					return 1;
-				}
-			// natural sorting through split numeric strings and default strings
-			for (var cLoc = 0, numS = Math.max(xN.length, yN.length); cLoc < numS; cLoc++) {
-				// find floats not starting with '0', string or 0 if not defined (Clint Priest)
-				oFxNcL = !(xN[cLoc] || '').match(ore) && parseFloat(xN[cLoc]) || xN[cLoc] || 0;
-				oFyNcL = !(yN[cLoc] || '').match(ore) && parseFloat(yN[cLoc]) || yN[cLoc] || 0;
-				if (isNaN(oFxNcL) !== isNaN(oFyNcL)) {
-					// handle numeric vs string comparison - number < string - (Kyle Adams)
-					return (isNaN(oFxNcL)) ? 1 : -1;
-				} else if (typeof oFxNcL !== typeof oFyNcL) {
-					// rely on string comparison if different types - i.e. '02' < 2 != '02' < '2'
-					oFxNcL += '';
-					oFyNcL += '';
-				}
-				if (oFxNcL < oFyNcL) return -1;
-				if (oFxNcL > oFyNcL) return 1;
-			}
-			return 0;
-		};
-
-
-		/**
 		 * Enables cell navigation via keyboard shortcuts. Returns true if
 		 * navigation resulted in a change of active cell.
 		 * @method navigate
@@ -7299,17 +6626,6 @@
 
 
 		/**
-		 * @class Placeholder
-		 * @classdesc An item object used as a placeholder for a remote item.
-		 * @augments NonDataItem
-		 */
-		Placeholder = function () {};
-		Placeholder.prototype = new NonDataItem();
-		Placeholder.prototype.__placeholder = true;
-		Placeholder.prototype.toString = function () { return "Placeholder"; };
-
-
-		/**
 		 * Handles the width leeway for the column headers
 		 * @method prepareLeeway
 		 * @memberof DobyGrid
@@ -7320,7 +6636,7 @@
 		 */
 		prepareLeeway = function (i, pageX) {
 
-			var columnElements = $headers.children('.' + classheadercolumn);
+			var columnElements = $headers.children('.' + CLS.headercolumn);
 			var shrinkLeewayOnRight = null,
 				stretchLeewayOnRight = null,
 				j, c;
@@ -8272,33 +7588,6 @@
 
 
 		/**
-		 * This seems to be the only reliable way to remove nodes from the DOM without creating a
-		 * DOM memory leak. See this post:
-		 * http://stackoverflow.com/questions/768621/how-to-dispose-of-dom-elements-in-javascript-to-avoid-memory-leaks?rq=1
-		 *
-		 * @method removeElement
-		 * @memberof DobyGrid
-		 * @private
-		 *
-		 * @param	{DOMObject}	element			- DOM node to remove
-		 *
-		 */
-		removeElement = function (element) {
-			garbageBin = document.getElementById('DobyGridGarbageBin');
-			if (!garbageBin) {
-				garbageBin = document.createElement('DIV');
-				garbageBin.id = 'DobyGridGarbageBin';
-				garbageBin.style.display = 'none';
-				document.body.appendChild(garbageBin);
-			}
-
-			// Move the element to the garbage bin
-			garbageBin.appendChild(element);
-			garbageBin.innerHTML = '';
-		};
-
-
-		/**
 		 * Remove column grouping for a given 'id' of a column.
 		 * @method removeGrouping
 		 * @memberof DobyGrid
@@ -8401,9 +7690,9 @@
 			// If there is no vertical scroll and we're auto-sized. Remove the right column.
 			if (self.$el) {
 				if (!viewportHasVScroll && self.options.autoColumnWidth) {
-					self.$el.addClass(classnoright);
+					self.$el.addClass(CLS.noright);
 				} else {
-					self.$el.removeClass(classnoright);
+					self.$el.removeClass(CLS.noright);
 				}
 			}
 
@@ -8452,7 +7741,7 @@
 				mClass = item._groupRow ? "" : (m.class ? typeof m.class === "function" ? m.class.bind(self)(row, cell, value, m, item) : m.class : null),
 
 				column = cache.activeColumns[cell],
-				cellCss = [classcell, "l" + cell, "r" + rowI];
+				cellCss = [CLS.cell, "l" + cell, "r" + rowI];
 
 			if (mClass) cellCss.push(mClass);
 			if (self.active && row === self.active.row && cell === self.active.cell) cellCss.push("active");
@@ -8462,7 +7751,7 @@
 				cellCss.push(mColumns[cell].class);
 			}
 			if (isCellSelected(row, cell)) cellCss.push(self.options.selectedClass);
-			if (column.selectable === false) cellCss.push(classcellunselectable);
+			if (column.selectable === false) cellCss.push(CLS.cellunselectable);
 
 			result.push('<div class="' + cellCss.join(" ") + '">');
 
@@ -8509,8 +7798,8 @@
 				column = cache.activeColumns[i];
 
 				// Determine classes
-				classes = [classheadercolumn, (column.headerClass || "")];
-				if (column.sortable) classes.push(classheadersortable);
+				classes = [CLS.headercolumn, (column.headerClass || "")];
+				if (column.sortable) classes.push(CLS.headersortable);
 
 				// Determine width
 				w = column.width - headerColumnWidthDiff;
@@ -8524,10 +7813,10 @@
 				}
 
 				html.push('>');
-				html.push('<span class="' + classcolumnname + '">' + column.name + '</span>');
+				html.push('<span class="' + CLS.columnname + '">' + column.name + '</span>');
 
 				if (column.sortable) {
-					html.push('<span class="' + classsortindicator + '"></span>');
+					html.push('<span class="' + CLS.sortindicator + '"></span>');
 				}
 
 				html.push('</div>');
@@ -8553,7 +7842,7 @@
 		 *
 		 */
 		renderMenu = function (menu, $parent) {
-			var $menu = $(['<div class="', classdropdownmenu, '"></div>'].join('')),
+			var $menu = $(['<div class="', CLS.dropdownmenu, '"></div>'].join('')),
 				item,
 				clickFn = function (event) {
 					if (typeof this.fn === 'function') {
@@ -8569,23 +7858,23 @@
 				if (item.enabled !== undefined && !item.enabled) continue;
 				if (item.title) {
 					$menu.append([
-						'<div class="', classdropdowntitle, '">',
+						'<div class="', CLS.dropdowntitle, '">',
 						(item.icon ? item.icon : ""),
 						(item.name || ""),
 						'</div>'
 					].join(''));
 				} else if (item.divider) {
-					$menu.append(['<div class="', classdropdowndivider, '"></div>'].join(''));
+					$menu.append(['<div class="', CLS.dropdowndivider, '"></div>'].join(''));
 				} else {
 					var label = (item.name || ""),
 						cls = "";
 					if (item.value !== undefined) {
 						if (item.value) cls = " on";
-						label += ['<span class="', classdropdownicon, '"></span>'].join('');
+						label += ['<span class="', CLS.dropdownicon, '"></span>'].join('');
 					}
 
 					var html = [
-						'<div class="', classdropdownitem, ' ', cls, '">',
+						'<div class="', CLS.dropdownitem, ' ', cls, '">',
 						(item.icon ? item.icon : ""),
 						label,
 						'</div>'
@@ -8593,7 +7882,7 @@
 
 					// Submenus
 					if (item.menu) {
-						$el.append(['<span class="', classdropdownarrow, '"></span>'].join(''));
+						$el.append(['<span class="', CLS.dropdownarrow, '"></span>'].join(''));
 						renderMenu(item.menu, $el);
 					}
 
@@ -8618,7 +7907,7 @@
 		 */
 		renderRow = function (stringArray, row, range) {
 			var d = self.getRowFromIndex(row),
-				rowCss = classrow +
+				rowCss = CLS.row +
 					(self.active && row === self.active.row ? " active" : "") +
 					(row % 2 === 1 ? " odd" : ""),
 				top, pos = {};
@@ -8679,7 +7968,7 @@
 			// Add row resizing handle
 			if (self.options.resizableRows && d.resizable !== false) {
 				stringArray.push('<div class="');
-				stringArray.push(classrowhandle);
+				stringArray.push(CLS.rowhandle);
 				stringArray.push('"></div>');
 			}
 
@@ -8871,7 +8160,7 @@
 		 */
 		resizeColumn = function (i, d) {
 			var actualMinWidth, headerContentWidth, x, j, c, l;
-			var columnElements = $headers.children('.' + classheadercolumn);
+			var columnElements = $headers.children('.' + CLS.headercolumn);
 			x = d;
 			if (d < 0) { // shrink column
 				for (j = i; j >= 0; j--) {
@@ -9518,10 +8807,10 @@
 
 			// Toggling autoHeight needs to DOM manipulation
 			if (options.autoHeight) {
-				$viewport.addClass(classautoheight);
+				$viewport.addClass(CLS.autoheight);
 			} else {
 				this.$el.removeAttr('style');
-				$viewport.removeClass(classautoheight);
+				$viewport.removeClass(CLS.autoheight);
 			}
 
 			// If setting new columns - it will auto-re-render, so no need to manually call render
@@ -9716,14 +9005,14 @@
 				cursor: "default",
 				distance: 3,
 				helper: "clone",
-				placeholder: classplaceholder + " " + classheadercolumn,
+				placeholder: CLS.placeholder + " " + CLS.headercolumn,
 				tolerance: "intersection",
 				start: function (e, ui) {
 					ui.placeholder.width(ui.helper.outerWidth() - headerColumnWidthDiff);
-					$(ui.helper).addClass(classheadercolumnactive);
+					$(ui.helper).addClass(CLS.headercolumnactive);
 				},
 				beforeStop: function (e, ui) {
-					$(ui.helper).removeClass(classheadercolumnactive);
+					$(ui.helper).removeClass(CLS.headercolumnactive);
 				},
 				update: function (e, ui) {
 					e.stopPropagation();
@@ -9800,8 +9089,8 @@
 
 			var pageX, columnElements, firstResizable, lastResizable;
 
-			columnElements = $headers.children("." + classheadercolumn);
-			var $handle = columnElements.find("." + classhandle);
+			columnElements = $headers.children("." + CLS.headercolumn);
+			var $handle = columnElements.find("." + CLS.handle);
 			if ($handle && $handle.length) removeElement($handle[0]);
 			columnElements.each(function (i) {
 				if (!cache.activeColumns[i].resizable) return;
@@ -9816,7 +9105,7 @@
 			// This is done once for the whole header because event assignments are expensive
 			$headers.on("dblclick", function (event) {
 				// Make sure we're clicking on a handle
-				if (!$(event.target).closest('.' + classhandle).length) return;
+				if (!$(event.target).closest('.' + CLS.handle).length) return;
 
 				var column = getColumnFromEvent(event);
 				if (!column) return;
@@ -9855,11 +9144,11 @@
 					cache.activeColumns[i].resizable === false
 				) return;
 
-				$('<div class="' + classhandle + '"><span></span></div>')
+				$('<div class="' + CLS.handle + '"><span></span></div>')
 					.appendTo(columnEl)
 					.on('dragstart', function (event) {
 						pageX = event.pageX;
-						$(this).parent().addClass(classheadercolumndrag);
+						$(this).parent().addClass(CLS.headercolumndrag);
 
 						// Lock each column's width option to current width
 						lockColumnWidths(i);
@@ -9882,7 +9171,7 @@
 						// column sorting from firing when resizing the handle on top of the
 						// header cell. FIXME: There's got to be a better way!
 						setTimeout(function () {
-							$(this).parent().removeClass(classheadercolumndrag);
+							$(this).parent().removeClass(CLS.headercolumndrag);
 						}.bind(this), 1);
 
 						submitColResize();
@@ -9904,7 +9193,7 @@
 				self._event = e;
 
 				// If clicking on drag handle - stop
-				var preventClick = $(e.target).closest("." + classhandle).length || $(e.target).hasClass(classheadercolumndrag);
+				var preventClick = $(e.target).closest("." + CLS.handle).length || $(e.target).hasClass(CLS.headercolumndrag);
 				if (preventClick) return;
 
 				var column = getColumnFromEvent(e);
@@ -10073,7 +9362,7 @@
 
 			// Draw new filter bar
 			if (!$headerFilter) {
-				$headerFilter = $('<div class="' + classheaderfilter + '"></div>')
+				$headerFilter = $('<div class="' + CLS.headerfilter + '"></div>')
 					.appendTo($headerScroller);
 
 				// Create a cell for each column
@@ -10083,8 +9372,8 @@
 
 					// Create cell
 					html = ['<div class="'];
-					html.push(classheaderfiltercell);
-					if (!column.filterable) html.push(' ' + classheaderfilterdisabled);
+					html.push(CLS.headerfiltercell);
+					if (!column.filterable) html.push(' ' + CLS.headerfilterdisabled);
 					html.push('">');
 					html.push('</div>');
 					cell = $(html.join(''));
@@ -10105,7 +9394,7 @@
 					}
 
 					// Create input as a reference in the column definition
-					column.quickFilterInput = $('<input class="' + classeditor + '" type="text"/>')
+					column.quickFilterInput = $('<input class="' + CLS.editor + '" type="text"/>')
 						.appendTo(cell)
 						.data('column_id', column.id)
 						.attr('placeholder', getLocale('column.add_quick_filter'))
@@ -10145,7 +9434,7 @@
 			if (self.options.tooltipType != 'popup') return;
 
 			// Proceed if not on a drag handle
-			if ($(event.target).closest('.' + classhandle).length) {
+			if ($(event.target).closest('.' + CLS.handle).length) {
 				// Trigger mouseleave event so existing tooltips are hidden during resizing
 				$(event.target).trigger('mouseleave');
 				return;
@@ -10156,7 +9445,7 @@
 			// Proceed for valid columns only
 			if (!column || !column.tooltip) return;
 
-			var el = $(event.target).closest('.' + classheadercolumn);
+			var el = $(event.target).closest('.' + CLS.headercolumn);
 
 			// Don't create tooltip if this element already has one open
 			if (el.attr('aria-describedby')) return;
@@ -10193,9 +9482,9 @@
 				var arrowheight = 10;
 
 				// Build tooltip HTML
-				var html = ['<span class="' + classtooltip + '" id="' + tooltip_id + '">'];
+				var html = ['<span class="' + CLS.tooltip + '" id="' + tooltip_id + '">'];
 				html.push(column.tooltip);
-				html.push('<span class="' + classtooltiparrow + '"></span>');
+				html.push('<span class="' + CLS.tooltiparrow + '"></span>');
 				html.push('</span>');
 
 				// Double check that element doesn't already exist
@@ -10223,7 +9512,7 @@
 				}
 
 				// Position arrow
-				var arrow = tooltip.children('.' + classtooltiparrow).first();
+				var arrow = tooltip.children('.' + CLS.tooltiparrow).first();
 				arrow.css('left', (tooltip.outerWidth() / 2) - (arrow.outerWidth() / 2) + arrowoffset);
 
 				// Draw tooltip
@@ -10306,7 +9595,7 @@
 			// If we're at the very top - do nothing, just clean up
 			if (scrollTop === 0) {
 				cache.stickyRows = [];
-				$viewport.parent().children('.' + classsticky).remove();
+				$viewport.parent().children('.' + CLS.sticky).remove();
 				return;
 			}
 
@@ -10324,7 +9613,7 @@
 					if ($cached && $cached.length && $cached.attr('rel') == group[self.options.idProperty]) {
 						$clone = $cached;
 					} else {
-						var child = '.' + classsticky + '[rel="' + group[self.options.idProperty] + '"]:first';
+						var child = '.' + CLS.sticky + '[rel="' + group[self.options.idProperty] + '"]:first';
 
 						$clone = $viewport.parent().children(child);
 
@@ -10353,10 +9642,10 @@
 						}
 
 						$clone
-							.addClass(classsticky)
+							.addClass(CLS.sticky)
 							.attr('rel', group[self.options.idProperty])
 							.width($canvas.css('width'))
-							.removeClass(classgrouptoggle)
+							.removeClass(CLS.grouptoggle)
 							.appendTo($viewport.parent());
 
 						// Cache row
@@ -10383,9 +9672,9 @@
 
 			var headerColumnEls = $headers.children();
 			headerColumnEls
-				.removeClass(classheadercolumnsorted)
-				.find("." + classsortindicator)
-				.removeClass(classsortindicatorasc + " " + classsortindicatordesc);
+				.removeClass(CLS.headercolumnsorted)
+				.find("." + CLS.sortindicator)
+				.removeClass(CLS.sortindicatorasc + " " + CLS.sortindicatordesc);
 
 			$.each(self.sorting, function (i, col) {
 				if (col.sortAsc === null) {
@@ -10394,9 +9683,9 @@
 				var columnIndex = cache.columnsById[col.columnId];
 				if (columnIndex !== null && !col.group) {
 					headerColumnEls.eq(columnIndex)
-						.addClass(classheadercolumnsorted)
-						.find("." + classsortindicator)
-						.addClass(col.sortAsc ? classsortindicatorasc : classsortindicatordesc);
+						.addClass(CLS.headercolumnsorted)
+						.find("." + CLS.sortindicator)
+						.addClass(col.sortAsc ? CLS.sortindicatorasc : CLS.sortindicatordesc);
 				}
 			});
 		};
@@ -10411,7 +9700,7 @@
 		 */
 		submitColResize = function (silent) {
 			var newWidth, j, c;
-			var columnElements = $headers.children('.' + classheadercolumn);
+			var columnElements = $headers.children('.' + CLS.headercolumn);
 			for (j = 0; j < columnElements.length; j++) {
 				c = cache.activeColumns[j];
 				newWidth = $(columnElements[j]).outerWidth();
@@ -10539,10 +9828,10 @@
 					if (Object.keys(cache.aggregatorsByColumnId[column.id]).length === 1) return;
 
 					// Update menu items
-					$(event.target).parent().children('.' + classdropdownitem).removeClass('on');
+					$(event.target).parent().children('.' + CLS.dropdownitem).removeClass('on');
 					$(event.target).addClass('on');
-					if (!$(event.target).children('.' + classdropdownicon).length) {
-						$(event.target).append('<span class="' + classdropdownicon + '"></span>');
+					if (!$(event.target).children('.' + CLS.dropdownicon).length) {
+						$(event.target).append('<span class="' + CLS.dropdownicon + '"></span>');
 					}
 
 					// Disable old aggregator and enable the new one
@@ -10843,7 +10132,7 @@
 			}
 
 			// Render Menu
-			var $menu = $('<div class="' + classcontextmenu + '"></div>');
+			var $menu = $('<div class="' + CLS.contextmenu + '"></div>');
 			renderMenu(menuData, $menu);
 
 			var option_change_delay;
@@ -10852,7 +10141,7 @@
 			$menu.on('mouseover', function (event) {
 				if (option_change_delay) clearTimeout(option_change_delay);
 
-				var $item = $(event.target).hasClass(classdropdownitem) ? $(event.target) : $(event.target).parent().hasClass(classdropdownitem) ? $(event.target).parent() : null;
+				var $item = $(event.target).hasClass(CLS.dropdownitem) ? $(event.target) : $(event.target).parent().hasClass(CLS.dropdownitem) ? $(event.target).parent() : null;
 
 				if ($item) {
 					option_change_delay = setTimeout(function () {

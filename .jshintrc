@@ -19,6 +19,7 @@
 	},
 
 	"browser": true,
+	"browserify": true,
 	"devel": false,
 	"expr": true,
 	"indent": 4,
