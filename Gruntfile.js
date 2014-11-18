@@ -2,17 +2,34 @@
 module.exports = function (grunt) {
 	'use strict';
 
+	var banner = [
+		'// <%= pkg.name %>.js <%= pkg.version %>',
+		'// (c) 2014 Evgueni Naverniouk, Globex Designs, Inc.',
+		'// Doby may be freely distributed under the MIT license.',
+		'// For all details and documentation:',
+		'// https://github.com/globexdesigns/doby-grid\n'
+	].join('\n');
+
 	// Project configuration
 	grunt.initConfig({
 		pkg: grunt.file.readJSON("package.json"),
 
+		browserify: {
+			options: {
+				banner: banner,
+				browserifyOptions: {
+					standalone: 'DobyGrid'
+				}
+			},
+			files: {
+				src: 'src/<%= pkg.name %>.js',
+				dest: 'build/<%= pkg.version %>/<%= pkg.name %>.js'
+			}
+		},
+
 		clean: ['build/latest'],
 
 		copy: {
-			main: {
-				src: "src/<%= pkg.name %>.js",
-				dest: "build/<%= pkg.version %>/<%= pkg.name %>.js"
-			},
 			latest: {
 				expand: true,
 				cwd: "build/<%= pkg.version %>/",
@@ -26,7 +43,7 @@ module.exports = function (grunt) {
 		},
 
 		jasmine: {
-			src: 'src/<%= pkg.name %>.js',
+			src: 'build/<%= pkg.version %>/<%= pkg.name %>.js',
 			options: {
 				specs: 'tests/*.js',
 				styles: 'build/<%= pkg.version %>/<%= pkg.name %>.min.css',
@@ -45,18 +62,9 @@ module.exports = function (grunt) {
 		},
 
 		jscs: {
-			src: "src/<%= pkg.name %>.js",
+			src: "src/**/*.js",
 			options: {
 				config: ".jscsrc"
-			}
-		},
-
-		jsdoc: {
-			dist: {
-				src: ['src/<%= pkg.name %>.js'],
-				options: {
-					destination: 'docs'
-				}
 			}
 		},
 
@@ -64,7 +72,7 @@ module.exports = function (grunt) {
 			options: {
 				jshintrc: '.jshintrc',
 			},
-			src: ['src/<%= pkg.name %>.js']
+			src: ['src/**/*.js']
 		},
 
 		less: {
@@ -93,26 +101,21 @@ module.exports = function (grunt) {
 
 		uglify: {
 			options: {
-				banner: [
-					'// <%= pkg.name %>.js <%= pkg.version %>',
-					'// (c) 2014 Evgueni Naverniouk, Globex Designs, Inc.',
-					'// Doby may be freely distributed under the MIT license.',
-					'// For all details and documentation:',
-					'// https://github.com/globexdesigns/doby-grid\n'
-				].join('\n'),
+				banner: banner,
 				mangle: {
 					except: ['jQuery', 'Backbone', 'FileSaver']
 				}
 			},
 
 			build: {
-				src: 'src/<%= pkg.name %>.js',
+				src: 'build/<%= pkg.version %>/<%= pkg.name %>.js',
 				dest: 'build/<%= pkg.version %>/<%= pkg.name %>.min.js'
 			}
 		}
 	});
 
 	// Load plugins
+	grunt.loadNpmTasks('grunt-browserify');
 	grunt.loadNpmTasks('grunt-contrib-clean');
 	grunt.loadNpmTasks('grunt-contrib-copy');
 	grunt.loadNpmTasks('grunt-contrib-jasmine');
@@ -124,8 +127,24 @@ module.exports = function (grunt) {
 	grunt.loadNpmTasks('grunt-lesslint');
 
 	// Grunt "default" task (validation and unit tests only)
-	grunt.registerTask('default', ['lesslint', 'less', 'jshint', 'jscs', 'jasmine']);
+	grunt.registerTask('default', [
+		'lesslint',
+		'less',
+		'jshint',
+		'jscs',
+		'jasmine'
+	]);
 
 	// Grunt "build" task
-	grunt.registerTask('build', ['lesslint', 'less', 'jshint', 'jasmine', 'uglify', 'clean', 'copy']);
+	grunt.registerTask('build', [
+		'lesslint',
+		'less',
+		'jshint',
+		'jscs',
+		'jasmine',
+		'browserify',
+		'uglify',
+		'clean',
+		'copy'
+	]);
 };

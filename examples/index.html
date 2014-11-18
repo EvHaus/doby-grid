@@ -152,7 +152,7 @@
 				'jquery-ui': 'libs/jquery-ui/jquery-ui',
 				'jquery.event.drag': 'libs/jquery.event.drag-drop/event.drag/jquery.event.drag',
 				'jquery.simulate': 'libs/jquery.simulate/libs/jquery.simulate',
-				'dobygrid': 'src/doby-grid',
+				'dobygrid': 'build/latest/doby-grid',
 				'faker': 'libs/Faker/faker',
 				'filesaver': 'libs/FileSaver/FileSaver',
 				'less': 'libs/less/dist/less-1.7.4',
@@ -164,6 +164,9 @@
 				'backbone': {
 					deps: ['underscore'],
 					exports: 'Backbone'
+				},
+				'dobygrid': {
+					deps: ['jquery', 'backbone']
 				},
 				'underscore': {
 					exports: '_'
