@@ -5888,9 +5888,8 @@ var DobyGrid = function (options) {
 				) {
 					render();
 				} else {
-
 					if (self.options.scrollLoader && !scrollLoader) {
-						scrollLoader = $('<div class="' + CLS.crollloader + '">' + self.options.scrollLoader() + '</div>').appendTo(self.$el);
+						scrollLoader = $('<div class="' + CLS.scrollloader + '">' + self.options.scrollLoader() + '</div>').appendTo(self.$el);
 					}
 
 					h_render = setTimeout(function () {
