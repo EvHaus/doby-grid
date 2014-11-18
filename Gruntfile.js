@@ -111,6 +111,13 @@ module.exports = function (grunt) {
 				src: 'build/<%= pkg.version %>/<%= pkg.name %>.js',
 				dest: 'build/<%= pkg.version %>/<%= pkg.name %>.min.js'
 			}
+		},
+
+		watch: {
+			scripts: {
+				files: 'src/**/*.js',
+				tasks: ['browserify', 'clean', 'copy']
+			}
 		}
 	});
 
@@ -122,6 +129,7 @@ module.exports = function (grunt) {
 	grunt.loadNpmTasks('grunt-contrib-jshint');
 	grunt.loadNpmTasks('grunt-contrib-less');
 	grunt.loadNpmTasks('grunt-contrib-uglify');
+	grunt.loadNpmTasks('grunt-contrib-watch');
 	grunt.loadNpmTasks('grunt-jscs');
 	grunt.loadNpmTasks('grunt-jsdoc');
 	grunt.loadNpmTasks('grunt-lesslint');
@@ -141,10 +149,10 @@ module.exports = function (grunt) {
 		'less',
 		'jshint',
 		'jscs',
-		'jasmine',
 		'browserify',
 		'uglify',
 		'clean',
-		'copy'
+		'copy',
+		'jasmine'
 	]);
 };

@@ -33,6 +33,7 @@
 		"grunt-contrib-jshint": "^0.10.0",
 		"grunt-contrib-less": "^0.7.0",
 		"grunt-contrib-uglify": "^0.2.2",
+		"grunt-contrib-watch": "^0.6.1",
 		"grunt-jscs": "^0.6.2",
 		"grunt-lesslint": "^0.15.0"
 	},
