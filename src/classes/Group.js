@@ -25,6 +25,14 @@ var Group = function (options) {
 		value: null				// Grouping value
 	}, options);
 
+	this.columns = {
+		0: {
+			colspan: "*",
+			focusable: false,
+			selectable: false
+		}
+	};
+
 	if (this.predef) {
 		// If group row height or spacing was manipulated - use that value
 		if (this.predef.height !== undefined && this.predef.height !== null) {
@@ -58,14 +66,6 @@ Group.prototype.class = function (row, item) {
 	}
 
 	return classes.join(' ');
-};
-
-Group.prototype.columns = {
-	0: {
-		colspan: "*",
-		focusable: false,
-		selectable: false
-	}
 };
 
 Group.prototype.toString = function () {
