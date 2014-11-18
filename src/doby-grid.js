@@ -9,6 +9,7 @@
 "use strict";
 
 var Aggregate			= require('./classes/Aggregate'),
+	CellRangeDecorator	= require('./classes/CellRangeDecorator'),
 	DefaultEditor		= require('./classes/DefaultEditor'),
 	DefaultFormatter	= require('./classes/DefaultFormatter'),
 	Dropdown			= require('./classes/Dropdown'),
@@ -84,7 +85,6 @@ var DobyGrid = function (options) {
 		canvasWidth,
 		cellExists,
 		cellHeightDiff = 0,
-		CellRangeDecorator,
 		cellWidthDiff = 0,
 		cj,				// "jumpiness" coefficient
 		cleanUpAndRenderCells,
@@ -1012,7 +1012,7 @@ var DobyGrid = function (options) {
 	 * @private
 	 */
 	bindCellRangeSelect = function () {
-		var decorator = new CellRangeDecorator(),
+		var decorator = new CellRangeDecorator($canvas, getCellNodeBox),
 			_dragging = null,
 			handleSelector = function () {
 				return $(this).closest('.' + CLS.cellunselectable).length > 0;
@@ -1341,63 +1341,6 @@ var DobyGrid = function (options) {
 	 */
 	cellExists = function (row, cell) {
 		return !(row < 0 || row >= getDataLength() || cell < 0 || cell >= cache.activeColumns.length);
-	};
-
-
-	/**
-	 * @class CellRangeDecorator
-	 * @classdesc Displays an overlay on top of a given cell range
-	 */
-	CellRangeDecorator = function () {
-		this.$el = null;
-
-		this.show = function (range) {
-			if (!this.$el) {
-				this.$el = $('<div class="' + CLS.rangedecorator + '"></div>')
-					.appendTo($canvas);
-				this.$stats = $('<span class="' + CLS.rangedecoratorstat + '"></span>')
-					.appendTo(this.$el);
-			}
-
-			var from = getCellNodeBox(range.fromRow, range.fromCell),
-				to = getCellNodeBox(range.toRow, range.toCell),
-				borderBottom = parseInt(this.$el.css('borderBottomWidth'), 10),
-				borderLeft = parseInt(this.$el.css('borderLeftWidth'), 10),
-				borderRight = parseInt(this.$el.css('borderRightWidth'), 10),
-				borderTop = parseInt(this.$el.css('borderTopWidth'), 10);
-
-			if (from && to) {
-				var width = to.right - from.left - borderLeft - borderRight;
-
-				this.$el.css({
-					top: from.top,
-					left: from.left,
-					height: to.bottom - from.top - borderBottom - borderTop,
-					width: width
-				});
-
-				// Only display stats box if there is enough room
-				if (width > 200) {
-					// Calculate number of selected cells
-					this.$stats.show().html([
-						'<strong>Selection:</strong> ', range.getCellCount(), ' cells',
-						' <strong>From:</strong> ', (range.fromRow + 1), ':', (range.fromCell + 1),
-						' <strong>To:</strong> ', (range.toRow + 1), ':', (range.toCell + 1)
-					].join(''));
-				} else {
-					this.$stats.hide();
-				}
-			}
-
-			return this.$el;
-		};
-
-		this.hide = function () {
-			if (this.$el && this.$el.length) {
-				removeElement(this.$el[0]);
-			}
-			this.$el = null;
-		};
 	};
 
 
