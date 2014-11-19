@@ -16,6 +16,7 @@ var Aggregate			= require('./classes/Aggregate'),
 	Group				= require('./classes/Group'),
 	NonDataItem 		= require('./classes/NonDataItem'),
 	Placeholder			= require('./classes/Placeholder'),
+	Range				= require('./classes/Range'),
 
 	CLS					= require('./utils/classes'),
 	naturalSort			= require('./utils/naturalSort'),
@@ -81,7 +82,6 @@ var DobyGrid = function (options) {
 		cacheRows,
 		calculateVisibleRows,
 		canCellBeActive,
-		canCellBeSelected,
 		canvasWidth,
 		cellExists,
 		cellHeightDiff = 0,
@@ -140,7 +140,6 @@ var DobyGrid = function (options) {
 		getRowFromPosition,
 		getScrollbarSize,
 		getTotalHeight,
-		getValueFromItem,
 		getVBoxDelta,
 		getViewportHeight,
 		getVisibleRange,
@@ -201,7 +200,6 @@ var DobyGrid = function (options) {
 		prepareLeeway,
 		prevScrollLeft = 0,
 		prevScrollTop = 0,
-		Range,
 		remoteAllLoaded,
 		remoteLoaded,
 		remoteCount,
@@ -250,7 +248,6 @@ var DobyGrid = function (options) {
 		toggleContextMenu,
 		uid = this.NAME + "-" + Math.round(1000000 * Math.random()),
 		updateCanvasWidth,
-		updateCellCssStylesOnRenderedRows,
 		updateColumnCaches,
 		updateRow,
 		updateRowCount,
@@ -1031,7 +1028,7 @@ var DobyGrid = function (options) {
 				if (!cell) return;
 
 				// This prevents you from starting to drag on a cell that can't be selected
-				if (canCellBeSelected(cell.row, cell.cell)) {
+				if (self.canCellBeSelected(cell.row, cell.cell)) {
 					_dragging = true;
 					event.stopImmediatePropagation();
 				}
@@ -1049,7 +1046,7 @@ var DobyGrid = function (options) {
 					start: start
 				};
 
-				return decorator.show(new Range(start.row, start.cell));
+				return decorator.show(new Range({fromRow: start.row, fromCell: start.cell}, self));
 			})
 			.on('drag', {not: handleSelector}, function (event, dd) {
 				if (!_dragging) return;
@@ -1060,10 +1057,10 @@ var DobyGrid = function (options) {
 					event.pageX - $(this).offset().left,
 					event.pageY - $(this).offset().top);
 
-				if (!canCellBeSelected(end.row, end.cell)) return;
+				if (!self.canCellBeSelected(end.row, end.cell)) return;
 
 				dd._range.end = end;
-				decorator.show(new Range(dd._range.start.row, dd._range.start.cell, end.row, end.cell));
+				decorator.show(new Range({fromRow: dd._range.start.row, fromCell: dd._range.start.cell, toRow: end.row, toCell: end.cell}, self));
 
 				// Set the active cell as you drag. This is default spreadsheet behavior.
 				if (self.options.activateSelection && canCellBeActive(end.row, end.cell)) {
@@ -1302,14 +1299,13 @@ var DobyGrid = function (options) {
 	 * Can a given cell be selected?
 	 * @method canCellBeSelected
 	 * @memberof DobyGrid
-	 * @private
 	 *
 	 * @param	{integer}		row		- Row index
 	 * @param	{integer}		cell	- Cell index
 	 *
 	 * @returns {boolean}
 	 */
-	canCellBeSelected = function (row, cell) {
+	this.canCellBeSelected = function (row, cell) {
 		if (row >= getDataLength() || row < 0 || cell >= cache.activeColumns.length || cell < 0) {
 			return false;
 		}
@@ -1698,7 +1694,7 @@ var DobyGrid = function (options) {
 				cell = getCellFromNode(self.active.node),
 				item = cache.rows[row],
 				column = cache.activeColumns[cell];
-			result = getValueFromItem(item, column);
+			result = self.getValueFromItem(item, column);
 		}
 
 		// Send to clipboard by creating a dummy container with the text selected
@@ -3635,7 +3631,7 @@ var DobyGrid = function (options) {
 				if (format === 'html') row.push('<tr>');
 				for (ii = 0, ll = cache.activeColumns.length; ii < ll; ii++) {
 
-					val = getValueFromItem(this.collection.items[i], cache.activeColumns[ii]);
+					val = this.getValueFromItem(this.collection.items[i], cache.activeColumns[ii]);
 
 					if (format === 'csv') {
 						// Escape quotes
@@ -4042,6 +4038,18 @@ var DobyGrid = function (options) {
 	getBrowserData = function () {
 		window.maxSupportedCssHeight = window.maxSupportedCssHeight || getMaxCSSHeight();
 		window.scrollbarDimensions = window.scrollbarDimensions || getScrollbarSize();
+	};
+
+
+	/**
+	 * Returns the current cache object
+	 * @method getCache
+	 * @memberof DobyGrid
+	 *
+	 * @returns {object}
+	 */
+	this.getCache = function () {
+		return cache;
 	};
 
 
@@ -4978,14 +4986,13 @@ var DobyGrid = function (options) {
 	 * Given a data item, returns the value of that cell for all export functions
 	 * @method getValueFromItem
 	 * @memberof DobyGrid
-	 * @private
 	 *
 	 * @param	{object}	item		- Data item from the collection
 	 * @param	{object}	column		- Column object for the field to pull
 	 *
 	 * @returns {string}
 	 */
-	getValueFromItem = function (item, column) {
+	this.getValueFromItem = function (item, column) {
 		// First check for an exporter function for this specific item
 		if (typeof item.exporter === 'function') {
 			return item.exporter(column, item).toString();
@@ -6240,6 +6247,7 @@ var DobyGrid = function (options) {
 		}), 10);
 	};
 
+
 	/**
 	 * Remembers the current width of each column header in the .previousWidth property
 	 * @method lockColumnWidths
@@ -6255,6 +6263,7 @@ var DobyGrid = function (options) {
 			cache.activeColumns[i].previousWidth = cache.activeColumns[i].width;
 		});
 	};
+
 
 	/**
 	 * Makes the currently active cell editable
@@ -6555,308 +6564,6 @@ var DobyGrid = function (options) {
 
 		maxPageX = pageX + Math.min(shrinkLeewayOnRight, stretchLeewayOnLeft);
 		minPageX = pageX - Math.min(shrinkLeewayOnLeft, stretchLeewayOnRight);
-	};
-
-
-	/**
-	 * @class Range
-	 * @classdesc A structure containing a range of cells.
-	 *
-	 * @param {integer}		fromRow		- Starting row
-	 * @param {integer}		fromCell	- Starting cell
-	 * @param {integer}		[toRow]		- Ending row. Defaults to 'fromRow'
-	 * @param {integer}		[toCell]		- Ending cell. Defaults to 'fromCell'
-	 */
-	Range = function (fromRow, fromCell, toRow, toCell) {
-		toRow = toRow === undefined ? fromRow : toRow;
-		toCell = toCell === undefined ? fromCell : toCell;
-
-		// The index of the rows and cells that define the range
-		this.fromRow = Math.min(fromRow, toRow);
-		this.fromCell = Math.min(fromCell, toCell);
-		this.toRow = Math.max(fromRow, toRow);
-		this.toCell = Math.max(fromCell, toCell);
-
-		// Cell exclusions
-		this.exclusions = [];
-	};
-
-
-	/**
-	 * Returns whether a range contains a given cell
-	 * @method contains
-	 * @memberof Range
-	 *
-	 * @param	{integer}	row			- Row index
-	 * @param	{integer}	cell		- Cell index
-	 *
-	 * @returns {boolean}
-	 */
-	Range.prototype.contains = function (row, cell) {
-		return row >= this.fromRow &&
-			row <= this.toRow && (
-				cell === undefined || cell === null || (
-					cell >= this.fromCell &&
-					cell <= this.toCell &&
-					!this.isExcludedCell(row, cell)
-				)
-			) && !this.isExcludedRow(row);
-	};
-
-
-	/**
-	 * Deselects the range, or a specific cell in the range. Returns the Range object.
-	 * @method deselect
-	 * @memberof Range
-	 *
-	 * @param	{integer}	[row]		- Row index for cell to deselect
-	 * @param	{integer}	[cell]	- Cell index to deselect in the given row
-	 *
-	 * @returns {object}
-	 */
-	Range.prototype.deselect = function (row, cell) {
-		var specific = row !== undefined && row !== null && cell !== undefined && cell !== null;
-
-		// Make sure cell is part of range
-		if (specific && !this.contains(row, cell)) {
-			throw new Error('Unable to deselect cell (' + row + ', ' + cell + ') because it is not part of this Range.');
-		}
-
-		// If deselecting a specific cell -- add it to the exclusion list
-		if (specific) {
-			this.exclusions.push([row, cell]);
-		} else if (row !== undefined && row !== null) {
-			for (var c = 0, l = cache.activeColumns.length; c < l; c++) {
-				this.exclusions.push([row, c]);
-			}
-		}
-
-		// Get rows we want to deselect items
-		var selectedRows = [];
-		if (row === undefined || row === null) {
-			for (var j = this.fromRow; j <= this.toRow; j++) {
-				if (selectedRows.indexOf(j) < 0) selectedRows.push(j);
-			}
-		} else {
-			selectedRows.push(row);
-		}
-
-		// Build key/value object for classes we want to clear
-		var clear = {}, styles = {};
-
-		// If we have a specific cell to deselect, just do that one
-		if (cell !== undefined && cell !== null) {
-			clear[cache.activeColumns[cell].id] = self.options.selectedClass;
-		} else {
-			for (var ic = 0, lc = cache.activeColumns.length; ic < lc; ic++) {
-				clear[cache.activeColumns[ic].id] = self.options.selectedClass;
-			}
-		}
-
-		// Do the same for every row that we're clearing
-		for (var iw = 0, lw = selectedRows.length; iw < lw; iw++) {
-			styles[selectedRows[iw]] = clear;
-		}
-
-		// Update cell node styling
-		updateCellCssStylesOnRenderedRows(null, styles);
-
-		return this;
-	};
-
-
-	/**
-	 * Validates that all cells in the range are selectable, if not - adds them to the exclusions
-	 * @method excludeUnselectable
-	 * @memberof Range
-	 */
-	Range.prototype.excludeUnselectable = function () {
-		for (var row = this.fromRow; row <= this.toRow; row++) {
-			for (var cell = this.fromCell; cell <= this.toCell; cell++) {
-				if (!canCellBeSelected(row, cell)) {
-					this.exclusions.push([row, cell]);
-				}
-			}
-		}
-	};
-
-
-	/**
-	 * Returns whether the range is fully excluded
-	 * @method fullyExcluded
-	 * @memberof Range
-	 *
-	 * @returns {boolean}
-	 */
-	Range.prototype.fullyExcluded = function () {
-		for (var row = this.fromRow; row <= this.toRow; row++) {
-			for (var cell = this.fromCell; cell <= this.toCell; cell++) {
-				if (!this.isExcludedCell(row, cell)) return false;
-			}
-		}
-		return true;
-	};
-
-
-	/**
-	 * Returns the number of cells in this selection range
-	 * @method getCellCount
-	 * @memberof Range
-	 *
-	 * @returns {integer}
-	 */
-	Range.prototype.getCellCount = function () {
-		var count = 0, rownodes;
-		for (var r = this.fromRow; r <= this.toRow; r++) {
-			rownodes = cache.nodes[r];
-			for (var c = this.fromCell; c <= this.toCell; c++) {
-				if (rownodes.cellColSpans.length && rownodes.cellColSpans[c]) {
-					count++;
-				}
-			}
-		}
-		return count;
-	};
-
-
-	/**
-	 * Returns whether a cell is excluded in this range
-	 * @method isExcludedCell
-	 * @memberof Range
-	 *
-	 * @param	{integer}	row			- Row index for cell to check
-	 * @param	{integer}	cell		- Cell index to check in the given row
-	 */
-	Range.prototype.isExcludedCell = function (row, cell) {
-		if (this.exclusions.length === 0) return false;
-		for (var i = 0, l = this.exclusions.length; i < l; i++) {
-			if (this.exclusions[i][0] === row && this.exclusions[i][1] === cell) return true;
-		}
-	};
-
-	/**
-	 * Returns whether a row is excluded from this range
-	 * @method isExcludedRow
-	 * @memberof Range
-	 *
-	 * @param	{integer}	row			- Row index for row to check
-	 */
-	Range.prototype.isExcludedRow = function (row) {
-		if (this.exclusions.length === 0) return false;
-		var excludedColumns = [];
-		for (var i = 0, l = this.exclusions.length; i < l; i++) {
-			if (this.exclusions[i][0] !== row) continue;
-			excludedColumns.push(this.exclusions[i]);
-		}
-		return (excludedColumns.length == cache.activeColumns.length);
-	};
-
-	/*
-	 * Returns whether a range represents a single cell
-	 * @method isSingleCell
-	 * @memberof Range
-	 *
-	 * @returns {boolean}
-	 */
-	Range.prototype.isSingleCell = function () {
-		// TODO: This needs to take colspans into account
-		return this.fromRow == this.toRow && this.fromCell == this.toCell;
-	};
-
-
-	/**
-	 * Returns whether a range represents a single row.
-	 * @method isSingleRow
-	 * @memberof Range
-	 *
-	 * @returns {boolean}
-	 */
-	Range.prototype.isSingleRow = function () {
-		return this.fromRow == this.toRow;
-	};
-
-
-	/**
-	 * Converts the cell range values to CSV
-	 * @method toCSV
-	 * @memberof Range
-	 *
-	 * @returns {string}
-	 */
-	Range.prototype.toCSV = function () {
-		var json = this.toJSON(),
-			csv = [];
-		for (var i = 0, l = json.length; i < l; i++) {
-			csv.push('"' + json[i].join('","') + '"');
-		}
-		return csv.join('\n');
-	};
-
-
-	/**
-	 * Converts the cell range values to JSON
-	 * @method toJSON
-	 * @memberof Range
-	 *
-	 * @returns {string}
-	 */
-	Range.prototype.toJSON = function () {
-		// TODO: Hacky solution to fix PhantomJS Jasmine tests. For some reason
-		// they will run this command on some tests after the grid has been destroyed.
-		if (self.destroyed) return;
-
-		var json = [], column, row, data;
-		for (var i = this.fromRow; i <= this.toRow; i++) {
-			row = cache.rows[i];
-
-			// Skip NonData rows
-			if (row instanceof NonDataItem) continue;
-
-			data = [];
-			for (var c = this.fromCell; c <= this.toCell; c++) {
-				// Replace excluded items with blanks
-				if (this.isExcludedCell(i, c)) {
-					data.push(null);
-				} else {
-					column = cache.activeColumns[c];
-					data.push(getValueFromItem(row, column));
-				}
-			}
-			json.push(data);
-		}
-		return json;
-	};
-
-
-	/**
-	 * Converts the cell range values to a list of selected row objects
-	 * @method toRows
-	 * @memberof Range
-	 *
-	 * @returns {string}
-	 */
-	Range.prototype.toRows = function () {
-		var result = [];
-		for (var i = this.fromRow; i <= this.toRow; i++) {
-			if (!this.isExcludedRow(i)) result.push(cache.rows[i]);
-		}
-		return result;
-	};
-
-
-	/**
-	 * Returns a readable representation of a range
-	 * @method toString
-	 * @memberof Range
-	 *
-	 * @returns {string}
-	 */
-	Range.prototype.toString = function () {
-		if (this.isSingleCell()) {
-			return "Range (" + this.fromRow + ":" + this.fromCell + ")";
-		} else {
-			return "Range (" + this.fromRow + ":" + this.fromCell + " - " + this.toRow + ":" + this.toCell + ")";
-		}
 	};
 
 
@@ -7501,7 +7208,7 @@ var DobyGrid = function (options) {
 		var result = [];
 		for (var i = 0, l = ranges.length; i < l; i++) {
 			var r = ranges[i];
-			if (canCellBeSelected(r.fromRow, r.fromCell) && canCellBeSelected(r.toRow, r.toCell)) {
+			if (self.canCellBeSelected(r.fromRow, r.fromCell) && self.canCellBeSelected(r.toRow, r.toCell)) {
 				result.push(r);
 			}
 		}
@@ -8414,7 +8121,7 @@ var DobyGrid = function (options) {
 		}
 
 		// Define a range
-		var range = new Range(startRow, startCell, endRow, endCell),
+		var range = new Range({fromRow: startRow, fromCell: startCell, toRow: endRow, toCell: endCell}, this),
 			ranges, i, l, j, k;
 
 		// Remove unselectable rows from the range
@@ -8439,7 +8146,7 @@ var DobyGrid = function (options) {
 					var styls = {};
 					styls[startRow] = {};
 					styls[startRow][cache.activeColumns[startCell].id] = this.options.selectedClass;
-					updateCellCssStylesOnRenderedRows(styls);
+					this.updateCellCssStylesOnRenderedRows(styls);
 					return;
 				}
 			}
@@ -8466,7 +8173,7 @@ var DobyGrid = function (options) {
 				// Creates cellStyles object
 				for (k = self.selection[i].fromCell; k <= this.selection[i].toCell; k++) {
 					// Skip exclusions and non-selectable cells
-					if (canCellBeSelected(j, k) && !this.selection[i].isExcludedCell(j, k)) {
+					if (this.canCellBeSelected(j, k) && !this.selection[i].isExcludedCell(j, k)) {
 						cellStyles[j][cache.activeColumns[k].id] = this.options.selectedClass;
 					}
 				}
@@ -8474,7 +8181,7 @@ var DobyGrid = function (options) {
 		}
 
 		// Select cells
-		updateCellCssStylesOnRenderedRows(cellStyles);
+		this.updateCellCssStylesOnRenderedRows(cellStyles);
 
 		this.trigger('selection', this._event, {
 			selection: this.selection
@@ -10065,7 +9772,6 @@ var DobyGrid = function (options) {
 	 * Given an add and remove hash object, adds or removes CSS classes on the given nodes
 	 * @method updateCellCssStylesOnRenderedRows
 	 * @memberof DobyGrid
-	 * @private
 	 *
 	 * @param	{object}	addedHash		- Which classes should be added to which cells
 	 * @param	{object}	removedHash		- Which classes should be removed from which cells
@@ -10081,7 +9787,7 @@ var DobyGrid = function (options) {
 	 * }
 	 *
 	 */
-	updateCellCssStylesOnRenderedRows = function (addedHash, removedHash) {
+	this.updateCellCssStylesOnRenderedRows = function (addedHash, removedHash) {
 		var node, columnId, addedRowHash, removedRowHash;
 
 		for (var row in cache.nodes) {
