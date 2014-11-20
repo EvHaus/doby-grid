@@ -2691,7 +2691,12 @@
 				}
 
 				var result = cache.modelsById[id];
-				return result ? [this.items.indexOf(result), result] : null;
+				var idx = this.items.indexOf(result);
+				if (result && result.id === obj.id && idx < 0) {
+					result = null;
+					delete cache.modelsById[id];
+				}
+				return result ? [idx, result] : null;
 			};
 
 
