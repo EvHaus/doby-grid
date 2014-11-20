@@ -9555,7 +9555,7 @@
 			if ('autoColumnWidth' in options) {
 				// Also make sure that the right resize handles are drawn
 				setupColumnResize();
-				autosizeColumns();
+				options.autoColumnWidth && autosizeColumns();
 
 				// Fire column resize event
 				self.trigger('columnresize', this._event, {});
