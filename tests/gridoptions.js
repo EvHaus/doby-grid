@@ -3316,6 +3316,49 @@ describe("Grid Options", function () {
 		});
 	});
 
+	describe("options.selectOnNavigate", function () {
+
+		it("should be false by default", function () {
+			var grid = resetGrid(defaultData());
+			expect(grid.options.selectOnNavigate).toEqual(false);
+		});
+
+
+		// ==========================================================================================
+
+
+		it("should select rows when when using keyboard navigation with rowBasedSelection enabled", function () {
+			// Prepare for test
+			var grid = resetGrid($.extend(defaultData(), {
+				rowBasedSelection: true,
+				selectOnNavigate: true
+			}));
+
+			// Click on a cell
+			var $cell = grid.$el.find('.doby-grid-cell:first');
+			$cell.simulate('click');
+
+			// Entire row should be selected
+			expect(grid.selection.length).toEqual(1);
+			expect(grid.selection[0].fromRow).toEqual(0);
+			expect(grid.selection[0].fromCell).toEqual(0);
+			expect(grid.selection[0].toRow).toEqual(0);
+			expect(grid.selection[0].toCell).toEqual(1);
+			expect(grid.selection[0].exclusions.length).toEqual(0);
+
+			$cell.simulate('keydown', {which: 40, keyCode: 40});
+			$cell.simulate('keyup', {which: 40, keyCode: 40});
+
+			//The next row should be selected
+			expect(grid.selection.length).toEqual(1);
+			expect(grid.selection[0].fromRow).toEqual(1);
+			expect(grid.selection[0].fromCell).toEqual(0);
+			expect(grid.selection[0].toRow).toEqual(1);
+			expect(grid.selection[0].toCell).toEqual(1);
+			expect(grid.selection[0].exclusions.length).toEqual(0);
+		});
+	});
+
 
 	// ==========================================================================================
 
