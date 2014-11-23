@@ -1,7 +1,7 @@
 {
 	"name": "doby-grid",
 	"description": "Doby Grid is a <table> on steroids",
-	"version": "0.0.8",
+	"version": "0.1.0",
 	"author": "Globex Designs, Inc.",
 	"homepage": "http://www.dobyjs.com/#grid",
 	"issues": {

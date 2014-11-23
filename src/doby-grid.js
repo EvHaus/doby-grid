@@ -4,9 +4,19 @@
 // For all details and documentation:
 // https://github.com/globexdesigns/doby-grid
 
-/*global $, _, Backbone, console, saveAs*/
+/*global $:true, jQuery, _, Backbone, console, saveAs*/
 
 "use strict";
+
+
+// Support for jQuery.noConflict
+if (!$ && jQuery) $ = jQuery;
+
+// Check for required dependencies
+if (!$) throw new Error('Unable to load DobyGrid because jQuery, which is a required dependency, could not be found.');
+if (!_) throw new Error('Unable to load DobyGrid because Underscore, which is a required dependency, could not be found.');
+if (!Backbone) throw new Error('Unable to load DobyGrid because Backbone, which is a required dependency, could not be found.');
+
 
 var Aggregate			= require('./classes/Aggregate'),
 	CellRangeDecorator	= require('./classes/CellRangeDecorator'),
@@ -38,7 +48,7 @@ var DobyGrid = function (options) {
 	this.NAME = 'doby-grid';
 
 	// Current version of the library
-	this.VERSION = '0.0.8';
+	this.VERSION = '0.1.0';
 
 	// Ensure options are an object
 	if (typeof options !== "object" || $.isArray(options)) {
