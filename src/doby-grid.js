@@ -346,6 +346,8 @@ var DobyGrid = function (options) {
 		exportFileName:			"doby-grid-export",
 		fetchCollapsed:			false,
 		formatter:				null,
+		frozenColumns:			0,
+		frozenRows:				0,
 		fullWidthRows:			true,
 		groupable:				true,
 		idProperty:				"id",
@@ -1747,7 +1749,6 @@ var DobyGrid = function (options) {
 	 * @returns {object}
 	 */
 	createGrid = function () {
-
 		// Create the container
 		var cclasses = [self.NAME];
 		if (self.options.class) cclasses.push(self.options.class);
@@ -1765,16 +1766,35 @@ var DobyGrid = function (options) {
 				.width(getHeadersWidth());
 		}
 
-		$viewport = $([
-			'<div class="', CLS.viewport,
-			(self.options.autoHeight ? ' ' + CLS.autoheight : ''),
-			'"></div>'
-		].join('')).appendTo(self.$el);
+		var panes = ['top-left', 'top-right', 'bottom-left', 'bottom-right'], $p, $v, $c;
 
-		// The tabindex here ensures we can focus on this element
-		// otherwise we can't assign keyboard events
-		$canvas = $('<div class="' + CLS.canvas + '" tabindex="0"></div>').appendTo($viewport);
+		$viewport = $();
+		$canvas = $();
 
+		for (var i = 0, l = panes.length; i < l; i++) {
+			// Generate panes
+			$p = $([
+				'<div class="', CLS.pane,
+				' ', CLS.pane, '-', panes[i],
+				'"></div>'
+			].join('')).appendTo(self.$el);
+
+			// Generate viewport containers
+			$v = $([
+				'<div class="', CLS.viewport,
+				(self.options.autoHeight ? ' ' + CLS.autoheight : ''),
+				' ', CLS.viewport, '-', panes[i],
+				'"></div>'
+			].join('')).appendTo($p);
+
+			// Generate canvas
+			// The tabindex here ensures we can focus on this element
+			// otherwise we can't assign keyboard events
+			$c = $('<div class="' + CLS.canvas + '" tabindex="0"></div>').appendTo($v);
+
+			$viewport = $viewport.add($v);
+			$canvas = $canvas.add($c);
+		}
 	};
 
 

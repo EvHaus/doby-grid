@@ -41,6 +41,7 @@ module.exports = {
 	invalidicon:			base + '-invalid-icon',
 	left:					base + '-scrollbar-left',
 	noright:				base + '-no-right',
+	pane:					base + '-pane',
 	placeholder:			base + '-sortable-placeholder',
 	rangedecorator:			base + '-range-decorator',
 	rangedecoratorstat:		base + '-range-decorator-stats',
