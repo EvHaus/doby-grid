@@ -38,7 +38,7 @@ var DobyGrid = function (options) {
 	this.NAME = 'doby-grid';
 
 	// Current version of the library
-	this.VERSION = '0.0.8';
+	this.VERSION = '0.1.0';
 
 	// Ensure options are an object
 	if (typeof options !== "object" || $.isArray(options)) {
