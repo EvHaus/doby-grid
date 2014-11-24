@@ -69,6 +69,7 @@ var DobyGrid = function (options) {
 		$viewport,
 		absoluteColumnMinWidth,
 		activePosX,
+		actualFrozenRow = -1,
 		applyColumnHeaderWidths,
 		applyColumnWidths,
 		applyHeaderAndColumnWidths,
@@ -122,6 +123,7 @@ var DobyGrid = function (options) {
 		findLastFocusableCell,
 		fitColumnToHeader,
 		fitColumnsToHeader,
+		frozenRowsHeight = 0,
 		generatePlaceholders,
 		getActiveCell,
 		getBrowserData,
@@ -174,6 +176,7 @@ var DobyGrid = function (options) {
 		handleKeyDown,
 		handleScroll,
 		handleWindowResize,
+		hasFrozenRows = false,
 		hasGrouping,
 		hasSorting,
 		headerColumnWidthDiff = 0,
@@ -242,6 +245,7 @@ var DobyGrid = function (options) {
 		scrollTop = 0,
 		serializedEditorValue,
 		setActiveCellInternal,
+		setFrozenOptions,
 		setRowHeight,
 		setupColumnReorder,
 		setupColumnResize,
@@ -621,6 +625,7 @@ var DobyGrid = function (options) {
 			if (this.options.showHeader) disableSelection($headers);
 			renderColumnHeaders();
 			setupColumnSort();
+			setFrozenOptions();
 			createCssRules();
 			cacheRows();
 			resizeCanvas(true);
@@ -6423,7 +6428,7 @@ var DobyGrid = function (options) {
 			removeElement(el[0]);
 		}
 
-		var r = $('<div class="' + CLS.row + '"></div>').appendTo($canvas);
+		var r = $('<div class="' + CLS.row + '"></div>').appendTo($canvas[0]);
 		el = $('<div class="' + CLS.cell + '" style="visibility:hidden">-</div>').appendTo(r);
 		cellWidthDiff = cellHeightDiff = 0;
 
@@ -6439,6 +6444,7 @@ var DobyGrid = function (options) {
 				cellHeightDiff += parseFloat(el.css(val)) || 0;
 			});
 		}
+
 		removeElement(r[0]);
 
 		absoluteColumnMinWidth = Math.max(headerColumnWidthDiff, cellWidthDiff);
@@ -7262,7 +7268,14 @@ var DobyGrid = function (options) {
 		var cacheEntry = cache.nodes[row], col;
 		if (!cacheEntry) return;
 
-		$canvas[0].removeChild(cacheEntry.rowNode);
+		// Remove row from parent element
+		cacheEntry.rowNode[0].parentElement.removeChild(cacheEntry.rowNode[0]);
+
+		// Remove the row from the right viewport
+		if (cacheEntry.rowNode[1]) {
+			cacheEntry.rowNode[1].parentElement.removeChild(cacheEntry.rowNode[1]);
+		}
+
 		delete cache.nodes[row];
 
 		var item = cache.rows[row];
@@ -7514,12 +7527,13 @@ var DobyGrid = function (options) {
 	 * @memberof DobyGrid
 	 * @private
 	 *
-	 * @param	{array}		stringArray			- Output array to which to append
+	 * @param	{array}		stringArrayL		- Output array to which to append (for left pane)
+	 * @param	{array}		stringArrayR		- Output array to which to append (for right pane)
 	 * @param	{integer}	row					- Current row index
 	 * @param	{object}	range				- Viewport range to display
 	 *
 	 */
-	renderRow = function (stringArray, row, range) {
+	renderRow = function (stringArrayL, stringArrayR, row, range) {
 		var d = self.getRowFromIndex(row),
 			rowCss = CLS.row +
 				(self.active && row === self.active.row ? " active" : "") +
@@ -7539,15 +7553,21 @@ var DobyGrid = function (options) {
 
 		if (d && d.class) rowCss += " " + (typeof d.class === 'function' ? d.class.bind(self)(row, d) : d.class);
 
-		stringArray.push("<div class='" + rowCss + "' style='top:" + top + "px");
+		var rowHtml = ["<div class='", rowCss, "' style='top:", top, "px"];
 
 		// In variable row height mode we need some fancy ways to determine height
 		if (variableRowHeight && pos.height !== null && pos.height !== undefined) {
 			var rowheight = pos.height - cellHeightDiff;
-			stringArray.push(';height:' + rowheight + 'px;line-height:' + (rowheight + self.options.lineHeightOffset) + 'px');
+			rowHtml = rowHtml.concat(';height:', rowheight, 'px;line-height:', (rowheight + self.options.lineHeightOffset), 'px');
 		}
 
-		stringArray.push("'>");
+		rowHtml.push("'>");
+
+		stringArrayL.push.apply(stringArrayL, rowHtml);
+
+		if (self.options.frozenColumns > -1) {
+			stringArrayR.push.apply(stringArrayR, rowHtml);
+		}
 
 		var colspan, m, i, l;
 		for (i = 0, l = cache.activeColumns.length; i < l; i++) {
@@ -7571,7 +7591,13 @@ var DobyGrid = function (options) {
 					break;
 				}
 
-				renderCell(stringArray, row, i, colspan, d);
+				if ((self.options.frozenColumns > -1) && (i > self.options.frozenColumns)) {
+					renderCell(stringArrayR, row, i, colspan, d);
+				} else {
+					renderCell(stringArrayL, row, i, colspan, d);
+				}
+			} else if ((self.options.frozenColumns > -1) && (i <= self.options.frozenColumns)) {
+				renderCell(stringArrayL, row, i, colspan, d);
 			}
 
 			if (colspan > 1) {
@@ -7579,14 +7605,22 @@ var DobyGrid = function (options) {
 			}
 		}
 
+		var endRowHtml = [];
+
 		// Add row resizing handle
 		if (self.options.resizableRows && d.resizable !== false) {
-			stringArray.push('<div class="');
-			stringArray.push(CLS.rowhandle);
-			stringArray.push('"></div>');
+			endRowHtml.push('<div class="');
+			endRowHtml.push(CLS.rowhandle);
+			endRowHtml.push('"></div>');
 		}
 
-		stringArray.push("</div>");
+		endRowHtml.push("</div>");
+
+		stringArrayL.push.apply(stringArrayL, endRowHtml);
+
+		if (options.frozenColumns > -1) {
+			stringArrayR.push.apply(stringArrayR, endRowHtml);
+		}
 	};
 
 
@@ -7600,7 +7634,8 @@ var DobyGrid = function (options) {
 	 *
 	 */
 	renderRows = function (range) {
-		var stringArray = [],
+		var stringArrayL = [],
+			stringArrayR = [],
 			rows = [],
 			needToReselectCell = false,
 			i, ii;
@@ -7629,7 +7664,8 @@ var DobyGrid = function (options) {
 				cellRenderQueue: []
 			};
 
-			renderRow(stringArray, i, range);
+			renderRow(stringArrayL, stringArrayR, i, range);
+
 			if (self.active && self.active.node && self.active.row === i) {
 				needToReselectCell = true;
 			}
@@ -7638,12 +7674,34 @@ var DobyGrid = function (options) {
 
 		if (!rows.length) return;
 
-		var x = document.createElement("div");
-		x.innerHTML = stringArray.join("");
+		var xLeft = document.createElement("div"),
+			xRight = document.createElement("div");
+
+		xLeft.innerHTML = stringArrayL.join("");
+		xRight.innerHTML = stringArrayR.join("");
 
 		// Cache the row nodes
 		for (i = 0, ii = rows.length; i < ii; i++) {
-			cache.nodes[rows[i]].rowNode = $canvas[0].appendChild(x.firstChild);
+			// If frozen rows are enabled
+			if (hasFrozenRows && (rows[i] >= actualFrozenRow)) {
+				if (self.options.frozenColumns > -1) {
+					cache.nodes[rows[i]].rowNode = $()
+						.add($(xLeft.firstChild).appendTo($canvas[2]))
+						.add($(xRight.firstChild).appendTo($canvas[3]));
+				} else {
+					cache.nodes[rows[i]].rowNode = $()
+						.add($(xLeft.firstChild).appendTo($canvas[2]));
+				}
+			// If frozen columns are enabled
+			} else if (self.options.frozenColumns > -1) {
+				cache.nodes[rows[i]].rowNode = $()
+					.add($(xLeft.firstChild).appendTo($canvas[0]))
+					.add($(xRight.firstChild).appendTo($canvas[1]));
+			// No frozen rows or columns
+			} else {
+				cache.nodes[rows[i]].rowNode = $()
+					.add($(xLeft.firstChild).appendTo($canvas[0]));
+			}
 		}
 
 		if (needToReselectCell) {
@@ -8359,6 +8417,33 @@ var DobyGrid = function (options) {
 
 
 	/**
+	 * Validates and sets up options for frozen columns and rows
+	 * @method setFrozenOptions
+	 * @memberof DobyGrid
+	 * @private
+	 */
+	setFrozenOptions = function () {
+		// Validate frozenColumns value
+		self.options.frozenColumns = (self.options.frozenColumns >= 0 && self.options.frozenColumns < self.options.columns.length) ? parseInt(self.options.frozenColumns) : -1;
+
+		// Validate frozenRow value
+		self.options.frozenRows = (self.options.frozenRows >= 0 && self.options.frozenRows < numVisibleRows) ? parseInt(self.options.frozenRows) : -1;
+
+		if (self.options.frozenRows > -1) {
+			hasFrozenRows = true;
+			frozenRowsHeight = (self.options.frozenRows) * self.options.rowHeight;
+
+			// TODO: This will not work with variableRowHeights
+			var dataLength = getDataLength() || this.data.length;
+
+			actualFrozenRow = (self.options.frozenBottom) ? (dataLength - self.options.frozenRows) : self.options.frozenRows;
+		} else {
+			hasFrozenRows = false;
+		}
+	};
+
+
+	/**
 	 * Sets the grouping for the grid data view.
 	 * @method setGrouping
 	 * @memberof DobyGrid
@@ -8433,6 +8518,8 @@ var DobyGrid = function (options) {
 		} else if (!recalc_heights) {
 			render();
 		}
+
+		setFrozenOptions();
 
 		if (recalc_heights) {
 			invalidateAllRows();

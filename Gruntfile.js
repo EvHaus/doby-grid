@@ -117,6 +117,10 @@ module.exports = function (grunt) {
 			scripts: {
 				files: 'src/**/*.js',
 				tasks: ['browserify', 'clean', 'copy']
+			},
+			less: {
+				files: 'src/**/*.less',
+				tasks: ['less', 'clean', 'copy']
 			}
 		}
 	});
