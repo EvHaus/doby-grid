@@ -51,7 +51,7 @@ define(['faker', 'dataset'], function (Faker, dataset) {
 		return {
 			columns: columns,
 			data: dataset,
-			frozenColumns: 1
+			frozenColumns: 0
 		};
 	}];
 });

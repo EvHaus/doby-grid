@@ -100,6 +100,8 @@ var DobyGrid = function (options) {
 		calculateVisibleRows,
 		canCellBeActive,
 		canvasWidth,
+		canvasWidthL,
+		canvasWidthR,
 		cellExists,
 		cellHeightDiff = 0,
 		cellWidthDiff = 0,
@@ -1811,9 +1813,9 @@ var DobyGrid = function (options) {
 
 		// Create header elements
 		if (self.options.showHeader) {
-			$headerScrollerL = $('<div class="' + CLS.header + '"></div>')
+			$headerScrollerL = $('<div class="' + CLS.header + '"></div>');
 			$panes.eq(0).prepend($headerScrollerL);
-			$headerScrollerR = $('<div class="' + CLS.header + '"></div>')
+			$headerScrollerR = $('<div class="' + CLS.header + '"></div>');
 			$panes.eq(1).prepend($headerScrollerR);
 
 			$headerScroller = $().add($headerScrollerL).add($headerScrollerR);
@@ -4119,16 +4121,26 @@ var DobyGrid = function (options) {
 	 */
 	getCanvasWidth = function () {
 		var availableWidth = viewportW - (viewportHasVScroll ? window.scrollbarDimensions.width : 0),
-			rowWidth = 0, i, l;
+			colWidth, i, l;
+
+		canvasWidthL = canvasWidthR = 0;
 
 		for (i = 0, l = cache.activeColumns.length; i < l; i++) {
 			// The 2 here is to compensate for the spacing between columns
-			rowWidth += cache.activeColumns[i].width - self.options.columnSpacing + (self.options.fullWidthRows ? 2 : 0);
+			colWidth = cache.activeColumns[i].width - self.options.columnSpacing + (self.options.fullWidthRows ? 2 : 0);
+
+			if ((self.options.frozenColumns > -1) && (i > self.options.frozenColumns)) {
+				canvasWidthR += colWidth;
+			} else {
+				canvasWidthL += colWidth;
+			}
 		}
 
-		// When fullWidthRows disable - keep canvas as big as the dat only
-		var result = self.options.fullWidthRows ? Math.max(rowWidth, availableWidth) : (rowWidth + l * 2);
+		// When fullWidthRows is disabled - keep canvas as big as the data only
+		var totalRowWidth = canvasWidthL + canvasWidthR;
+		var result = self.options.fullWidthRows ? Math.max(totalRowWidth, availableWidth) : (totalRowWidth + l * 2);
 
+		// Support for left-side scrollbar
 		if (self.options.scrollbarPosition == 'left') result--;
 
 		return result;
@@ -7838,7 +7850,17 @@ var DobyGrid = function (options) {
 		// Save the currently visible number of rows
 		calculateVisibleRows();
 
-		$viewport.height(viewportH);
+		// Determine height of each pane
+		// TODO: Temporary hack until work on frozen rows starts
+		$panes.each(function (i) {
+			if (!hasFrozenRows) {
+				if (i > 1) {
+					$(this).height(0);
+				} else {
+					$(this).css({bottom: 0});
+				}
+			}
+		});
 
 		updateRowCount();
 
@@ -9800,16 +9822,35 @@ var DobyGrid = function (options) {
 	 *
 	 */
 	updateCanvasWidth = function (forceColumnWidthsUpdate) {
-		var oldCanvasWidth = canvasWidth;
+		var oldCanvasWidth = canvasWidth,
+			oldCanvasWidthL = canvasWidthL,
+			oldCanvasWidthR = canvasWidthR,
+			widthChanged;
+
+		// Calculate new canvas widths
 		canvasWidth = getCanvasWidth();
 
-		if (canvasWidth != oldCanvasWidth) {
-			$canvas.width(canvasWidth);
+		// Determine if any of the canvas widths have changed
+		widthChanged = canvasWidth !== oldCanvasWidth || canvasWidthL !== oldCanvasWidthL || canvasWidthR !== oldCanvasWidthR;
+
+		// If canvas width has changed
+		if (widthChanged) {
+			$panes.eq(0).width(canvasWidthL);
+			$panes.eq(1).css({
+				left: canvasWidthL + 'px'
+			});
+
+			$canvas.eq(0).width(canvasWidthL);
+			$canvas.eq(1).width(canvasWidthR);
+
+			// Set header widths
 			if (self.options.showHeader) $headers.width(getHeadersWidth());
+
+			// Determine if we have horizontal scrolling
 			viewportHasHScroll = (canvasWidth > viewportW - window.scrollbarDimensions.width);
 		}
 
-		if (canvasWidth != oldCanvasWidth || forceColumnWidthsUpdate) {
+		if (widthChanged || forceColumnWidthsUpdate) {
 			applyColumnWidths();
 		}
 	};
