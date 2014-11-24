@@ -62,9 +62,14 @@ var DobyGrid = function (options) {
 	var self = this,
 		$canvas,
 		$headers,
+		$headerL,
+		$headerR,
 		$headerFilter,
 		$headerScroller,
+		$headerScrollerL,
+		$headerScrollerR,
 		$overlay,
+		$panes,
 		$style,
 		$viewport,
 		absoluteColumnMinWidth,
@@ -155,6 +160,7 @@ var DobyGrid = function (options) {
 		getTotalHeight,
 		getVBoxDelta,
 		getViewportHeight,
+		getViewportWidth,
 		getVisibleRange,
 		gotoCell,
 		gotoDown,
@@ -1771,18 +1777,10 @@ var DobyGrid = function (options) {
 
 		self.$el = $('<div class="' + cclasses.join(' ') + '" id="' + uid + '"></div>');
 
-		// Create the global grid elements
-		if (self.options.showHeader) {
-			$headerScroller = $('<div class="' + CLS.header + '"></div>')
-					.appendTo(self.$el);
-
-			$headers = $('<div class="' + CLS.headercolumns + '"></div>')
-				.appendTo($headerScroller)
-				.width(getHeadersWidth());
-		}
-
+		// Create pane elements
 		var panes = ['top-left', 'top-right', 'bottom-left', 'bottom-right'], $p, $v, $c;
 
+		$panes = $();
 		$viewport = $();
 		$canvas = $();
 
@@ -1798,7 +1796,6 @@ var DobyGrid = function (options) {
 			$v = $([
 				'<div class="', CLS.viewport,
 				(self.options.autoHeight ? ' ' + CLS.autoheight : ''),
-				' ', CLS.viewport, '-', panes[i],
 				'"></div>'
 			].join('')).appendTo($p);
 
@@ -1807,8 +1804,29 @@ var DobyGrid = function (options) {
 			// otherwise we can't assign keyboard events
 			$c = $('<div class="' + CLS.canvas + '" tabindex="0"></div>').appendTo($v);
 
+			$panes = $panes.add($p);
 			$viewport = $viewport.add($v);
 			$canvas = $canvas.add($c);
+		}
+
+		// Create header elements
+		if (self.options.showHeader) {
+			$headerScrollerL = $('<div class="' + CLS.header + '"></div>')
+			$panes.eq(0).prepend($headerScrollerL);
+			$headerScrollerR = $('<div class="' + CLS.header + '"></div>')
+			$panes.eq(1).prepend($headerScrollerR);
+
+			$headerScroller = $().add($headerScrollerL).add($headerScrollerR);
+
+			$headerL = $('<div class="' + CLS.headercolumns + '"></div>')
+				.appendTo($headerScrollerL)
+				.width(getHeadersWidth());
+
+			$headerR = $('<div class="' + CLS.headercolumns + '"></div>')
+				.appendTo($headerScrollerR)
+				.width(getHeadersWidth());
+
+			$headers = $().add($headerL).add($headerR);
 		}
 	};
 
@@ -5069,7 +5087,7 @@ var DobyGrid = function (options) {
 	/**
 	 * Calculates the height of the current viewport
 	 * @method getViewportHeight
-	 * @memberof DobyGRid
+	 * @memberof DobyGrid
 	 * @private
 	 *
 	 * @returns {integer}
@@ -5077,6 +5095,19 @@ var DobyGrid = function (options) {
 	getViewportHeight = function () {
 		// TODO: Find out why the extra 1 is needed.
 		return Math.max(self.$el.height() - (self.options.showHeader ? $headerScroller.outerHeight() - getVBoxDelta($headerScroller) : 0) - 1, 0);
+	};
+
+
+	/**
+	 * Calculates the width of the current viewport
+	 * @method getViewportWidth
+	 * @memberof DobyGrid
+	 * @private
+	 *
+	 * @returns {float}
+	 */
+	getViewportWidth = function () {
+		return parseFloat($.css(self.$el[0], "width", true));
 	};
 
 
@@ -6409,7 +6440,7 @@ var DobyGrid = function (options) {
 
 		if (self.options.showHeader) {
 			el = $('<div class="' + CLS.headercolumn + '" style="visibility:hidden">-</div>')
-				.appendTo($headers);
+				.appendTo($headerL);
 
 			headerColumnWidthDiff = headerColumnHeightDiff = 0;
 
@@ -7420,9 +7451,12 @@ var DobyGrid = function (options) {
 		}
 
 		// Render columns
-		var column, html = [], classes, w;
+		var column, html, classes, w;
 		for (var i = 0, l = cache.activeColumns.length; i < l; i++) {
+			html = [];
 			column = cache.activeColumns[i];
+
+			var $headerTarget = (self.options.frozenColumn > -1) ? ((i <= self.options.frozenColumn) ? $headerL : $headerR) : $headerL;
 
 			// Determine classes
 			classes = [CLS.headercolumn, (column.headerClass || "")];
@@ -7447,8 +7481,9 @@ var DobyGrid = function (options) {
 			}
 
 			html.push('</div>');
+
+			$headerTarget.append(html.join(''));
 		}
-		$headers.append(html.join(''));
 
 		// Style the column headers accordingly
 		styleSortColumns();
@@ -7798,11 +7833,11 @@ var DobyGrid = function (options) {
 		if (!initialized) return;
 
 		viewportH = getViewportHeight();
+		viewportW = getViewportWidth();
 
 		// Save the currently visible number of rows
 		calculateVisibleRows();
 
-		viewportW = parseFloat($.css(self.$el[0], "width", true));
 		$viewport.height(viewportH);
 
 		updateRowCount();
@@ -8793,6 +8828,7 @@ var DobyGrid = function (options) {
 		columnElements = $headers.children("." + CLS.headercolumn);
 		var $handle = columnElements.find("." + CLS.handle);
 		if ($handle && $handle.length) removeElement($handle[0]);
+
 		columnElements.each(function (i) {
 			if (!cache.activeColumns[i].resizable) return;
 			if (firstResizable === undefined) firstResizable = i;
