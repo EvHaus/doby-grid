@@ -816,7 +816,7 @@ var DobyGrid = function (options) {
 	 */
 	applyColumnWidths = function () {
 		// The -1 here is to compensate for the border spacing between cells
-		var x = -1, c, w, rule, i, l, r;
+		var x = -1, c, w, rule, i, l, r, isRightmostColumn;
 
 		// If scrollbar is on the left - we need to add a spacer
 		if ($headers) {
@@ -836,18 +836,27 @@ var DobyGrid = function (options) {
 
 			// Right
 			// The -2 here is to compensate for the border spacing between cells
-			r = canvasWidth - x - w - 2;
+			r = (self.options.frozenColumns != -1 && i > self.options.frozenColumns ? canvasWidthR : canvasWidthL) - x - w - 2;
 
-			// If this is the last column, and there is no vertical scrollbar, and
+			// Determine if this column is the right-most in its pane
+			isRightmostColumn = (i + 1 === l) || (self.options.frozenColumns != -1 && i === self.options.frozenColumns);
+
+			// If this is the rightmost column, and there is no vertical scrollbar, and
 			// do not allow negative spacing on the right otherwise we get a gap
-			if (!viewportHasVScroll && self.options.scrollbarPosition === 'right' && i + 1 === l && r < 0) {
+			if (!viewportHasVScroll && self.options.scrollbarPosition === 'right' && isRightmostColumn) {
 				r = 0;
 			}
 
 			rule.right.style.right = r + "px";
 
-			// The +1 here is to compensate for the border spacing between cells
-			x += c.width + 1;
+			// Reset the css left value since the
+			// column starts in a new viewport
+			if (self.options.frozenColumns == i) {
+				x = -1;
+			} else {
+				// The +1 here is to compensate for the border spacing between cells
+				x += c.width + 1;
+			}
 		}
 	};
 
