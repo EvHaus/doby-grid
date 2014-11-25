@@ -41,15 +41,19 @@ var Tooltip = function (event, options) {
 	// ID of the tooltip element
 	var uid = "doby-grid-" + Math.round(1000000 * Math.random());
 	var tooltip_id = uid + '-tooltip-column-' + column.id;
+	var renderTimer;
 
 	// Add describe by
 	el.attr('aria-describedby', tooltip_id);
 
 	// Assign removal event
 	el.one("mouseleave remove", function () {
+		clearTimeout(renderTimer);
+
 		// Remove tooltip
 		if ($(this).attr('aria-describedby') !== undefined) {
 			var tltp = $('#' + tooltip_id);
+
 			tltp.removeClass('on');
 
 			// Animate out
@@ -63,7 +67,7 @@ var Tooltip = function (event, options) {
 
 	// Delay rendering by a few milliseconds to prevent rolling over tooltip
 	// and for better UX
-	setTimeout(function () {
+	renderTimer = setTimeout(function () {
 		// Make sure tooltip is still needed
 		if (el.attr('aria-describedby') === undefined || !el.is(':visible')) return;
 
