@@ -7469,7 +7469,7 @@ var DobyGrid = function (options) {
 			column = cache.activeColumns[i];
 
 			$headerTarget = (self.options.frozenColumns > -1) ? ((i <= self.options.frozenColumns) ? $headerL : $headerR) : $headerL;
-			
+
 			// Determine classes
 			classes = [CLS.headercolumn, (column.headerClass || "")];
 			if (column.sortable) classes.push(CLS.headersortable);
