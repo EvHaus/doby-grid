@@ -7463,13 +7463,13 @@ var DobyGrid = function (options) {
 		}
 
 		// Render columns
-		var column, html, classes, w;
+		var column, html, classes, w, $headerTarget;
 		for (var i = 0, l = cache.activeColumns.length; i < l; i++) {
 			html = [];
 			column = cache.activeColumns[i];
 
-			var $headerTarget = (self.options.frozenColumn > -1) ? ((i <= self.options.frozenColumn) ? $headerL : $headerR) : $headerL;
-
+			$headerTarget = (self.options.frozenColumns > -1) ? ((i <= self.options.frozenColumns) ? $headerL : $headerR) : $headerL;
+			
 			// Determine classes
 			classes = [CLS.headercolumn, (column.headerClass || "")];
 			if (column.sortable) classes.push(CLS.headersortable);
