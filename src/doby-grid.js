@@ -7662,7 +7662,6 @@ var DobyGrid = function (options) {
 					break;
 				}
 
-				console.log(i, self.options.frozenColumns, (self.options.frozenColumns > -1), (i > self.options.frozenColumns))
 				if ((self.options.frozenColumns > -1) && (i > self.options.frozenColumns)) {
 					renderCell(stringArrayR, row, i, colspan, d);
 				} else {
@@ -7883,6 +7882,8 @@ var DobyGrid = function (options) {
 					$(this).height(0);
 				} else {
 					$(this).css({bottom: 0});
+					$viewport.eq(0).css({height: viewportH});
+					$viewport.eq(1).css({height: viewportH});
 				}
 			}
 		});
@@ -9899,10 +9900,22 @@ var DobyGrid = function (options) {
 
 		// If canvas width has changed
 		if (widthChanged) {
-			$panes.eq(0).width(canvasWidthL);
-			$panes.eq(1).css({
-				left: canvasWidthL + 'px'
-			});
+
+			// Handle frozen columns
+			if (self.options.frozenColumns > -1) {
+				$panes.eq(0).width(canvasWidthL);
+				$panes.eq(1).css({
+					left: canvasWidthL + 'px'
+				});
+			} else {
+				$panes.eq(0).css({
+					right: 0,
+					width: 'auto'
+				});
+				$panes.eq(1).css({
+					width: 0
+				});
+			}
 
 			$canvas.eq(0).width(canvasWidthL);
 			$canvas.eq(1).width(canvasWidthR);
