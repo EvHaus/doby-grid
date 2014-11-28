@@ -72,6 +72,8 @@ var DobyGrid = function (options) {
 		$panes,
 		$style,
 		$viewport,
+		$viewportScrollContainerX,
+		$viewportScrollContainerY,
 		absoluteColumnMinWidth,
 		activePosX,
 		actualFrozenRow = -1,
@@ -255,6 +257,7 @@ var DobyGrid = function (options) {
 		setActiveCellInternal,
 		setFrozenOptions,
 		setRowHeight,
+		setScroller,
 		setupColumnReorder,
 		setupColumnResize,
 		setupColumnSort,
@@ -368,8 +371,9 @@ var DobyGrid = function (options) {
 		exportFileName:			"doby-grid-export",
 		fetchCollapsed:			false,
 		formatter:				null,
-		frozenColumns:			0,
-		frozenRows:				0,
+		frozenBottom:			false,
+		frozenColumns:			-1,
+		frozenRows:				-1,
 		fullWidthRows:			true,
 		groupable:				true,
 		idProperty:				"id",
@@ -634,6 +638,7 @@ var DobyGrid = function (options) {
 			renderColumnHeaders();
 			setupColumnSort();
 			setFrozenOptions();
+			setScroller();
 			createCssRules();
 			cacheRows();
 			resizeCanvas(true);
@@ -5865,8 +5870,8 @@ var DobyGrid = function (options) {
 	handleScroll = function (event) {
 		if (event === undefined) event = null;
 
-		scrollTop = $viewport[0].scrollTop;
-		scrollLeft = $viewport[0].scrollLeft;
+		scrollTop = $viewportScrollContainerY[0].scrollTop;
+		scrollLeft = $viewportScrollContainerX[0].scrollLeft;
 
 		var vScrollDist = Math.abs(scrollTop - prevScrollTop),
 			hScrollDist = Math.abs(scrollLeft - prevScrollLeft);
@@ -5881,6 +5886,15 @@ var DobyGrid = function (options) {
 		if (vScrollDist) {
 			vScrollDir = prevScrollTop < scrollTop ? 1 : -1;
 			prevScrollTop = scrollTop;
+
+			// Ensure scrolling affects the appropriate frozen panel
+			if (self.options.frozenColumns > -1) {
+				if (hasFrozenRows && !self.options.frozenBottom) {
+					$viewport.eq(2)[0].scrollTop = scrollTop;
+				} else {
+					$viewport.eq(1)[0].scrollTop = scrollTop;
+				}
+			}
 
 			// Switch virtual pages if needed
 			if (vScrollDist < viewportH) {
@@ -7648,6 +7662,7 @@ var DobyGrid = function (options) {
 					break;
 				}
 
+				console.log(i, self.options.frozenColumns, (self.options.frozenColumns > -1), (i > self.options.frozenColumns))
 				if ((self.options.frozenColumns > -1) && (i > self.options.frozenColumns)) {
 					renderCell(stringArrayR, row, i, colspan, d);
 				} else {
@@ -8587,6 +8602,7 @@ var DobyGrid = function (options) {
 		}
 
 		setFrozenOptions();
+		setScroller();
 
 		if (recalc_heights) {
 			invalidateAllRows();
@@ -8660,6 +8676,44 @@ var DobyGrid = function (options) {
 
 		// This will recalculate scroll heights to ensure scrolling is properly handled.
 		updateRowCount();
+	};
+
+
+	/**
+	 * When frozen columns are used it's not immediately obvious which viewport
+	 * controls the scrolling events. This methods sets that up accordingly.
+	 * @method setScroller
+	 * @memberof DobyGrid
+	 * @private
+	 *
+	 */
+	setScroller = function () {
+		// When frozen columns are enabled
+		if (self.options.frozenColumns > -1) {
+
+			// If frozen rows are enabled too
+			if (hasFrozenRows) {
+				if (self.options.frozenBottom) {
+					$viewportScrollContainerX = $viewport.eq(3);
+					$viewportScrollContainerY = $viewport.eq(1);
+				} else {
+					$viewportScrollContainerX = $viewportScrollContainerY = $viewport.eq(3);
+				}
+			} else {
+				$viewportScrollContainerX = $viewportScrollContainerY = $viewport.eq(1);
+			}
+		} else {
+			if (hasFrozenRows) {
+				if (self.options.frozenBottom) {
+					$viewportScrollContainerX = $viewport.eq(2);
+					$viewportScrollContainerY = $viewport.eq(0);
+				} else {
+					$viewportScrollContainerX = $viewportScrollContainerY = $viewport.eq(2);
+				}
+			} else {
+				$viewportScrollContainerX = $viewportScrollContainerY = $viewport.eq(0);
+			}
+		}
 	};
 
 
