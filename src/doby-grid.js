@@ -2200,11 +2200,17 @@ var DobyGrid = function (options) {
 			var cacheEntry = cache.nodes[row];
 			if (cacheEntry) {
 				if (cacheEntry.cellRenderQueue.length) {
-					var lastChild = $(cacheEntry.rowNode).children('.' + CLS.cell + '').last()[0];
+					var $lastNode = $(cacheEntry.rowNode).children('.' + CLS.cell + '').last();
 					while (cacheEntry.cellRenderQueue.length) {
 						var columnIdx = cacheEntry.cellRenderQueue.pop();
-						cacheEntry.cellNodesByColumnIdx[columnIdx] = lastChild;
-						lastChild = lastChild.previousSibling;
+						cacheEntry.cellNodesByColumnIdx[columnIdx] = $lastNode;
+						$lastNode = $lastNode.prev();
+
+						// Hack to retrieve the frozen columns
+						// TODO: Find out why this is needed. It was copied from jlynch.
+						if ($lastNode.length === 0) {
+							$lastNode = $(cacheEntry.rowNode[0]).children().last();
+						}
 					}
 				}
 			}
