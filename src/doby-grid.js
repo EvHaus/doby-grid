@@ -1807,6 +1807,7 @@ var DobyGrid = function (options) {
 			$v = $([
 				'<div class="', CLS.viewport,
 				(self.options.autoHeight ? ' ' + CLS.autoheight : ''),
+				(self.options.frozenColumns > -1 && i % 2 === 0 ? ' ' + CLS.autoheight : ''),
 				'"></div>'
 			].join('')).appendTo($p);
 

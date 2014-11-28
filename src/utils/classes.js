@@ -3,7 +3,7 @@
 var base = 'doby-grid';
 
 module.exports = {
-	autoheight:				base + "-autoheight",
+	autoheight:				base + '-autoheight',
 	cell:					base + '-cell',
 	cellunselectable:		base + '-cell-unselectable',
 	clipboard:				base + '-clipboard',
