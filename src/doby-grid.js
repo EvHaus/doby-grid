@@ -5879,7 +5879,15 @@ var DobyGrid = function (options) {
 		// Horizontal Scroll
 		if (hScrollDist) {
 			prevScrollLeft = scrollLeft;
-			if (self.options.showHeader) $headerScroller[0].scrollLeft = scrollLeft;
+
+			// Scroll the header
+			if (self.options.showHeader) {
+				if (self.options.frozenColumns > -1) {
+					$headerScroller[1].scrollLeft = scrollLeft;
+				} else {
+					$headerScroller[0].scrollLeft = scrollLeft;
+				}
+			}
 		}
 
 		// Vertical Scroll
