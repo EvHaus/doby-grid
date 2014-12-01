@@ -4306,8 +4306,8 @@ var DobyGrid = function (options) {
 		var $cell = $(e.target).closest("." + CLS.cell, $canvas);
 		if (!$cell.length) return null;
 
-		var row = getRowFromNode($cell[0].parentNode);
-		var cell = getCellFromNode($cell[0]);
+		var row = getRowFromNode($cell[0].parentNode),
+			cell = getCellFromNode($cell[0]);
 
 		if (row === null || cell === null) {
 			return null;
@@ -4901,7 +4901,7 @@ var DobyGrid = function (options) {
 	 */
 	getRowFromNode = function (rowNode) {
 		for (var row in cache.nodes) {
-			if (cache.nodes[row].rowNode === rowNode) {
+			if (cache.nodes[row].rowNode[0] === rowNode) {
 				return row | 0;
 			}
 		}
