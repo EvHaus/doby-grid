@@ -4182,7 +4182,7 @@ var DobyGrid = function (options) {
 		// read column number from .l<columnNumber> CSS class
 		var cls = /l\d+/.exec(cellNode.className);
 		if (!cls) {
-			throw "getCellFromNode: cannot get cell - " + cellNode.className;
+			throw new Error("getCellFromNode: cannot get cell - " + cellNode.className);
 		}
 		return parseInt(cls[0].substr(1, cls[0].length - 1), 10);
 	};
@@ -4246,7 +4246,7 @@ var DobyGrid = function (options) {
 			// Do not allow negative values
 			nodecell = nodecell < 0 ? 0 : nodecell;
 
-			return cache.nodes[row].cellNodesByColumnIdx[nodecell];
+			return cache.nodes[row].cellNodesByColumnIdx[nodecell][0];
 		}
 		return null;
 	};
