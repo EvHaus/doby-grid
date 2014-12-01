@@ -5906,7 +5906,7 @@ var DobyGrid = function (options) {
 				if (hasFrozenRows && !self.options.frozenBottom) {
 					$viewport.eq(2)[0].scrollTop = scrollTop;
 				} else {
-					$viewport.eq(1)[0].scrollTop = scrollTop;
+					$viewport.eq(0)[0].scrollTop = scrollTop;
 				}
 			}
 
@@ -8220,7 +8220,7 @@ var DobyGrid = function (options) {
 	 */
 	scrollTo = function (y) {
 		y = Math.max(y, 0);
-		y = Math.min(y, th - viewportH + (viewportHasHScroll ? window.scrollbarDimensions.height : 0));
+		y = Math.min(y, th - viewportH + (viewportHasHScroll || self.options.frozenColumns > -1 ? window.scrollbarDimensions.height : 0));
 
 		var oldOffset = offset;
 
@@ -8240,7 +8240,20 @@ var DobyGrid = function (options) {
 
 		if (prevScrollTop != newScrollTop) {
 			vScrollDir = (prevScrollTop + oldOffset < newScrollTop + offset) ? 1 : -1;
-			$viewport[0].scrollTop = (lastRenderedScrollTop = scrollTop = prevScrollTop = newScrollTop);
+			lastRenderedScrollTop = (scrollTop = prevScrollTop = newScrollTop);
+
+			// Scroll top-left viewport
+			$viewport.eq(0)[0].scrollTop = newScrollTop;
+
+			// If frozen columns are enabled, scroll the top-right viewport
+			if (self.options.frozenColumns > -1) {
+				$viewport.eq(1)[0].scrollTop = newScrollTop;
+			}
+
+			// If frozen rows are enabled, scroll the bottom-left viewport
+			if (hasFrozenRows) {
+				$viewport.eq(2)[0].scrollTop = newScrollTop;
+			}
 
 			self.trigger('viewportchanged', null, {
 				scrollLeft: 0,
