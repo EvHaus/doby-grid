@@ -140,6 +140,7 @@ module.exports = function (grunt) {
 		'less',
 		'jshint',
 		'jscs',
+		'browserify',
 		'jasmine'
 	]);
 
