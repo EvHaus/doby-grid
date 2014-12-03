@@ -8814,7 +8814,7 @@ var DobyGrid = function (options) {
 					sorting = JSON.parse(JSON.stringify(self.sorting));
 					sorting.push({
 						columnId: column.id,
-						sortAsc: true
+						sortAsc: column.sortAsc
 					});
 				}
 			} else {
@@ -8830,7 +8830,7 @@ var DobyGrid = function (options) {
 				} else {
 					sorting = [{
 						columnId: column.id,
-						sortAsc: true
+						sortAsc: column.sortAsc
 					}];
 				}
 			}
