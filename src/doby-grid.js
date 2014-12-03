@@ -355,6 +355,7 @@ var DobyGrid = function (options) {
 		emptyNotice:			true,
 		exportFileName:			"doby-grid-export",
 		fetchCollapsed:			false,
+		forceRemoteSort:		false,
 		formatter:				null,
 		fullWidthRows:			true,
 		groupable:				true,
@@ -3527,7 +3528,7 @@ var DobyGrid = function (options) {
 		var cols = args.sortCols;
 
 		// If remote, and not all data is fetched - sort on server
-		if (self.fetcher && !remoteAllLoaded()) {
+		if (self.fetcher && (!remoteAllLoaded() || self.options.forceRemoteSort)) {
 			// Reset collection length to full. This ensures that when groupings are removed,
 			// the grid correctly refetches the full page of results.
 			self.collection.length = self.collection.remote_length;
