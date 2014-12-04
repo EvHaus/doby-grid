@@ -232,6 +232,7 @@ var DobyGrid = function (options) {
 		resetAggregators,
 		resizeCanvas,
 		resizeColumn,
+		resizeColumnsToContent,
 		resizeContainer,
 		scrollCellIntoView,
 		scrollLeft = 0,
@@ -5533,6 +5534,7 @@ var DobyGrid = function (options) {
 	};
 
 
+
 	/**
 	 * Handles the context menu events on cells
 	 * @method handleContextMenu
@@ -7819,6 +7821,41 @@ var DobyGrid = function (options) {
 		}
 	};
 
+	resizeColumnToContent = function (column) {
+		if (!column) return;
+		var column_index = cache.columnsById[column.id],
+			// Either use the width of the column's content or the min column width
+			currentWidth = column.width,
+			newWidth = Math.max(getColumnContentWidth(column_index), column.minWidth);
+
+		// Do nothing if width isn't changed
+		if (currentWidth == newWidth) return;
+
+		var pageX = event.pageX;
+
+		lockColumnWidths(column_index);
+
+		// Calculate resize diff
+		var diff = newWidth - currentWidth;
+
+		// Duplicate the drag functionality
+		prepareLeeway(column_index, pageX);
+
+		// This will ensure you can't resize beyond the maximum allowed width
+		var delta = Math.min(maxPageX, Math.max(minPageX, pageX + diff)) - pageX;
+
+		resizeColumn(column_index, delta);
+		applyHeaderAndColumnWidths();
+		submitColResize();
+	};
+
+	this.resizeColumnsToContent = function () {
+		for (var i = 0, l = cache.activeColumns.length; i < l; i++) {
+			c = cache.activeColumns[i];
+			resizeColumnToContent(c);
+		}
+	};
+
 
 	/**
 	 * Resizes the tables outer container to fit the total height of all visible rows
@@ -8703,31 +8740,9 @@ var DobyGrid = function (options) {
 			if (!$(event.target).closest('.' + CLS.handle).length) return;
 
 			var column = getColumnFromEvent(event);
-			if (!column) return;
-			var column_index = cache.columnsById[column.id],
-				// Either use the width of the column's content or the min column width
-				currentWidth = column.width,
-				newWidth = Math.max(getColumnContentWidth(column_index), column.minWidth);
 
-			// Do nothing if width isn't changed
-			if (currentWidth == newWidth) return;
+			resizeColumnToContent(column);
 
-			var pageX = event.pageX;
-
-			lockColumnWidths(column_index);
-
-			// Calculate resize diff
-			var diff = newWidth - currentWidth;
-
-			// Duplicate the drag functionality
-			prepareLeeway(column_index, pageX);
-
-			// This will ensure you can't resize beyond the maximum allowed width
-			var delta = Math.min(maxPageX, Math.max(minPageX, pageX + diff)) - pageX;
-
-			resizeColumn(column_index, delta);
-			applyHeaderAndColumnWidths();
-			submitColResize();
 		});
 
 		// Create drag handles
