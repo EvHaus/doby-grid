@@ -1949,7 +1949,7 @@ var DobyGrid = function (options) {
 
 				// For remote models, check if we're inserting 'at' an index with place holders
 				if (grid.fetcher && at !== undefined) {
-					if (this.items[at + i].__placeholder) {
+					if (this.items[at + i] && this.items[at + i].__placeholder) {
 						existing = this.items[at + i];
 					}
 				}
