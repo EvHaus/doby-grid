@@ -1629,6 +1629,32 @@ describe("Column Options", function () {
 			expect(grid.collection.items[0].id).toEqual(3);
 			expect(grid.collection.items[2].id).toEqual(1);
 		});
+
+
+		// ==========================================================================================
+
+
+		it("should use this value as a default sorting direction when clicking on the column header", function () {
+			var grid = resetGrid($.extend(defaultData(), {
+				selectable: true,
+				columns: [
+					{id: 'id', sortAsc: false, field: 'id'}
+				],
+				data: [
+					{id: 1, data: {id: 1}},
+					{id: 2, data: {id: 2}},
+					{id: 3, data: {id: 3}}
+				]
+			}));
+
+			// Sort!
+			var $column = grid.$el.find('.doby-grid-header-column');
+			$column.simulate('click');
+
+			// Make sure we're in reverse order
+			expect(grid.collection.items[0].id).toEqual(3);
+			expect(grid.collection.items[2].id).toEqual(1);
+		});
 	});
 
 
