@@ -9333,12 +9333,12 @@ var DobyGrid = function (options) {
 
 		var i = stickyGroups.length,
 			group,
-			offset = $viewport.position().top;
+			offset = $viewport.eq(0).position().top;
 
 		// If we're at the very top - do nothing, just clean up
 		if (scrollTop === 0) {
 			cache.stickyRows = [];
-			$viewport.parent().children('.' + CLS.sticky).remove();
+			$panes.children('.' + CLS.sticky).remove();
 			return;
 		}
 
@@ -9358,7 +9358,7 @@ var DobyGrid = function (options) {
 				} else {
 					var child = '.' + CLS.sticky + '[rel="' + group[self.options.idProperty] + '"]:first';
 
-					$clone = $viewport.parent().children(child);
+					$clone = $panes.eq(0).children(child);
 
 					if ($clone.length) $clone.remove();
 
@@ -9388,8 +9388,8 @@ var DobyGrid = function (options) {
 						.addClass(CLS.sticky)
 						.attr('rel', group[self.options.idProperty])
 						.width($canvas.css('width'))
-						.removeClass(CLS.grouptoggle)
-						.appendTo($viewport.parent());
+						.appendTo($panes.eq(0))
+						.removeClass(CLS.grouptoggle);
 
 					// Cache row
 					cache.stickyRows[i] = $clone;
