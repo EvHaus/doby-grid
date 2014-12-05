@@ -9,3 +9,7 @@ branches:
     - master
 script:
   - grunt
+notifications:
+  email:
+    recipients:
+      - support@globexdesigns.com

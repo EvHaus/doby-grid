@@ -3838,7 +3838,8 @@ describe("Grid Options", function () {
 
 			// Group grid
 			grid.addGrouping('test', {
-				collapsed: false
+				collapsed: false,
+				groupNulls: true
 			});
 
 			// Scroll to middle
