@@ -7829,9 +7829,11 @@ var DobyGrid = function (options) {
 	 *
 	 * @param	{object}	column		- The column to resize
 	 * @param	{object}	event		- The event that caused the execution (if any)
-	 * @param 	{object} 	useMaxWidth - Take the maximum width of the column into account
+	 * @param 	{boolean} 	useMaxWidth - Take the maximum width of the column into account
+	 * @param 	{boolean} 	submit		- Submit column resize
+	 * @param 	{boolean} 	silent 		- Don't trigger resize events
 	 */
-	resizeColumnToContent = function (column, event, useMaxWidth) {
+	resizeColumnToContent = function (column, event, useMaxWidth, submit, silent) {
 		if (!column) return;
 		var column_index = cache.columnsById[column.id],
 			// Either use the width of the column's content or the min column width
@@ -7858,7 +7860,7 @@ var DobyGrid = function (options) {
 
 		resizeColumn(column_index, delta);
 		applyHeaderAndColumnWidths();
-		submitColResize();
+		(submit || typeof(submit) === "undefined" || submit === null) && submitColResize(silent);
 	};
 
 	/**
@@ -7868,11 +7870,17 @@ var DobyGrid = function (options) {
 	 * @private
 	 *
 	 * @param 	{object} 	useMaxWidth - Take the maximum width of the columns into account
+	 * @param 	{boolean} 	once 		- Submit the colum resize only once for all columns
+	 * @param 	{boolean} 	silent 		- Don't trigger resize events
 	 */
-	this.resizeColumnsToContent = function (useMaxWidth) {
+	this.resizeColumnsToContent = function (useMaxWidth, once, silent) {
 		for (var i = 0, l = cache.activeColumns.length; i < l; i++) {
 			var c = cache.activeColumns[i];
-			resizeColumnToContent(c, null, useMaxWidth);
+			resizeColumnToContent(c, null, useMaxWidth, !once, silent);
+		}
+
+		if (once) {
+			submitColResize(silent);
 		}
 	};
 
