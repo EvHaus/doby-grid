@@ -10297,9 +10297,9 @@ var DobyGrid = function (options) {
 		var i = stickyGroups.length,
 			group,
 			offset = $viewport.position().top,
-			isFirstGroupCollapsed = i && stickyGroups[0].collapsed,
+			isFirstGroupCollapsed = i && stickyGroups[0].collapsed ? true : false,
 			isFirstGroupEmptyNull = i && stickyGroups[0].value === null && !stickyGroups[0].predef.groupNulls;
-
+		
 		// If we're at the very top, or if the grouping that we're at is collapse,
 		// Or if the first group is a null grouping and groupNulls is disabled,
 		// just clean up and remove all stickies.
