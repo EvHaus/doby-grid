@@ -7042,9 +7042,7 @@ var DobyGrid = function (options) {
 			}
 
 			// Handle sticky group headers
-			if (self.options.stickyGroupRows && self.isGrouped()) {
-				stickGroupHeaders(scrollTop);
-			}
+			stickGroupHeaders(scrollTop);
 		}
 
 		// Any Scroll
@@ -8524,9 +8522,7 @@ var DobyGrid = function (options) {
 		lastRenderedScrollLeft = scrollLeft;
 
 		// Handle sticky group headers
-		if (self.options.stickyGroupRows && self.isGrouped()) {
-			stickGroupHeaders(scrollTop);
-		}
+		stickGroupHeaders(scrollTop);
 
 		// If grid is empty - show empty overlay
 		if (!self.fetcher && self.collection.length === 0) insertEmptyOverlay();
@@ -9990,6 +9986,10 @@ var DobyGrid = function (options) {
 					}.bind(this), 1);
 
 					submitColResize();
+
+					// If sticky groups headers are enabled, we need to redraw them as the
+					// rendered row is no longer correct
+					stickGroupHeaders(scrollTop);
 				});
 		});
 	};
@@ -10276,6 +10276,9 @@ var DobyGrid = function (options) {
 	 * @param	{integer}	scrollTop		- Current scroll position
 	 */
 	stickGroupHeaders = function (scrollTop) {
+		// Confirm that sticky headers are actually needed
+		if (!self.options.stickyGroupRows || !self.isGrouped()) return;
+
 		// Find top-most group
 		var topRow = getRowFromPosition(scrollTop),
 			topGroup = getGroupFromRow(topRow),
@@ -10299,7 +10302,7 @@ var DobyGrid = function (options) {
 			offset = $viewport.position().top,
 			isFirstGroupCollapsed = i && stickyGroups[0].collapsed ? true : false,
 			isFirstGroupEmptyNull = i && stickyGroups[0].value === null && !stickyGroups[0].predef.groupNulls;
-		
+
 		// If we're at the very top, or if the grouping that we're at is collapse,
 		// Or if the first group is a null grouping and groupNulls is disabled,
 		// just clean up and remove all stickies.
