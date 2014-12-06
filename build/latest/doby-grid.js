@@ -10279,13 +10279,19 @@ var DobyGrid = function (options) {
 		// Confirm that sticky headers are actually needed
 		if (!self.options.stickyGroupRows || !self.isGrouped()) return;
 
+		// Create a stickyGroup cache if it doesn't already exist
+		if (!cache.stickyGroups) cache.stickyGroups = [];
+
 		// Find top-most group
 		var topRow = getRowFromPosition(scrollTop),
 			topGroup = getGroupFromRow(topRow),
 			stickyGroups = [topGroup];
 
 		// TODO: Group could not be found for some reason. Investigate why this might happen
-		if (!topGroup) return;
+		if (!topGroup) {
+			if (console && console.warn) console.warn('Unable to detect top-most sticky group. This should never happen. Please report the case to DobyGrid support.');
+			return;
+		}
 
 		var buildParentGroups = function (group) {
 			if (group.parentGroup) {
@@ -10297,26 +10303,37 @@ var DobyGrid = function (options) {
 		// Build an array of nested groups to display
 		buildParentGroups(topGroup);
 
+		// Check to see if the sticky groups have changed since last render
+		var haveStickyGroupsChanged = false;
+		for (var s = 0, sl = stickyGroups.length; s < sl; s++) {
+			if (!cache.stickyGroups[s] || stickyGroups[s].id !== cache.stickyGroups[s].id) {
+				haveStickyGroupsChanged = true;
+				break;
+			}
+		}
+
 		var i = stickyGroups.length,
 			group,
 			offset = $viewport.position().top,
 			isFirstGroupCollapsed = i && stickyGroups[0].collapsed ? true : false,
 			isFirstGroupEmptyNull = i && stickyGroups[0].value === null && !stickyGroups[0].predef.groupNulls;
 
-		// If we're at the very top, or if the grouping that we're at is collapse,
-		// Or if the first group is a null grouping and groupNulls is disabled,
-		// just clean up and remove all stickies.
-		if (scrollTop === 0 || isFirstGroupCollapsed || isFirstGroupEmptyNull) {
+		// Reset currently rendered groups
+		if (scrollTop === 0 || isFirstGroupCollapsed || isFirstGroupEmptyNull || haveStickyGroupsChanged) {
 			cache.stickyRows = [];
 			$viewport.parent().children('.' + CLS.sticky).remove();
-			return;
 		}
+
+		// If we're at the top - don't draw any sticky groups
+		if (scrollTop === 0) return;
+
+		// Cache sticky groups
+		cache.stickyGroups = stickyGroups;
 
 		while (i--) {
 			group = stickyGroups[i];
 
-			// Only go on if the group is expanded and sticky is enabled,
-			// and it's not a null grouping when null groups are disabled
+			// Only go on if the group is expanded and sticky is enabled
 			if (group.collapsed === 0 && group.sticky) {
 
 				stickyIds.push(group[self.options.idProperty]);
