@@ -70,7 +70,7 @@ define([], function () {
 	}, function (grid) {
 		grid.setGrouping([{
 			column_id: 'language',
-			collapsed: true,
+			collapsed: false,
 			colspan: false,
 			groupNulls: false,
 			formatter: function (row, cell, value, columnDef) {
@@ -86,7 +86,9 @@ define([], function () {
 			dataExtractor: function (data, columnDef) {
 				var total = columnDef.id === 'language' || columnDef.id == 'city' ? columnDef.name : 0;
 				for (var i = 0, l = data.grouprows.length; i < l; i++) {
-					if (columnDef.id !== 'language' && columnDef.id !== 'city') {
+					if (columnDef.id === 'language') {
+						total = data.grouprows[i].data[columnDef.field];
+					} else if (columnDef.id !== 'city') {
 						total += data.grouprows[i].data[columnDef.field];
 					}
 				}

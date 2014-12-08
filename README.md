@@ -13,3 +13,12 @@ For more information and complete documentation visit: http://www.dobyjs.com/#gr
 Doby Grid is also available via Bower:
 
 ```bower install doby-grid```
+
+---
+
+To build the project from the source code (and to look at the packaged examples) you'll need to clone the repo and then run these commands:
+
+```
+npm install
+grunt build
+```
