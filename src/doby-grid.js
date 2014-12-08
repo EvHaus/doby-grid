@@ -753,7 +753,6 @@ var DobyGrid = function (options) {
 				$canvas.on(evs[i], evHandler);
 			}
 
-
 			// Enable resizable rows
 			if (this.options.resizableRows) {
 				bindRowResize();
@@ -4305,6 +4304,7 @@ var DobyGrid = function (options) {
 	 */
 	getCellFromEvent = function (e) {
 		var $cell = $(e.target).closest("." + CLS.cell, $canvas);
+
 		if (!$cell.length) return null;
 
 		var row = getRowFromNode($cell[0].parentNode),
@@ -4902,7 +4902,7 @@ var DobyGrid = function (options) {
 	 */
 	getRowFromNode = function (rowNode) {
 		for (var row in cache.nodes) {
-			if (cache.nodes[row].rowNode[0] === rowNode) {
+			if (cache.nodes[row].rowNode.is(rowNode)) {
 				return row | 0;
 			}
 		}
