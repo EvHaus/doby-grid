@@ -15,15 +15,21 @@ module.exports = function (grunt) {
 		pkg: grunt.file.readJSON("package.json"),
 
 		browserify: {
-			options: {
-				banner: banner,
-				browserifyOptions: {
-					standalone: 'DobyGrid'
+			build: {
+				options: {
+					banner: banner,
+					browserifyOptions: {
+						standalone: 'DobyGrid'
+					}
+				},
+				files: {
+					'build/<%= pkg.version %>/<%= pkg.name %>.js': ['src/<%= pkg.name %>.js']
 				}
 			},
-			files: {
-				src: 'src/<%= pkg.name %>.js',
-				dest: 'build/<%= pkg.version %>/<%= pkg.name %>.js'
+			tests: {
+				files: {
+					'tests/Range.build.js': ['tests/Range.js']
+				}
 			}
 		},
 
@@ -118,6 +124,10 @@ module.exports = function (grunt) {
 				files: 'src/**/*.js',
 				tasks: ['browserify', 'clean', 'copy']
 			},
+			tests: {
+				files: ['tests/**/*.js', '!tests/**/*.build.js'],
+				tasks: ['browserify:tests']
+			},
 			less: {
 				files: 'src/**/*.less',
 				tasks: ['less', 'clean', 'copy']
@@ -138,8 +148,8 @@ module.exports = function (grunt) {
 	grunt.loadNpmTasks('grunt-jsdoc');
 	grunt.loadNpmTasks('grunt-lesslint');
 
-	// Grunt "default" task (validation and unit tests only)
-	grunt.registerTask('default', [
+	// Run unit tests
+	grunt.registerTask('test', [
 		'lesslint',
 		'less',
 		'jshint',
@@ -148,13 +158,13 @@ module.exports = function (grunt) {
 		'jasmine'
 	]);
 
-	// Grunt "build" task
+	// Builds a new release
 	grunt.registerTask('build', [
 		'lesslint',
 		'less',
 		'jshint',
 		'jscs',
-		'browserify',
+		'browserify:build',
 		'uglify',
 		'clean',
 		'copy',

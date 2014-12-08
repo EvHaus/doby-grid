@@ -1,3 +1,25 @@
+(function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);var f=new Error("Cannot find module '"+o+"'");throw f.code="MODULE_NOT_FOUND",f}var l=n[o]={exports:{}};t[o][0].call(l.exports,function(e){var n=t[o][1][e];return s(n?n:e)},l,l.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s})({1:[function(require,module,exports){
+/* global $ */
+
+"use strict";
+
+/**
+ * @class NonDataItem
+ * @classdesc A base class that all special / non-data rows (like Group) derive from.
+ *
+ * @param	{object}	data		- Data object for this item
+ */
+var NonDataItem = function (data) {
+	this.__nonDataRow = true;
+	if (data) $.extend(this, data);
+};
+
+NonDataItem.prototype.toString = function () {
+	return "NonDataItem";
+};
+
+module.exports = NonDataItem;
+},{}],2:[function(require,module,exports){
 "use strict";
 
 var NonDataItem	= require('./NonDataItem');
@@ -366,3 +388,132 @@ Range.prototype.toString = function () {
 };
 
 module.exports = Range;
+},{"./NonDataItem":1}],3:[function(require,module,exports){
+// (c) 2014 Evgueni Naverniouk, Globex Designs, Inc.
+// Doby may be freely distributed under the MIT license.
+// For all details and documentation:
+// https://github.com/globexdesigns/doby-grid
+
+var Range = require('../src/classes/Range');
+
+describe("Range", function () {
+	"use strict";
+
+	describe("split()", function () {
+		it("should be able to split() a Range into two column ranges", function () {
+			var range = new Range({fromCell: 0, toCell: 10, fromRow: 0, toRow: 10}),
+				split = range.split(5),
+				result = [
+					new Range({fromCell: 0, toCell: 5, fromRow: 0, toRow: 10}),
+					new Range({fromCell: 5, toCell: 10, fromRow: 0, toRow: 10}),
+					null,
+					null
+				];
+
+			expect(split[0]).toEqual(result[0]);
+			expect(split[1]).toEqual(result[1]);
+			expect(split[2]).toEqual(result[2]);
+			expect(split[3]).toEqual(result[3]);
+		});
+
+
+		// ==========================================================================================
+
+
+		it("should not split() if split column and row are null", function () {
+			var range = new Range({fromCell: 0, toCell: 10, fromRow: 0, toRow: 10}),
+				split = range.split(),
+				result = [
+					range,
+					null,
+					null,
+					null
+				];
+
+			expect(split[0]).toEqual(result[0]);
+			expect(split[1]).toEqual(result[1]);
+			expect(split[2]).toEqual(result[2]);
+			expect(split[3]).toEqual(result[3]);
+		});
+
+
+		// ==========================================================================================
+
+
+		it("should not split() if split column is to the right of the selection", function () {
+			var range = new Range({fromCell: 0, toCell: 1, fromRow: 0, toRow: 10}),
+				split = range.split(5),
+				result = [
+					range,
+					null,
+					null,
+					null
+				];
+
+			expect(split[0]).toEqual(result[0]);
+			expect(split[1]).toEqual(result[1]);
+			expect(split[2]).toEqual(result[2]);
+			expect(split[3]).toEqual(result[3]);
+		});
+
+
+		// ==========================================================================================
+
+
+		it("should be able to split() a Range into two row ranges", function () {
+			var range = new Range({fromCell: 0, toCell: 10, fromRow: 0, toRow: 10}),
+				split = range.split(null, 5),
+				result = [
+					new Range({fromCell: 0, toCell: 10, fromRow: 0, toRow: 5}),
+					null,
+					new Range({fromCell: 0, toCell: 10, fromRow: 5, toRow: 10}),
+					null
+				];
+
+			expect(split[0]).toEqual(result[0]);
+			expect(split[1]).toEqual(result[1]);
+			expect(split[2]).toEqual(result[2]);
+			expect(split[3]).toEqual(result[3]);
+		});
+
+
+		// ==========================================================================================
+
+
+		it("should not split() if split row is to the below the selection", function () {
+			var range = new Range({fromCell: 0, toCell: 10, fromRow: 0, toRow: 1}),
+				split = range.split(null, 5),
+				result = [
+					range,
+					null,
+					null,
+					null
+				];
+
+			expect(split[0]).toEqual(result[0]);
+			expect(split[1]).toEqual(result[1]);
+			expect(split[2]).toEqual(result[2]);
+			expect(split[3]).toEqual(result[3]);
+		});
+
+		// ==========================================================================================
+
+
+		it("should split() into 4 quadrants", function () {
+			var range = new Range({fromCell: 0, toCell: 10, fromRow: 0, toRow: 10}),
+				split = range.split(5, 5),
+				result = [
+					new Range({fromCell: 0, toCell: 5, fromRow: 0, toRow: 5}),
+					new Range({fromCell: 5, toCell: 10, fromRow: 0, toRow: 5}),
+					new Range({fromCell: 0, toCell: 5, fromRow: 5, toRow: 10}),
+					new Range({fromCell: 5, toCell: 10, fromRow: 5, toRow: 10})
+				];
+
+			expect(split[0]).toEqual(result[0]);
+			expect(split[1]).toEqual(result[1]);
+			expect(split[2]).toEqual(result[2]);
+			expect(split[3]).toEqual(result[3]);
+		});
+	});
+});
+},{"../src/classes/Range":2}]},{},[3]);
