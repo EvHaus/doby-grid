@@ -9067,11 +9067,9 @@ var DobyGrid = function (options) {
 			topGroup = getGroupFromRow(topRow),
 			stickyGroups = [topGroup];
 
-		// TODO: Group could not be found for some reason. Investigate why this might happen
-		if (!topGroup) {
-			if (console && console.warn) console.warn('Unable to detect top-most sticky group. This should never happen. Please report the case to DobyGrid support.');
-			return;
-		}
+		// Group could not be found for some reason. Perhaps because
+		// the grid hasn't finished rendering (like during a resize event)
+		if (!topGroup) return;
 
 		var buildParentGroups = function (group) {
 			if (group.parentGroup) {
