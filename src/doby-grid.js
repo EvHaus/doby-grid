@@ -1078,7 +1078,7 @@ var DobyGrid = function (options) {
 				if (!_dragging) return;
 
 				var start = getCellFromPoint(
-					dd.startX - $(this).offset().left,
+					dd.startX - $(this).offset().left + $(this).closest($panes).position().left,
 					dd.startY - $(this).offset().top
 				);
 
@@ -1096,8 +1096,9 @@ var DobyGrid = function (options) {
 				event.stopImmediatePropagation();
 
 				var end = getCellFromPoint(
-					event.pageX - $(this).offset().left,
-					event.pageY - $(this).offset().top);
+					event.pageX - $(this).offset().left + $(this).closest($panes).position().left,
+					event.pageY - $(this).offset().top
+				);
 
 				if (!self.canCellBeSelected(end.row, end.cell)) return;
 
