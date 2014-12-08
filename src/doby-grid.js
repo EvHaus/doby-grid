@@ -3517,8 +3517,9 @@ var DobyGrid = function (options) {
 		}
 
 		// Forcefully destroy all cached elements -- another DOM leak prevention
+		var rowClear = function () { removeElement(this); };
 		for (var row in cache.nodes) {
-			removeElement(cache.nodes[row].rowNode);
+			cache.nodes[row].rowNode.each(rowClear);
 		}
 
 		// Clear collection items (they may be a Remote Objects)
