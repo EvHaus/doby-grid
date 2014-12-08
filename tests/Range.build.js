@@ -278,10 +278,10 @@ Range.prototype.split = function (column, row) {
 
 	// Split columns
 	if (column !== undefined && column !== null && column >= 0 && this.toCell > column) {
-		topLeft = new Range({fromCell: this.fromCell, toCell: column, fromRow: this.fromRow, toRow: this.toRow});
-		topRight = new Range({fromCell: column + 1, toCell: this.toCell, fromRow: this.fromRow, toRow: this.toRow});
+		topLeft = new Range({fromCell: this.fromCell, toCell: column, fromRow: this.fromRow, toRow: this.toRow}, this._grid);
+		topRight = new Range({fromCell: column + 1, toCell: this.toCell, fromRow: this.fromRow, toRow: this.toRow}, this._grid);
 	} else {
-		topLeft = new Range({fromCell: this.fromCell, toCell: this.toCell, fromRow: this.fromRow, toRow: this.toRow});
+		topLeft = new Range({fromCell: this.fromCell, toCell: this.toCell, fromRow: this.fromRow, toRow: this.toRow}, this._grid);
 	}
 
 	// If split is to the left of the range, keep topLeft null
@@ -292,12 +292,12 @@ Range.prototype.split = function (column, row) {
 
 	// Split rows
 	if (row !== undefined && row !== null && row >= 0 && this.toRow > row) {
-		topLeft = new Range({fromCell: topLeft.fromCell, toCell: topLeft.toCell, fromRow: this.fromRow, toRow: row});
-		bottomLeft = new Range({fromCell: topLeft.fromCell, toCell: topLeft.toCell, fromRow: row + 1, toRow: this.toRow});
+		topLeft = new Range({fromCell: topLeft.fromCell, toCell: topLeft.toCell, fromRow: this.fromRow, toRow: row}, this._grid);
+		bottomLeft = new Range({fromCell: topLeft.fromCell, toCell: topLeft.toCell, fromRow: row + 1, toRow: this.toRow}, this._grid);
 
 		if (topRight) {
-			topRight = new Range({fromCell: topRight.fromCell, toCell: topRight.toCell, fromRow: this.fromRow, toRow: row});
-			bottomRight = new Range({fromCell: topRight.fromCell, toCell: topRight.toCell, fromRow: row + 1, toRow: this.toRow});
+			topRight = new Range({fromCell: topRight.fromCell, toCell: topRight.toCell, fromRow: this.fromRow, toRow: row}, this._grid);
+			bottomRight = new Range({fromCell: topRight.fromCell, toCell: topRight.toCell, fromRow: row + 1, toRow: this.toRow}, this._grid);
 		}
 	}
 

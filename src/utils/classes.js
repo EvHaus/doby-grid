@@ -4,6 +4,7 @@ var base = 'doby-grid';
 
 module.exports = {
 	autoheight:				base + '-autoheight',
+	canvas:					base + '-canvas',
 	cell:					base + '-cell',
 	cellunselectable:		base + '-cell-unselectable',
 	clipboard:				base + '-clipboard',
@@ -56,6 +57,5 @@ module.exports = {
 	sticky:					base + '-sticky',
 	tooltip:				base + '-tooltip',
 	tooltiparrow:			base + '-tooltip-arrow',
-	viewport:				base + '-viewport',
-	canvas:					base + '-canvas'
+	viewport:				base + '-viewport'
 };

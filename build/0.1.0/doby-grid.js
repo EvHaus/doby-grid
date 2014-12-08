@@ -77,33 +77,56 @@ var CLS = require('./../utils/classes'),
 /**
  * @class CellRangeDecorator
  * @classdesc Displays an overlay on top of a given cell range
+ *
+ * @param	{object}	grid				- Current instance of the grid
+ * @param	{function}	getCellNodeBox		- Shared method required by this class
  */
 // TODO: Remove getCellNodeBox from the params here
-var CellRangeDecorator = function ($target, getCellNodeBox) {
+var CellRangeDecorator = function (grid, getCellNodeBox) {
 	this.$el = null;
-	this.$canvas = $target;
+	this.$stats = null;
+	this.grid = grid;
 	this.getCellNodeBox = getCellNodeBox;
 };
 
-CellRangeDecorator.prototype.show = function (range) {
-	if (!this.$el) {
-		this.$el = $('<div class="' + CLS.rangedecorator + '"></div>')
-			.appendTo(this.$canvas);
-		this.$stats = $('<span class="' + CLS.rangedecoratorstat + '"></span>')
-			.appendTo(this.$el);
+
+/**
+ * Given a cell range, returns the target canvas elements
+ * @method getTargets
+ * @memberof CellRangeDecorator
+ *
+ * @param	{integer}	canvasIndex		- Id of the canvas to render into
+ * @param	{object}	range			- The selection range which to outline
+ *
+ */
+CellRangeDecorator.prototype.render = function (canvasIndex, range) {
+	var $target = this.$el[canvasIndex],
+		$stats = this.$stats[canvasIndex];
+
+	// Render a new decorator for this canvas
+	if (!$target) {
+		var $canvas = this.grid.$el.find('.' + CLS.canvas);
+
+		this.$el[canvasIndex] = $('<div class="' + CLS.rangedecorator + '"></div>')
+			.appendTo($canvas.eq(canvasIndex));
+		$target = this.$el[canvasIndex];
+
+		this.$stats[canvasIndex] = $('<span class="' + CLS.rangedecoratorstat + '"></span>')
+			.appendTo(this.$el[canvasIndex]);
+		$stats = this.$stats[canvasIndex];
 	}
 
 	var from = this.getCellNodeBox(range.fromRow, range.fromCell),
 		to = this.getCellNodeBox(range.toRow, range.toCell),
-		borderBottom = parseInt(this.$el.css('borderBottomWidth'), 10),
-		borderLeft = parseInt(this.$el.css('borderLeftWidth'), 10),
-		borderRight = parseInt(this.$el.css('borderRightWidth'), 10),
-		borderTop = parseInt(this.$el.css('borderTopWidth'), 10);
+		borderBottom = parseInt($target.css('borderBottomWidth'), 10),
+		borderLeft = parseInt($target.css('borderLeftWidth'), 10),
+		borderRight = parseInt($target.css('borderRightWidth'), 10),
+		borderTop = parseInt($target.css('borderTopWidth'), 10);
 
 	if (from && to) {
 		var width = to.right - from.left - borderLeft - borderRight;
 
-		this.$el.css({
+		$target.css({
 			top: from.top,
 			left: from.left,
 			height: to.bottom - from.top - borderBottom - borderTop,
@@ -113,22 +136,62 @@ CellRangeDecorator.prototype.show = function (range) {
 		// Only display stats box if there is enough room
 		if (width > 200) {
 			// Calculate number of selected cells
-			this.$stats.show().html([
+			$stats.show().html([
 				'<strong>Selection:</strong> ', range.getCellCount(), ' cells',
 				' <strong>From:</strong> ', (range.fromRow + 1), ':', (range.fromCell + 1),
 				' <strong>To:</strong> ', (range.toRow + 1), ':', (range.toCell + 1)
 			].join(''));
 		} else {
-			this.$stats.hide();
+			$stats.hide();
 		}
 	}
+};
+
+
+/**
+ * Renders the cell range decorator elements
+ * @method show
+ * @memberof CellRangeDecorator
+ *
+ * @param	{object}	range		- The selection range which to outline
+ *
+ * @return {array}
+ */
+CellRangeDecorator.prototype.show = function (range) {
+	if (this.$el === null) {
+		this.$el = [];
+		this.$stats = [];
+	}
+
+	var rangeSplit = range.split(this.grid.options.frozenColumns, this.grid.options.frozenRows);
+
+	// Determine which panes we need to render in
+	if (this.grid.options.frozenColumns < 0 || range.fromCell <= this.grid.options.frozenColumns) {
+		// Render left-right pane selection
+		if (rangeSplit[0]) this.render(0, rangeSplit[0]);
+	}
+
+	if (this.grid.options.frozenColumns > -1 && range.toCell > this.grid.options.frozenColumns) {
+		// Render top-right pane selection
+		if (rangeSplit[1]) this.render(1, rangeSplit[1]);
+	}
+
+	// TODO: Handle frozen rows
 
 	return this.$el;
 };
 
+
+/**
+ * Destroys the rendered elements
+ * @method hide
+ * @memberof CellRangeDecorator
+ */
 CellRangeDecorator.prototype.hide = function () {
 	if (this.$el && this.$el.length) {
-		removeElement(this.$el[0]);
+		$.each(this.$el, function (i, $el) {
+			if ($el && $el.length) removeElement($el[0]);
+		});
 	}
 	this.$el = null;
 };
@@ -778,8 +841,13 @@ var NonDataItem	= require('./NonDataItem');
  * @class Range
  * @classdesc A structure containing a range of cells.
  *
- * @param {object}		data		- Data for the cell range
- * @param {object}		grid		- Current DobyGrid instance
+ * @param {object}		data			- Data for the cell range
+ * @param {integer}		data.fromCell	- Cell at which the range starts
+ * @param {integer}		data.fromRow	- Row at which the range starts
+ * @param {integer}		data.toCell		- Cell at which the range ends
+ * @param {integer}		data.toRow		- Row at which the range ends
+ * @param {object}		grid			- Current DobyGrid instance
+ *
  */
 var Range = function (data, grid) {
 	var fromRow = data.fromRow,
@@ -1000,6 +1068,53 @@ Range.prototype.isSingleCell = function () {
  */
 Range.prototype.isSingleRow = function () {
 	return this.fromRow == this.toRow;
+};
+
+
+/**
+ * Splits the range into 4 quadrants based on a vertical and horizontal position.
+ * This is useful for splitting the range up into panes when frozen columns or rows
+ * are used. Return an array of ranges [topLeft, topRight, bottomLeft, bottomRight].
+ * @method split
+ * @memberof Range
+ *
+ * @param	{integer}	[column]		- Column at which to split
+ * @param	{integer}	[row]			- Row at which to split
+ *
+ * @returns {array}
+ */
+Range.prototype.split = function (column, row) {
+	var topLeft = null,
+		topRight = null,
+		bottomLeft = null,
+		bottomRight = null;
+
+	// Split columns
+	if (column !== undefined && column !== null && column >= 0 && this.toCell > column) {
+		topLeft = new Range({fromCell: this.fromCell, toCell: column, fromRow: this.fromRow, toRow: this.toRow}, this._grid);
+		topRight = new Range({fromCell: column + 1, toCell: this.toCell, fromRow: this.fromRow, toRow: this.toRow}, this._grid);
+	} else {
+		topLeft = new Range({fromCell: this.fromCell, toCell: this.toCell, fromRow: this.fromRow, toRow: this.toRow}, this._grid);
+	}
+
+	// If split is to the left of the range, keep topLeft null
+	if (column < this.fromCell) {
+		topLeft = null;
+		topRight.fromCell = this.fromCell;
+	}
+
+	// Split rows
+	if (row !== undefined && row !== null && row >= 0 && this.toRow > row) {
+		topLeft = new Range({fromCell: topLeft.fromCell, toCell: topLeft.toCell, fromRow: this.fromRow, toRow: row}, this._grid);
+		bottomLeft = new Range({fromCell: topLeft.fromCell, toCell: topLeft.toCell, fromRow: row + 1, toRow: this.toRow}, this._grid);
+
+		if (topRight) {
+			topRight = new Range({fromCell: topRight.fromCell, toCell: topRight.toCell, fromRow: this.fromRow, toRow: row}, this._grid);
+			bottomRight = new Range({fromCell: topRight.fromCell, toCell: topRight.toCell, fromRow: row + 1, toRow: this.toRow}, this._grid);
+		}
+	}
+
+	return [topLeft, topRight, bottomLeft, bottomRight];
 };
 
 
@@ -1973,7 +2088,6 @@ var DobyGrid = function (options) {
 				$canvas.on(evs[i], evHandler);
 			}
 
-
 			// Enable resizable rows
 			if (this.options.resizableRows) {
 				bindRowResize();
@@ -2272,7 +2386,7 @@ var DobyGrid = function (options) {
 	 * @private
 	 */
 	bindCellRangeSelect = function () {
-		var decorator = new CellRangeDecorator($canvas, getCellNodeBox),
+		var decorator = new CellRangeDecorator(self, getCellNodeBox),
 			_dragging = null,
 			handleSelector = function () {
 				return $(this).closest('.' + CLS.cellunselectable).length > 0;
@@ -2299,7 +2413,7 @@ var DobyGrid = function (options) {
 				if (!_dragging) return;
 
 				var start = getCellFromPoint(
-					dd.startX - $(this).offset().left,
+					dd.startX - $(this).offset().left + $(this).closest($panes).position().left,
 					dd.startY - $(this).offset().top
 				);
 
@@ -2317,8 +2431,9 @@ var DobyGrid = function (options) {
 				event.stopImmediatePropagation();
 
 				var end = getCellFromPoint(
-					event.pageX - $(this).offset().left,
-					event.pageY - $(this).offset().top);
+					event.pageX - $(this).offset().left + $(this).closest($panes).position().left,
+					event.pageY - $(this).offset().top
+				);
 
 				if (!self.canCellBeSelected(end.row, end.cell)) return;
 
@@ -4738,8 +4853,9 @@ var DobyGrid = function (options) {
 		}
 
 		// Forcefully destroy all cached elements -- another DOM leak prevention
+		var rowClear = function () { removeElement(this); };
 		for (var row in cache.nodes) {
-			removeElement(cache.nodes[row].rowNode);
+			cache.nodes[row].rowNode.each(rowClear);
 		}
 
 		// Clear collection items (they may be a Remote Objects)
@@ -5499,7 +5615,9 @@ var DobyGrid = function (options) {
 		var x1 = -1;
 
 		for (var i = 0; i < cell; i++) {
-			x1 += cache.activeColumns[i].width + 1;
+			if (self.options.frozenColumns === -1 || i > self.options.frozenColumns) {
+				x1 += cache.activeColumns[i].width + 1;
+			}
 		}
 
 		var x2 = x1 + cache.activeColumns[cell].width + 2;
@@ -5525,6 +5643,7 @@ var DobyGrid = function (options) {
 	 */
 	getCellFromEvent = function (e) {
 		var $cell = $(e.target).closest("." + CLS.cell, $canvas);
+
 		if (!$cell.length) return null;
 
 		var row = getRowFromNode($cell[0].parentNode),
@@ -6122,7 +6241,7 @@ var DobyGrid = function (options) {
 	 */
 	getRowFromNode = function (rowNode) {
 		for (var row in cache.nodes) {
-			if (cache.nodes[row].rowNode[0] === rowNode) {
+			if (cache.nodes[row].rowNode.is(rowNode)) {
 				return row | 0;
 			}
 		}
@@ -11632,6 +11751,7 @@ var base = 'doby-grid';
 
 module.exports = {
 	autoheight:				base + '-autoheight',
+	canvas:					base + '-canvas',
 	cell:					base + '-cell',
 	cellunselectable:		base + '-cell-unselectable',
 	clipboard:				base + '-clipboard',
@@ -11684,8 +11804,7 @@ module.exports = {
 	sticky:					base + '-sticky',
 	tooltip:				base + '-tooltip',
 	tooltiparrow:			base + '-tooltip-arrow',
-	viewport:				base + '-viewport',
-	canvas:					base + '-canvas'
+	viewport:				base + '-viewport'
 };
 },{}],13:[function(require,module,exports){
 "use strict";

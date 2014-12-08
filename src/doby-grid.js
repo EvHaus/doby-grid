@@ -1051,7 +1051,7 @@ var DobyGrid = function (options) {
 	 * @private
 	 */
 	bindCellRangeSelect = function () {
-		var decorator = new CellRangeDecorator($canvas, getCellNodeBox),
+		var decorator = new CellRangeDecorator(self, getCellNodeBox),
 			_dragging = null,
 			handleSelector = function () {
 				return $(this).closest('.' + CLS.cellunselectable).length > 0;
@@ -4280,7 +4280,9 @@ var DobyGrid = function (options) {
 		var x1 = -1;
 
 		for (var i = 0; i < cell; i++) {
-			x1 += cache.activeColumns[i].width + 1;
+			if (self.options.frozenColumns === -1 || i > self.options.frozenColumns) {
+				x1 += cache.activeColumns[i].width + 1;
+			}
 		}
 
 		var x2 = x1 + cache.activeColumns[cell].width + 2;
