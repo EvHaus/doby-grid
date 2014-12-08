@@ -277,21 +277,27 @@ Range.prototype.split = function (column, row) {
 		bottomRight = null;
 
 	// Split columns
-	if (column && this.toCell > column) {
-		topRight = new Range({fromCell: column, toCell: this.toCell, fromRow: this.fromRow, toRow: this.toRow});
+	if (column !== undefined && column !== null && column >= 0 && this.toCell > column) {
 		topLeft = new Range({fromCell: this.fromCell, toCell: column, fromRow: this.fromRow, toRow: this.toRow});
+		topRight = new Range({fromCell: column + 1, toCell: this.toCell, fromRow: this.fromRow, toRow: this.toRow});
 	} else {
 		topLeft = new Range({fromCell: this.fromCell, toCell: this.toCell, fromRow: this.fromRow, toRow: this.toRow});
 	}
 
+	// If split is to the left of the range, keep topLeft null
+	if (column < this.fromCell) {
+		topLeft = null;
+		topRight.fromCell = this.fromCell;
+	}
+
 	// Split rows
-	if (row && this.toRow > row) {
+	if (row !== undefined && row !== null && row >= 0 && this.toRow > row) {
 		topLeft = new Range({fromCell: topLeft.fromCell, toCell: topLeft.toCell, fromRow: this.fromRow, toRow: row});
-		bottomLeft = new Range({fromCell: topLeft.fromCell, toCell: topLeft.toCell, fromRow: row, toRow: this.toRow});
+		bottomLeft = new Range({fromCell: topLeft.fromCell, toCell: topLeft.toCell, fromRow: row + 1, toRow: this.toRow});
 
 		if (topRight) {
 			topRight = new Range({fromCell: topRight.fromCell, toCell: topRight.toCell, fromRow: this.fromRow, toRow: row});
-			bottomRight = new Range({fromCell: topRight.fromCell, toCell: topRight.toCell, fromRow: row, toRow: this.toRow});
+			bottomRight = new Range({fromCell: topRight.fromCell, toCell: topRight.toCell, fromRow: row + 1, toRow: this.toRow});
 		}
 	}
 
@@ -405,7 +411,7 @@ describe("Range", function () {
 				split = range.split(5),
 				result = [
 					new Range({fromCell: 0, toCell: 5, fromRow: 0, toRow: 10}),
-					new Range({fromCell: 5, toCell: 10, fromRow: 0, toRow: 10}),
+					new Range({fromCell: 6, toCell: 10, fromRow: 0, toRow: 10}),
 					null,
 					null
 				];
@@ -460,13 +466,33 @@ describe("Range", function () {
 		// ==========================================================================================
 
 
+		it("should not split() if split column is to the left of the selection", function () {
+			var range = new Range({fromCell: 5, toCell: 10, fromRow: 0, toRow: 10}),
+				split = range.split(1),
+				result = [
+					null,
+					range,
+					null,
+					null
+				];
+
+			expect(split[0]).toEqual(result[0]);
+			expect(split[1]).toEqual(result[1]);
+			expect(split[2]).toEqual(result[2]);
+			expect(split[3]).toEqual(result[3]);
+		});
+
+
+		// ==========================================================================================
+
+
 		it("should be able to split() a Range into two row ranges", function () {
 			var range = new Range({fromCell: 0, toCell: 10, fromRow: 0, toRow: 10}),
 				split = range.split(null, 5),
 				result = [
 					new Range({fromCell: 0, toCell: 10, fromRow: 0, toRow: 5}),
 					null,
-					new Range({fromCell: 0, toCell: 10, fromRow: 5, toRow: 10}),
+					new Range({fromCell: 0, toCell: 10, fromRow: 6, toRow: 10}),
 					null
 				];
 
@@ -504,9 +530,9 @@ describe("Range", function () {
 				split = range.split(5, 5),
 				result = [
 					new Range({fromCell: 0, toCell: 5, fromRow: 0, toRow: 5}),
-					new Range({fromCell: 5, toCell: 10, fromRow: 0, toRow: 5}),
-					new Range({fromCell: 0, toCell: 5, fromRow: 5, toRow: 10}),
-					new Range({fromCell: 5, toCell: 10, fromRow: 5, toRow: 10})
+					new Range({fromCell: 6, toCell: 10, fromRow: 0, toRow: 5}),
+					new Range({fromCell: 0, toCell: 5, fromRow: 6, toRow: 10}),
+					new Range({fromCell: 6, toCell: 10, fromRow: 6, toRow: 10})
 				];
 
 			expect(split[0]).toEqual(result[0]);
