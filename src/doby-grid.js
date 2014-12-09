@@ -3494,6 +3494,16 @@ var DobyGrid = function (options) {
 		}
 	};
 
+	/**
+	 * Edit the currently active cell (if the table, the column, and the item is editable)
+	 * @method editActiveCell
+	 * @memberof DobyGrid
+	 *
+	 * @param	{function}	editor		- Editor factory to use
+	 */
+	this.editActiveCell = function (editor) {
+		makeActiveCellEditable(editor);
+	};
 
 	/**
 	 * Given a set of columns, make sure 'minWidth <= width <= maxWidth
