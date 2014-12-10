@@ -203,6 +203,16 @@ describe("Events", function () {
 			var $cell = grid.$el.find('.doby-grid-cell').first();
 			$cell.simulate('dblclick');
 		},
+		'destroy': function (callback) {
+			var grid = resetGrid(defaultData());
+
+			// Subscribe to event
+			grid.on('destroy', function (event, args) {
+				callback(event, args, undefined);
+			});
+
+			grid.destroy();
+		},
 		'headerclick': function (callback) {
 			var grid = resetGrid(defaultData());
 

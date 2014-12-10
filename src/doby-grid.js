@@ -3532,6 +3532,9 @@ var DobyGrid = function (options) {
 
 		// Remove the garbage bin
 		$('#' + CLS.garbage).remove();
+		
+		// Call destroy event
+		this.trigger('destroy', this._event);
 	};
 
 
