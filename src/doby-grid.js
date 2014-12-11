@@ -1077,8 +1077,10 @@ var DobyGrid = function (options) {
 
 				if (!_dragging) return;
 
+				var $closestPane = $(this).closest($panes);
+
 				var start = getCellFromPoint(
-					dd.startX - $(this).offset().left + $(this).closest($panes).position().left,
+					dd.startX - $(this).offset().left + $closestPane.position().left,
 					dd.startY - $(this).offset().top
 				);
 
@@ -1095,8 +1097,18 @@ var DobyGrid = function (options) {
 
 				event.stopImmediatePropagation();
 
+				var $closestPane = $(this).closest($panes),
+					xPos = event.pageX - $(this).offset().left,
+					xOffset = $closestPane.position().left;
+
+				// If started dragging in left pane but ending in right, need to account
+				// for right pane scrolling
+				if (dd._range.start.cell <= self.options.frozenColumns && xPos > $viewport.eq(0).width()) {
+					xOffset += $viewport.eq(1)[0].scrollLeft;
+				}
+
 				var end = getCellFromPoint(
-					event.pageX - $(this).offset().left + $(this).closest($panes).position().left,
+					xPos + xOffset,
 					event.pageY - $(this).offset().top
 				);
 

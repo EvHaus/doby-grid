@@ -52,6 +52,17 @@ CellRangeDecorator.prototype.show = function (range) {
 		leftOffset = frozenCol >= 0 && range.fromCell > frozenCol ? $rightpane.position().left : 0,
 		widthOffset = frozenCol >= 0 && range.toCell > frozenCol && range.fromCell <= frozenCol ? $rightpane.position().left : 0;
 
+	// If the selection goes into the right viewports, and the right viewports are scrolled --
+	// we need to account for that when drawing the range
+	if (frozenCol >= 0) {
+		var $rightViewport = this.grid.$el.find('.' + CLS.viewport).eq(1);
+		if (range.fromCell > frozenCol) {
+			leftOffset -= $rightViewport[0].scrollLeft;
+		} else if (range.toCell > frozenCol) {
+			widthOffset -= $rightViewport[0].scrollLeft;
+		}
+	}
+
 	if (from && to) {
 		var width = to.right - from.left - borderLeft - borderRight;
 
