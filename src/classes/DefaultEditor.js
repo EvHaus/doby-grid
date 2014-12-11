@@ -105,6 +105,7 @@ var DefaultEditor = function (self, options) {
 				item.item[self.options.idProperty] = value;
 			}
 
+			// If you're using Backbone -- this will come in handy
 			if (item.item instanceof Backbone.Model) {
 				item.item.set(item.column.field, value);
 			} else {

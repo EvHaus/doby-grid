@@ -51,6 +51,7 @@ define(['faker', 'dataset'], function (Faker, dataset) {
 		return {
 			columns: columns,
 			data: dataset,
+			editable: true,
 			frozenColumns: 0
 		};
 	}];

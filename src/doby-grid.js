@@ -923,7 +923,8 @@ var DobyGrid = function (options) {
 				// If row has no caching set -- run the postprocessing
 				if (postprocess && !cache.postprocess[rowdata[self.options.idProperty]][col.id]) {
 					var node = cacheEntry.cellNodesByColumnIdx[columnIdx];
-					if (node) {
+					if (node && node.length) {
+						node = node[0];
 						postprocess({
 							$cell: $(node),
 							column: col,
@@ -10123,7 +10124,7 @@ var DobyGrid = function (options) {
 
 			columnIdx = columnIdx | 0;
 			var m = cache.activeColumns[columnIdx],
-				node = cacheEntry.cellNodesByColumnIdx[columnIdx];
+				node = cacheEntry.cellNodesByColumnIdx[columnIdx][0];
 
 			if (self.active && row === self.active.row && columnIdx === self.active.cell && self.currentEditor) {
 				self.currentEditor.loadValue(d);
