@@ -46,17 +46,20 @@ CellRangeDecorator.prototype.show = function (range) {
 		borderLeft = parseInt(this.$el.css('borderLeftWidth'), 10),
 		borderRight = parseInt(this.$el.css('borderRightWidth'), 10),
 		borderTop = parseInt(this.$el.css('borderTopWidth'), 10),
+		$rightpane = this.grid.$el.find('.' + CLS.pane).eq(1),
 		topOffset = this.grid.$el.find('.' + CLS.pane + ":first ." + CLS.viewport).first().position().top,
-		leftOffset = this.grid.options.frozenColumns >= 0 && range.toCell > this.grid.options.frozenColumns ? this.grid.$el.find('.' + CLS.pane).eq(1).position().left : 0;
+		frozenCol = this.grid.options.frozenColumns,
+		leftOffset = frozenCol >= 0 && range.fromCell > frozenCol ? $rightpane.position().left : 0,
+		widthOffset = frozenCol >= 0 && range.toCell > frozenCol && range.fromCell <= frozenCol ? $rightpane.position().left : 0;
 
 	if (from && to) {
 		var width = to.right - from.left - borderLeft - borderRight;
 
 		this.$el.css({
 			top: from.top + topOffset,
-			left: from.left,
+			left: from.left + leftOffset,
 			height: to.bottom - from.top - borderBottom - borderTop,
-			width: width + leftOffset
+			width: width + widthOffset
 		});
 
 		// Only display stats box if there is enough room
