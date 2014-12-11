@@ -591,13 +591,13 @@ describe("Grid Options", function () {
 			grid.selectCells(0, 0, 1, 1);
 
 			// Make sure we're focused on the canvas
-			grid.$el.find('.doby-grid-canvas').focus();
+			grid.$el.find('.doby-grid-canvas').eq(0).focus();
 
 			// Simulate Ctrl + C
 			var press = $.Event('keydown');
 			press.ctrlKey = true;
 			press.which = 67;
-			grid.$el.find('.doby-grid-canvas').trigger(press);
+			grid.$el.find('.doby-grid-canvas').eq(0).trigger(press);
 
 			// Since we don't have access the actual clipboard, the
 			// best we can do here is check to make sure the clipboard element was created and focused
