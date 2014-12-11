@@ -43,6 +43,7 @@ module.exports = {
 	left:					base + '-scrollbar-left',
 	noright:				base + '-no-right',
 	pane:					base + '-pane',
+	paneactive:				base + '-pane-active',
 	placeholder:			base + '-sortable-placeholder',
 	rangedecorator:			base + '-range-decorator',
 	rangedecoratorstat:		base + '-range-decorator-stats',

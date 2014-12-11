@@ -285,7 +285,7 @@ Range.prototype.split = function (column, row) {
 	}
 
 	// If split is to the left of the range, keep topLeft null
-	if (column < this.fromCell) {
+	if (column < this.fromCell && topRight) {
 		topLeft = null;
 		topRight.fromCell = this.fromCell;
 	}
