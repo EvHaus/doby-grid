@@ -4166,7 +4166,7 @@ var DobyGrid = function (options) {
 
 		for (i = 0, l = cache.activeColumns.length; i < l; i++) {
 			// The 2 here is to compensate for the spacing between columns
-			colWidth = cache.activeColumns[i].width - self.options.columnSpacing + (self.options.fullWidthRows ? 2 : 0);
+			colWidth = cache.activeColumns[i].width - self.options.columnSpacing + 2;
 
 			if ((self.options.frozenColumns > -1) && (i > self.options.frozenColumns)) {
 				canvasWidthR += colWidth;
@@ -4178,6 +4178,15 @@ var DobyGrid = function (options) {
 		// When fullWidthRows is disabled - keep canvas as big as the data only
 		var totalRowWidth = canvasWidthL + canvasWidthR;
 		var result = self.options.fullWidthRows ? Math.max(totalRowWidth, availableWidth) : (totalRowWidth + l * 2);
+
+		// Handle fullWidthRows correctly when frozenColumns are enabled
+		if (self.options.fullWidthRows) {
+			if (self.options.frozenColumns > -1) {
+				canvasWidthR = result - canvasWidthL;
+			} else {
+				canvasWidthL = result;
+			}
+		}
 
 		// Support for left-side scrollbar
 		if (self.options.scrollbarPosition == 'left') result--;
@@ -9991,7 +10000,7 @@ var DobyGrid = function (options) {
 			}
 
 			$canvas.eq(0).width(canvasWidthL);
-			$canvas.eq(1).width(canvasWidthR);
+			$canvas.eq(1).width(self.options.fullWidthRows ? canvasWidth - canvasWidthL : canvasWidthR);
 
 			// Set header widths
 			if (self.options.showHeader) $headers.width(getHeadersWidth());
