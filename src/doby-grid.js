@@ -846,9 +846,9 @@ var DobyGrid = function (options) {
 			// Determine if this column is the right-most in its pane
 			isRightmostColumn = (i + 1 === l) || (self.options.frozenColumns != -1 && i === self.options.frozenColumns);
 
-			// If this is the rightmost column, and there is no vertical scrollbar, and
+			// If this is the rightmost column, and there is no vertical scrollbar, then
 			// do not allow negative spacing on the right otherwise we get a gap
-			if (!viewportHasVScroll && self.options.scrollbarPosition === 'right' && isRightmostColumn) {
+			if (!viewportHasVScroll && self.options.scrollbarPosition === 'right' && isRightmostColumn && r < 0) {
 				r = 0;
 			}
 

@@ -831,7 +831,7 @@ describe("Grid Options", function () {
 		// ==========================================================================================
 
 
-		it("should be correct affect default column width but not affect defined column widths", function () {
+		it("should affect default column width but not affect defined column widths", function () {
 			var cols = [{
 				id: 'one',
 				name: 'One'
