@@ -131,7 +131,6 @@ module.exports = function (grunt) {
 	grunt.loadNpmTasks('grunt-contrib-uglify');
 	grunt.loadNpmTasks('grunt-contrib-watch');
 	grunt.loadNpmTasks('grunt-jscs');
-	grunt.loadNpmTasks('grunt-jsdoc');
 	grunt.loadNpmTasks('grunt-lesslint');
 
 	// Grunt "default" task (validation and unit tests only)
