@@ -1580,6 +1580,7 @@ var DobyGrid = function (options) {
 		resetAggregators,
 		resizeCanvas,
 		resizeColumn,
+		resizeColumnToContent,
 		resizeContainer,
 		scrollCellIntoView,
 		scrollLeft = 0,
@@ -4867,6 +4868,9 @@ var DobyGrid = function (options) {
 
 		// Remove the garbage bin
 		$('#' + CLS.garbage).remove();
+
+		// Call destroy event
+		this.trigger('destroy', this._event);
 	};
 
 
@@ -6959,6 +6963,7 @@ var DobyGrid = function (options) {
 			setActiveCellInternal(getCellNode(cell.row, cell.cell));
 		}
 	};
+
 
 
 	/**
@@ -9331,6 +9336,72 @@ var DobyGrid = function (options) {
 
 
 	/**
+	 * Given a column, resizes the column according to its contents
+	 * @method resizeColumnToContent
+	 * @memberof DobyGrid
+	 * @private
+	 *
+	 * @param	{object}	column		- The column to resize
+	 * @param	{object}	event		- The event that caused the execution (if any)
+	 * @param 	{boolean} 	useMaxWidth - Take the maximum width of the column into account
+	 * @param 	{boolean} 	submit		- Submit column resize
+	 * @param 	{boolean} 	silent 		- Don't trigger resize events
+	 */
+	resizeColumnToContent = function (column, event, useMaxWidth, submit, silent) {
+		if (!column) return;
+		var column_index = cache.columnsById[column.id],
+			// Either use the width of the column's content or the min column width
+			currentWidth = column.width,
+			newWidth = Math.max(getColumnContentWidth(column_index), column.minWidth);
+
+		if (useMaxWidth) newWidth = Math.min(newWidth, column.maxWidth);
+
+		// Do nothing if width isn't changed
+		if (currentWidth == newWidth) return;
+
+		var pageX = event && event.pageX || cache.columnPosRight[column_index];
+
+		lockColumnWidths(column_index);
+
+		// Calculate resize diff
+		var diff = newWidth - currentWidth;
+
+		// Duplicate the drag functionality
+		prepareLeeway(column_index, pageX);
+
+		// This will ensure you can't resize beyond the maximum allowed width
+		var delta = Math.min(maxPageX, Math.max(minPageX, pageX + diff)) - pageX;
+
+		resizeColumn(column_index, delta);
+		applyHeaderAndColumnWidths();
+		(submit || typeof(submit) === "undefined" || submit === null) && submitColResize(silent);
+	};
+
+
+	/**
+	 * Resizes all columns according to their contents
+	 * @method resizeColumnsToContent
+	 * @memberof DobyGrid
+	 *
+	 * @param 	{boolean} 	useMaxWidth 	- Take the maximum width of the columns into account
+	 * @param 	{boolean} 	once 			- Submit the column resize only once for all columns
+	 * @param 	{boolean} 	silent 			- Don't trigger resize events
+	 */
+	this.resizeColumnsToContent = function (useMaxWidth, once, silent) {
+		for (var i = 0, l = cache.activeColumns.length; i < l; i++) {
+			var c = cache.activeColumns[i];
+			resizeColumnToContent(c, null, useMaxWidth, !once, silent);
+		}
+
+		if (once) {
+			submitColResize(silent);
+		}
+
+		return this;
+	};
+
+
+	/**
 	 * Resizes the tables outer container to fit the total height of all visible rows
 	 * (currently only used for options.autoHeight).
 	 * @method resizeContainer
@@ -10295,31 +10366,9 @@ var DobyGrid = function (options) {
 			if (!$(event.target).closest('.' + CLS.handle).length) return;
 
 			var column = getColumnFromEvent(event);
-			if (!column) return;
-			var column_index = cache.columnsById[column.id],
-				// Either use the width of the column's content or the min column width
-				currentWidth = column.width,
-				newWidth = Math.max(getColumnContentWidth(column_index), column.minWidth);
 
-			// Do nothing if width isn't changed
-			if (currentWidth == newWidth) return;
+			resizeColumnToContent(column, event);
 
-			var pageX = event.pageX;
-
-			lockColumnWidths(column_index);
-
-			// Calculate resize diff
-			var diff = newWidth - currentWidth;
-
-			// Duplicate the drag functionality
-			prepareLeeway(column_index, pageX);
-
-			// This will ensure you can't resize beyond the maximum allowed width
-			var delta = Math.min(maxPageX, Math.max(minPageX, pageX + diff)) - pageX;
-
-			resizeColumn(column_index, delta);
-			applyHeaderAndColumnWidths();
-			submitColResize();
 		});
 
 		// Create drag handles
@@ -10663,11 +10712,9 @@ var DobyGrid = function (options) {
 			topGroup = getGroupFromRow(topRow),
 			stickyGroups = [topGroup];
 
-		// TODO: Group could not be found for some reason. Investigate why this might happen
-		if (!topGroup) {
-			if (console && console.warn) console.warn('Unable to detect top-most sticky group. This should never happen. Please report the case to DobyGrid support.');
-			return;
-		}
+		// Group could not be found for some reason. Perhaps because
+		// the grid hasn't finished rendering (like during a resize event)
+		if (!topGroup) return;
 
 		var buildParentGroups = function (group) {
 			if (group.parentGroup) {

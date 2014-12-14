@@ -20,5 +20,6 @@ To build the project from the source code (and to look at the packaged examples)
 
 ```
 npm install
+bower install
 grunt build
 ```
