@@ -7819,7 +7819,7 @@ var DobyGrid = function (options) {
 			}
 		}
 	};
-	
+
 
 	/**
 	 * Given a column, resizes the column according to its contents
@@ -7863,7 +7863,7 @@ var DobyGrid = function (options) {
 		(submit || typeof(submit) === "undefined" || submit === null) && submitColResize(silent);
 	};
 
-	
+
 	/**
 	 * Resizes all columns according to their contents
 	 * @method resizeColumnsToContent
