@@ -7869,7 +7869,7 @@ var DobyGrid = function (options) {
 	 * @method resizeColumnsToContent
 	 * @memberof DobyGrid
 	 *
-	 * @param 	{object} 	useMaxWidth 	- Take the maximum width of the columns into account
+	 * @param 	{boolean} 	useMaxWidth 	- Take the maximum width of the columns into account
 	 * @param 	{boolean} 	once 			- Submit the column resize only once for all columns
 	 * @param 	{boolean} 	silent 			- Don't trigger resize events
 	 */
@@ -7882,6 +7882,8 @@ var DobyGrid = function (options) {
 		if (once) {
 			submitColResize(silent);
 		}
+
+		return this;
 	};
 
 
