@@ -79,7 +79,7 @@ describe("Grid Options", function () {
 			expect(grid.active.row).toEqual(0);
 
 			// Scroll page down
-			grid.$el.find('.doby-grid-canvas').simulate('keydown', {keyCode: 34});
+			grid.$el.find('.doby-grid-canvas').eq(0).simulate('keydown', {keyCode: 34});
 
 			// Expect active cell to change
 			expect(grid.active.row).not.toEqual(prevActive);
@@ -109,7 +109,7 @@ describe("Grid Options", function () {
 			expect(grid.active.row).toEqual(0);
 
 			// Scroll page down
-			grid.$el.find('.doby-grid-canvas').simulate('keydown', {which: 34});
+			grid.$el.find('.doby-grid-canvas').eq(0).simulate('keydown', {which: 34});
 
 			// Expect active cell to change
 			expect(grid.active.row).toEqual(prevActive);
@@ -387,7 +387,7 @@ describe("Grid Options", function () {
 			// Get column elements
 			var headerEls = grid.$el.find('.doby-grid-header-column'),
 				cellEls = grid.$el.find('.doby-grid-row:first .doby-grid-cell'),
-				canvas = grid.$el.find('.doby-grid-canvas');
+				canvas = grid.$el.find('.doby-grid-canvas').eq(0);
 
 			var columnsW = [],
 				headerW = [],
@@ -591,13 +591,13 @@ describe("Grid Options", function () {
 			grid.selectCells(0, 0, 1, 1);
 
 			// Make sure we're focused on the canvas
-			grid.$el.find('.doby-grid-canvas').eq(0).focus();
+			grid.$el.find('.doby-grid-canvas').eq(0).eq(0).focus();
 
 			// Simulate Ctrl + C
 			var press = $.Event('keydown');
 			press.ctrlKey = true;
 			press.which = 67;
-			grid.$el.find('.doby-grid-canvas').eq(0).trigger(press);
+			grid.$el.find('.doby-grid-canvas').eq(0).eq(0).trigger(press);
 
 			// Since we don't have access the actual clipboard, the
 			// best we can do here is check to make sure the clipboard element was created and focused
@@ -628,7 +628,7 @@ describe("Grid Options", function () {
 			var press = $.Event('keydown');
 			press.ctrlKey = true;
 			press.which = 67;
-			grid.$el.find('.doby-grid-canvas').trigger(press);
+			grid.$el.find('.doby-grid-canvas').eq(0).trigger(press);
 
 			expect(alertSpy).toHaveBeenCalledWith('Sorry, you cannot copy multiple selections.');
 		});
@@ -1823,7 +1823,7 @@ describe("Grid Options", function () {
 			grid.activate(0, 0);
 
 			// Go right
-			grid.$el.find('.doby-grid-canvas').simulate('keydown', {keyCode: 39});
+			grid.$el.find('.doby-grid-canvas').eq(0).simulate('keydown', {keyCode: 39});
 
 			expect(grid.active).toBeDefined();
 			expect(grid.active.row).toEqual(0);
@@ -1845,7 +1845,7 @@ describe("Grid Options", function () {
 			grid.$el.find('.doby-grid-cell:first').first().simulate('click');
 
 			// Go right
-			grid.$el.find('.doby-grid-canvas').simulate('keydown', {keyCode: 39});
+			grid.$el.find('.doby-grid-canvas').eq(0).simulate('keydown', {keyCode: 39});
 
 			expect(grid.active).toBeDefined();
 			expect(grid.active.row).toEqual(0);
@@ -1864,7 +1864,7 @@ describe("Grid Options", function () {
 			grid.activate(0, 1);
 
 			// Go right
-			grid.$el.find('.doby-grid-canvas').simulate('keydown', {keyCode: 37});
+			grid.$el.find('.doby-grid-canvas').eq(0).simulate('keydown', {keyCode: 37});
 
 			expect(grid.active).toBeDefined();
 			expect(grid.active.row).toEqual(0);
@@ -1886,7 +1886,7 @@ describe("Grid Options", function () {
 			grid.$el.find('.doby-grid-cell:nth-child(2)').first().simulate('click');
 
 			// Go right
-			grid.$el.find('.doby-grid-canvas').simulate('keydown', {keyCode: 37});
+			grid.$el.find('.doby-grid-canvas').eq(0).simulate('keydown', {keyCode: 37});
 
 			expect(grid.active).toBeDefined();
 			expect(grid.active.row).toEqual(0);
@@ -1905,7 +1905,7 @@ describe("Grid Options", function () {
 			grid.activate(0, 0);
 
 			// Go right
-			grid.$el.find('.doby-grid-canvas').simulate('keydown', {keyCode: 40});
+			grid.$el.find('.doby-grid-canvas').eq(0).simulate('keydown', {keyCode: 40});
 
 			expect(grid.active).toBeDefined();
 			expect(grid.active.row).toEqual(1);
@@ -1927,7 +1927,7 @@ describe("Grid Options", function () {
 			grid.$el.find('.doby-grid-cell:first').first().simulate('click');
 
 			// Go right
-			grid.$el.find('.doby-grid-canvas').simulate('keydown', {keyCode: 40});
+			grid.$el.find('.doby-grid-canvas').eq(0).simulate('keydown', {keyCode: 40});
 
 			expect(grid.active).toBeDefined();
 			expect(grid.active.row).toEqual(1);
@@ -1946,7 +1946,7 @@ describe("Grid Options", function () {
 			grid.activate(1, 0);
 
 			// Go right
-			grid.$el.find('.doby-grid-canvas').simulate('keydown', {keyCode: 38});
+			grid.$el.find('.doby-grid-canvas').eq(0).simulate('keydown', {keyCode: 38});
 
 			expect(grid.active).toBeDefined();
 			expect(grid.active.row).toEqual(0);
@@ -1968,7 +1968,7 @@ describe("Grid Options", function () {
 			grid.$el.find('.doby-grid-row:nth-child(2) .doby-grid-cell:first').first().simulate('click');
 
 			// Go right
-			grid.$el.find('.doby-grid-canvas').simulate('keydown', {keyCode: 38});
+			grid.$el.find('.doby-grid-canvas').eq(0).simulate('keydown', {keyCode: 38});
 
 			expect(grid.active).toBeDefined();
 			expect(grid.active.row).toEqual(0);
@@ -1990,7 +1990,7 @@ describe("Grid Options", function () {
 			grid.activate(0, 0);
 
 			// Go right
-			grid.$el.find('.doby-grid-canvas').simulate('keydown', {keyCode: 9});
+			grid.$el.find('.doby-grid-canvas').eq(0).simulate('keydown', {keyCode: 9});
 
 			expect(grid.active).toBeDefined();
 			expect(grid.active.row).toEqual(0);
@@ -2012,7 +2012,7 @@ describe("Grid Options", function () {
 			grid.$el.find('.doby-grid-cell:first').first().simulate('click');
 
 			// Go right
-			grid.$el.find('.doby-grid-canvas').simulate('keydown', {keyCode: 9});
+			grid.$el.find('.doby-grid-canvas').eq(0).simulate('keydown', {keyCode: 9});
 
 			expect(grid.active).toBeDefined();
 			expect(grid.active.row).toEqual(0);
@@ -2034,7 +2034,7 @@ describe("Grid Options", function () {
 			grid.activate(0, 1);
 
 			// Shift+Tab
-			grid.$el.find('.doby-grid-canvas').simulate('keydown', {shiftKey: true, keyCode: 9});
+			grid.$el.find('.doby-grid-canvas').eq(0).simulate('keydown', {shiftKey: true, keyCode: 9});
 
 			expect(grid.active).toBeDefined();
 			expect(grid.active.row).toEqual(0);
@@ -2056,7 +2056,7 @@ describe("Grid Options", function () {
 			grid.$el.find('.doby-grid-cell:nth-child(2)').first().simulate('click');
 
 			// Go right
-			grid.$el.find('.doby-grid-canvas').simulate('keydown', {shiftKey: true, keyCode: 9});
+			grid.$el.find('.doby-grid-canvas').eq(0).simulate('keydown', {shiftKey: true, keyCode: 9});
 
 			expect(grid.active).toBeDefined();
 			expect(grid.active.row).toEqual(0);
@@ -2081,10 +2081,10 @@ describe("Grid Options", function () {
 				keyboardNavigation: true
 			}));
 
-			// Clucj ib editable cell to activate it and set focus on editor
+			// Click on editable cell to activate it and set focus on editor
 			grid.$el.find('.doby-grid-cell').last().simulate('click');
 
-			var $canvas = grid.$el.find('.doby-grid-canvas');
+			var $canvas = grid.$el.find('.doby-grid-canvas').eq(0);
 
 			// Shift+Tab
 			$canvas.simulate('keydown', {shiftKey: true, keyCode: 9});
@@ -2092,7 +2092,8 @@ describe("Grid Options", function () {
 			// 1, 0 should be selected
 			expect(grid.active.row).toEqual(1);
 			expect(grid.active.cell).toEqual(0);
-			expect($(document.activeElement)).toEqual(grid.$el.find('.doby-grid-canvas'));
+			console.log($(document.activeElement), $canvas)
+			expect(document.activeElement).toEqual($canvas[0]);
 		});
 	});
 
@@ -2920,7 +2921,7 @@ describe("Grid Options", function () {
 			});
 
 			var viewport_width = grid.$el.find('.doby-grid-viewport').width(),
-				canvas_width = grid.$el.find('.doby-grid-canvas').width();
+				canvas_width = grid.$el.find('.doby-grid-canvas').eq(0).width();
 
 			// Make sure the canvas width didn't grow to be bigger than the viewport width
 			expect(viewport_width).toEqual(canvas_width);
@@ -3703,14 +3704,14 @@ describe("Grid Options", function () {
 			}));
 
 			// Make sure grid has focus
-			grid.$el.find('.doby-grid-canvas').focus();
+			grid.$el.find('.doby-grid-canvas').eq(0).focus();
 
 			// Activate and select some cells
 			grid.selectCells(0, 0, 1, 1);
 			grid.activate(0, 0);
 
 			// Click outside the grid
-			grid.$el.find('.doby-grid-canvas').simulate('blur');
+			grid.$el.find('.doby-grid-canvas').eq(0).simulate('blur');
 
 			// Ensure active cell is still set
 			expect(grid.active.cell).toEqual(0);
@@ -3728,7 +3729,7 @@ describe("Grid Options", function () {
 			}));
 
 			// Make sure grid has focus
-			grid.$el.find('.doby-grid-canvas').focus();
+			grid.$el.find('.doby-grid-canvas').eq(0).focus();
 
 			// Activate and select some cells
 			grid.selectCells(0, 0, 1, 1);

@@ -5783,7 +5783,7 @@ var DobyGrid = function (options) {
 						makeActiveCellNormal();
 
 						// Return focus back to the canvas
-						$canvas.focus();
+						$canvas.eq(0).focus();
 						handled = true;
 					} else if (self.selection) {
 						// If something is selected remove the selection range
@@ -6487,7 +6487,7 @@ var DobyGrid = function (options) {
 		// When an editor is destroyed, the input element loses focus and focus is given back
 		// to the 'body' element. To retain focus on the grid - we need to manually set it here first.
 		if (self.currentEditor.$input.is(document.activeElement)) {
-			$canvas.focus();
+			$canvas.eq(0).focus();
 		}
 
 		self.currentEditor.destroy();
@@ -9242,7 +9242,7 @@ var DobyGrid = function (options) {
 			handleResize();
 
 			// Re-focus on the canvas
-			$canvas.focus();
+			$canvas.eq(0).focus();
 			return;
 		}
 
