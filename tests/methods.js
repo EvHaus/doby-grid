@@ -1613,6 +1613,32 @@ describe("Methods and Data Manipulation", function () {
 			}).not.toThrow();
 		});
 	});
+	
+	
+	// ==========================================================================================
+
+
+	describe("resizeColumnsToContent()", function () {
+		it("should resize columns based on their content", function () {
+			var newdata = [
+				{data: {id: 1, name: 'test'}, id: 1},
+				{data: {id: 2, name: 'veryveryveryveryveryveryveryverylong'}, id: 2}
+			];
+			
+			var grid = resetGrid({
+				columns: [{field: 'name', id: 'name'}],
+				data: newdata
+			});
+			
+			var prevWidth = grid.options.columns[0].width;
+			
+			grid.resizeColumnsToContent();
+			
+			var newWidth = grid.options.columns[0].width;
+			
+			expect(newWidth).toBeGreaterThan(prevWidth);
+		});
+	});
 
 
 	// ==========================================================================================

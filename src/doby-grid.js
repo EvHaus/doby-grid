@@ -7819,6 +7819,7 @@ var DobyGrid = function (options) {
 			}
 		}
 	};
+	
 
 	/**
 	 * Given a column, resizes the column according to its contents
@@ -7862,15 +7863,15 @@ var DobyGrid = function (options) {
 		(submit || typeof(submit) === "undefined" || submit === null) && submitColResize(silent);
 	};
 
+	
 	/**
 	 * Resizes all columns according to their contents
 	 * @method resizeColumnsToContent
 	 * @memberof DobyGrid
-	 * @private
 	 *
-	 * @param 	{object} 	useMaxWidth - Take the maximum width of the columns into account
-	 * @param 	{boolean} 	once 		- Submit the colum resize only once for all columns
-	 * @param 	{boolean} 	silent 		- Don't trigger resize events
+	 * @param 	{object} 	useMaxWidth 	- Take the maximum width of the columns into account
+	 * @param 	{boolean} 	once 			- Submit the column resize only once for all columns
+	 * @param 	{boolean} 	silent 			- Don't trigger resize events
 	 */
 	this.resizeColumnsToContent = function (useMaxWidth, once, silent) {
 		for (var i = 0, l = cache.activeColumns.length; i < l; i++) {
