@@ -2092,7 +2092,6 @@ describe("Grid Options", function () {
 			// 1, 0 should be selected
 			expect(grid.active.row).toEqual(1);
 			expect(grid.active.cell).toEqual(0);
-			console.log($(document.activeElement), $canvas)
 			expect(document.activeElement).toEqual($canvas[0]);
 		});
 	});
