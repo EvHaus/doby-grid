@@ -1478,7 +1478,7 @@ describe("Methods and Data Manipulation", function () {
 			grid.hideOverlay();
 
 			// Should clear the canvas and show the custom overlay
-			var $viewport = grid.$el.find('.doby-grid-canvas');
+			var $viewport = grid.$el.find('.doby-grid-canvas').eq(0);
 			expect($viewport).not.toContainElement('.doby-grid-overlay');
 			expect($viewport).toContainElement('.doby-grid-row');
 		});
@@ -1613,8 +1613,8 @@ describe("Methods and Data Manipulation", function () {
 			}).not.toThrow();
 		});
 	});
-	
-	
+
+
 	// ==========================================================================================
 
 
@@ -1624,18 +1624,18 @@ describe("Methods and Data Manipulation", function () {
 				{data: {id: 1, name: 'test'}, id: 1},
 				{data: {id: 2, name: 'veryveryveryveryveryveryveryverylong'}, id: 2}
 			];
-			
+
 			var grid = resetGrid({
 				columns: [{field: 'name', id: 'name'}],
 				data: newdata
 			});
-			
+
 			var prevWidth = grid.options.columns[0].width;
-			
+
 			grid.resizeColumnsToContent();
-			
+
 			var newWidth = grid.options.columns[0].width;
-			
+
 			expect(newWidth).toBeGreaterThan(prevWidth);
 		});
 	});
