@@ -6480,10 +6480,6 @@ var DobyGrid = function (options) {
 
 		if (!self.currentEditor) return;
 
-		/*self.trigger('onBeforeCellEditorDestroy', {}, {
-			editor: self.currentEditor
-		});*/
-
 		// When an editor is destroyed, the input element loses focus and focus is given back
 		// to the 'body' element. To retain focus on the grid - we need to manually set it here first.
 		if (self.currentEditor.$input.is(document.activeElement)) {
@@ -7523,10 +7519,13 @@ var DobyGrid = function (options) {
 	renderColumnHeaders = function () {
 		if (!self.options.showHeader) return;
 
-		if (!$headers.is(':empty')) {
-			$headers.empty();
-			$headers.width(getHeadersWidth());
-		}
+		// Reset the headers
+		$headers.each(function () {
+			if (!$(this).is(':empty')) {
+				$(this).empty();
+				$(this).width(getHeadersWidth());
+			}
+		});
 
 		// Render columns
 		var column, html, classes, w, $headerTarget;
@@ -9055,7 +9054,6 @@ var DobyGrid = function (options) {
 			var column = getColumnFromEvent(event);
 
 			resizeColumnToContent(column, event);
-
 		});
 
 		// Create drag handles
