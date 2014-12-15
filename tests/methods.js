@@ -3274,7 +3274,8 @@ describe("Methods and Data Manipulation", function () {
 				data: [
 					{id: 1, data: {id: 1, name: 'one'}},
 					{id: 2, data: {id: 2, name: 'two'}}
-				]
+				],
+				quickFilter: true
 			});
 
 			// Execute
@@ -3297,7 +3298,8 @@ describe("Methods and Data Manipulation", function () {
 				data: [
 					{id: 1, data: {id: 1, name: 'one'}},
 					{id: 2, data: {id: 2, name: 'two'}}
-				]
+				],
+				quickFilter: true
 			});
 
 			// Show

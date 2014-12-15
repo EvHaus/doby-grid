@@ -9223,7 +9223,7 @@ var DobyGrid = function (options) {
 	 *
 	 */
 	this.showQuickFilter = function (column_id) {
-		if (!self.options.showHeader) return;
+		if (!self.options.showHeader || !self.options.quickFilter) return;
 
 		var handleResize = function () {
 			// Update viewport
@@ -9236,7 +9236,9 @@ var DobyGrid = function (options) {
 
 		// Toggle off
 		if ((column_id === undefined || column_id === null) && $headerFilter) {
-			removeElement($headerFilter[0]);
+			$headerFilter.each(function () {
+				removeElement(this);
+			});
 			$headerFilter = undefined;
 
 			handleResize();
@@ -9308,7 +9310,7 @@ var DobyGrid = function (options) {
 				html.push('</div>');
 				cell = $(html.join(''));
 
-				if (i <= self.options.frozenColumns) {
+				if (i <= self.options.frozenColumns || self.options.frozenColumns < 0) {
 					cell.appendTo($headerFilterL);
 				} else {
 					cell.appendTo($headerFilterR);
