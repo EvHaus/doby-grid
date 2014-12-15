@@ -65,6 +65,8 @@ var DobyGrid = function (options) {
 		$headerL,
 		$headerR,
 		$headerFilter,
+		$headerFilterL,
+		$headerFilterR,
 		$headerScroller,
 		$headerScrollerL,
 		$headerScrollerR,
@@ -9287,8 +9289,11 @@ var DobyGrid = function (options) {
 
 		// Draw new filter bar
 		if (!$headerFilter) {
-			$headerFilter = $('<div class="' + CLS.headerfilter + '"></div>')
-				.appendTo($headerScroller);
+			$headerFilter = $();
+			$headerFilterL = $('<div class="' + CLS.headerfilter + '"></div>').appendTo($headerScrollerL);
+			$headerFilterR = $('<div class="' + CLS.headerfilter + '"></div>').appendTo($headerScrollerR);
+			$headerFilter = $headerFilter.add($headerFilterL);
+			$headerFilter = $headerFilter.add($headerFilterR);
 
 			// Create a cell for each column
 			var column, cell, html;
@@ -9302,7 +9307,12 @@ var DobyGrid = function (options) {
 				html.push('">');
 				html.push('</div>');
 				cell = $(html.join(''));
-				cell.appendTo($headerFilter);
+
+				if (i <= self.options.frozenColumns) {
+					cell.appendTo($headerFilterL);
+				} else {
+					cell.appendTo($headerFilterR);
+				}
 
 				// Skip non-filterable columns
 				if (!column.filterable) continue;
