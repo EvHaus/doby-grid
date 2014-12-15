@@ -9468,12 +9468,15 @@ var DobyGrid = function (options) {
 					// (due to being outside the viewport)
 					if (!cacheNode) {
 						var rowhtml = [];
-						renderRow(rowhtml, stickyIndex, {
+						// TODO: This may need special handling for frozen columns as
+						// groups may be in either the left or the right pane
+						renderRow(rowhtml, [], stickyIndex, {
 							bottom: stickyIndex,
 							leftPx: 0,
 							top: stickyIndex,
 							rightPx: $viewport.width()
 						});
+
 						$clone = $(rowhtml.join(''));
 					} else {
 						var $groupHeaderNode = $(cacheNode.rowNode);
