@@ -366,6 +366,7 @@ var DobyGrid = function (options) {
 		lineHeightOffset:		-1,
 		nestedAggregators:		true,
 		menuExtensions:			null,
+		menuExtensionsPosition:	"bottom",
 		minColumnWidth:			"",
 		multiColumnSort:		true,
 		quickFilter:			false,
@@ -9697,13 +9698,19 @@ var DobyGrid = function (options) {
 
 			if (activeExtensions.length) {
 				// Add title
-				menuData.push({
+				var extensionsMenuData = [{
 					name: getLocale('global.extensions'),
 					title: true
-				});
+				}];
 
 				for (var q = 0, w = activeExtensions.length; q < w; q++) {
-					menuData.push(validateMenuExtension(activeExtensions[q]));
+					extensionsMenuData.push(validateMenuExtension(activeExtensions[q]));
+				}
+
+				if (self.options.menuExtensionsPosition === 'top') {
+					menuData = extensionsMenuData.concat(menuData);
+				} else {
+					menuData = menuData.concat(extensionsMenuData);
 				}
 			}
 		}
