@@ -9483,7 +9483,7 @@ var DobyGrid = function (options) {
 				} else {
 					var child = '.' + CLS.sticky + '[rel="' + group[self.options.idProperty] + '"]:first';
 
-					$clone = $panes.eq(0).children(child);
+					$clone = $panes.children(child);
 
 					if ($clone.length) $clone.remove();
 
@@ -9496,17 +9496,19 @@ var DobyGrid = function (options) {
 					// Create group row if it doesn't already exist,
 					// (due to being outside the viewport)
 					if (!cacheNode) {
-						var rowhtml = [];
-						// TODO: This may need special handling for frozen columns as
-						// groups may be in either the left or the right pane
-						renderRow(rowhtml, [], stickyIndex, {
+						var leftrowhtml = [],
+							rightrowhtml = [];
+
+						renderRow(leftrowhtml, rightrowhtml, stickyIndex, {
 							bottom: stickyIndex,
 							leftPx: 0,
 							top: stickyIndex,
-							rightPx: $viewport.width()
+							rightPx: self.$el.width()
 						});
 
-						$clone = $(rowhtml.join(''));
+						$clone = $();
+						$clone = $clone.add($(leftrowhtml.join('')));
+						$clone = $clone.add($(rightrowhtml.join('')));
 					} else {
 						var $groupHeaderNode = $(cacheNode.rowNode);
 						$clone = $groupHeaderNode.clone();
@@ -9515,9 +9517,19 @@ var DobyGrid = function (options) {
 					$clone
 						.addClass(CLS.sticky)
 						.attr('rel', group[self.options.idProperty])
-						.width($canvas.css('width'))
-						.appendTo($panes.eq(0))
 						.removeClass(CLS.grouptoggle);
+
+					// Inject left-pane sticky
+					$clone.eq(0)
+						.width($canvas.eq(0).css('width'))
+						.appendTo($panes.eq(0));
+
+					// Inject right-pane sticky (for frozen columns)
+					if ($clone.length > 1) {
+						$clone.eq(1)
+							.width($canvas.eq(1).css('width'))
+							.appendTo($panes.eq(1));
+					}
 
 					// Cache row
 					cache.stickyRows[i] = $clone;
