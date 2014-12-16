@@ -309,6 +309,8 @@ var DobyGrid = function (options) {
 			export:				'Export',
 			export_csv:			'Export Table to CSV',
 			export_html:		'Export Table to HTML',
+			export_group_csv:	'Export Group to CSV',
+			export_group_html:	'Export Group to HTML',
 			extensions:			'Extensions',
 			grid_options:		'Grid Options',
 			hide_filter:		'Hide Quick Filter'
@@ -3605,10 +3607,11 @@ var DobyGrid = function (options) {
 	 *
 	 * @param	{string}	format		- Which format to export to
 	 * @param	{function}	callback	- Callback function
+	 * @param	{object}	groupRow	- Optional row of group to export
 	 *
 	 * @returns {object}
 	 */
-	this.export = function (format, callback) {
+	this.export = function (format, callback, groupRow) {
 		var allowed = ['csv', 'html'];
 		if (allowed.indexOf(format) < 0) throw new Error('Sorry, "' + format + '" is not a supported format for export.');
 		callback = callback || function () {};
@@ -3644,16 +3647,20 @@ var DobyGrid = function (options) {
 				result.push('</tr></thead><tbody>');
 			}
 
+			// Export group items if a group row was supplied, all items otherwise.
+			var group = typeof groupRow !== 'undefined' ? getGroupFromRow(groupRow) : null;
+			var items = group ? group.grouprows : this.collection.items;
+
 			// Get data
-			for (i = 0, l = this.collection.items.length; i < l; i++) {
+			for (i = 0, l = items.length; i < l; i++) {
 				// Don't export non-data
-				if (this.collection.items[i] instanceof NonDataItem) continue;
+				if (items[i] instanceof NonDataItem) continue;
 
 				row = [];
 				if (format === 'html') row.push('<tr>');
 				for (ii = 0, ll = cache.activeColumns.length; ii < ll; ii++) {
 
-					val = this.getValueFromItem(this.collection.items[i], cache.activeColumns[ii]);
+					val = this.getValueFromItem(items[i], cache.activeColumns[ii]);
 
 					if (format === 'csv') {
 						// Escape quotes
@@ -9660,6 +9667,28 @@ var DobyGrid = function (options) {
 						var blob = new Blob([html], {type: "text/html;charset=utf-8"});
 						saveAs(blob, [self.options.exportFileName, ".html"].join(''));
 					});
+					self.dropdown.hide();
+				}
+			}, {
+				enabled: self.isGrouped() && typeof args.row !== 'undefined',
+				name: getLocale('global.export_group_csv'),
+				fn: function () {
+					self.export('csv', function (csv) {
+						// Save to file
+						var blob = new Blob([csv], {type: "text/csv;charset=utf-8"});
+						saveAs(blob, [self.options.exportFileName, ".csv"].join(''));
+					}, args.row);
+					self.dropdown.hide();
+				}
+			}, {
+				enabled: self.isGrouped() && typeof args.row !== 'undefined',
+				name: getLocale('global.export_group_html'),
+				fn: function () {
+					self.export('html', function (html) {
+						// Save to file
+						var blob = new Blob([html], {type: "text/html;charset=utf-8"});
+						saveAs(blob, [self.options.exportFileName, ".html"].join(''));
+					}, args.row);
 					self.dropdown.hide();
 				}
 			}]
