@@ -641,7 +641,7 @@ var DobyGrid = function (options) {
 				// Subscribe to scroll events
 				this.on('viewportchanged', function (event, args) {
 					// Fetch remote results on vertical scroll
-					if (args.vScrollDist > 0) {
+					if (args.scrollTopDelta > 0) {
 						remoteFetch();
 					}
 				});
@@ -5800,22 +5800,22 @@ var DobyGrid = function (options) {
 		scrollTop = $viewport[0].scrollTop;
 		scrollLeft = $viewport[0].scrollLeft;
 
-		var vScrollDist = Math.abs(scrollTop - prevScrollTop),
-			hScrollDist = Math.abs(scrollLeft - prevScrollLeft);
+		var scrollTopDelta = Math.abs(scrollTop - prevScrollTop),
+			scrollLeftDelta = Math.abs(scrollLeft - prevScrollLeft);
 
 		// Horizontal Scroll
-		if (hScrollDist) {
+		if (scrollLeftDelta) {
 			prevScrollLeft = scrollLeft;
 			if (self.options.showHeader) $headerScroller[0].scrollLeft = scrollLeft;
 		}
 
 		// Vertical Scroll
-		if (vScrollDist) {
+		if (scrollTopDelta) {
 			vScrollDir = prevScrollTop < scrollTop ? 1 : -1;
 			prevScrollTop = scrollTop;
 
 			// Switch virtual pages if needed
-			if (vScrollDist < viewportH) {
+			if (scrollTopDelta < viewportH) {
 				scrollTo(scrollTop + offset);
 			} else {
 				var oldOffset = offset;
@@ -5835,7 +5835,7 @@ var DobyGrid = function (options) {
 		}
 
 		// Any Scroll
-		if (hScrollDist || vScrollDist) {
+		if (scrollLeftDelta || scrollTopDelta) {
 			if (h_render) clearTimeout(h_render);
 
 			if (
@@ -5877,8 +5877,8 @@ var DobyGrid = function (options) {
 				self.trigger('viewportchanged', event, {
 					scrollLeft: scrollLeft,
 					scrollTop: scrollTop,
-					vScrollDist: vScrollDist,
-					hScrollDist: hScrollDist
+					scrollLeftDelta: scrollLeftDelta,
+					scrollTopDelta: scrollTopDelta
 				});
 			}
 		}
@@ -5886,8 +5886,8 @@ var DobyGrid = function (options) {
 		self.trigger('scroll', event, {
 			scrollLeft: scrollLeft,
 			scrollTop: scrollTop,
-			vScrollDist: vScrollDist,
-			hScrollDist: hScrollDist
+			scrollLeftDelta: scrollLeftDelta,
+			scrollTopDelta: scrollTopDelta
 		});
 	};
 
@@ -8156,15 +8156,15 @@ var DobyGrid = function (options) {
 		}
 
 		if (prevScrollTop != newScrollTop) {
-			var vScrollDist = Math.abs(newScrollTop - prevScrollTop);
+			var scrollTopDelta = Math.abs(newScrollTop - prevScrollTop);
 			vScrollDir = (prevScrollTop + oldOffset < newScrollTop + offset) ? 1 : -1;
 			$viewport[0].scrollTop = (lastRenderedScrollTop = scrollTop = prevScrollTop = newScrollTop);
 
 			self.trigger('viewportchanged', null, {
 				scrollLeft: 0,
 				scrollTop: scrollTop,
-				vScrollDist: vScrollDist,
-				hScrollDist: 0
+				scrollLeftDelta: 0,
+				scrollTopDelta: scrollTopDelta
 			});
 		}
 	};
