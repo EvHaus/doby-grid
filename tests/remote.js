@@ -312,6 +312,25 @@ describe("Remote Data", function () {
 		// ==========================================================================================
 
 
+		it("should correctly prefetch extra results", function () {
+			grid.options.rowsToPrefetch = 10;
+
+			// Scroll to second page. The initial load won't have extra results
+			// because we set the rowsToFetch option late, but we can test with
+			// subsequent fetches triggered by scrolling.
+			grid.scrollToRow(20);
+
+			// Wait for first page to load
+			jasmine.clock().tick(500);
+
+			// Check extra results past second page
+			expect(grid.collection.items[40].toString()).toEqual('[object Object]');
+		});
+
+
+		// ==========================================================================================
+
+
 		it("should allow the insertion of various row heights post initial render", function () {
 			var row;
 

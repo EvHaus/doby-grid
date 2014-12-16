@@ -1,0 +1,245 @@
+/*! doby-grid-core.less (Light Theme for Doby Grid)
+ * (c) 2014 Evgueni Naverniouk, Globex Designs, Inc.
+ * Doby may be freely distributed under the MIT license.
+ * For all details and documentation:
+ * https://github.com/globexdesigns/doby-grid */
+
+@w3c: true;
+@import "../../libs/lesshat/build/lesshat";
+@url: "../../../assets/img/";
+
+
+/*! Containers
+================================================================================================== */
+
+
+.doby-grid {
+	border: 1px solid;
+}
+
+
+/*! Header
+================================================================================================== */
+
+
+.doby-grid-header {
+	border-bottom: 1px solid;
+}
+
+	.doby-grid-column-spacer,
+	.doby-grid-header-column {
+		border-right: 1px solid;
+	}
+
+	.doby-grid-header-column {
+		.transition(background 0.2s ease-in-out, box-shadow 0.2s ease-in-out);
+
+		&.ui-sortable-helper {
+			border-left: 1px solid;
+		}
+	}
+
+	// Resize handle hover/active
+	.doby-grid-header-column-dragging .doby-grid-resizable-handle span,
+	.doby-grid-resizable-handle:hover span {
+		border-left: 1px solid;
+		border-right: 1px solid;
+	}
+
+	// Sorting Indicator
+	.doby-grid-sort-indicator-desc {
+		background-image: url("@{url}sort-alphabet-descending.png");
+	}
+
+	.doby-grid-sort-indicator-asc {
+		background-image: url("@{url}sort-alphabet.png");
+	}
+
+
+/*! Header Context Menu
+================================================================================================== */
+
+
+.doby-grid-dropdown {
+	font-size: 12px;
+
+	.doby-grid-dropdown-menu {
+		background: #000;
+		border: 1px solid;
+		border-radius: 5px;
+		.transition(opacity 0.15s ease-in-out);
+	}
+
+	.doby-grid-dropdown-item {
+		.transition(background 0.3s ease-in-out);
+
+		&.on .doby-grid-dropdown-icon {
+			background: url("@{url}tick.png") no-repeat;
+		}
+
+		& > .doby-grid-dropdown-menu {
+			border-radius: 0 5px 5px 5px;
+		}
+	}
+
+	.doby-grid-dropdown-title {
+		font-size: 11px;
+		text-transform: uppercase;
+	}
+
+	.doby-grid-dropdown-divider {
+		border-top: 1px solid;
+	}
+}
+
+
+/*! Header Quick Filter
+================================================================================================== */
+
+
+.doby-grid-header-filter-cell {
+	background: url("@{url}magnifier-left.png") no-repeat right 6px center;
+
+	.doby-grid-editor {
+		color: #FFF;
+	}
+}
+
+.doby-grid-header-filter-disabled {
+	background-position: 0 0;
+	background-repeat: repeat;
+	background-size: 30px 100%;
+}
+
+
+/*! Rows
+================================================================================================== */
+
+
+.doby-grid-cell {
+	border-left: 1px solid transparent;
+	border-right: 1px dotted;
+	.transition(border 0.3s ease-in-out, box-shadow 0.3s ease-in-out);
+
+	&.active {
+		border: 1px solid;
+		box-shadow: 1px 1px 1px rgba(0,0,0,0.3) inset;
+	}
+}
+
+// Row resize handle
+.doby-grid-row-handle {
+	border-bottom: 1px solid;
+	border-top: 1px solid;
+	.transition(all 0.3s ease-in-out);
+
+	&:hover {
+		border-bottom: 1px solid;
+		border-top: 1px solid;
+	}
+}
+
+// Row drag container
+.doby-grid-row-drag-container {
+	bottom: 0;
+	left: 0;
+	top: 0;
+	position: absolute;
+	right: 0;
+}
+
+
+/*! Aggregators
+================================================================================================== */
+
+
+.doby-grid-row-total .doby-grid-cell {
+	text-align: right;
+}
+
+
+/*! Groups
+================================================================================================== */
+
+
+.doby-grid-group-title {
+	font-weight: bold;
+
+	strong {
+		font-weight: 300;
+	}
+
+	.count {
+		font-size: 11px;
+		font-weight: 300;
+
+		strong {
+			font-weight: 400;
+		}
+	}
+}
+
+// Click this to expand/collapse groups
+.doby-grid-group-toggle {
+	.transition(box-shadow 0.2s ease-in-out);
+
+	&.expanded .icon {background-image: url("@{url}minus-small.png")}
+	&.collapsed .icon {background-image: url("@{url}plus-small.png")}
+}
+
+
+/*! Empty Overlay
+================================================================================================== */
+
+
+.doby-grid-empty {
+	font-size: 18px;
+	font-weight: 200;
+	padding: 4% 0;
+	text-align: center;
+}
+
+
+/*! Editing
+================================================================================================== */
+
+
+.doby-grid-invalid-icon {
+	background: url("@{url}exclamation-diamond.png") no-repeat center center;
+}
+
+// Cell range decorator
+.doby-grid-range-decorator {
+	border: 2px dashed;
+}
+
+.doby-grid-range-decorator-stats {
+    border-radius: 0 0 0 4px;
+	border: 1px solid;
+    border-top: 0;
+    border-right: 0;
+	font-size: 11px;
+}
+
+
+/*! Popup Tooltips
+================================================================================================== */
+
+
+.doby-grid-tooltip {
+	border-radius: 4px;
+	font-size: 12px;
+	max-width: 200px;
+	padding: 4px 8px;
+	text-align: center;
+	.transition(opacity 0.3s ease-in-out, top 0.3s ease-in-out);
+
+	strong {
+		font-weight: 500;
+	}
+}
+
+.doby-grid-tooltip-arrow {
+	border: 5px solid transparent;
+	border-bottom: 5px solid;
+}

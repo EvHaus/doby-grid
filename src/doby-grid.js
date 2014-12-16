@@ -397,6 +397,7 @@ var DobyGrid = function (options) {
 		rowHeight:				28,
 		rowSpacing:				0,
 		rowBasedSelection:		false,
+		rowsToPrefetch:			0,
 		scrollbarPosition:		"right",
 		scrollLoader:			null,
 		selectable:				true,
@@ -6867,6 +6868,14 @@ var DobyGrid = function (options) {
 				from = vp.top,
 				to = vp.bottom;
 
+			// Decrease likelihood that user sees empty rows before the results
+			// load by prefetching extra ones.
+			if (vScrollDir == -1) {
+				from -= self.options.rowsToPrefetch;
+			} else {
+				to += self.options.rowsToPrefetch;
+			}
+
 			// Don't attempt to fetch more results than there are
 			if (from < 0) from = 0;
 			if (self.collection.length > 0) to = Math.min(to, self.collection.length - 1);
@@ -6951,6 +6960,10 @@ var DobyGrid = function (options) {
 
 			var oldvariableRowHeight;
 
+			// Determine if rows to load are already visible by checking for
+			// overlap between we're fetching and current visible ones.
+			var loadingVisibleRows = newFrom <= vp.bottom && vp.top <= newTo;
+
 			// Run the fetcher
 			remoteFetcher({
 				columns: cache.activeColumns,
@@ -7010,7 +7023,7 @@ var DobyGrid = function (options) {
 				dfd.resolve();
 			}, function () {
 				dfd.resolve();
-			});
+			}, loadingVisibleRows);
 
 			return dfd.promise();
 		};
@@ -7064,14 +7077,18 @@ var DobyGrid = function (options) {
 	 * @memberof DobyGrid
 	 * @private
 	 *
-	 * @param	{object}	options			- Fetching options
-	 * @param	{function}	callback		- Callback function
-	 * @param	{function}	clear_callback	- Callback fired if the timeout was cleared
+	 * @param	{object}	options				- Fetching options
+	 * @param	{function}	callback			- Callback function
+	 * @param	{function}	clear_callback		- Callback fired if the timeout was cleared
+	 * @param	{boolean}	loadingVisibleRows	- If true, rows being loaded are inside the visible range
 	 *
 	 */
-	remoteFetcher = function (options, callback, clear_callback) {
+	remoteFetcher = function (options, callback, clear_callback, loadingVisibleRows) {
 		callback = callback || function () {};
 		clear_callback = clear_callback || function () {};
+
+		// Assume by default that the rows to load are inside the visible range.
+		loadingVisibleRows = typeof loadingVisibleRows !== 'undefined' ? loadingVisibleRows : true;
 
 		// Ensure basic options are defined
 		if (!options.offset) options.offset = 0;
@@ -7087,7 +7104,7 @@ var DobyGrid = function (options) {
 		remoteTimer = setTimeout(function () {
 			try {
 				// Fire onLoading callback
-				if (typeof self.fetcher.onLoading === 'function') self.fetcher.onLoading();
+				if (typeof self.fetcher.onLoading === 'function') self.fetcher.onLoading(loadingVisibleRows);
 
 				self.fetcher.request = self.fetcher.fetch(options, function (results) {
 					// Empty the request variable so it doesn't get aborted on scroll
@@ -7096,7 +7113,7 @@ var DobyGrid = function (options) {
 					callback(results);
 
 					// Fire onLoaded callback
-					if (typeof self.fetcher.onLoaded === 'function') self.fetcher.onLoaded();
+					if (typeof self.fetcher.onLoaded === 'function') self.fetcher.onLoaded(loadingVisibleRows);
 				});
 			} catch (err) {
 				throw new Error('Doby Grid remote fetching failed due to: ' + err);

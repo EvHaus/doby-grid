@@ -193,8 +193,8 @@ define(['backbone', 'dataset'], function (Backbone, dataset) {
 			}, 5);
 		};
 
-		var onLoading = function () {
-			if (!this.grid.$el) return;
+		var onLoading = function (loadingVisibleRows) {
+			if (!this.grid.$el || !loadingVisibleRows) return;
 
 			// Generate a loader overlay
 			if (!this.loader) {
@@ -208,8 +208,8 @@ define(['backbone', 'dataset'], function (Backbone, dataset) {
 			this.loader.css('opacity', 1);
 		};
 
-		var onLoaded = function () {
-			if (!this.grid.$el || !this.loader) return;
+		var onLoaded = function (loadingVisibleRows) {
+			if (!this.grid.$el || !this.loader || !loadingVisibleRows) return;
 			this.loader.css('opacity', 0);
 		};
 
@@ -266,7 +266,8 @@ define(['backbone', 'dataset'], function (Backbone, dataset) {
 			}],
 
 			data: remotedata,
-			quickFilter: true
+			quickFilter: true,
+			rowsToPrefetch: 20
 		};
 	}];
 });
