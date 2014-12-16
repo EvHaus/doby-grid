@@ -639,8 +639,11 @@ var DobyGrid = function (options) {
 				}.bind(this));
 
 				// Subscribe to scroll events
-				this.on('viewportchanged', function () {
-					remoteFetch();
+				this.on('viewportchanged', function (event, result) {
+					// Fetch remote results on vertical scroll
+					if (result.vScrollDist > 0) {
+						remoteFetch();
+					}
 				});
 			}
 
@@ -5873,14 +5876,18 @@ var DobyGrid = function (options) {
 
 				self.trigger('viewportchanged', event, {
 					scrollLeft: scrollLeft,
-					scrollTop: scrollTop
+					scrollTop: scrollTop,
+					vScrollDist: vScrollDist,
+					hScrollDist: hScrollDist
 				});
 			}
 		}
 
 		self.trigger('scroll', event, {
 			scrollLeft: scrollLeft,
-			scrollTop: scrollTop
+			scrollTop: scrollTop,
+			vScrollDist: vScrollDist,
+			hScrollDist: hScrollDist
 		});
 	};
 
