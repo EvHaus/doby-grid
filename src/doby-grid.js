@@ -639,9 +639,9 @@ var DobyGrid = function (options) {
 				}.bind(this));
 
 				// Subscribe to scroll events
-				this.on('viewportchanged', function (event, result) {
+				this.on('viewportchanged', function (event, args) {
 					// Fetch remote results on vertical scroll
-					if (result.vScrollDist > 0) {
+					if (args.vScrollDist > 0) {
 						remoteFetch();
 					}
 				});

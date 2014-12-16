@@ -455,7 +455,9 @@ describe("Events", function () {
 			grid.on('scroll', function (event, args) {
 				callback(event, args, {
 					scrollLeft: 0,
-					scrollTop: 0
+					scrollTop: 0,
+					vScrollDist: 0,
+					hScrollDist: 0
 				});
 			});
 
@@ -558,7 +560,9 @@ describe("Events", function () {
 			grid.on('viewportchanged', function (event, args) {
 				callback(event, args, {
 					scrollLeft: 0,
-					scrollTop: 2871
+					scrollTop: 2871,
+					vScrollDist: 2871,
+					hScrollDist: 0
 				});
 			});
 
