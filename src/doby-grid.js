@@ -3607,7 +3607,7 @@ var DobyGrid = function (options) {
 	 *
 	 * @param	{string}	format		- Which format to export to
 	 * @param	{function}	callback	- Callback function
-	 * @param	{object}	groupRow	- Optional row of group to export
+	 * @param	{object}	[groupRow]	- Row index of the group to export
 	 *
 	 * @returns {object}
 	 */
