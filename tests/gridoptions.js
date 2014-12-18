@@ -2201,6 +2201,35 @@ describe("Grid Options", function () {
 			// Close dropdowns
 			$(document.body).find('.doby-grid-dropdown').remove();
 		});
+
+
+		// ==========================================================================================
+
+
+		it("should render in the appropriate place when supplied a position", function () {
+			var grid = resetGrid($.extend(defaultData(), {
+				menuExtensions: function () {
+					return [{
+						name: "Test"
+					}];
+				},
+				menuExtensionsPosition: "top"
+			}));
+
+			// Simulate context click on the grid
+			grid.$el.find('.doby-grid-cell:first').simulate('contextmenu');
+
+			// Make sure the context menu comes up
+			expect($(document.body)).toContainElement('.doby-grid-dropdown');
+
+			var $dropdown = $(document.body).find('.doby-grid-dropdown:first');
+
+			// Make sure the extension item is displayed at the top
+			expect($dropdown.find('.doby-grid-dropdown-item').first()).toHaveText('Test');
+
+			// Close dropdowns
+			$(document.body).find('.doby-grid-dropdown').remove();
+		});
 	});
 
 
