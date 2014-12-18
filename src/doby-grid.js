@@ -3499,7 +3499,7 @@ var DobyGrid = function (options) {
 	 * @method editActiveCell
 	 * @memberof DobyGrid
 	 *
-	 * @param	{function}	editor		- Editor factory to use
+	 * @param {function} [editor] - Editor factory to use. By default will use global editor.
 	 */
 	this.editActiveCell = function (editor) {
 		makeActiveCellEditable(editor);
@@ -6293,7 +6293,7 @@ var DobyGrid = function (options) {
 	 * @memberof DobyGrid
 	 * @private
 	 *
-	 * @param	{function}	editor		- Editor factory to use
+	 * @param {function} [editor] - Editor factory to use. By default will use global editor.
 	 */
 	makeActiveCellEditable = function (editor) {
 		if (!self.active || !self.active.node || self.options.editable !== true) return;
