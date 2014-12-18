@@ -1376,7 +1376,8 @@ describe("Methods and Data Manipulation", function () {
 				}],
 				filters: [],
 				grouping: [],
-				sort: []
+				sort: [],
+				resizedRows: []
 			});
 		});
 
@@ -1406,7 +1407,8 @@ describe("Methods and Data Manipulation", function () {
 				}],
 				filters: [],
 				grouping: [],
-				sort: []
+				sort: [],
+				resizedRows: []
 			});
 		});
 	});
@@ -1613,8 +1615,8 @@ describe("Methods and Data Manipulation", function () {
 			}).not.toThrow();
 		});
 	});
-	
-	
+
+
 	// ==========================================================================================
 
 
@@ -1624,18 +1626,18 @@ describe("Methods and Data Manipulation", function () {
 				{data: {id: 1, name: 'test'}, id: 1},
 				{data: {id: 2, name: 'veryveryveryveryveryveryveryverylong'}, id: 2}
 			];
-			
+
 			var grid = resetGrid({
 				columns: [{field: 'name', id: 'name'}],
 				data: newdata
 			});
-			
+
 			var prevWidth = grid.options.columns[0].width;
-			
+
 			grid.resizeColumnsToContent();
-			
+
 			var newWidth = grid.options.columns[0].width;
-			
+
 			expect(newWidth).toBeGreaterThan(prevWidth);
 		});
 	});
