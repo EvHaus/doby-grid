@@ -661,8 +661,11 @@ var DobyGrid = function (options) {
 				}.bind(this));
 
 				// Subscribe to scroll events
-				this.on('viewportchanged', function () {
-					remoteFetch();
+				this.on('viewportchanged', function (event, args) {
+					// Fetch remote results on vertical scroll
+					if (args.scrollTopDelta > 0) {
+						remoteFetch();
+					}
 				});
 			}
 
@@ -5914,11 +5917,11 @@ var DobyGrid = function (options) {
 		scrollTop = $viewportScrollContainerY[0].scrollTop;
 		scrollLeft = $viewportScrollContainerX[0].scrollLeft;
 
-		var vScrollDist = Math.abs(scrollTop - prevScrollTop),
-			hScrollDist = Math.abs(scrollLeft - prevScrollLeft);
+		var scrollTopDelta = Math.abs(scrollTop - prevScrollTop),
+			scrollLeftDelta = Math.abs(scrollLeft - prevScrollLeft);
 
 		// Horizontal Scroll
-		if (hScrollDist) {
+		if (scrollLeftDelta) {
 			prevScrollLeft = scrollLeft;
 
 			// Scroll the header
@@ -5932,7 +5935,7 @@ var DobyGrid = function (options) {
 		}
 
 		// Vertical Scroll
-		if (vScrollDist) {
+		if (scrollTopDelta) {
 			vScrollDir = prevScrollTop < scrollTop ? 1 : -1;
 			prevScrollTop = scrollTop;
 
@@ -5946,7 +5949,7 @@ var DobyGrid = function (options) {
 			}
 
 			// Switch virtual pages if needed
-			if (vScrollDist < viewportH) {
+			if (scrollTopDelta < viewportH) {
 				scrollTo(scrollTop + offset);
 			} else {
 				var oldOffset = offset;
@@ -5966,7 +5969,7 @@ var DobyGrid = function (options) {
 		}
 
 		// Any Scroll
-		if (hScrollDist || vScrollDist) {
+		if (scrollLeftDelta || scrollTopDelta) {
 			if (h_render) clearTimeout(h_render);
 
 			if (
@@ -6007,14 +6010,18 @@ var DobyGrid = function (options) {
 
 				self.trigger('viewportchanged', event, {
 					scrollLeft: scrollLeft,
-					scrollTop: scrollTop
+					scrollTop: scrollTop,
+					scrollLeftDelta: scrollLeftDelta,
+					scrollTopDelta: scrollTopDelta
 				});
 			}
 		}
 
 		self.trigger('scroll', event, {
 			scrollLeft: scrollLeft,
-			scrollTop: scrollTop
+			scrollTop: scrollTop,
+			scrollLeftDelta: scrollLeftDelta,
+			scrollTopDelta: scrollTopDelta
 		});
 	};
 
@@ -8351,6 +8358,7 @@ var DobyGrid = function (options) {
 		}
 
 		if (prevScrollTop != newScrollTop) {
+			var scrollTopDelta = Math.abs(newScrollTop - prevScrollTop);
 			vScrollDir = (prevScrollTop + oldOffset < newScrollTop + offset) ? 1 : -1;
 			lastRenderedScrollTop = (scrollTop = prevScrollTop = newScrollTop);
 
@@ -8369,7 +8377,9 @@ var DobyGrid = function (options) {
 
 			self.trigger('viewportchanged', null, {
 				scrollLeft: 0,
-				scrollTop: scrollTop
+				scrollTop: scrollTop,
+				scrollLeftDelta: 0,
+				scrollTopDelta: scrollTopDelta
 			});
 		}
 	};
