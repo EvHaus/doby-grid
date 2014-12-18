@@ -725,6 +725,43 @@ describe("Methods and Data Manipulation", function () {
 		// ==========================================================================================
 
 
+		it("should correctly export group", function (done) {
+			// Prepare for test
+			var grid = resetGrid({
+				columns: [
+					{id: 'id', name: 'ID', field: 'id'},
+					{id: 'name', name: 'Name', field: 'name'},
+					{id: 'category', name: 'Category', field: 'category'}
+				],
+				data: [{
+					id: 1,
+					data: {id: 1, name: 'one', category: 'odd'}
+				}, {
+					id: 2,
+					data: {id: 2, name: 'two', category: 'even'}
+				}, {
+					id: 3,
+					data: {id: 3, name: 'three', category: 'odd'}
+				}]
+			});
+
+			// Group by category (odd and even numbers)
+			grid.addGrouping('category');
+
+			// We want the "odd" group, which will appear last and as the second row.
+			var groupRow = 1;
+
+			// Export
+			grid.export('csv', function (result) {
+				expect(result).toEqual('"ID","Name","Category"\n"1","one","odd"\n"3","three","odd"');
+				done();
+			}, groupRow);
+		});
+
+
+		// ==========================================================================================
+
+
 		it("should correctly handle Backbone Collection data", function (done) {
 			var collection = new Backbone.Collection([
 				{id: 'asd1', name: 'one'},
