@@ -3316,11 +3316,11 @@ describe("Grid Options", function () {
 		});
 	});
 
-	describe("options.selectOnNavigate", function () {
+	describe("options.selectRowOnNavigate", function () {
 
 		it("should be false by default", function () {
 			var grid = resetGrid(defaultData());
-			expect(grid.options.selectOnNavigate).toEqual(false);
+			expect(grid.options.selectRowOnNavigate).toEqual(false);
 		});
 
 
@@ -3331,7 +3331,7 @@ describe("Grid Options", function () {
 			// Prepare for test
 			var grid = resetGrid($.extend(defaultData(), {
 				rowBasedSelection: true,
-				selectOnNavigate: true
+				selectRowOnNavigate: true
 			}));
 
 			// Click on a cell
