@@ -3032,6 +3032,36 @@ describe("Grid Options", function () {
 			expect($firstgroup.hasClass('expanded')).toEqual(true);
 			expect($firstgroup.height()).toEqual(newHeight);
 		});
+
+
+		// ==========================================================================================
+
+
+		it("should restore resized row after getState / restoreState", function () {
+			// Prepare for test
+			var grid = resetGrid($.extend(defaultData(), {resizableRows: true}));
+			var $row = grid.$el.find('.doby-grid-row').first();
+
+			// Resize the row
+			var $rowHandle = $row.find('.doby-grid-row-handle').first();
+			$rowHandle.simulate('drag', {dy: 123});
+
+			// Get new height
+			var resizedHeight = $row.height();
+
+			// Save state
+			var state = grid.getState();
+
+			// Reset grid
+			grid = resetGrid($.extend(defaultData(), {resizableRows: true}));
+
+			// Load saved state
+			grid.restoreState(state);
+
+			// Confirm that row's height matches its height before the grid reset
+			$row = grid.$el.find('.doby-grid-row').first();
+			expect($row.height()).toEqual(resizedHeight);
+		});
 	});
 
 
