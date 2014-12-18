@@ -454,7 +454,7 @@
 			scrollLoader:			null,
 			selectable:				true,
 			selectedClass:			"selected",
-			selectOnNavigate:		false,
+			selectRowOnNavigate:	false,
 			shiftSelect:			true,
 			showHeader:				true,
 			stickyFocus:			false,
@@ -6480,7 +6480,7 @@
 			var newestRange = self.selection && self.selection[self.selection.length - 1];
 
 			var reselectRow = function (up) {
-				if (! self.options.selectOnNavigate) return;
+				if (! self.options.selectRowOnNavigate) return;
 				var row = self.active && self.active.row;
 				if (typeof row !== "undefined") {
 					deselectCells();
