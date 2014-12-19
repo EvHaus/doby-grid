@@ -287,6 +287,29 @@ Range.prototype.toJSON = function () {
 
 
 /**
+ * Converts the cell range values to an HTML table
+ * @method toHTML
+ * @memberof Range
+ *
+ * @returns {string}
+ */
+Range.prototype.toHTML = function () {
+	var json = this.toJSON();
+
+	var rows = json.map(function (row) {
+		var columns = row.map(function (cell) {
+			return '\t\t<td>' + cell + '</td>';
+		});
+
+		return Array.prototype.concat('\t<tr>', columns, '\t</tr>').join('\n');
+	});
+
+	var html = Array.prototype.concat('<table>', rows, '</table>').join('\n');
+	return html;
+};
+
+
+/**
  * Converts the cell range values to a list of selected row objects
  * @method toRows
  * @memberof Range
