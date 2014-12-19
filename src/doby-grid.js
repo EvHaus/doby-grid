@@ -5055,7 +5055,8 @@ var DobyGrid = function (options) {
 			columns: [],
 			filters: [],
 			grouping: [],
-			sort: []
+			sort: [],
+			resizedRows: []
 		}, i, l, column, group, sort;
 
 		// Get columns
@@ -5110,6 +5111,17 @@ var DobyGrid = function (options) {
 					sortAsc: sort.sortAsc
 				});
 			}
+		}
+
+		// Get user-set row heights
+		if (this.options.resizableRows) {
+			results.resizedRows = cache.rows
+				.filter(function (item) {
+					return item.resized;
+				})
+				.map(function (item) {
+					return {id: item[this.options.idProperty], height: item.height};
+				}, this);
 		}
 
 		return results;
@@ -8193,6 +8205,28 @@ var DobyGrid = function (options) {
 
 		// Restore sorting
 		if (state.sort) this.setSorting(state.sort);
+
+		// Restore user-set row heights
+		if (state.resizedRows) {
+			// Convert list of row height objects to {id -> height} object for quick lookup
+			var resizedRowMappings = state.resizedRows.reduce(function (mappings, item) {
+				mappings[item.id] = item.height;
+				return mappings;
+			}, {});
+
+			for (i = 0, l = cache.rows.length; i < l; i++) {
+				var item = cache.rows[i];
+				var id = item[this.options.idProperty];
+
+				if (resizedRowMappings.hasOwnProperty(id)) {
+					item.height = resizedRowMappings[id];
+					item.resized = true;
+				}
+			}
+
+			cacheRows();
+			invalidate();
+		}
 	};
 
 
@@ -8811,6 +8845,7 @@ var DobyGrid = function (options) {
 
 		// Change item height in the data
 		item.height = height;
+		item.resized = true;
 
 		// Make sure rows below get re-evaluated
 		invalidateRows(_.range(row, cache.rows.length));

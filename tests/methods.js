@@ -1413,7 +1413,8 @@ describe("Methods and Data Manipulation", function () {
 				}],
 				filters: [],
 				grouping: [],
-				sort: []
+				sort: [],
+				resizedRows: []
 			});
 		});
 
@@ -1443,7 +1444,8 @@ describe("Methods and Data Manipulation", function () {
 				}],
 				filters: [],
 				grouping: [],
-				sort: []
+				sort: [],
+				resizedRows: []
 			});
 		});
 	});
