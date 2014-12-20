@@ -1747,10 +1747,18 @@ var DobyGrid = function (options) {
 			// Are the multiple selections?
 			if (self.selection.length > 1) return alert('Sorry, you cannot copy multiple selections.');
 
-			if (self.options.clipboard == 'csv') {
-				result = self.selection[0].toCSV();
-			} else if (self.options.clipboard == 'json') {
-				result = JSON.stringify(self.selection[0].toJSON());
+			switch (self.options.clipboard) {
+				case 'csv':
+					result = self.selection[0].toCSV();
+					break;
+
+				case 'json':
+					result = JSON.stringify(self.selection[0].toJSON());
+					break;
+
+				case 'html':
+					result = self.selection[0].toHTML();
+					break;
 			}
 		}
 

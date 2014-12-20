@@ -563,7 +563,7 @@ describe("Grid Options", function () {
 
 
 	describe("options.clipboard", function () {
-		it("should be able to convert selected data to CSV and JSON", function () {
+		it("should be able to convert selected data to CSV and JSON and HTML", function () {
 			// Prepare for test
 			var grid = resetGrid(defaultData());
 
@@ -577,6 +577,10 @@ describe("Grid Options", function () {
 			// Convert selection to CSV
 			var csv = grid.selection[0].toCSV();
 			expect(csv).toEqual('"189","test"\n"289","test2"');
+
+			// Convert selection to HTML (minus newlines and tabs, for simpler comparison)
+			var html = grid.selection[0].toHTML().replace(/\n|\t/g, '')
+			expect(html).toEqual('<table><tr><td>189</td><td>test</td></tr><tr><td>289</td><td>test2</td></tr></table>');
 		});
 
 
