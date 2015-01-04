@@ -579,7 +579,7 @@ describe("Grid Options", function () {
 			expect(csv).toEqual('"189","test"\n"289","test2"');
 
 			// Convert selection to HTML (minus newlines and tabs, for simpler comparison)
-			var html = grid.selection[0].toHTML().replace(/\n|\t/g, '')
+			var html = grid.selection[0].toHTML().replace(/\n|\t/g, '');
 			expect(html).toEqual('<table><tr><td>189</td><td>test</td></tr><tr><td>289</td><td>test2</td></tr></table>');
 		});
 
@@ -1520,10 +1520,10 @@ describe("Grid Options", function () {
 		it("should correctly formater the cell values", function () {
 			// Prepare for test
 			var grid = resetGrid($.extend(defaultData(), {
-				formatter: function (row, cell, value) {
-					return [row, cell, value].join('-');
-				}
-			}));
+					formatter: function (row, cell, value) {
+						return [row, cell, value].join('-');
+					}
+				}));
 
 			// Make sure cells have the right values
 			var value;
@@ -1542,15 +1542,42 @@ describe("Grid Options", function () {
 		it("should be bound to the grid's instance", function () {
 			var scope = [],
 				grid = resetGrid($.extend(defaultData(), {
-				formatter: function (row, cell, value) {
-					scope.push(this);
-					return value;
-				}
-			}));
+					formatter: function (row, cell, value) {
+						scope.push(this);
+						return value;
+					}
+				}));
 
 			_.each(scope, function (s) {
 				expect(s).toEqual(grid);
 			});
+		});
+	});
+
+
+	// ==========================================================================================
+
+
+	describe("options.frozenColumns", function () {
+		it("should be -1 by default", function () {
+			var grid = resetGrid();
+			expect(grid.options.frozenColumns).toEqual(-1);
+		});
+
+
+		// ==========================================================================================
+
+
+		it("should freeze the first column when value is 0", function () {
+			var grid = resetGrid($.extend(defaultData(), {
+				frozenColumns: 0
+			}));
+
+			// Top left pane should have 1 column
+			expect(grid.$el.find('.doby-grid-pane-top-left .doby-grid-row:first')).toContainHtml('<div class="doby-grid-cell l0 r0">189</div>');
+
+			// Top right pane should have the other column
+			expect(grid.$el.find('.doby-grid-pane-top-right .doby-grid-row:first')).toContainHtml('<div class="doby-grid-cell l1 r1">test</div>');
 		});
 	});
 
