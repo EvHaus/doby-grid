@@ -77,56 +77,33 @@ var CLS = require('./../utils/classes'),
 /**
  * @class CellRangeDecorator
  * @classdesc Displays an overlay on top of a given cell range
- *
- * @param	{object}	grid				- Current instance of the grid
- * @param	{function}	getCellNodeBox		- Shared method required by this class
  */
 // TODO: Remove getCellNodeBox from the params here
-var CellRangeDecorator = function (grid, getCellNodeBox) {
+var CellRangeDecorator = function ($target, getCellNodeBox) {
 	this.$el = null;
-	this.$stats = null;
-	this.grid = grid;
+	this.$canvas = $target;
 	this.getCellNodeBox = getCellNodeBox;
 };
 
-
-/**
- * Given a cell range, returns the target canvas elements
- * @method getTargets
- * @memberof CellRangeDecorator
- *
- * @param	{integer}	canvasIndex		- Id of the canvas to render into
- * @param	{object}	range			- The selection range which to outline
- *
- */
-CellRangeDecorator.prototype.render = function (canvasIndex, range) {
-	var $target = this.$el[canvasIndex],
-		$stats = this.$stats[canvasIndex];
-
-	// Render a new decorator for this canvas
-	if (!$target) {
-		var $canvas = this.grid.$el.find('.' + CLS.canvas);
-
-		this.$el[canvasIndex] = $('<div class="' + CLS.rangedecorator + '"></div>')
-			.appendTo($canvas.eq(canvasIndex));
-		$target = this.$el[canvasIndex];
-
-		this.$stats[canvasIndex] = $('<span class="' + CLS.rangedecoratorstat + '"></span>')
-			.appendTo(this.$el[canvasIndex]);
-		$stats = this.$stats[canvasIndex];
+CellRangeDecorator.prototype.show = function (range) {
+	if (!this.$el) {
+		this.$el = $('<div class="' + CLS.rangedecorator + '"></div>')
+			.appendTo(this.$canvas);
+		this.$stats = $('<span class="' + CLS.rangedecoratorstat + '"></span>')
+			.appendTo(this.$el);
 	}
 
 	var from = this.getCellNodeBox(range.fromRow, range.fromCell),
 		to = this.getCellNodeBox(range.toRow, range.toCell),
-		borderBottom = parseInt($target.css('borderBottomWidth'), 10),
-		borderLeft = parseInt($target.css('borderLeftWidth'), 10),
-		borderRight = parseInt($target.css('borderRightWidth'), 10),
-		borderTop = parseInt($target.css('borderTopWidth'), 10);
+		borderBottom = parseInt(this.$el.css('borderBottomWidth'), 10),
+		borderLeft = parseInt(this.$el.css('borderLeftWidth'), 10),
+		borderRight = parseInt(this.$el.css('borderRightWidth'), 10),
+		borderTop = parseInt(this.$el.css('borderTopWidth'), 10);
 
 	if (from && to) {
 		var width = to.right - from.left - borderLeft - borderRight;
 
-		$target.css({
+		this.$el.css({
 			top: from.top,
 			left: from.left,
 			height: to.bottom - from.top - borderBottom - borderTop,
@@ -136,62 +113,22 @@ CellRangeDecorator.prototype.render = function (canvasIndex, range) {
 		// Only display stats box if there is enough room
 		if (width > 200) {
 			// Calculate number of selected cells
-			$stats.show().html([
+			this.$stats.show().html([
 				'<strong>Selection:</strong> ', range.getCellCount(), ' cells',
 				' <strong>From:</strong> ', (range.fromRow + 1), ':', (range.fromCell + 1),
 				' <strong>To:</strong> ', (range.toRow + 1), ':', (range.toCell + 1)
 			].join(''));
 		} else {
-			$stats.hide();
+			this.$stats.hide();
 		}
 	}
-};
-
-
-/**
- * Renders the cell range decorator elements
- * @method show
- * @memberof CellRangeDecorator
- *
- * @param	{object}	range		- The selection range which to outline
- *
- * @return {array}
- */
-CellRangeDecorator.prototype.show = function (range) {
-	if (this.$el === null) {
-		this.$el = [];
-		this.$stats = [];
-	}
-
-	var rangeSplit = range.split(this.grid.options.frozenColumns, this.grid.options.frozenRows);
-
-	// Determine which panes we need to render in
-	if (this.grid.options.frozenColumns < 0 || range.fromCell <= this.grid.options.frozenColumns) {
-		// Render left-right pane selection
-		if (rangeSplit[0]) this.render(0, rangeSplit[0]);
-	}
-
-	if (this.grid.options.frozenColumns > -1 && range.toCell > this.grid.options.frozenColumns) {
-		// Render top-right pane selection
-		if (rangeSplit[1]) this.render(1, rangeSplit[1]);
-	}
-
-	// TODO: Handle frozen rows
 
 	return this.$el;
 };
 
-
-/**
- * Destroys the rendered elements
- * @method hide
- * @memberof CellRangeDecorator
- */
 CellRangeDecorator.prototype.hide = function () {
 	if (this.$el && this.$el.length) {
-		$.each(this.$el, function (i, $el) {
-			if ($el && $el.length) removeElement($el[0]);
-		});
+		removeElement(this.$el[0]);
 	}
 	this.$el = null;
 };
@@ -841,13 +778,8 @@ var NonDataItem	= require('./NonDataItem');
  * @class Range
  * @classdesc A structure containing a range of cells.
  *
- * @param {object}		data			- Data for the cell range
- * @param {integer}		data.fromCell	- Cell at which the range starts
- * @param {integer}		data.fromRow	- Row at which the range starts
- * @param {integer}		data.toCell		- Cell at which the range ends
- * @param {integer}		data.toRow		- Row at which the range ends
- * @param {object}		grid			- Current DobyGrid instance
- *
+ * @param {object}		data		- Data for the cell range
+ * @param {object}		grid		- Current DobyGrid instance
  */
 var Range = function (data, grid) {
 	var fromRow = data.fromRow,
@@ -1068,53 +1000,6 @@ Range.prototype.isSingleCell = function () {
  */
 Range.prototype.isSingleRow = function () {
 	return this.fromRow == this.toRow;
-};
-
-
-/**
- * Splits the range into 4 quadrants based on a vertical and horizontal position.
- * This is useful for splitting the range up into panes when frozen columns or rows
- * are used. Return an array of ranges [topLeft, topRight, bottomLeft, bottomRight].
- * @method split
- * @memberof Range
- *
- * @param	{integer}	[column]		- Column at which to split
- * @param	{integer}	[row]			- Row at which to split
- *
- * @returns {array}
- */
-Range.prototype.split = function (column, row) {
-	var topLeft = null,
-		topRight = null,
-		bottomLeft = null,
-		bottomRight = null;
-
-	// Split columns
-	if (column !== undefined && column !== null && column >= 0 && this.toCell > column) {
-		topLeft = new Range({fromCell: this.fromCell, toCell: column, fromRow: this.fromRow, toRow: this.toRow}, this._grid);
-		topRight = new Range({fromCell: column + 1, toCell: this.toCell, fromRow: this.fromRow, toRow: this.toRow}, this._grid);
-	} else {
-		topLeft = new Range({fromCell: this.fromCell, toCell: this.toCell, fromRow: this.fromRow, toRow: this.toRow}, this._grid);
-	}
-
-	// If split is to the left of the range, keep topLeft null
-	if (column < this.fromCell) {
-		topLeft = null;
-		topRight.fromCell = this.fromCell;
-	}
-
-	// Split rows
-	if (row !== undefined && row !== null && row >= 0 && this.toRow > row) {
-		topLeft = new Range({fromCell: topLeft.fromCell, toCell: topLeft.toCell, fromRow: this.fromRow, toRow: row}, this._grid);
-		bottomLeft = new Range({fromCell: topLeft.fromCell, toCell: topLeft.toCell, fromRow: row + 1, toRow: this.toRow}, this._grid);
-
-		if (topRight) {
-			topRight = new Range({fromCell: topRight.fromCell, toCell: topRight.toCell, fromRow: this.fromRow, toRow: row}, this._grid);
-			bottomRight = new Range({fromCell: topRight.fromCell, toCell: topRight.toCell, fromRow: row + 1, toRow: this.toRow}, this._grid);
-		}
-	}
-
-	return [topLeft, topRight, bottomLeft, bottomRight];
 };
 
 
@@ -1421,21 +1306,13 @@ var DobyGrid = function (options) {
 	var self = this,
 		$canvas,
 		$headers,
-		$headerL,
-		$headerR,
 		$headerFilter,
 		$headerScroller,
-		$headerScrollerL,
-		$headerScrollerR,
 		$overlay,
-		$panes,
 		$style,
 		$viewport,
-		$viewportScrollContainerX,
-		$viewportScrollContainerY,
 		absoluteColumnMinWidth,
 		activePosX,
-		actualFrozenRow = -1,
 		applyColumnHeaderWidths,
 		applyColumnWidths,
 		applyHeaderAndColumnWidths,
@@ -1461,8 +1338,6 @@ var DobyGrid = function (options) {
 		calculateVisibleRows,
 		canCellBeActive,
 		canvasWidth,
-		canvasWidthL,
-		canvasWidthR,
 		cellExists,
 		cellHeightDiff = 0,
 		cellWidthDiff = 0,
@@ -1491,7 +1366,6 @@ var DobyGrid = function (options) {
 		findLastFocusableCell,
 		fitColumnToHeader,
 		fitColumnsToHeader,
-		frozenRowsHeight = 0,
 		generatePlaceholders,
 		getActiveCell,
 		getBrowserData,
@@ -1523,7 +1397,6 @@ var DobyGrid = function (options) {
 		getTotalHeight,
 		getVBoxDelta,
 		getViewportHeight,
-		getViewportWidth,
 		getVisibleRange,
 		gotoCell,
 		gotoDown,
@@ -1545,7 +1418,6 @@ var DobyGrid = function (options) {
 		handleKeyDown,
 		handleScroll,
 		handleWindowResize,
-		hasFrozenRows = false,
 		hasGrouping,
 		hasSorting,
 		headerColumnWidthDiff = 0,
@@ -1615,9 +1487,7 @@ var DobyGrid = function (options) {
 		scrollTop = 0,
 		serializedEditorValue,
 		setActiveCellInternal,
-		setFrozenOptions,
 		setRowHeight,
-		setScroller,
 		setupColumnReorder,
 		setupColumnResize,
 		setupColumnSort,
@@ -1734,9 +1604,6 @@ var DobyGrid = function (options) {
 		fetchCollapsed:			false,
 		forceRemoteSort:		false,
 		formatter:				null,
-		frozenBottom:			false,
-		frozenColumns:			-1,
-		frozenRows:				-1,
 		fullWidthRows:			true,
 		groupable:				true,
 		idProperty:				"id",
@@ -2002,8 +1869,6 @@ var DobyGrid = function (options) {
 			if (this.options.showHeader) disableSelection($headers);
 			renderColumnHeaders();
 			setupColumnSort();
-			setFrozenOptions();
-			setScroller();
 			createCssRules();
 			cacheRows();
 			resizeCanvas(true);
@@ -2120,6 +1985,7 @@ var DobyGrid = function (options) {
 				$canvas.on(evs[i], evHandler);
 			}
 
+
 			// Enable resizable rows
 			if (this.options.resizableRows) {
 				bindRowResize();
@@ -2188,7 +2054,7 @@ var DobyGrid = function (options) {
 	 */
 	applyColumnWidths = function () {
 		// The -1 here is to compensate for the border spacing between cells
-		var x = -1, c, w, rule, i, l, r, isRightmostColumn;
+		var x = -1, c, w, rule, i, l, r;
 
 		// If scrollbar is on the left - we need to add a spacer
 		if ($headers) {
@@ -2208,27 +2074,18 @@ var DobyGrid = function (options) {
 
 			// Right
 			// The -2 here is to compensate for the border spacing between cells
-			r = (self.options.frozenColumns != -1 && i > self.options.frozenColumns ? canvasWidthR : canvasWidthL) - x - w - 2;
+			r = canvasWidth - x - w - 2;
 
-			// Determine if this column is the right-most in its pane
-			isRightmostColumn = (i + 1 === l) || (self.options.frozenColumns != -1 && i === self.options.frozenColumns);
-
-			// If this is the rightmost column, and there is no vertical scrollbar, and
+			// If this is the last column, and there is no vertical scrollbar, and
 			// do not allow negative spacing on the right otherwise we get a gap
-			if (!viewportHasVScroll && self.options.scrollbarPosition === 'right' && isRightmostColumn) {
+			if (!viewportHasVScroll && self.options.scrollbarPosition === 'right' && i + 1 === l && r < 0) {
 				r = 0;
 			}
 
 			rule.right.style.right = r + "px";
 
-			// Reset the css left value since the
-			// column starts in a new viewport
-			if (self.options.frozenColumns == i) {
-				x = -1;
-			} else {
-				// The +1 here is to compensate for the border spacing between cells
-				x += c.width + 1;
-			}
+			// The +1 here is to compensate for the border spacing between cells
+			x += c.width + 1;
 		}
 	};
 
@@ -2418,7 +2275,7 @@ var DobyGrid = function (options) {
 	 * @private
 	 */
 	bindCellRangeSelect = function () {
-		var decorator = new CellRangeDecorator(self, getCellNodeBox),
+		var decorator = new CellRangeDecorator($canvas, getCellNodeBox),
 			_dragging = null,
 			handleSelector = function () {
 				return $(this).closest('.' + CLS.cellunselectable).length > 0;
@@ -2445,7 +2302,7 @@ var DobyGrid = function (options) {
 				if (!_dragging) return;
 
 				var start = getCellFromPoint(
-					dd.startX - $(this).offset().left + $(this).closest($panes).position().left,
+					dd.startX - $(this).offset().left,
 					dd.startY - $(this).offset().top
 				);
 
@@ -2463,9 +2320,8 @@ var DobyGrid = function (options) {
 				event.stopImmediatePropagation();
 
 				var end = getCellFromPoint(
-					event.pageX - $(this).offset().left + $(this).closest($panes).position().left,
-					event.pageY - $(this).offset().top
-				);
+					event.pageX - $(this).offset().left,
+					event.pageY - $(this).offset().top);
 
 				if (!self.canCellBeSelected(end.row, end.cell)) return;
 
@@ -3162,6 +3018,7 @@ var DobyGrid = function (options) {
 	 * @returns {object}
 	 */
 	createGrid = function () {
+
 		// Create the container
 		var cclasses = [self.NAME];
 		if (self.options.class) cclasses.push(self.options.class);
@@ -3169,58 +3026,26 @@ var DobyGrid = function (options) {
 
 		self.$el = $('<div class="' + cclasses.join(' ') + '" id="' + uid + '"></div>');
 
-		// Create pane elements
-		var panes = ['top-left', 'top-right', 'bottom-left', 'bottom-right'], $p, $v, $c;
-
-		$panes = $();
-		$viewport = $();
-		$canvas = $();
-
-		for (var i = 0, l = panes.length; i < l; i++) {
-			// Generate panes
-			$p = $([
-				'<div class="', CLS.pane,
-				' ', CLS.pane, '-', panes[i],
-				'"></div>'
-			].join('')).appendTo(self.$el);
-
-			// Generate viewport containers
-			$v = $([
-				'<div class="', CLS.viewport,
-				(self.options.autoHeight ? ' ' + CLS.autoheight : ''),
-				(self.options.frozenColumns > -1 && i % 2 === 0 ? ' ' + CLS.autoheight : ''),
-				'"></div>'
-			].join('')).appendTo($p);
-
-			// Generate canvas
-			// The tabindex here ensures we can focus on this element
-			// otherwise we can't assign keyboard events
-			$c = $('<div class="' + CLS.canvas + '" tabindex="0"></div>').appendTo($v);
-
-			$panes = $panes.add($p);
-			$viewport = $viewport.add($v);
-			$canvas = $canvas.add($c);
-		}
-
-		// Create header elements
+		// Create the global grid elements
 		if (self.options.showHeader) {
-			$headerScrollerL = $('<div class="' + CLS.header + '"></div>');
-			$panes.eq(0).prepend($headerScrollerL);
-			$headerScrollerR = $('<div class="' + CLS.header + '"></div>');
-			$panes.eq(1).prepend($headerScrollerR);
+			$headerScroller = $('<div class="' + CLS.header + '"></div>')
+					.appendTo(self.$el);
 
-			$headerScroller = $().add($headerScrollerL).add($headerScrollerR);
-
-			$headerL = $('<div class="' + CLS.headercolumns + '"></div>')
-				.appendTo($headerScrollerL)
+			$headers = $('<div class="' + CLS.headercolumns + '"></div>')
+				.appendTo($headerScroller)
 				.width(getHeadersWidth());
-
-			$headerR = $('<div class="' + CLS.headercolumns + '"></div>')
-				.appendTo($headerScrollerR)
-				.width(getHeadersWidth());
-
-			$headers = $().add($headerL).add($headerR);
 		}
+
+		$viewport = $([
+			'<div class="', CLS.viewport,
+			(self.options.autoHeight ? ' ' + CLS.autoheight : ''),
+			'"></div>'
+		].join('')).appendTo(self.$el);
+
+		// The tabindex here ensures we can focus on this element
+		// otherwise we can't assign keyboard events
+		$canvas = $('<div class="' + CLS.canvas + '" tabindex="0"></div>').appendTo($viewport);
+
 	};
 
 
@@ -3576,17 +3401,11 @@ var DobyGrid = function (options) {
 			var cacheEntry = cache.nodes[row];
 			if (cacheEntry) {
 				if (cacheEntry.cellRenderQueue.length) {
-					var $lastNode = $(cacheEntry.rowNode).children('.' + CLS.cell + '').last();
+					var lastChild = $(cacheEntry.rowNode).children('.' + CLS.cell + '').last()[0];
 					while (cacheEntry.cellRenderQueue.length) {
 						var columnIdx = cacheEntry.cellRenderQueue.pop();
-						cacheEntry.cellNodesByColumnIdx[columnIdx] = $lastNode;
-						$lastNode = $lastNode.prev();
-
-						// Hack to retrieve the frozen columns
-						// TODO: Find out why this is needed. It was copied from jlynch.
-						if ($lastNode.length === 0) {
-							$lastNode = $(cacheEntry.rowNode[0]).children().last();
-						}
+						cacheEntry.cellNodesByColumnIdx[columnIdx] = lastChild;
+						lastChild = lastChild.previousSibling;
 					}
 				}
 			}
@@ -4893,9 +4712,8 @@ var DobyGrid = function (options) {
 		}
 
 		// Forcefully destroy all cached elements -- another DOM leak prevention
-		var rowClear = function () { removeElement(this); };
 		for (var row in cache.nodes) {
-			cache.nodes[row].rowNode.each(rowClear);
+			removeElement(cache.nodes[row].rowNode);
 		}
 
 		// Clear collection items (they may be a Remote Objects)
@@ -5527,26 +5345,16 @@ var DobyGrid = function (options) {
 	 */
 	getCanvasWidth = function () {
 		var availableWidth = viewportW - (viewportHasVScroll ? window.scrollbarDimensions.width : 0),
-			colWidth, i, l;
-
-		canvasWidthL = canvasWidthR = 0;
+			rowWidth = 0, i, l;
 
 		for (i = 0, l = cache.activeColumns.length; i < l; i++) {
 			// The 2 here is to compensate for the spacing between columns
-			colWidth = cache.activeColumns[i].width - self.options.columnSpacing + (self.options.fullWidthRows ? 2 : 0);
-
-			if ((self.options.frozenColumns > -1) && (i > self.options.frozenColumns)) {
-				canvasWidthR += colWidth;
-			} else {
-				canvasWidthL += colWidth;
-			}
+			rowWidth += cache.activeColumns[i].width - self.options.columnSpacing + (self.options.fullWidthRows ? 2 : 0);
 		}
 
-		// When fullWidthRows is disabled - keep canvas as big as the data only
-		var totalRowWidth = canvasWidthL + canvasWidthR;
-		var result = self.options.fullWidthRows ? Math.max(totalRowWidth, availableWidth) : (totalRowWidth + l * 2);
+		// When fullWidthRows disable - keep canvas as big as the dat only
+		var result = self.options.fullWidthRows ? Math.max(rowWidth, availableWidth) : (rowWidth + l * 2);
 
-		// Support for left-side scrollbar
 		if (self.options.scrollbarPosition == 'left') result--;
 
 		return result;
@@ -5567,7 +5375,7 @@ var DobyGrid = function (options) {
 		// read column number from .l<columnNumber> CSS class
 		var cls = /l\d+/.exec(cellNode.className);
 		if (!cls) {
-			throw new Error("getCellFromNode: cannot get cell - " + cellNode.className);
+			throw "getCellFromNode: cannot get cell - " + cellNode.className;
 		}
 		return parseInt(cls[0].substr(1, cls[0].length - 1), 10);
 	};
@@ -5631,7 +5439,7 @@ var DobyGrid = function (options) {
 			// Do not allow negative values
 			nodecell = nodecell < 0 ? 0 : nodecell;
 
-			return cache.nodes[row].cellNodesByColumnIdx[nodecell][0];
+			return cache.nodes[row].cellNodesByColumnIdx[nodecell];
 		}
 		return null;
 	};
@@ -5663,9 +5471,7 @@ var DobyGrid = function (options) {
 		var x1 = -1;
 
 		for (var i = 0; i < cell; i++) {
-			if (self.options.frozenColumns === -1 || i > self.options.frozenColumns) {
-				x1 += cache.activeColumns[i].width + 1;
-			}
+			x1 += cache.activeColumns[i].width + 1;
 		}
 
 		var x2 = x1 + cache.activeColumns[cell].width + 2;
@@ -5691,11 +5497,10 @@ var DobyGrid = function (options) {
 	 */
 	getCellFromEvent = function (e) {
 		var $cell = $(e.target).closest("." + CLS.cell, $canvas);
-
 		if (!$cell.length) return null;
 
-		var row = getRowFromNode($cell[0].parentNode),
-			cell = getCellFromNode($cell[0]);
+		var row = getRowFromNode($cell[0].parentNode);
+		var cell = getCellFromNode($cell[0]);
 
 		if (row === null || cell === null) {
 			return null;
@@ -6289,7 +6094,7 @@ var DobyGrid = function (options) {
 	 */
 	getRowFromNode = function (rowNode) {
 		for (var row in cache.nodes) {
-			if (cache.nodes[row].rowNode.is(rowNode)) {
+			if (cache.nodes[row].rowNode === rowNode) {
 				return row | 0;
 			}
 		}
@@ -6520,7 +6325,7 @@ var DobyGrid = function (options) {
 	/**
 	 * Calculates the height of the current viewport
 	 * @method getViewportHeight
-	 * @memberof DobyGrid
+	 * @memberof DobyGRid
 	 * @private
 	 *
 	 * @returns {integer}
@@ -6528,19 +6333,6 @@ var DobyGrid = function (options) {
 	getViewportHeight = function () {
 		// TODO: Find out why the extra 1 is needed.
 		return Math.max(self.$el.height() - (self.options.showHeader ? $headerScroller.outerHeight() - getVBoxDelta($headerScroller) : 0) - 1, 0);
-	};
-
-
-	/**
-	 * Calculates the width of the current viewport
-	 * @method getViewportWidth
-	 * @memberof DobyGrid
-	 * @private
-	 *
-	 * @returns {float}
-	 */
-	getViewportWidth = function () {
-		return parseFloat($.css(self.$el[0], "width", true));
 	};
 
 
@@ -7277,8 +7069,8 @@ var DobyGrid = function (options) {
 	handleScroll = function (event) {
 		if (event === undefined) event = null;
 
-		scrollTop = $viewportScrollContainerY[0].scrollTop;
-		scrollLeft = $viewportScrollContainerX[0].scrollLeft;
+		scrollTop = $viewport[0].scrollTop;
+		scrollLeft = $viewport[0].scrollLeft;
 
 		var scrollTopDelta = Math.abs(scrollTop - prevScrollTop),
 			scrollLeftDelta = Math.abs(scrollLeft - prevScrollLeft);
@@ -7286,30 +7078,13 @@ var DobyGrid = function (options) {
 		// Horizontal Scroll
 		if (scrollLeftDelta) {
 			prevScrollLeft = scrollLeft;
-
-			// Scroll the header
-			if (self.options.showHeader) {
-				if (self.options.frozenColumns > -1) {
-					$headerScroller[1].scrollLeft = scrollLeft;
-				} else {
-					$headerScroller[0].scrollLeft = scrollLeft;
-				}
-			}
+			if (self.options.showHeader) $headerScroller[0].scrollLeft = scrollLeft;
 		}
 
 		// Vertical Scroll
 		if (scrollTopDelta) {
 			vScrollDir = prevScrollTop < scrollTop ? 1 : -1;
 			prevScrollTop = scrollTop;
-
-			// Ensure scrolling affects the appropriate frozen panel
-			if (self.options.frozenColumns > -1) {
-				if (hasFrozenRows && !self.options.frozenBottom) {
-					$viewport.eq(2)[0].scrollTop = scrollTop;
-				} else {
-					$viewport.eq(0)[0].scrollTop = scrollTop;
-				}
-			}
 
 			// Switch virtual pages if needed
 			if (scrollTopDelta < viewportH) {
@@ -7893,7 +7668,7 @@ var DobyGrid = function (options) {
 
 		if (self.options.showHeader) {
 			el = $('<div class="' + CLS.headercolumn + '" style="visibility:hidden">-</div>')
-				.appendTo($headerL);
+				.appendTo($headers);
 
 			headerColumnWidthDiff = headerColumnHeightDiff = 0;
 
@@ -7912,7 +7687,7 @@ var DobyGrid = function (options) {
 			removeElement(el[0]);
 		}
 
-		var r = $('<div class="' + CLS.row + '"></div>').appendTo($canvas[0]);
+		var r = $('<div class="' + CLS.row + '"></div>').appendTo($canvas);
 		el = $('<div class="' + CLS.cell + '" style="visibility:hidden">-</div>').appendTo(r);
 		cellWidthDiff = cellHeightDiff = 0;
 
@@ -7928,7 +7703,6 @@ var DobyGrid = function (options) {
 				cellHeightDiff += parseFloat(el.css(val)) || 0;
 			});
 		}
-
 		removeElement(r[0]);
 
 		absoluteColumnMinWidth = Math.max(headerColumnWidthDiff, cellWidthDiff);
@@ -8768,14 +8542,7 @@ var DobyGrid = function (options) {
 		var cacheEntry = cache.nodes[row], col;
 		if (!cacheEntry) return;
 
-		// Remove row from parent element
-		cacheEntry.rowNode[0].parentElement.removeChild(cacheEntry.rowNode[0]);
-
-		// Remove the row from the right viewport
-		if (cacheEntry.rowNode[1]) {
-			cacheEntry.rowNode[1].parentElement.removeChild(cacheEntry.rowNode[1]);
-		}
-
+		$canvas[0].removeChild(cacheEntry.rowNode);
 		delete cache.nodes[row];
 
 		var item = cache.rows[row];
@@ -8918,12 +8685,9 @@ var DobyGrid = function (options) {
 		}
 
 		// Render columns
-		var column, html, classes, w, $headerTarget;
+		var column, html = [], classes, w;
 		for (var i = 0, l = cache.activeColumns.length; i < l; i++) {
-			html = [];
 			column = cache.activeColumns[i];
-
-			$headerTarget = (self.options.frozenColumns > -1) ? ((i <= self.options.frozenColumns) ? $headerL : $headerR) : $headerL;
 
 			// Determine classes
 			classes = [CLS.headercolumn, (column.headerClass || "")];
@@ -8948,9 +8712,8 @@ var DobyGrid = function (options) {
 			}
 
 			html.push('</div>');
-
-			$headerTarget.append(html.join(''));
 		}
+		$headers.append(html.join(''));
 
 		// Style the column headers accordingly
 		styleSortColumns();
@@ -9029,13 +8792,12 @@ var DobyGrid = function (options) {
 	 * @memberof DobyGrid
 	 * @private
 	 *
-	 * @param	{array}		stringArrayL		- Output array to which to append (for left pane)
-	 * @param	{array}		stringArrayR		- Output array to which to append (for right pane)
+	 * @param	{array}		stringArray			- Output array to which to append
 	 * @param	{integer}	row					- Current row index
 	 * @param	{object}	range				- Viewport range to display
 	 *
 	 */
-	renderRow = function (stringArrayL, stringArrayR, row, range) {
+	renderRow = function (stringArray, row, range) {
 		var d = self.getRowFromIndex(row),
 			rowCss = CLS.row +
 				(self.active && row === self.active.row ? " active" : "") +
@@ -9055,21 +8817,15 @@ var DobyGrid = function (options) {
 
 		if (d && d.class) rowCss += " " + (typeof d.class === 'function' ? d.class.bind(self)(row, d) : d.class);
 
-		var rowHtml = ["<div class='", rowCss, "' style='top:", top, "px"];
+		stringArray.push("<div class='" + rowCss + "' style='top:" + top + "px");
 
 		// In variable row height mode we need some fancy ways to determine height
 		if (variableRowHeight && pos.height !== null && pos.height !== undefined) {
 			var rowheight = pos.height - cellHeightDiff;
-			rowHtml = rowHtml.concat(';height:', rowheight, 'px;line-height:', (rowheight + self.options.lineHeightOffset), 'px');
+			stringArray.push(';height:' + rowheight + 'px;line-height:' + (rowheight + self.options.lineHeightOffset) + 'px');
 		}
 
-		rowHtml.push("'>");
-
-		stringArrayL.push.apply(stringArrayL, rowHtml);
-
-		if (self.options.frozenColumns > -1) {
-			stringArrayR.push.apply(stringArrayR, rowHtml);
-		}
+		stringArray.push("'>");
 
 		var colspan, m, i, l;
 		for (i = 0, l = cache.activeColumns.length; i < l; i++) {
@@ -9093,13 +8849,7 @@ var DobyGrid = function (options) {
 					break;
 				}
 
-				if ((self.options.frozenColumns > -1) && (i > self.options.frozenColumns)) {
-					renderCell(stringArrayR, row, i, colspan, d);
-				} else {
-					renderCell(stringArrayL, row, i, colspan, d);
-				}
-			} else if ((self.options.frozenColumns > -1) && (i <= self.options.frozenColumns)) {
-				renderCell(stringArrayL, row, i, colspan, d);
+				renderCell(stringArray, row, i, colspan, d);
 			}
 
 			if (colspan > 1) {
@@ -9107,22 +8857,14 @@ var DobyGrid = function (options) {
 			}
 		}
 
-		var endRowHtml = [];
-
 		// Add row resizing handle
 		if (self.options.resizableRows && d.resizable !== false) {
-			endRowHtml.push('<div class="');
-			endRowHtml.push(CLS.rowhandle);
-			endRowHtml.push('"></div>');
+			stringArray.push('<div class="');
+			stringArray.push(CLS.rowhandle);
+			stringArray.push('"></div>');
 		}
 
-		endRowHtml.push("</div>");
-
-		stringArrayL.push.apply(stringArrayL, endRowHtml);
-
-		if (options.frozenColumns > -1) {
-			stringArrayR.push.apply(stringArrayR, endRowHtml);
-		}
+		stringArray.push("</div>");
 	};
 
 
@@ -9136,8 +8878,7 @@ var DobyGrid = function (options) {
 	 *
 	 */
 	renderRows = function (range) {
-		var stringArrayL = [],
-			stringArrayR = [],
+		var stringArray = [],
 			rows = [],
 			needToReselectCell = false,
 			i, ii;
@@ -9166,8 +8907,7 @@ var DobyGrid = function (options) {
 				cellRenderQueue: []
 			};
 
-			renderRow(stringArrayL, stringArrayR, i, range);
-
+			renderRow(stringArray, i, range);
 			if (self.active && self.active.node && self.active.row === i) {
 				needToReselectCell = true;
 			}
@@ -9176,34 +8916,12 @@ var DobyGrid = function (options) {
 
 		if (!rows.length) return;
 
-		var xLeft = document.createElement("div"),
-			xRight = document.createElement("div");
-
-		xLeft.innerHTML = stringArrayL.join("");
-		xRight.innerHTML = stringArrayR.join("");
+		var x = document.createElement("div");
+		x.innerHTML = stringArray.join("");
 
 		// Cache the row nodes
 		for (i = 0, ii = rows.length; i < ii; i++) {
-			// If frozen rows are enabled
-			if (hasFrozenRows && (rows[i] >= actualFrozenRow)) {
-				if (self.options.frozenColumns > -1) {
-					cache.nodes[rows[i]].rowNode = $()
-						.add($(xLeft.firstChild).appendTo($canvas[2]))
-						.add($(xRight.firstChild).appendTo($canvas[3]));
-				} else {
-					cache.nodes[rows[i]].rowNode = $()
-						.add($(xLeft.firstChild).appendTo($canvas[2]));
-				}
-			// If frozen columns are enabled
-			} else if (self.options.frozenColumns > -1) {
-				cache.nodes[rows[i]].rowNode = $()
-					.add($(xLeft.firstChild).appendTo($canvas[0]))
-					.add($(xRight.firstChild).appendTo($canvas[1]));
-			// No frozen rows or columns
-			} else {
-				cache.nodes[rows[i]].rowNode = $()
-					.add($(xLeft.firstChild).appendTo($canvas[0]));
-			}
+			cache.nodes[rows[i]].rowNode = $canvas[0].appendChild(x.firstChild);
 		}
 
 		if (needToReselectCell) {
@@ -9300,24 +9018,12 @@ var DobyGrid = function (options) {
 		if (!initialized) return;
 
 		viewportH = getViewportHeight();
-		viewportW = getViewportWidth();
 
 		// Save the currently visible number of rows
 		calculateVisibleRows();
 
-		// Determine height of each pane
-		// TODO: Temporary hack until work on frozen rows starts
-		$panes.each(function (i) {
-			if (!hasFrozenRows) {
-				if (i > 1) {
-					$(this).height(0);
-				} else {
-					$(this).css({bottom: 0});
-					$viewport.eq(0).css({height: viewportH});
-					$viewport.eq(1).css({height: viewportH});
-				}
-			}
-		});
+		viewportW = parseFloat($.css(self.$el[0], "width", true));
+		$viewport.height(viewportH);
 
 		updateRowCount();
 
@@ -9725,7 +9431,7 @@ var DobyGrid = function (options) {
 	 */
 	scrollTo = function (y) {
 		y = Math.max(y, 0);
-		y = Math.min(y, th - viewportH + (viewportHasHScroll || self.options.frozenColumns > -1 ? window.scrollbarDimensions.height : 0));
+		y = Math.min(y, th - viewportH + (viewportHasHScroll ? window.scrollbarDimensions.height : 0));
 
 		var oldOffset = offset;
 
@@ -9746,20 +9452,7 @@ var DobyGrid = function (options) {
 		if (prevScrollTop != newScrollTop) {
 			var scrollTopDelta = Math.abs(newScrollTop - prevScrollTop);
 			vScrollDir = (prevScrollTop + oldOffset < newScrollTop + offset) ? 1 : -1;
-			lastRenderedScrollTop = (scrollTop = prevScrollTop = newScrollTop);
-
-			// Scroll top-left viewport
-			$viewport.eq(0)[0].scrollTop = newScrollTop;
-
-			// If frozen columns are enabled, scroll the top-right viewport
-			if (self.options.frozenColumns > -1) {
-				$viewport.eq(1)[0].scrollTop = newScrollTop;
-			}
-
-			// If frozen rows are enabled, scroll the bottom-left viewport
-			if (hasFrozenRows) {
-				$viewport.eq(2)[0].scrollTop = newScrollTop;
-			}
+			$viewport[0].scrollTop = (lastRenderedScrollTop = scrollTop = prevScrollTop = newScrollTop);
 
 			self.trigger('viewportchanged', null, {
 				scrollLeft: 0,
@@ -10035,33 +9728,6 @@ var DobyGrid = function (options) {
 
 
 	/**
-	 * Validates and sets up options for frozen columns and rows
-	 * @method setFrozenOptions
-	 * @memberof DobyGrid
-	 * @private
-	 */
-	setFrozenOptions = function () {
-		// Validate frozenColumns value
-		self.options.frozenColumns = (self.options.frozenColumns >= 0 && self.options.frozenColumns < self.options.columns.length) ? parseInt(self.options.frozenColumns) : -1;
-
-		// Validate frozenRow value
-		self.options.frozenRows = (self.options.frozenRows >= 0 && self.options.frozenRows < numVisibleRows) ? parseInt(self.options.frozenRows) : -1;
-
-		if (self.options.frozenRows > -1) {
-			hasFrozenRows = true;
-			frozenRowsHeight = (self.options.frozenRows) * self.options.rowHeight;
-
-			// TODO: This will not work with variableRowHeights
-			var dataLength = getDataLength() || this.data.length;
-
-			actualFrozenRow = (self.options.frozenBottom) ? (dataLength - self.options.frozenRows) : self.options.frozenRows;
-		} else {
-			hasFrozenRows = false;
-		}
-	};
-
-
-	/**
 	 * Sets the grouping for the grid data view.
 	 * @method setGrouping
 	 * @memberof DobyGrid
@@ -10137,9 +9803,6 @@ var DobyGrid = function (options) {
 			render();
 		}
 
-		setFrozenOptions();
-		setScroller();
-
 		if (recalc_heights) {
 			invalidateAllRows();
 			removeCssRules();
@@ -10213,44 +9876,6 @@ var DobyGrid = function (options) {
 
 		// This will recalculate scroll heights to ensure scrolling is properly handled.
 		updateRowCount();
-	};
-
-
-	/**
-	 * When frozen columns are used it's not immediately obvious which viewport
-	 * controls the scrolling events. This methods sets that up accordingly.
-	 * @method setScroller
-	 * @memberof DobyGrid
-	 * @private
-	 *
-	 */
-	setScroller = function () {
-		// When frozen columns are enabled
-		if (self.options.frozenColumns > -1) {
-
-			// If frozen rows are enabled too
-			if (hasFrozenRows) {
-				if (self.options.frozenBottom) {
-					$viewportScrollContainerX = $viewport.eq(3);
-					$viewportScrollContainerY = $viewport.eq(1);
-				} else {
-					$viewportScrollContainerX = $viewportScrollContainerY = $viewport.eq(3);
-				}
-			} else {
-				$viewportScrollContainerX = $viewportScrollContainerY = $viewport.eq(1);
-			}
-		} else {
-			if (hasFrozenRows) {
-				if (self.options.frozenBottom) {
-					$viewportScrollContainerX = $viewport.eq(2);
-					$viewportScrollContainerY = $viewport.eq(0);
-				} else {
-					$viewportScrollContainerX = $viewportScrollContainerY = $viewport.eq(2);
-				}
-			} else {
-				$viewportScrollContainerX = $viewportScrollContainerY = $viewport.eq(0);
-			}
-		}
 	};
 
 
@@ -10451,7 +10076,6 @@ var DobyGrid = function (options) {
 		columnElements = $headers.children("." + CLS.headercolumn);
 		var $handle = columnElements.find("." + CLS.handle);
 		if ($handle && $handle.length) removeElement($handle[0]);
-
 		columnElements.each(function (i) {
 			if (!cache.activeColumns[i].resizable) return;
 			if (firstResizable === undefined) firstResizable = i;
@@ -10839,14 +10463,14 @@ var DobyGrid = function (options) {
 
 		var i = stickyGroups.length,
 			group,
-			offset = $viewport.eq(0).position().top,
+			offset = $viewport.position().top,
 			isFirstGroupCollapsed = i && stickyGroups[0].collapsed ? true : false,
 			isFirstGroupEmptyNull = i && stickyGroups[0].value === null && !stickyGroups[0].predef.groupNulls;
 
 		// Reset currently rendered groups
 		if (scrollTop === 0 || isFirstGroupCollapsed || isFirstGroupEmptyNull || haveStickyGroupsChanged) {
 			cache.stickyRows = [];
-			$panes.children('.' + CLS.sticky).remove();
+			$viewport.parent().children('.' + CLS.sticky).remove();
 		}
 
 		// If we're at the top - don't draw any sticky groups
@@ -10871,7 +10495,7 @@ var DobyGrid = function (options) {
 				} else {
 					var child = '.' + CLS.sticky + '[rel="' + group[self.options.idProperty] + '"]:first';
 
-					$clone = $panes.eq(0).children(child);
+					$clone = $viewport.parent().children(child);
 
 					if ($clone.length) $clone.remove();
 
@@ -10901,8 +10525,8 @@ var DobyGrid = function (options) {
 						.addClass(CLS.sticky)
 						.attr('rel', group[self.options.idProperty])
 						.width($canvas.css('width'))
-						.appendTo($panes.eq(0))
-						.removeClass(CLS.grouptoggle);
+						.removeClass(CLS.grouptoggle)
+						.appendTo($viewport.parent());
 
 					// Cache row
 					cache.stickyRows[i] = $clone;
@@ -11458,47 +11082,16 @@ var DobyGrid = function (options) {
 	 *
 	 */
 	updateCanvasWidth = function (forceColumnWidthsUpdate) {
-		var oldCanvasWidth = canvasWidth,
-			oldCanvasWidthL = canvasWidthL,
-			oldCanvasWidthR = canvasWidthR,
-			widthChanged;
-
-		// Calculate new canvas widths
+		var oldCanvasWidth = canvasWidth;
 		canvasWidth = getCanvasWidth();
 
-		// Determine if any of the canvas widths have changed
-		widthChanged = canvasWidth !== oldCanvasWidth || canvasWidthL !== oldCanvasWidthL || canvasWidthR !== oldCanvasWidthR;
-
-		// If canvas width has changed
-		if (widthChanged) {
-
-			// Handle frozen columns
-			if (self.options.frozenColumns > -1) {
-				$panes.eq(0).width(canvasWidthL);
-				$panes.eq(1).css({
-					left: canvasWidthL + 'px'
-				});
-			} else {
-				$panes.eq(0).css({
-					right: 0,
-					width: 'auto'
-				});
-				$panes.eq(1).css({
-					width: 0
-				});
-			}
-
-			$canvas.eq(0).width(canvasWidthL);
-			$canvas.eq(1).width(canvasWidthR);
-
-			// Set header widths
+		if (canvasWidth != oldCanvasWidth) {
+			$canvas.width(canvasWidth);
 			if (self.options.showHeader) $headers.width(getHeadersWidth());
-
-			// Determine if we have horizontal scrolling
 			viewportHasHScroll = (canvasWidth > viewportW - window.scrollbarDimensions.width);
 		}
 
-		if (widthChanged || forceColumnWidthsUpdate) {
+		if (canvasWidth != oldCanvasWidth || forceColumnWidthsUpdate) {
 			applyColumnWidths();
 		}
 	};
@@ -11928,8 +11521,7 @@ module.exports = DobyGrid;
 var base = 'doby-grid';
 
 module.exports = {
-	autoheight:				base + '-autoheight',
-	canvas:					base + '-canvas',
+	autoheight:				base + "-autoheight",
 	cell:					base + '-cell',
 	cellunselectable:		base + '-cell-unselectable',
 	clipboard:				base + '-clipboard',
@@ -11967,7 +11559,6 @@ module.exports = {
 	invalidicon:			base + '-invalid-icon',
 	left:					base + '-scrollbar-left',
 	noright:				base + '-no-right',
-	pane:					base + '-pane',
 	placeholder:			base + '-sortable-placeholder',
 	rangedecorator:			base + '-range-decorator',
 	rangedecoratorstat:		base + '-range-decorator-stats',
@@ -11982,7 +11573,8 @@ module.exports = {
 	sticky:					base + '-sticky',
 	tooltip:				base + '-tooltip',
 	tooltiparrow:			base + '-tooltip-arrow',
-	viewport:				base + '-viewport'
+	viewport:				base + '-viewport',
+	canvas:					base + '-canvas'
 };
 },{}],13:[function(require,module,exports){
 "use strict";
