@@ -8617,7 +8617,9 @@ var DobyGrid = function (options) {
 	 */
 	this.setColumns = function (columns) {
 		// Copy array
+		var oldAggregators = {};
 		var oldColumns = this.options.columns.map(function (c) {
+			oldAggregators[c.id] = c.aggregators;
 			return _.clone(c);
 		});
 
@@ -8647,6 +8649,27 @@ var DobyGrid = function (options) {
 			applyColumnWidths();
 			handleScroll();
 			self.options.minColumnWidth === "headerContent" && fitColumnsToHeader(true);
+
+			// If aggregators have changed - we will need to refresh to re-draw the
+			// aggregator rows.
+			var oldAggregatorExists, newActiveAggregator;
+			for (var i = 0, l = columns.length; i < l; i++) {
+				oldAggregatorExists = oldAggregators[columns[i].id] && oldAggregators[columns[i].id].aggregators;
+				newActiveAggregator = _.findWhere((columns[i].aggregators || []), {active: true});
+
+				// Refresh if
+				if (
+					// There is at least one active aggregator in the new column definitions
+					newActiveAggregator && (
+						// Aggregators have changed between old and new definitions
+						(columns[i].aggregators && columns[i].aggregators.length && !oldAggregatorExists) ||
+						(!columns[i].aggregators && oldAggregatorExists)
+					)
+				) {
+					this.collection.refresh();
+					break;
+				}
+			}
 		}
 	};
 

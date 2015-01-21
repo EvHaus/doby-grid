@@ -240,6 +240,59 @@ describe("Column Options", function () {
 			lastCell = grid.$el.find('.doby-grid-row .doby-grid-cell').last();
 			expect(lastCell.text()).toEqual(originalValue);
 		});
+
+
+		// ==========================================================================================
+
+
+		it("should refresh the grid if aggregators are enabled via setColumns()", function () {
+			var aggregators = [{
+				fn: function () {
+					this.process = function () {};
+					return this;
+				}
+			}];
+
+			var columns = [{
+				id: 'id',
+				field: 'id',
+				name: 'id'
+			}, {
+				id: 'name',
+				field: 'name',
+				name: 'name'
+			}];
+
+			var grid = resetGrid($.extend(defaultData(), {
+				columns: columns
+			}));
+
+			// Except there to be no aggregators rendered
+			expect(grid.$el).not.toContainElement('.doby-grid-row-total');
+
+			// Enable aggregators
+			grid.setColumns(
+				_.map(columns, function (c) {
+					c.aggregators = aggregators;
+					return c;
+				})
+			);
+
+			// Except there to be no aggregators rendered (because none of the aggregators are active)
+			expect(grid.$el).not.toContainElement('.doby-grid-row-total');
+
+			// Enable aggregators (with an active one)
+			grid.setColumns(
+				_.map(columns, function (c) {
+					aggregators[0].active = true;
+					c.aggregators = aggregators;
+					return c;
+				})
+			);
+
+			// Except there to be an aggregator total row now
+			expect(grid.$el).toContainElement('.doby-grid-row-total');
+		});
 	});
 
 
