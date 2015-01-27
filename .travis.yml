@@ -8,7 +8,7 @@ branches:
   only:
     - master
 script:
-  - grunt
+  - grunt test
 notifications:
   email:
     recipients:
