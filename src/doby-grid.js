@@ -2991,7 +2991,6 @@ var DobyGrid = function (options) {
 			if (initialized && grid.options.autoHeight) {
 				grid.resize();
 			}
-
 		};
 
 
@@ -3307,7 +3306,9 @@ var DobyGrid = function (options) {
 			// TODO: This only needs to re-index ID, not recalculate positions.
 			// Maybe update cacheRows to support different modes?
 			cacheRows(null, true);
-			this.refresh();
+
+			// Debouncing here ensures aggregators are not duplicated. See Issue #113.
+			this.refreshDebounced();
 		};
 
 
@@ -3871,6 +3872,7 @@ var DobyGrid = function (options) {
 			// Only re-fetch if the grid is initialized, otherwise we're wasting an AJAX call
 			if (initialized) this.refetch();
 		} else {
+			// Ensure aggregators are reset before changing filter values
 			resetAggregators();
 
 			// Refresh the grid with the filtered data
@@ -8790,8 +8792,9 @@ var DobyGrid = function (options) {
 		}
 
 		// If setting new data - this needs to be executed after column changes to ensure
-		// additions to aggregators are picked up.
-		if (options.data) {
+		// additions to aggregators are picked up. Don't do this if columns have changed
+		// because setColumns above will perform it's own reset for aggregators if needed.
+		if (options.data && !options.columns) {
 			this.reset(options.data);
 		}
 
