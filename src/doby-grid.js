@@ -20,6 +20,7 @@ if (!Backbone) throw new Error('Unable to load DobyGrid because Backbone, which 
 
 var Aggregate			= require('./classes/Aggregate'),
 	CellRangeDecorator	= require('./classes/CellRangeDecorator'),
+	CustomGroup			= require('./classes/CustomGroup'),
 	DefaultEditor		= require('./classes/DefaultEditor'),
 	DefaultFormatter	= require('./classes/DefaultFormatter'),
 	Dropdown			= require('./classes/Dropdown'),
@@ -151,6 +152,7 @@ var DobyGrid = function (options) {
 		getColumnHeaderWidth,
 		getColumnFromEvent,
 		getColspan,
+		getCustomGroups,
 		getDataItemValueForColumn,
 		getDataLength,
 		getEditor,
@@ -318,6 +320,7 @@ var DobyGrid = function (options) {
 		columnSpacing:			1,
 		columnWidth:			80,
 		contextMenu:			'all',
+		customGroups:			false,
 		ctrlSelect:				true,
 		data:					[],
 		dataExtractor:			null,
@@ -1957,7 +1960,7 @@ var DobyGrid = function (options) {
 
 			// If we have normal data - set it now
 			if (!grid.fetcher && grid.options.data) {
-				this.reset(grid.options.data);
+				self.reset(grid.options.data);
 			}
 
 			return this;
@@ -2249,7 +2252,10 @@ var DobyGrid = function (options) {
 			// Reset grouping row references
 			gi.rows = [];
 
-			var processGroups = function (remote_groups) {
+			var processGroups = function (options) {
+
+				var remote_groups = options && options.remote_groups;
+					//custom_groups = options && options.custom_groups;
 
 				var createGroupObject = function (g) {
 					var value = g ? g.value : val;
@@ -2293,6 +2299,22 @@ var DobyGrid = function (options) {
 						if (!checkRemoteGroup(level, rm_g, parentGroup)) continue;
 
 						group = createGroupObject(rm_g);
+						groups.push(group);
+						groupsByVal[group.value] = group;
+					}
+				}
+
+				if (grid.options.customGroups) {
+					new CustomGroup();
+					var cm_g;
+					for (var o = 0, clength = self.groups[level].groups.length; o < clength; o++) {
+						cm_g = self.groups[level].groups[o];
+
+						// For each parent, walk up the hierarchy of group parents and
+						// confirm that this sub-group belongs there
+						if (!checkRemoteGroup(level, cm_g, parentGroup)) continue;
+
+						group = createGroupObject(cm_g);
 						groups.push(group);
 						groupsByVal[group.value] = group;
 					}
@@ -2402,7 +2424,7 @@ var DobyGrid = function (options) {
 				// remoteFetchGroups will cache the results after the first request,
 				// so there is no fear of this being re-querying the server on every grouping loop
 				remoteFetchGroups(function (results) {
-					processGroups(results);
+					processGroups({remote_groups: results});
 				});
 			} else {
 				processGroups();
@@ -2925,7 +2947,7 @@ var DobyGrid = function (options) {
 			// Do not create groups when the grid is empty.
 			//
 			var groups = [];
-			if (self.groups.length && self.items.length) {
+			if (self.groups.length) {
 
 				extractGroups(newRows, null, function (result) {
 					groups = result;
@@ -4537,6 +4559,9 @@ var DobyGrid = function (options) {
 		return column_id ? getColumnById(column_id) : null;
 	};
 
+	getCustomGroups = function (callback) {
+		callback(self.options.customGroups);
+	};
 
 	/**
 	 * Given an item object and a column definition, returns the value of the column
