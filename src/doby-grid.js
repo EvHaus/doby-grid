@@ -561,6 +561,12 @@ var DobyGrid = function (options) {
 			// Use the column_id shortcut to extend the options
 			options.column_id = column_id;
 
+			if (hasCustomGrouping) {
+				// Disable custom grouping
+				hasCustomGrouping = false;
+				this.collection.groups = [];
+			}
+
 			// Add to grouping
 			this.collection.groups.push(options);
 
@@ -8764,6 +8770,7 @@ var DobyGrid = function (options) {
 	 * @returns {object}
 	 */
 	this.setGrouping = function (options) {
+		hasCustomGrouping = false;
 		this.collection.setGrouping(options);
 		return this;
 	};
