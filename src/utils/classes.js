@@ -27,6 +27,8 @@ module.exports = {
 	group:					base + '-group',
 	grouptitle:				base + '-group-title',
 	grouptoggle:			base + '-group-toggle',
+	gutter:					base + '-gutter',
+	guttersVisible:			base + '-gutters-visible',
 	handle:					base + '-resizable-handle',
 	header:					base + '-header',
 	headercolumns:			base + '-header-columns',
