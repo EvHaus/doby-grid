@@ -421,6 +421,7 @@
 			columnSpacing:			1,
 			columnWidth:			80,
 			contextMenu:			'all',
+			cycleRowBasedSelection: false,
 			ctrlSelect:				true,
 			data:					[],
 			dataExtractor:			null,
@@ -5754,7 +5755,12 @@
 				dataLength = getDataLength();
 			while (true) {
 				if (++row >= dataLength) {
-					return null;
+					// In row based selection mode, cycle through rows
+					if (rowBasedSelection && cycleRowBasedSelection) {
+						row = 0;
+					} else {
+						return null;
+					}
 				}
 
 				prevCell = cell = 0;
@@ -5946,7 +5952,12 @@
 			var prevCell;
 			while (true) {
 				if (--row < 0) {
-					return null;
+					// In row based selection mode, cycle through rows
+					if (rowBasedSelection && cycleRowBasedSelection) {
+						row = getDataLength() - 1;
+					} else {
+						return null;
+					}
 				}
 
 				prevCell = cell = 0;
