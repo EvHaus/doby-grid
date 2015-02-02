@@ -6522,6 +6522,12 @@
 			// Down arrow
 			case 40 :
 				handled = handleNavigateKey(function () {
+
+					// don't naviagte in cycle mode if shift is used
+					if (shiftUsed && self.options.cycleRowBasedSelection && (newestRange.toRow >= getDataLength() -1)) {
+						return true;
+					}
+
 					navigate("down");
 					reselectRow();
 					return true;
@@ -6530,6 +6536,12 @@
 			// Up Arrow
 			case 38 :
 				handled = handleNavigateKey(function () {
+
+					// don't naviagte in cycle mode if shift is used
+					if (shiftUsed && self.options.cycleRowBasedSelection && (newestRange.toRow <= 0)) {
+						return true;
+					}
+
 					navigate("up");
 					reselectRow(true);
 					return true;
