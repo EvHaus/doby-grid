@@ -4265,7 +4265,8 @@ var DobyGrid = function (options) {
 			// Do not allow negative values
 			nodecell = nodecell < 0 ? 0 : nodecell;
 
-			return cache.nodes[row].cellNodesByColumnIdx[nodecell][0];
+			var cellNodeArray = cache.nodes[row].cellNodesByColumnIdx[nodecell];
+			return cellNodeArray && cache.nodes[row].cellNodesByColumnIdx[nodecell][0];
 		}
 		return null;
 	};
