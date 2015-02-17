@@ -42,7 +42,7 @@
     "FileSaver": "",
     "jquery": "2.1.1",
     "jquery-ui": "1.11.0",
-    "jquery.event.drag-drop": "2.2.1",
+    "jquery.event.drag-drop": "https://github.com/threedubmedia/jquery.threedubmedia.git#2.2",
     "underscore": "1.7.0"
   },
   "devDependencies": {
