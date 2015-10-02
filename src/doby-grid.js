@@ -1437,7 +1437,7 @@ var DobyGrid = function (options) {
 			cacheEntry = cache.nodes[processedRow];
 			while ((columnIdx = cacheEntry.cellRenderQueue.pop()) !== null && columnIdx !== undefined) {
 				node = x.lastChild;
-				cacheEntry.rowNode.appendChild(node);
+				cacheEntry.rowNode[0].appendChild(node);
 				cacheEntry.cellNodesByColumnIdx[columnIdx] = node;
 			}
 		}
@@ -1480,7 +1480,7 @@ var DobyGrid = function (options) {
 
 		var cellToRemove;
 		while (((cellToRemove = cellsToRemove.pop()) !== null && cellToRemove !== undefined) && cellToRemove) {
-			cacheEntry.rowNode.removeChild(cacheEntry.cellNodesByColumnIdx[cellToRemove]);
+			cacheEntry.rowNode[0].removeChild(cacheEntry.cellNodesByColumnIdx[cellToRemove][0]);
 			delete cacheEntry.cellColSpans[cellToRemove];
 			delete cacheEntry.cellNodesByColumnIdx[cellToRemove];
 			if (cache.postprocess[cache.rows[row].id]) {
