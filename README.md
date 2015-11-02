@@ -1,6 +1,7 @@
 
-Doby Grid [![Stories in Ready](https://badge.waffle.io/globexdesigns/doby-grid.png?label=ready&title=Ready)](https://waffle.io/globexdesigns/doby-grid) [![Build Status](https://travis-ci.org/globexdesigns/doby-grid.png)](https://travis-ci.org/globexdesigns/doby-grid)
+Doby Grid
 =========
+[![Build Status](https://travis-ci.org/globexdesigns/doby-grid.png)](https://travis-ci.org/globexdesigns/doby-grid) [![Stories in Ready](https://badge.waffle.io/globexdesigns/doby-grid.png?label=ready&title=Ready)](https://waffle.io/globexdesigns/doby-grid) [![Pull Request Speed](http://issuestats.com/github/globexdesigns/doby-grid/badge/pr?style=flat-square)](http://issuestats.com/github/globexdesigns/doby-grid) [![Issue Speed](http://issuestats.com/github/globexdesigns/doby-grid/badge/issue?style=flat-square)](http://issuestats.com/github/globexdesigns/doby-grid)
 
 Doby Grid is stand-alone module (part of the Doby JS framework) for rendering a dynamic, data-driven grid. It's basically a `<table>` element on steroids.
 
