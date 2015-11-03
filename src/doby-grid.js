@@ -1436,7 +1436,7 @@ var DobyGrid = function (options) {
 		while ((processedRow = processedRows.pop()) !== null && processedRow !== undefined) {
 			cacheEntry = cache.nodes[processedRow];
 			while ((columnIdx = cacheEntry.cellRenderQueue.pop()) !== null && columnIdx !== undefined) {
-				node = x.lastChild;
+				node = $(x.lastChild);
 				cacheEntry.rowNode.append(node);
 				cacheEntry.cellNodesByColumnIdx[columnIdx] = node;
 			}
