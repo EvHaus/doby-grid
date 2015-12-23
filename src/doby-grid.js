@@ -6786,6 +6786,10 @@ var DobyGrid = function (options) {
 			filters: typeof(self.collection.filter) != 'function' ? self.collection.filter : null
 		};
 
+		if (typeof self.fetcher.onLoading === 'function'){
+			self.fetcher.onLoading(false);
+		}
+
 		var req = function () {
 			var	dfd = new $.Deferred();
 
@@ -6821,6 +6825,9 @@ var DobyGrid = function (options) {
 				// the viewport with blanks
 				self.collection.refresh();
 
+				if (typeof self.fetcher.onLoaded === 'function'){
+					self.fetcher.onLoaded();
+				}
 				// Now go and fetch the real items
 				callback();
 
