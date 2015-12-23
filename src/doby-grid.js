@@ -3170,7 +3170,7 @@ var DobyGrid = function (options) {
 			// When we're dealing with remote groups - we might as well re-generate placeholders
 			// for everything since any data that was previously fetched is no longer in the right
 			// order anyway.
-			if (!fullyLoaded && grid.fetcher) {
+			if (!fullyLoaded && grid.fetcher && initialized) {
 				// Reset collection length to full. This ensures that when groupings are removed,
 				// the grid correctly refetches the full page of results.
 				this.length = this.remote_length;
@@ -3183,7 +3183,9 @@ var DobyGrid = function (options) {
 
 			// If groupings have changed - refetch groupings
 			if (grid.fetcher && !fullyLoaded && grouping_changed) {
-				remoteGroupRefetch();
+				if (initialized) {
+					remoteGroupRefetch();
+				}
 			} else {
 				// Reload the grid with the new grouping.
 				this.refresh();
@@ -3193,7 +3195,7 @@ var DobyGrid = function (options) {
 			// will cause the row sizes to be changed.
 			if (variableRowHeight) resizeCanvas(true);
 
-			if (grid.fetcher && !fullyLoaded && (groups.length === 0 || grid.options.fetchCollapsed)) {
+			if (grid.fetcher && !fullyLoaded && (groups.length === 0 || grid.options.fetchCollapsed && initialized)) {
 				// If all groupings are removed - refetch the data
 				remoteFetch();
 			}
@@ -3597,7 +3599,7 @@ var DobyGrid = function (options) {
 		var cols = args.sortCols;
 
 		// If remote, and not all data is fetched - sort on server
-		if (self.fetcher && (!remoteAllLoaded() || self.options.forceRemoteSort)) {
+		if (self.fetcher && (!remoteAllLoaded() || self.options.forceRemoteSort) && initialized) {
 			// Reset collection length to full. This ensures that when groupings are removed,
 			// the grid correctly refetches the full page of results.
 			self.collection.length = self.collection.remote_length;
@@ -8220,6 +8222,7 @@ var DobyGrid = function (options) {
 			cacheRows();
 			invalidate();
 		}
+		return this;
 	};
 
 
