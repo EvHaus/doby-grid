@@ -1,31 +1,10 @@
 (function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);var f=new Error("Cannot find module '"+o+"'");throw f.code="MODULE_NOT_FOUND",f}var l=n[o]={exports:{}};t[o][0].call(l.exports,function(e){var n=t[o][1][e];return s(n?n:e)},l,l.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s})({1:[function(require,module,exports){
-/* global $ */
-
-"use strict";
-
-/**
- * @class NonDataItem
- * @classdesc A base class that all special / non-data rows (like Group) derive from.
- *
- * @param	{object}	data		- Data object for this item
- */
-var NonDataItem = function (data) {
-	this.__nonDataRow = true;
-	if (data) $.extend(this, data);
-};
-
-NonDataItem.prototype.toString = function () {
-	return "NonDataItem";
-};
-
-module.exports = NonDataItem;
-},{}],2:[function(require,module,exports){
 "use strict";
 
 var NonDataItem	= require('./NonDataItem');
 
 /**
- * @class Range
+ * @class CellRange
  * @classdesc A structure containing a range of cells.
  *
  * @param {object}		data			- Data for the cell range
@@ -36,7 +15,7 @@ var NonDataItem	= require('./NonDataItem');
  * @param {object}		grid			- Current DobyGrid instance
  *
  */
-var Range = function (data, grid) {
+var CellRange = function (data, grid) {
 	var fromRow = data.fromRow,
 		fromCell = data.fromCell,
 		toRow = data.toRow === undefined ? data.fromRow : data.toRow,
@@ -58,14 +37,14 @@ var Range = function (data, grid) {
 /**
  * Returns whether a range contains a given cell
  * @method contains
- * @memberof Range
+ * @memberof CellRange
  *
  * @param	{integer}	row			- Row index
  * @param	{integer}	cell		- Cell index
  *
  * @returns {boolean}
  */
-Range.prototype.contains = function (row, cell) {
+CellRange.prototype.contains = function (row, cell) {
 	return row >= this.fromRow &&
 		row <= this.toRow && (
 			cell === undefined || cell === null || (
@@ -80,20 +59,20 @@ Range.prototype.contains = function (row, cell) {
 /**
  * Deselects the range, or a specific cell in the range. Returns the Range object.
  * @method deselect
- * @memberof Range
+ * @memberof CellRange
  *
  * @param	{integer}	[row]		- Row index for cell to deselect
  * @param	{integer}	[cell]	- Cell index to deselect in the given row
  *
  * @returns {object}
  */
-Range.prototype.deselect = function (row, cell) {
+CellRange.prototype.deselect = function (row, cell) {
 	var specific = row !== undefined && row !== null && cell !== undefined && cell !== null,
 		cache = this._grid.getCache();
 
 	// Make sure cell is part of range
 	if (specific && !this.contains(row, cell)) {
-		throw new Error('Unable to deselect cell (' + row + ', ' + cell + ') because it is not part of this Range.');
+		throw new Error('Unable to deselect cell (' + row + ', ' + cell + ') because it is not part of this CellRange.');
 	}
 
 	// If deselecting a specific cell -- add it to the exclusion list
@@ -142,9 +121,9 @@ Range.prototype.deselect = function (row, cell) {
 /**
  * Validates that all cells in the range are selectable, if not - adds them to the exclusions
  * @method excludeUnselectable
- * @memberof Range
+ * @memberof CellRange
  */
-Range.prototype.excludeUnselectable = function () {
+CellRange.prototype.excludeUnselectable = function () {
 	for (var row = this.fromRow; row <= this.toRow; row++) {
 		for (var cell = this.fromCell; cell <= this.toCell; cell++) {
 			if (!this._grid.canCellBeSelected(row, cell)) {
@@ -158,11 +137,11 @@ Range.prototype.excludeUnselectable = function () {
 /**
  * Returns whether the range is fully excluded
  * @method fullyExcluded
- * @memberof Range
+ * @memberof CellRange
  *
  * @returns {boolean}
  */
-Range.prototype.fullyExcluded = function () {
+CellRange.prototype.fullyExcluded = function () {
 	for (var row = this.fromRow; row <= this.toRow; row++) {
 		for (var cell = this.fromCell; cell <= this.toCell; cell++) {
 			if (!this.isExcludedCell(row, cell)) return false;
@@ -175,11 +154,11 @@ Range.prototype.fullyExcluded = function () {
 /**
  * Returns the number of cells in this selection range
  * @method getCellCount
- * @memberof Range
+ * @memberof CellRange
  *
  * @returns {integer}
  */
-Range.prototype.getCellCount = function () {
+CellRange.prototype.getCellCount = function () {
 	var count = 0,
 		rownodes,
 		cache = this._grid.getCache();
@@ -199,12 +178,12 @@ Range.prototype.getCellCount = function () {
 /**
  * Returns whether a cell is excluded in this range
  * @method isExcludedCell
- * @memberof Range
+ * @memberof CellRange
  *
  * @param	{integer}	row			- Row index for cell to check
  * @param	{integer}	cell		- Cell index to check in the given row
  */
-Range.prototype.isExcludedCell = function (row, cell) {
+CellRange.prototype.isExcludedCell = function (row, cell) {
 	if (this.exclusions.length === 0) return false;
 	for (var i = 0, l = this.exclusions.length; i < l; i++) {
 		if (this.exclusions[i][0] === row && this.exclusions[i][1] === cell) return true;
@@ -215,11 +194,11 @@ Range.prototype.isExcludedCell = function (row, cell) {
 /**
  * Returns whether a row is excluded from this range
  * @method isExcludedRow
- * @memberof Range
+ * @memberof CellRange
  *
  * @param	{integer}	row			- Row index for row to check
  */
-Range.prototype.isExcludedRow = function (row) {
+CellRange.prototype.isExcludedRow = function (row) {
 	if (this.exclusions.length === 0) return false;
 
 	var excludedColumns = [],
@@ -236,11 +215,11 @@ Range.prototype.isExcludedRow = function (row) {
 /*
  * Returns whether a range represents a single cell
  * @method isSingleCell
- * @memberof Range
+ * @memberof CellRange
  *
  * @returns {boolean}
  */
-Range.prototype.isSingleCell = function () {
+CellRange.prototype.isSingleCell = function () {
 	// TODO: This needs to take colspans into account
 	return this.fromRow == this.toRow && this.fromCell == this.toCell;
 };
@@ -249,11 +228,11 @@ Range.prototype.isSingleCell = function () {
 /**
  * Returns whether a range represents a single row.
  * @method isSingleRow
- * @memberof Range
+ * @memberof CellRange
  *
  * @returns {boolean}
  */
-Range.prototype.isSingleRow = function () {
+CellRange.prototype.isSingleRow = function () {
 	return this.fromRow == this.toRow;
 };
 
@@ -263,14 +242,14 @@ Range.prototype.isSingleRow = function () {
  * This is useful for splitting the range up into panes when frozen columns or rows
  * are used. Return an array of ranges [topLeft, topRight, bottomLeft, bottomRight].
  * @method split
- * @memberof Range
+ * @memberof CellRange
  *
  * @param	{integer}	[column]		- Column at which to split
  * @param	{integer}	[row]			- Row at which to split
  *
  * @returns {array}
  */
-Range.prototype.split = function (column, row) {
+CellRange.prototype.split = function (column, row) {
 	var topLeft = null,
 		topRight = null,
 		bottomLeft = null,
@@ -278,10 +257,10 @@ Range.prototype.split = function (column, row) {
 
 	// Split columns
 	if (column !== undefined && column !== null && column >= 0 && this.toCell > column) {
-		topLeft = new Range({fromCell: this.fromCell, toCell: column, fromRow: this.fromRow, toRow: this.toRow}, this._grid);
-		topRight = new Range({fromCell: column + 1, toCell: this.toCell, fromRow: this.fromRow, toRow: this.toRow}, this._grid);
+		topLeft = new CellRange({fromCell: this.fromCell, toCell: column, fromRow: this.fromRow, toRow: this.toRow}, this._grid);
+		topRight = new CellRange({fromCell: column + 1, toCell: this.toCell, fromRow: this.fromRow, toRow: this.toRow}, this._grid);
 	} else {
-		topLeft = new Range({fromCell: this.fromCell, toCell: this.toCell, fromRow: this.fromRow, toRow: this.toRow}, this._grid);
+		topLeft = new CellRange({fromCell: this.fromCell, toCell: this.toCell, fromRow: this.fromRow, toRow: this.toRow}, this._grid);
 	}
 
 	// If split is to the left of the range, keep topLeft null
@@ -292,12 +271,12 @@ Range.prototype.split = function (column, row) {
 
 	// Split rows
 	if (row !== undefined && row !== null && row >= 0 && this.toRow > row) {
-		topLeft = new Range({fromCell: topLeft.fromCell, toCell: topLeft.toCell, fromRow: this.fromRow, toRow: row}, this._grid);
-		bottomLeft = new Range({fromCell: topLeft.fromCell, toCell: topLeft.toCell, fromRow: row + 1, toRow: this.toRow}, this._grid);
+		topLeft = new CellRange({fromCell: topLeft.fromCell, toCell: topLeft.toCell, fromRow: this.fromRow, toRow: row}, this._grid);
+		bottomLeft = new CellRange({fromCell: topLeft.fromCell, toCell: topLeft.toCell, fromRow: row + 1, toRow: this.toRow}, this._grid);
 
 		if (topRight) {
-			topRight = new Range({fromCell: topRight.fromCell, toCell: topRight.toCell, fromRow: this.fromRow, toRow: row}, this._grid);
-			bottomRight = new Range({fromCell: topRight.fromCell, toCell: topRight.toCell, fromRow: row + 1, toRow: this.toRow}, this._grid);
+			topRight = new CellRange({fromCell: topRight.fromCell, toCell: topRight.toCell, fromRow: this.fromRow, toRow: row}, this._grid);
+			bottomRight = new CellRange({fromCell: topRight.fromCell, toCell: topRight.toCell, fromRow: row + 1, toRow: this.toRow}, this._grid);
 		}
 	}
 
@@ -308,11 +287,11 @@ Range.prototype.split = function (column, row) {
 /**
  * Converts the cell range values to CSV
  * @method toCSV
- * @memberof Range
+ * @memberof CellRange
  *
  * @returns {string}
  */
-Range.prototype.toCSV = function () {
+CellRange.prototype.toCSV = function () {
 	var json = this.toJSON(),
 		csv = [];
 	for (var i = 0, l = json.length; i < l; i++) {
@@ -325,11 +304,11 @@ Range.prototype.toCSV = function () {
 /**
  * Converts the cell range values to JSON
  * @method toJSON
- * @memberof Range
+ * @memberof CellRange
  *
  * @returns {string}
  */
-Range.prototype.toJSON = function () {
+CellRange.prototype.toJSON = function () {
 	// TODO: Hacky solution to fix PhantomJS Jasmine tests. For some reason
 	// they will run this command on some tests after the grid has been destroyed.
 	if (this._grid.destroyed) return;
@@ -363,11 +342,11 @@ Range.prototype.toJSON = function () {
 /**
  * Converts the cell range values to an HTML table
  * @method toHTML
- * @memberof Range
+ * @memberof CellRange
  *
  * @returns {string}
  */
-Range.prototype.toHTML = function () {
+CellRange.prototype.toHTML = function () {
 	var json = this.toJSON();
 
 	var rows = json.map(function (row) {
@@ -386,11 +365,11 @@ Range.prototype.toHTML = function () {
 /**
  * Converts the cell range values to a list of selected row objects
  * @method toRows
- * @memberof Range
+ * @memberof CellRange
  *
  * @returns {string}
  */
-Range.prototype.toRows = function () {
+CellRange.prototype.toRows = function () {
 	var result = [],
 		cache = this._grid.getCache();
 
@@ -404,38 +383,59 @@ Range.prototype.toRows = function () {
 /**
  * Returns a readable representation of a range
  * @method toString
- * @memberof Range
+ * @memberof CellRange
  *
  * @returns {string}
  */
-Range.prototype.toString = function () {
+CellRange.prototype.toString = function () {
 	if (this.isSingleCell()) {
-		return "Range (" + this.fromRow + ":" + this.fromCell + ")";
+		return "CellRange (" + this.fromRow + ":" + this.fromCell + ")";
 	} else {
-		return "Range (" + this.fromRow + ":" + this.fromCell + " - " + this.toRow + ":" + this.toCell + ")";
+		return "CellRange (" + this.fromRow + ":" + this.fromCell + " - " + this.toRow + ":" + this.toCell + ")";
 	}
 };
 
-module.exports = Range;
+module.exports = CellRange;
 
-},{"./NonDataItem":1}],3:[function(require,module,exports){
+},{"./NonDataItem":2}],2:[function(require,module,exports){
+/* global $ */
+
+"use strict";
+
+/**
+ * @class NonDataItem
+ * @classdesc A base class that all special / non-data rows (like Group) derive from.
+ *
+ * @param	{object}	data		- Data object for this item
+ */
+var NonDataItem = function (data) {
+	this.__nonDataRow = true;
+	if (data) $.extend(this, data);
+};
+
+NonDataItem.prototype.toString = function () {
+	return "NonDataItem";
+};
+
+module.exports = NonDataItem;
+},{}],3:[function(require,module,exports){
 // (c) 2014 Evgueni Naverniouk, Globex Designs, Inc.
 // Doby may be freely distributed under the MIT license.
 // For all details and documentation:
 // https://github.com/globexdesigns/doby-grid
 
-var Range = require('../src/classes/Range');
+var CellRange = require('../src/classes/CellRange');
 
-describe("Range", function () {
+describe("CellRange", function () {
 	"use strict";
 
 	describe("split()", function () {
-		it("should be able to split() a Range into two column ranges", function () {
-			var range = new Range({fromCell: 0, toCell: 10, fromRow: 0, toRow: 10}),
+		it("should be able to split() a CellRange into two column ranges", function () {
+			var range = new CellRange({fromCell: 0, toCell: 10, fromRow: 0, toRow: 10}),
 				split = range.split(5),
 				result = [
-					new Range({fromCell: 0, toCell: 5, fromRow: 0, toRow: 10}),
-					new Range({fromCell: 6, toCell: 10, fromRow: 0, toRow: 10}),
+					new CellRange({fromCell: 0, toCell: 5, fromRow: 0, toRow: 10}),
+					new CellRange({fromCell: 6, toCell: 10, fromRow: 0, toRow: 10}),
 					null,
 					null
 				];
@@ -451,7 +451,7 @@ describe("Range", function () {
 
 
 		it("should not split() if split column and row are null", function () {
-			var range = new Range({fromCell: 0, toCell: 10, fromRow: 0, toRow: 10}),
+			var range = new CellRange({fromCell: 0, toCell: 10, fromRow: 0, toRow: 10}),
 				split = range.split(),
 				result = [
 					range,
@@ -471,7 +471,7 @@ describe("Range", function () {
 
 
 		it("should not split() if split column is to the right of the selection", function () {
-			var range = new Range({fromCell: 0, toCell: 1, fromRow: 0, toRow: 10}),
+			var range = new CellRange({fromCell: 0, toCell: 1, fromRow: 0, toRow: 10}),
 				split = range.split(5),
 				result = [
 					range,
@@ -491,7 +491,7 @@ describe("Range", function () {
 
 
 		it("should not split() if split column is to the left of the selection", function () {
-			var range = new Range({fromCell: 5, toCell: 10, fromRow: 0, toRow: 10}),
+			var range = new CellRange({fromCell: 5, toCell: 10, fromRow: 0, toRow: 10}),
 				split = range.split(1),
 				result = [
 					null,
@@ -510,13 +510,13 @@ describe("Range", function () {
 		// ==========================================================================================
 
 
-		it("should be able to split() a Range into two row ranges", function () {
-			var range = new Range({fromCell: 0, toCell: 10, fromRow: 0, toRow: 10}),
+		it("should be able to split() a CellRange into two row ranges", function () {
+			var range = new CellRange({fromCell: 0, toCell: 10, fromRow: 0, toRow: 10}),
 				split = range.split(null, 5),
 				result = [
-					new Range({fromCell: 0, toCell: 10, fromRow: 0, toRow: 5}),
+					new CellRange({fromCell: 0, toCell: 10, fromRow: 0, toRow: 5}),
 					null,
-					new Range({fromCell: 0, toCell: 10, fromRow: 6, toRow: 10}),
+					new CellRange({fromCell: 0, toCell: 10, fromRow: 6, toRow: 10}),
 					null
 				];
 
@@ -531,7 +531,7 @@ describe("Range", function () {
 
 
 		it("should not split() if split row is to the below the selection", function () {
-			var range = new Range({fromCell: 0, toCell: 10, fromRow: 0, toRow: 1}),
+			var range = new CellRange({fromCell: 0, toCell: 10, fromRow: 0, toRow: 1}),
 				split = range.split(null, 5),
 				result = [
 					range,
@@ -550,13 +550,13 @@ describe("Range", function () {
 
 
 		it("should split() into 4 quadrants", function () {
-			var range = new Range({fromCell: 0, toCell: 10, fromRow: 0, toRow: 10}),
+			var range = new CellRange({fromCell: 0, toCell: 10, fromRow: 0, toRow: 10}),
 				split = range.split(5, 5),
 				result = [
-					new Range({fromCell: 0, toCell: 5, fromRow: 0, toRow: 5}),
-					new Range({fromCell: 6, toCell: 10, fromRow: 0, toRow: 5}),
-					new Range({fromCell: 0, toCell: 5, fromRow: 6, toRow: 10}),
-					new Range({fromCell: 6, toCell: 10, fromRow: 6, toRow: 10})
+					new CellRange({fromCell: 0, toCell: 5, fromRow: 0, toRow: 5}),
+					new CellRange({fromCell: 6, toCell: 10, fromRow: 0, toRow: 5}),
+					new CellRange({fromCell: 0, toCell: 5, fromRow: 6, toRow: 10}),
+					new CellRange({fromCell: 6, toCell: 10, fromRow: 6, toRow: 10})
 				];
 
 			expect(split[0]).toEqual(result[0]);
@@ -566,4 +566,5 @@ describe("Range", function () {
 		});
 	});
 });
-},{"../src/classes/Range":2}]},{},[3]);
+
+},{"../src/classes/CellRange":1}]},{},[3]);

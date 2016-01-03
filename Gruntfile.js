@@ -28,7 +28,7 @@ module.exports = function (grunt) {
 			},
 			tests: {
 				files: {
-					'tests/Range.build.js': ['tests/Range.js']
+					'tests/CellRange.build.js': ['tests/CellRange.js']
 				}
 			}
 		},
