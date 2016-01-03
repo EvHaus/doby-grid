@@ -1,10 +1,4 @@
 {
-	"validateJSDoc": {
-		"checkParamNames": true,
-		"checkRedundantParams": true,
-		"requireParamTypes": true
-	},
-
 	"requireSpaceAfterKeywords": [
 		"if",
 		"else",
@@ -21,7 +15,7 @@
 	"requireSpacesInFunctionExpression": {
 		"beforeOpeningCurlyBrace": true
 	},
-	
+
 	"disallowTrailingWhitespace": true,
 
 	"disallowSpaceAfterObjectKeys": true,
