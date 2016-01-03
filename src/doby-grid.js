@@ -3170,7 +3170,7 @@ var DobyGrid = function (options) {
 			// When we're dealing with remote groups - we might as well re-generate placeholders
 			// for everything since any data that was previously fetched is no longer in the right
 			// order anyway.
-			if (!fullyLoaded && grid.fetcher) {
+			if (!fullyLoaded && grid.fetcher && initialized) {
 				// Reset collection length to full. This ensures that when groupings are removed,
 				// the grid correctly refetches the full page of results.
 				this.length = this.remote_length;
@@ -3183,7 +3183,9 @@ var DobyGrid = function (options) {
 
 			// If groupings have changed - refetch groupings
 			if (grid.fetcher && !fullyLoaded && grouping_changed) {
-				remoteGroupRefetch();
+				if (initialized) {
+					remoteGroupRefetch();
+				}
 			} else {
 				// Reload the grid with the new grouping.
 				this.refresh();
@@ -3193,7 +3195,7 @@ var DobyGrid = function (options) {
 			// will cause the row sizes to be changed.
 			if (variableRowHeight) resizeCanvas(true);
 
-			if (grid.fetcher && !fullyLoaded && (groups.length === 0 || grid.options.fetchCollapsed)) {
+			if (grid.fetcher && !fullyLoaded && (groups.length === 0 || grid.options.fetchCollapsed && initialized)) {
 				// If all groupings are removed - refetch the data
 				remoteFetch();
 			}
@@ -3597,7 +3599,7 @@ var DobyGrid = function (options) {
 		var cols = args.sortCols;
 
 		// If remote, and not all data is fetched - sort on server
-		if (self.fetcher && (!remoteAllLoaded() || self.options.forceRemoteSort)) {
+		if (self.fetcher && (!remoteAllLoaded() || self.options.forceRemoteSort) && initialized) {
 			// Reset collection length to full. This ensures that when groupings are removed,
 			// the grid correctly refetches the full page of results.
 			self.collection.length = self.collection.remote_length;
@@ -4265,7 +4267,9 @@ var DobyGrid = function (options) {
 			// Do not allow negative values
 			nodecell = nodecell < 0 ? 0 : nodecell;
 
-			return cache.nodes[row].cellNodesByColumnIdx[nodecell][0];
+			// Some cells might not yet be rendered and so have no jQuery node.
+			var jqNode = cache.nodes[row].cellNodesByColumnIdx[nodecell];
+			return jqNode ? jqNode[0] : undefined;
 		}
 		return null;
 	};
@@ -6784,6 +6788,10 @@ var DobyGrid = function (options) {
 			filters: typeof(self.collection.filter) != 'function' ? self.collection.filter : null
 		};
 
+		if (typeof self.fetcher.onLoading === 'function'){
+			self.fetcher.onLoading(false);
+		}
+
 		var req = function () {
 			var	dfd = new $.Deferred();
 
@@ -6819,6 +6827,9 @@ var DobyGrid = function (options) {
 				// the viewport with blanks
 				self.collection.refresh();
 
+				if (typeof self.fetcher.onLoaded === 'function'){
+					self.fetcher.onLoaded();
+				}
 				// Now go and fetch the real items
 				callback();
 
@@ -8211,6 +8222,7 @@ var DobyGrid = function (options) {
 			cacheRows();
 			invalidate();
 		}
+		return this;
 	};
 
 
