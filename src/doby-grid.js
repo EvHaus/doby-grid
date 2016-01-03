@@ -19,6 +19,7 @@ if (!Backbone) throw new Error('Unable to load DobyGrid because Backbone, which 
 
 
 var Aggregate			= require('./classes/Aggregate'),
+	CellRange			= require('./classes/CellRange'),
 	CellRangeDecorator	= require('./classes/CellRangeDecorator'),
 	DefaultEditor		= require('./classes/DefaultEditor'),
 	DefaultFormatter	= require('./classes/DefaultFormatter'),
@@ -26,7 +27,6 @@ var Aggregate			= require('./classes/Aggregate'),
 	Group				= require('./classes/Group'),
 	NonDataItem 		= require('./classes/NonDataItem'),
 	Placeholder			= require('./classes/Placeholder'),
-	Range				= require('./classes/Range'),
 	Tooltip				= require('./classes/Tooltip'),
 
 	CLS					= require('./utils/classes'),
@@ -1056,7 +1056,7 @@ var DobyGrid = function (options) {
 					start: start
 				};
 
-				return decorator.show(new Range({fromRow: start.row, fromCell: start.cell}, self));
+				return decorator.show(new CellRange({fromRow: start.row, fromCell: start.cell}, self));
 			})
 			.on('drag', {not: handleSelector}, function (event, dd) {
 				if (!_dragging) return;
@@ -1081,7 +1081,7 @@ var DobyGrid = function (options) {
 				if (!self.canCellBeSelected(end.row, end.cell)) return;
 
 				dd._range.end = end;
-				decorator.show(new Range({fromRow: dd._range.start.row, fromCell: dd._range.start.cell, toRow: end.row, toCell: end.cell}, self));
+				decorator.show(new CellRange({fromRow: dd._range.start.row, fromCell: dd._range.start.cell, toRow: end.row, toCell: end.cell}, self));
 
 				// Set the active cell as you drag. This is default spreadsheet behavior.
 				if (self.options.activateSelection && canCellBeActive(end.row, end.cell)) {
@@ -8470,7 +8470,7 @@ var DobyGrid = function (options) {
 		}
 
 		// Define a range
-		var range = new Range({fromRow: startRow, fromCell: startCell, toRow: endRow, toCell: endCell}, this),
+		var range = new CellRange({fromRow: startRow, fromCell: startCell, toRow: endRow, toCell: endCell}, this),
 			ranges, i, l, j, k;
 
 		// Remove unselectable rows from the range
