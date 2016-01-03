@@ -23,3 +23,8 @@ There are several ways to contribute to the project:
 - Submit fixes for known bugs
 - Implement feature requests
 - Find performance improvements and optimizations
+
+Run the local examples
+==========
+
+Run `grunt build` then open `/examples/index.html` in your web browser.
