@@ -3275,7 +3275,7 @@ var DobyGrid = function (options) {
 			if (data.rows) {
 				var child_row_idxs = _.chain(data.rows)
 					.map(function (row) {
-						cache.modelsById[id] = row;
+						cache.modelsById[row[grid.options.idProperty]] = row;
 						return cache.indexById[row[grid.options.idProperty]];
 					})
 					.compact()
