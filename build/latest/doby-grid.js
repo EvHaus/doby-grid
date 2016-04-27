@@ -1,5 +1,5 @@
-// doby-grid.js 0.1.3
-// (c) 2014 Evgueni Naverniouk, Globex Designs, Inc.
+// doby-grid.js 1.0.0-beta1
+// (c) 2016 Evgueni Naverniouk, Globex Designs, Inc.
 // Doby may be freely distributed under the MIT license.
 // For all details and documentation:
 // https://github.com/globexdesigns/doby-grid

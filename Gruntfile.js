@@ -4,7 +4,7 @@ module.exports = function (grunt) {
 
 	var banner = [
 		'// <%= pkg.name %>.js <%= pkg.version %>',
-		'// (c) 2014 Evgueni Naverniouk, Globex Designs, Inc.',
+		'// (c) 2016 Evgueni Naverniouk, Globex Designs, Inc.',
 		'// Doby may be freely distributed under the MIT license.',
 		'// For all details and documentation:',
 		'// https://github.com/globexdesigns/doby-grid\n'
@@ -23,7 +23,7 @@ module.exports = function (grunt) {
 					}
 				},
 				files: {
-					'build/<%= pkg.version %>/<%= pkg.name %>.js': ['src/<%= pkg.name %>.js']
+					'build/latest/<%= pkg.name %>.js': ['src/<%= pkg.name %>.js']
 				}
 			},
 			tests: {
@@ -33,26 +33,15 @@ module.exports = function (grunt) {
 			}
 		},
 
-		clean: ['build/latest'],
-
-		copy: {
-			latest: {
-				expand: true,
-				cwd: "build/<%= pkg.version %>/",
-				src: "**",
-				dest: "build/latest/"
-			}
-		},
-
 		csslint: {
 			options: grunt.file.readJSON('.csslintrc')
 		},
 
 		jasmine: {
-			src: 'build/<%= pkg.version %>/<%= pkg.name %>.js',
+			src: 'build/latest/<%= pkg.name %>.js',
 			options: {
 				specs: 'tests/*.js',
-				styles: 'build/<%= pkg.version %>/<%= pkg.name %>.min.css',
+				styles: 'build/latest/<%= pkg.name %>.min.css',
 				vendor: [
 					'libs/jquery/dist/jquery.js',
 					'libs/jquery-ui/jquery-ui.js',
@@ -87,13 +76,13 @@ module.exports = function (grunt) {
 					yuicompress: true
 				},
 				files: {
-					'build/<%= pkg.version %>/<%= pkg.name %>.min.css': 'src/<%= pkg.name %>.less'
+					'build/latest/<%= pkg.name %>.min.css': 'src/<%= pkg.name %>.less'
 				}
 			},
 			standard: {
 				files: {
-					'build/<%= pkg.version %>/themes/<%= pkg.name %>-light.css': 'src/themes/<%= pkg.name %>-light.less',
-					'build/<%= pkg.version %>/themes/<%= pkg.name %>-dark.css': 'src/themes/<%= pkg.name %>-dark.less'
+					'build/latest/themes/<%= pkg.name %>-light.css': 'src/themes/<%= pkg.name %>-light.less',
+					'build/latest/themes/<%= pkg.name %>-dark.css': 'src/themes/<%= pkg.name %>-dark.less'
 				}
 			}
 		},
@@ -114,15 +103,15 @@ module.exports = function (grunt) {
 			},
 
 			build: {
-				src: 'build/<%= pkg.version %>/<%= pkg.name %>.js',
-				dest: 'build/<%= pkg.version %>/<%= pkg.name %>.min.js'
+				src: 'build/latest/<%= pkg.name %>.js',
+				dest: 'build/latest/<%= pkg.name %>.min.js'
 			}
 		},
 
 		watch: {
 			scripts: {
 				files: 'src/**/*.js',
-				tasks: ['browserify', 'clean', 'copy']
+				tasks: ['browserify']
 			},
 			tests: {
 				files: ['tests/**/*.js', '!tests/**/*.build.js'],
@@ -130,15 +119,13 @@ module.exports = function (grunt) {
 			},
 			less: {
 				files: 'src/**/*.less',
-				tasks: ['less', 'clean', 'copy']
+				tasks: ['less']
 			}
 		}
 	});
 
 	// Load plugins
 	grunt.loadNpmTasks('grunt-browserify');
-	grunt.loadNpmTasks('grunt-contrib-clean');
-	grunt.loadNpmTasks('grunt-contrib-copy');
 	grunt.loadNpmTasks('grunt-contrib-jasmine');
 	grunt.loadNpmTasks('grunt-contrib-jshint');
 	grunt.loadNpmTasks('grunt-contrib-less');
@@ -165,8 +152,6 @@ module.exports = function (grunt) {
 		'jscs',
 		'browserify:build',
 		'uglify',
-		'clean',
-		'copy',
 		'jasmine'
 	]);
 };
