@@ -2,9 +2,9 @@
 All notable changes to this project will be documented in this file.
 This project adheres to [Semantic Versioning](http://semver.org/).
 
-## [1.0.0-beta1] - Unreleased
+## [1.0.0-beta1] - 2016-04-26
 ### Deprecated
-- Older builds are no longer shipped with the app. The latest build is now available in `build/`.
+- Older builds are no longer shipped with the app. The latest build is now available in `build/latest/`.
 
 ### Changed
 - Library changes are now tracked in `CHANGELOG.md`
