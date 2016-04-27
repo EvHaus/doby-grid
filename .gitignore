@@ -1,4 +1,8 @@
+*.log
 .DS_Store
+.grunt
 docs
 libs
 node_modules
+npm-debug.log*
+Thumbs.db

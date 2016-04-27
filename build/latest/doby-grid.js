@@ -899,6 +899,8 @@ module.exports = DefaultFormatter;
 var CLS  			= require('./../utils/classes'),
 	removeElement	= require('./../utils/removeElement');
 
+var uid = "doby-grid-dd-" + Math.round(1000000 * Math.random());
+
 /**
  * Creates a new dropdown menu.
  * @class Dropdown
@@ -919,8 +921,6 @@ var Dropdown = function (event, options) {
 	 * @memberof Dropdown
 	 */
 	this.initialize = function () {
-		var uid = "doby-grid-" + Math.round(1000000 * Math.random());
-
 		this.$parent = options.parent || $(event.currentTarget);
 		this.$el = options.menu;
 		this.id = [uid, CLS.dropdown, options.id].join('_');
@@ -1091,6 +1091,7 @@ Dropdown.prototype.hide = function () {
 };
 
 module.exports = Dropdown;
+
 },{"./../utils/classes":12,"./../utils/removeElement":15}],7:[function(require,module,exports){
 /* global $ */
 
@@ -5011,6 +5012,27 @@ var DobyGrid = function (options) {
 		if (allowed.indexOf(format) < 0) throw new Error('Sorry, "' + format + '" is not a supported format for export.');
 		callback = callback || function () {};
 
+		var htmlTagToEscape = {
+			"&": "&amp;",
+			"<": "&lt;",
+			">": "&gt;",
+			'"': '&quot;',
+			"'": '&#39;',
+			"/": '&#x2F;'
+		};
+
+		function escapeTag (tag) {
+			return htmlTagToEscape[tag] || tag;
+		}
+
+		function escapeVal (val) {
+			// Only escape val if it is really a string!
+			if (typeof val === 'string') {
+				return val.replace(/[&<>"'/]/g, escapeTag);
+			}
+			return val;
+		}
+
 		var processExport = function () {
 			// First collect all the data as an array of arrays
 			var result = [], i, l, row, ii, ll, val;
@@ -5063,6 +5085,7 @@ var DobyGrid = function (options) {
 
 						row.push(['"', val, '"'].join(''));
 					} else if (format === 'html') {
+						val = escapeVal(val);
 						row.push('<td>');
 						row.push(val);
 						row.push('</td>');
@@ -5071,6 +5094,7 @@ var DobyGrid = function (options) {
 				if (format === 'csv') {
 					result.push(row.join(','));
 				} else if (format === 'html') {
+					val = escapeVal(val);
 					row.push('</tr>');
 					result.push(row.join(''));
 				}

@@ -3677,6 +3677,27 @@ var DobyGrid = function (options) {
 		if (allowed.indexOf(format) < 0) throw new Error('Sorry, "' + format + '" is not a supported format for export.');
 		callback = callback || function () {};
 
+		var htmlTagToEscape = {
+			"&": "&amp;",
+			"<": "&lt;",
+			">": "&gt;",
+			'"': '&quot;',
+			"'": '&#39;',
+			"/": '&#x2F;'
+		};
+
+		function escapeTag (tag) {
+			return htmlTagToEscape[tag] || tag;
+		}
+
+		function escapeVal (val) {
+			// Only escape val if it is really a string!
+			if (typeof val === 'string') {
+				return val.replace(/[&<>"'/]/g, escapeTag);
+			}
+			return val;
+		}
+
 		var processExport = function () {
 			// First collect all the data as an array of arrays
 			var result = [], i, l, row, ii, ll, val;
@@ -3729,6 +3750,7 @@ var DobyGrid = function (options) {
 
 						row.push(['"', val, '"'].join(''));
 					} else if (format === 'html') {
+						val = escapeVal(val);
 						row.push('<td>');
 						row.push(val);
 						row.push('</td>');
@@ -3737,6 +3759,7 @@ var DobyGrid = function (options) {
 				if (format === 'csv') {
 					result.push(row.join(','));
 				} else if (format === 'html') {
+					val = escapeVal(val);
 					row.push('</tr>');
 					result.push(row.join(''));
 				}

@@ -5,6 +5,8 @@
 var CLS  			= require('./../utils/classes'),
 	removeElement	= require('./../utils/removeElement');
 
+var uid = "doby-grid-dd-" + Math.round(1000000 * Math.random());
+
 /**
  * Creates a new dropdown menu.
  * @class Dropdown
@@ -25,8 +27,6 @@ var Dropdown = function (event, options) {
 	 * @memberof Dropdown
 	 */
 	this.initialize = function () {
-		var uid = "doby-grid-" + Math.round(1000000 * Math.random());
-
 		this.$parent = options.parent || $(event.currentTarget);
 		this.$el = options.menu;
 		this.id = [uid, CLS.dropdown, options.id].join('_');

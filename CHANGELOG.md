@@ -9,6 +9,10 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 ### Changed
 - Library changes are now tracked in `CHANGELOG.md`
 
+### Fixed
+- Right-clicking on the same cell will no longer cause the menu to appear multiple times [#191]
+- Exporting tables to HTML will now correctly escape HTML tags [#193]
+
 ----
 
 ## [0.1.3] - 2016-01-03

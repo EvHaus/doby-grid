@@ -27,7 +27,7 @@ describe("Methods and Data Manipulation", function () {
 	};
 
 
-	// ==========================================================================================
+	// =====================================================================
 
 
 	describe("activate()", function () {
@@ -61,7 +61,7 @@ describe("Methods and Data Manipulation", function () {
 		});
 
 
-		// ==========================================================================================
+		// =====================================================================
 
 
 		it("should be able to deactivate cells via blank arguments", function () {
@@ -92,7 +92,7 @@ describe("Methods and Data Manipulation", function () {
 	});
 
 
-	// ==========================================================================================
+	// =====================================================================
 
 
 	describe("add()", function () {
@@ -110,7 +110,7 @@ describe("Methods and Data Manipulation", function () {
 		});
 
 
-		// ==========================================================================================
+		// =====================================================================
 
 
 		it("should be able to insert a new data item via add() at a specific index", function () {
@@ -124,7 +124,7 @@ describe("Methods and Data Manipulation", function () {
 		});
 
 
-		// ==========================================================================================
+		// =====================================================================
 
 
 		it("should be able to merge data item via add() when adding item with the same id", function () {
@@ -142,7 +142,7 @@ describe("Methods and Data Manipulation", function () {
 		});
 
 
-		// ==========================================================================================
+		// =====================================================================
 
 
 		it("should throw an exception when attempting to add() an item with a non-unique id", function () {
@@ -156,7 +156,7 @@ describe("Methods and Data Manipulation", function () {
 		});
 
 
-		// ==========================================================================================
+		// =====================================================================
 
 
 		it("should automatically render a new row when you use add()", function () {
@@ -174,7 +174,7 @@ describe("Methods and Data Manipulation", function () {
 		});
 
 
-		// ==========================================================================================
+		// =====================================================================
 
 
 		it("should enable variable row height mode when an item is add()ed with a custom height", function () {
@@ -194,7 +194,7 @@ describe("Methods and Data Manipulation", function () {
 	});
 
 
-	// ==========================================================================================
+	// =====================================================================
 
 
 	describe("addColumn()", function () {
@@ -213,7 +213,7 @@ describe("Methods and Data Manipulation", function () {
 		});
 
 
-		// ==========================================================================================
+		// =====================================================================
 
 
 		it("should be able to push a new column via addColumn() 'at' a specific index", function () {
@@ -237,7 +237,7 @@ describe("Methods and Data Manipulation", function () {
 		});
 
 
-		// ==========================================================================================
+		// =====================================================================
 
 
 		it("should be able to push a column update via addColumn() using merge", function () {
@@ -261,7 +261,7 @@ describe("Methods and Data Manipulation", function () {
 		});
 
 
-		// ==========================================================================================
+		// =====================================================================
 
 
 		it("should throw an error if attempting to addColumn() with 'id' that already exists", function () {
@@ -280,7 +280,7 @@ describe("Methods and Data Manipulation", function () {
 		});
 
 
-		// ==========================================================================================
+		// =====================================================================
 
 
 		it("should throw an error if attempting to addColumn() with non data objects", function () {
@@ -296,7 +296,7 @@ describe("Methods and Data Manipulation", function () {
 	});
 
 
-	// ==========================================================================================
+	// =====================================================================
 
 
 	describe("addGrouping()", function () {
@@ -308,7 +308,7 @@ describe("Methods and Data Manipulation", function () {
 		});
 
 
-		// ==========================================================================================
+		// =====================================================================
 
 
 		it("should throw an error if attempting to addGrouping() by an invalid column", function () {
@@ -319,7 +319,7 @@ describe("Methods and Data Manipulation", function () {
 		});
 
 
-		// ==========================================================================================
+		// =====================================================================
 
 
 		it("should be able to apply grouping via addGrouping()", function () {
@@ -347,7 +347,7 @@ describe("Methods and Data Manipulation", function () {
 		});
 
 
-		// ==========================================================================================
+		// =====================================================================
 
 
 		it("should be able to create nested groups with multiple addGrouping() calls", function () {
@@ -391,7 +391,7 @@ describe("Methods and Data Manipulation", function () {
 		});
 
 
-		// ==========================================================================================
+		// =====================================================================
 
 
 		it("should be able to specify custom grouping options for addGrouping() item", function () {
@@ -428,7 +428,7 @@ describe("Methods and Data Manipulation", function () {
 		});
 
 
-		// ==========================================================================================
+		// =====================================================================
 
 
 		it("should keep expanded groups expanded when adding new groupings", function () {
@@ -484,7 +484,7 @@ describe("Methods and Data Manipulation", function () {
 		});
 
 
-		// ==========================================================================================
+		// =====================================================================
 
 
 		it("should keep global grid Aggregate rows at the bottom of the grid when adding grouping (seems to only happen if you have at least 10 items in the collection)", function () {
@@ -566,7 +566,7 @@ describe("Methods and Data Manipulation", function () {
 		});
 
 
-		// ==========================================================================================
+		// =====================================================================
 
 
 		it("should be able to sort grouped columns", function () {
@@ -621,7 +621,7 @@ describe("Methods and Data Manipulation", function () {
 	});
 
 
-	// ==========================================================================================
+	// =====================================================================
 
 
 	describe("appendTo()", function () {
@@ -633,7 +633,7 @@ describe("Methods and Data Manipulation", function () {
 		});
 
 
-		// ==========================================================================================
+		// =====================================================================
 
 
 		it("should return a DobyGrid object via appendTo()", function () {
@@ -646,7 +646,7 @@ describe("Methods and Data Manipulation", function () {
 	});
 
 
-	// ==========================================================================================
+	// =====================================================================
 
 
 	describe("export()", function () {
@@ -671,7 +671,7 @@ describe("Methods and Data Manipulation", function () {
 		});
 
 
-		// ==========================================================================================
+		// =====================================================================
 
 
 		it("should correctly export() to CSV", function (done) {
@@ -698,7 +698,7 @@ describe("Methods and Data Manipulation", function () {
 		});
 
 
-		// ==========================================================================================
+		// =====================================================================
 
 
 		it("should correctly export() to HTML", function (done) {
@@ -722,7 +722,31 @@ describe("Methods and Data Manipulation", function () {
 		});
 
 
-		// ==========================================================================================
+		// =====================================================================
+
+
+		it("should correctly escape HTML tags when doing export() to HTML", function (done) {
+			// Prepare for test
+			var grid = resetGrid({
+				columns: [{id: 'id', name: 'ID', field: 'id'}, {id: 'name', name: 'Name', field: 'name'}],
+				data: [{
+					id: 1,
+					data: {id: 1, name: '<span>Something</span>'}
+				}, {
+					id: 2,
+					data: {id: 2, name: '<div>\'"%/</div>'}
+				}]
+			});
+
+			// Export
+			grid.export('html', function (result) {
+				expect(result).toEqual('<table><thead><tr><th>ID</th><th>Name</th></tr></thead><tbody><tr><td>1</td><td>&lt;span&gt;Something&lt;&#x2F;span&gt;</td></tr><tr><td>2</td><td>&lt;div&gt;&#39;&quot;%&#x2F;&lt;&#x2F;div&gt;</td></tr></tbody></table>');
+				done();
+			});
+		});
+
+
+		// =====================================================================
 
 
 		it("should correctly export group", function (done) {
@@ -759,7 +783,7 @@ describe("Methods and Data Manipulation", function () {
 		});
 
 
-		// ==========================================================================================
+		// =====================================================================
 
 
 		it("should correctly handle Backbone Collection data", function (done) {
@@ -786,7 +810,7 @@ describe("Methods and Data Manipulation", function () {
 	});
 
 
-	// ==========================================================================================
+	// =====================================================================
 
 
 	describe("filter()", function () {
@@ -812,7 +836,7 @@ describe("Methods and Data Manipulation", function () {
 		});
 
 
-		// ==========================================================================================
+		// =====================================================================
 
 
 		it("should be throw an error if attempting to filter() using an invalid param", function () {
@@ -830,7 +854,7 @@ describe("Methods and Data Manipulation", function () {
 		});
 
 
-		// ==========================================================================================
+		// =====================================================================
 
 
 		it("should be able to filter() grid via a function", function () {
@@ -846,7 +870,7 @@ describe("Methods and Data Manipulation", function () {
 		});
 
 
-		// ==========================================================================================
+		// =====================================================================
 
 
 		it("should be able to detect invalid filter() sets", function () {
@@ -864,7 +888,7 @@ describe("Methods and Data Manipulation", function () {
 		});
 
 
-		// ==========================================================================================
+		// =====================================================================
 
 
 		it("should not be able to filter() by invalid columns", function () {
@@ -874,7 +898,7 @@ describe("Methods and Data Manipulation", function () {
 		});
 
 
-		// ==========================================================================================
+		// =====================================================================
 
 
 		it("should not be able to filter() by invalid operators", function () {
@@ -888,7 +912,7 @@ describe("Methods and Data Manipulation", function () {
 		});
 
 
-		// ==========================================================================================
+		// =====================================================================
 
 
 		it("should be able to filter() grid via an array filter set using the = operator", function () {
@@ -904,7 +928,7 @@ describe("Methods and Data Manipulation", function () {
 		});
 
 
-		// ==========================================================================================
+		// =====================================================================
 
 
 		it("should be able to filter() grid via an array filter set using the != operator", function () {
@@ -921,7 +945,7 @@ describe("Methods and Data Manipulation", function () {
 		});
 
 
-		// ==========================================================================================
+		// =====================================================================
 
 
 		it("should be able to filter() grid via an array filter set using the IN operator", function () {
@@ -937,7 +961,7 @@ describe("Methods and Data Manipulation", function () {
 		});
 
 
-		// ==========================================================================================
+		// =====================================================================
 
 
 		it("should be able to filter() grid via an array filter set using the in operator", function () {
@@ -953,7 +977,7 @@ describe("Methods and Data Manipulation", function () {
 		});
 
 
-		// ==========================================================================================
+		// =====================================================================
 
 
 		it("should throw an error if attempting to use filter() with the IN operator and a non-array value", function () {
@@ -966,7 +990,7 @@ describe("Methods and Data Manipulation", function () {
 		});
 
 
-		// ==========================================================================================
+		// =====================================================================
 
 
 		it("should be able to filter() grid via an array filter set using the > operator", function () {
@@ -982,7 +1006,7 @@ describe("Methods and Data Manipulation", function () {
 		});
 
 
-		// ==========================================================================================
+		// =====================================================================
 
 
 		it("should be able to filter() grid via an array filter set using the < operator", function () {
@@ -998,7 +1022,7 @@ describe("Methods and Data Manipulation", function () {
 		});
 
 
-		// ==========================================================================================
+		// =====================================================================
 
 
 		it("should be able to filter() grid via an array filter set using the >= operator", function () {
@@ -1014,7 +1038,7 @@ describe("Methods and Data Manipulation", function () {
 		});
 
 
-		// ==========================================================================================
+		// =====================================================================
 
 
 		it("should be able to filter() grid via an array filter set using the <= operator", function () {
@@ -1030,7 +1054,7 @@ describe("Methods and Data Manipulation", function () {
 		});
 
 
-		// ==========================================================================================
+		// =====================================================================
 
 
 		it("should be able to filter() grid via an array filter set using the ~ operator", function () {
@@ -1046,7 +1070,7 @@ describe("Methods and Data Manipulation", function () {
 		});
 
 
-		// ==========================================================================================
+		// =====================================================================
 
 
 		it("should be able to filter() grid via an array filter set using the !~ operator", function () {
@@ -1063,7 +1087,7 @@ describe("Methods and Data Manipulation", function () {
 		});
 
 
-		// ==========================================================================================
+		// =====================================================================
 
 
 		it("should be able to filter() grid via an array filter set using the ~* operator", function () {
@@ -1079,7 +1103,7 @@ describe("Methods and Data Manipulation", function () {
 		});
 
 
-		// ==========================================================================================
+		// =====================================================================
 
 
 		it("should be able to filter() grid via an array filter set using the !~* operator", function () {
@@ -1096,7 +1120,7 @@ describe("Methods and Data Manipulation", function () {
 		});
 
 
-		// ==========================================================================================
+		// =====================================================================
 
 
 		it("should be able to reset active filter() with a null param", function () {
@@ -1117,7 +1141,7 @@ describe("Methods and Data Manipulation", function () {
 		});
 
 
-		// ==========================================================================================
+		// =====================================================================
 
 
 		it("should show the correct count in group rows when using filters", function () {
@@ -1155,7 +1179,7 @@ describe("Methods and Data Manipulation", function () {
 		});
 
 
-		// ==========================================================================================
+		// =====================================================================
 
 
 		it("should correctly update aggregators to use filtered data", function () {
@@ -1206,7 +1230,7 @@ describe("Methods and Data Manipulation", function () {
 		});
 
 
-		// ==========================================================================================
+		// =====================================================================
 
 
 		it("should display an 'empty' message when filters return 0 results", function () {
@@ -1221,7 +1245,7 @@ describe("Methods and Data Manipulation", function () {
 	});
 
 
-	// ==========================================================================================
+	// =====================================================================
 
 
 	describe("get()", function () {
@@ -1237,7 +1261,7 @@ describe("Methods and Data Manipulation", function () {
 		});
 
 
-		// ==========================================================================================
+		// =====================================================================
 
 
 		it("should be able to get() model by reference", function () {
@@ -1252,7 +1276,7 @@ describe("Methods and Data Manipulation", function () {
 		});
 
 
-		// ==========================================================================================
+		// =====================================================================
 
 
 		it("should be able to get() an items via the id of a subrow", function () {
@@ -1277,7 +1301,7 @@ describe("Methods and Data Manipulation", function () {
 	});
 
 
-	// ==========================================================================================
+	// =====================================================================
 
 
 	describe("getIndex()", function () {
@@ -1294,7 +1318,7 @@ describe("Methods and Data Manipulation", function () {
 	});
 
 
-	// ==========================================================================================
+	// =====================================================================
 
 
 	describe("getRowFromEvent()", function () {
@@ -1320,7 +1344,7 @@ describe("Methods and Data Manipulation", function () {
 	});
 
 
-	// ==========================================================================================
+	// =====================================================================
 
 
 	describe("getRowFromIndex()", function () {
@@ -1335,7 +1359,7 @@ describe("Methods and Data Manipulation", function () {
 	});
 
 
-	// ==========================================================================================
+	// =====================================================================
 
 
 	describe("getSelectedRows()", function () {
@@ -1367,7 +1391,7 @@ describe("Methods and Data Manipulation", function () {
 		});
 
 
-		// ==========================================================================================
+		// =====================================================================
 
 
 		it("should return an empty array when nothing is selected", function () {
@@ -1390,7 +1414,7 @@ describe("Methods and Data Manipulation", function () {
 	});
 
 
-	// ==========================================================================================
+	// =====================================================================
 
 
 	describe("getState()", function () {
@@ -1419,7 +1443,7 @@ describe("Methods and Data Manipulation", function () {
 		});
 
 
-		// ==========================================================================================
+		// =====================================================================
 
 
 		it("should be able to get state for additional properties", function () {
@@ -1451,7 +1475,7 @@ describe("Methods and Data Manipulation", function () {
 	});
 
 
-	// ==========================================================================================
+	// =====================================================================
 
 
 	describe("hideColumn()", function () {
@@ -1476,7 +1500,7 @@ describe("Methods and Data Manipulation", function () {
 		});
 
 
-		// ==========================================================================================
+		// =====================================================================
 
 
 		it("should not be able to hide columns that don't exist", function () {
@@ -1496,7 +1520,7 @@ describe("Methods and Data Manipulation", function () {
 	});
 
 
-	// ==========================================================================================
+	// =====================================================================
 
 
 	describe("hideOverlay()", function () {
@@ -1524,7 +1548,7 @@ describe("Methods and Data Manipulation", function () {
 	});
 
 
-	// ==========================================================================================
+	// =====================================================================
 
 
 	describe("refetch()", function () {
@@ -1538,7 +1562,7 @@ describe("Methods and Data Manipulation", function () {
 	});
 
 
-	// ==========================================================================================
+	// =====================================================================
 
 
 	describe("reset()", function () {
@@ -1550,7 +1574,7 @@ describe("Methods and Data Manipulation", function () {
 		});
 
 
-		// ==========================================================================================
+		// =====================================================================
 
 
 		it("should be able to empty the grid via reset()", function () {
@@ -1560,7 +1584,7 @@ describe("Methods and Data Manipulation", function () {
 		});
 
 
-		// ==========================================================================================
+		// =====================================================================
 
 
 		it("should re-render rows with the same id when using reset()", function () {
@@ -1572,7 +1596,7 @@ describe("Methods and Data Manipulation", function () {
 		});
 
 
-		// ==========================================================================================
+		// =====================================================================
 
 
 		it("should re-render nested rows when using reset()", function () {
@@ -1606,7 +1630,7 @@ describe("Methods and Data Manipulation", function () {
 		});
 
 
-		// ==========================================================================================
+		// =====================================================================
 
 
 		it("should re-render correctly when using reset() and switching between normal and nested rows", function () {
@@ -1640,7 +1664,7 @@ describe("Methods and Data Manipulation", function () {
 	});
 
 
-	// ==========================================================================================
+	// =====================================================================
 
 
 	describe("resize()", function () {
@@ -1654,7 +1678,7 @@ describe("Methods and Data Manipulation", function () {
 	});
 
 
-	// ==========================================================================================
+	// =====================================================================
 
 
 	describe("resizeColumnsToContent()", function () {
@@ -1680,7 +1704,7 @@ describe("Methods and Data Manipulation", function () {
 	});
 
 
-	// ==========================================================================================
+	// =====================================================================
 
 
 	describe("remove()", function () {
@@ -1695,7 +1719,7 @@ describe("Methods and Data Manipulation", function () {
 		});
 
 
-		// ==========================================================================================
+		// =====================================================================
 
 
 		it("should remove the relevant row from the DOM when calling remove()", function () {
@@ -1718,7 +1742,7 @@ describe("Methods and Data Manipulation", function () {
 			expect(cell.text()).toEqual('1');
 		});
 
-		// ==========================================================================================
+		// =====================================================================
 
 
 		it("should be able to remove() an item from a grouped grid", function () {
@@ -1741,7 +1765,7 @@ describe("Methods and Data Manipulation", function () {
 	});
 
 
-	// ==========================================================================================
+	// =====================================================================
 
 
 	describe("removeColumn()", function () {
@@ -1762,7 +1786,7 @@ describe("Methods and Data Manipulation", function () {
 		});
 
 
-		// ==========================================================================================
+		// =====================================================================
 
 
 		it("should not be able to remove columns that don't exist", function () {
@@ -1781,7 +1805,7 @@ describe("Methods and Data Manipulation", function () {
 		});
 
 
-		// ==========================================================================================
+		// =====================================================================
 
 
 		it("should remove the sort value for a column when that column is removed", function () {
@@ -1805,7 +1829,7 @@ describe("Methods and Data Manipulation", function () {
 	});
 
 
-	// ==========================================================================================
+	// =====================================================================
 
 
 	describe("removeGrouping()", function () {
@@ -1830,7 +1854,7 @@ describe("Methods and Data Manipulation", function () {
 	});
 
 
-	// ==========================================================================================
+	// =====================================================================
 
 
 	describe("restoreState()", function () {
@@ -1876,7 +1900,7 @@ describe("Methods and Data Manipulation", function () {
 		});
 
 
-		// ==========================================================================================
+		// =====================================================================
 
 
 		it("should be able to restore column visibility, order and widths", function () {
@@ -1934,7 +1958,7 @@ describe("Methods and Data Manipulation", function () {
 		});
 
 
-		// ==========================================================================================
+		// =====================================================================
 
 
 		it("should be able to restore filters", function () {
@@ -1982,7 +2006,7 @@ describe("Methods and Data Manipulation", function () {
 		});
 
 
-		// ==========================================================================================
+		// =====================================================================
 
 
 		it("should be able to restore grouping", function () {
@@ -2029,7 +2053,7 @@ describe("Methods and Data Manipulation", function () {
 		});
 
 
-		// ==========================================================================================
+		// =====================================================================
 
 
 		it("should be able to restore sorting", function () {
@@ -2089,7 +2113,7 @@ describe("Methods and Data Manipulation", function () {
 		});
 
 
-		// ==========================================================================================
+		// =====================================================================
 
 
 		it("should not resize columns if state has autoColumnWidth disabled", function () {
@@ -2141,7 +2165,7 @@ describe("Methods and Data Manipulation", function () {
 	});
 
 
-	// ==========================================================================================
+	// =====================================================================
 
 
 	describe("scrollToRow()", function () {
@@ -2171,7 +2195,7 @@ describe("Methods and Data Manipulation", function () {
 		});
 
 
-		// ==========================================================================================
+		// =====================================================================
 
 
 		it("should be able to scrollToRow() to a specific row when variable row heights are used", function () {
@@ -2201,7 +2225,7 @@ describe("Methods and Data Manipulation", function () {
 		});
 
 
-		// ==========================================================================================
+		// =====================================================================
 
 
 		it("should be able to scrollToRow() to a specific row when rowSpacing is used", function () {
@@ -2237,7 +2261,7 @@ describe("Methods and Data Manipulation", function () {
 	});
 
 
-	// ==========================================================================================
+	// =====================================================================
 
 
 	describe("selectCells()", function () {
@@ -2267,7 +2291,7 @@ describe("Methods and Data Manipulation", function () {
 		});
 
 
-		// ==========================================================================================
+		// =====================================================================
 
 
 		it("should be able to deselect all cells with an empty selectCells() call", function () {
@@ -2303,7 +2327,7 @@ describe("Methods and Data Manipulation", function () {
 	});
 
 
-	// ==========================================================================================
+	// =====================================================================
 
 
 	describe("selection", function () {
@@ -2330,7 +2354,7 @@ describe("Methods and Data Manipulation", function () {
 	});
 
 
-	// ==========================================================================================
+	// =====================================================================
 
 
 	describe("selectRows()", function () {
@@ -2362,7 +2386,7 @@ describe("Methods and Data Manipulation", function () {
 		});
 
 
-		// ==========================================================================================
+		// =====================================================================
 
 
 		it("should be able to select a range of rows", function () {
@@ -2393,7 +2417,7 @@ describe("Methods and Data Manipulation", function () {
 		});
 
 
-		// ==========================================================================================
+		// =====================================================================
 
 
 		it("should replace existing selection when using 'add' false", function () {
@@ -2435,7 +2459,7 @@ describe("Methods and Data Manipulation", function () {
 		});
 
 
-		// ==========================================================================================
+		// =====================================================================
 
 
 		it("should add to existing selection when using 'add' true", function () {
@@ -2483,7 +2507,7 @@ describe("Methods and Data Manipulation", function () {
 	});
 
 
-	// ==========================================================================================
+	// =====================================================================
 
 
 	describe("setColumns()", function () {
@@ -2520,7 +2544,7 @@ describe("Methods and Data Manipulation", function () {
 		});
 
 
-		// ==========================================================================================
+		// =====================================================================
 
 
 		it("should be able to reset columns using setColumns()", function () {
@@ -2563,7 +2587,7 @@ describe("Methods and Data Manipulation", function () {
 		});
 
 
-		// ==========================================================================================
+		// =====================================================================
 
 
 		it("should remove the sort value for a column when that column is removed", function () {
@@ -2589,7 +2613,7 @@ describe("Methods and Data Manipulation", function () {
 	});
 
 
-	// ==========================================================================================
+	// =====================================================================
 
 
 	describe("setItem()", function () {
@@ -2610,7 +2634,7 @@ describe("Methods and Data Manipulation", function () {
 		});
 
 
-		// ==========================================================================================
+		// =====================================================================
 
 
 		it("should only accept Backbone Models when using setItem() on a Backbone Collection", function () {
@@ -2626,7 +2650,7 @@ describe("Methods and Data Manipulation", function () {
 		});
 
 
-		// ==========================================================================================
+		// =====================================================================
 
 
 		it("should correctly handle Backbone Model changes via setItem()", function () {
@@ -2643,7 +2667,7 @@ describe("Methods and Data Manipulation", function () {
 		});
 
 
-		// ==========================================================================================
+		// =====================================================================
 
 
 		it("should not allow 'id' changes via setItem() when using Backbone Models", function () {
@@ -2659,7 +2683,7 @@ describe("Methods and Data Manipulation", function () {
 		});
 
 
-		// ==========================================================================================
+		// =====================================================================
 
 
 		it("should be able to use setItem() to update a Backbone Model object that has child rows", function () {
@@ -2685,7 +2709,7 @@ describe("Methods and Data Manipulation", function () {
 		});
 
 
-		// ==========================================================================================
+		// =====================================================================
 
 
 		it("should correctly insert nested rows into a Backbone.Collection without re-arranging elements using setItem() while grouping is enabled", function () {
@@ -2761,7 +2785,7 @@ describe("Methods and Data Manipulation", function () {
 		});
 
 
-		// ==========================================================================================
+		// =====================================================================
 
 
 		it("should not get into a recursive loop when using setItem() on an object that references itself", function () {
@@ -2788,7 +2812,7 @@ describe("Methods and Data Manipulation", function () {
 	});
 
 
-	// ==========================================================================================
+	// =====================================================================
 
 
 	describe("setGrouping()", function () {
@@ -2829,7 +2853,7 @@ describe("Methods and Data Manipulation", function () {
 		});
 
 
-		// ==========================================================================================
+		// =====================================================================
 
 
 		it("when `class` is set on a grouping object, the grouping rows should inherit it", function () {
@@ -2857,7 +2881,7 @@ describe("Methods and Data Manipulation", function () {
 		});
 
 
-		// ==========================================================================================
+		// =====================================================================
 
 
 		it("when `class` method is set on a grouping object, the grouping rows should inherit it", function () {
@@ -2888,7 +2912,7 @@ describe("Methods and Data Manipulation", function () {
 		});
 
 
-		// ==========================================================================================
+		// =====================================================================
 
 
 		it("should be able to set group row heights via a custom function", function () {
@@ -2917,7 +2941,7 @@ describe("Methods and Data Manipulation", function () {
 		});
 
 
-		// ==========================================================================================
+		// =====================================================================
 
 
 		it("should allow you to set group row heights to 0 via a function", function () {
@@ -2946,7 +2970,7 @@ describe("Methods and Data Manipulation", function () {
 		});
 
 
-		// ==========================================================================================
+		// =====================================================================
 
 
 		it("should be able to use `height` and `rowSpacing` functions for group header rows", function () {
@@ -3005,7 +3029,7 @@ describe("Methods and Data Manipulation", function () {
 		});
 
 
-		// ==========================================================================================
+		// =====================================================================
 
 
 		it("should allow you to remove the colspan for group rows", function () {
@@ -3032,7 +3056,7 @@ describe("Methods and Data Manipulation", function () {
 		});
 
 
-		// ==========================================================================================
+		// =====================================================================
 
 
 		it("should allow you to specify a custom dataExtractor for group rows", function () {
@@ -3069,7 +3093,7 @@ describe("Methods and Data Manipulation", function () {
 	});
 
 
-	// ==========================================================================================
+	// =====================================================================
 
 
 	describe("setOptions()", function () {
@@ -3084,7 +3108,7 @@ describe("Methods and Data Manipulation", function () {
 		});
 
 
-		// ==========================================================================================
+		// =====================================================================
 
 
 		it("should be able to re-render columns setOptions()", function () {
@@ -3124,7 +3148,7 @@ describe("Methods and Data Manipulation", function () {
 		});
 
 
-		// ==========================================================================================
+		// =====================================================================
 
 
 		it("should re-render aggregators if they are change via setOptions()", function () {
@@ -3180,7 +3204,7 @@ describe("Methods and Data Manipulation", function () {
 		});
 
 
-		// ==========================================================================================
+		// =====================================================================
 
 
 		it("should fire the 'columnresize' event when 'autoColumnWidth' is toggled via setOptions()", function () {
@@ -3211,7 +3235,7 @@ describe("Methods and Data Manipulation", function () {
 		});
 
 
-		// ==========================================================================================
+		// =====================================================================
 
 
 		it("should re-render the grid when changing 'rowHeight' via setOptions()", function () {
@@ -3243,7 +3267,7 @@ describe("Methods and Data Manipulation", function () {
 		});
 
 
-		// ==========================================================================================
+		// =====================================================================
 
 
 		// FIXME: Make this work
@@ -3272,7 +3296,7 @@ describe("Methods and Data Manipulation", function () {
 	});
 
 
-	// ==========================================================================================
+	// =====================================================================
 
 
 	describe("showOverlay()", function () {
@@ -3300,7 +3324,7 @@ describe("Methods and Data Manipulation", function () {
 	});
 
 
-	// ==========================================================================================
+	// =====================================================================
 
 
 	describe("showQuickFilter()", function () {
@@ -3325,7 +3349,7 @@ describe("Methods and Data Manipulation", function () {
 		});
 
 
-		// ==========================================================================================
+		// =====================================================================
 
 
 		it("should hide the Quick Filter bar when 'column_id' is null", function () {
@@ -3356,7 +3380,7 @@ describe("Methods and Data Manipulation", function () {
 	});
 
 
-	// ==========================================================================================
+	// =====================================================================
 
 
 	describe("destroy()", function () {
@@ -3367,7 +3391,7 @@ describe("Methods and Data Manipulation", function () {
 		});
 
 
-		// ==========================================================================================
+		// =====================================================================
 
 
 		it("should not throw an error when calling destroy() more than once", function () {
@@ -3379,7 +3403,7 @@ describe("Methods and Data Manipulation", function () {
 		});
 
 
-		// ==========================================================================================
+		// =====================================================================
 
 
 		it("should also destroy any open context menus", function () {
