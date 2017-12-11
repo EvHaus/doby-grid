@@ -1,7 +1,7 @@
 
 Doby Grid
 =========
-[![Build Status](https://travis-ci.org/EvHaus/doby-grid.png)](https://travis-ci.org/EvNaverniouk/doby-grid) (http://issuestats.com/github/globexdesigns/doby-grid) [![Maintenance](https://img.shields.io/maintenance/yes/2015.svg)]()
+[![Build Status](https://travis-ci.org/EvHaus/doby-grid.png)](https://travis-ci.org/EvNaverniouk/doby-grid) [![Maintenance](https://img.shields.io/maintenance/yes/2015.svg)]()
 
 Doby Grid is a Javascript module for rendering a dynamic, data-driven grid. It's basically a `<table>` element on steroids.
 
