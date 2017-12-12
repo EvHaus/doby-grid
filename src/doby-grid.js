@@ -190,6 +190,7 @@ var DobyGrid = function (options) {
 		handleKeyDown,
 		handleScroll,
 		handleWindowResize,
+		hasCustomGrouping = false,
 		hasFrozenRows = false,
 		hasGrouping,
 		hasSorting,
@@ -561,6 +562,12 @@ var DobyGrid = function (options) {
 		if (!hasGrouping(column_id)) {
 			// Use the column_id shortcut to extend the options
 			options.column_id = column_id;
+
+			if (hasCustomGrouping) {
+				// Disable custom grouping
+				hasCustomGrouping = false;
+				this.collection.groups = [];
+			}
 
 			// Add to grouping
 			this.collection.groups.push(options);
@@ -1857,16 +1864,15 @@ var DobyGrid = function (options) {
 	 *
 	 * @returns {object}
 	 */
-	createGroupingObject = function (grouping) {
+	createGroupingObject = function (grouping, custom) {
 		if (!grouping) throw new Error("Unable to create group because grouping object is missing.");
 
-		if (grouping.column_id === undefined) throw new Error("Unable to create grouping object because 'column_id' is missing.");
+		if (!custom && grouping.column_id === undefined) throw new Error("Unable to create grouping object because 'column_id' is missing.");
 
 		var column = getColumnById(grouping.column_id);
 
 		var result = $.extend({
 			collapsed: true,	// All groups start off being collapsed
-			column_id: column.id,
 			comparator: function (a, b) {
 				// Null groups always on the bottom
 				if (self.options.keepNullsAtBottom) {
@@ -1886,11 +1892,15 @@ var DobyGrid = function (options) {
 				var sorted = naturalSort(a.value, b.value);
 				return asc ? sorted : -sorted;
 			},
-			getter: function (item) {
+			getter: !custom && function (item) {
 				return getDataItemValueForColumn(item, column);
 			},
 			rows: []
 		}, grouping);
+
+		if (!custom) {
+			result.column_id = column.id;
+		}
 
 		return result;
 	};
@@ -1971,7 +1981,7 @@ var DobyGrid = function (options) {
 
 			// If we have normal data - set it now
 			if (!grid.fetcher && grid.options.data) {
-				this.reset(grid.options.data);
+				self.reset(grid.options.data);
 			}
 
 			return this;
@@ -2307,6 +2317,22 @@ var DobyGrid = function (options) {
 						if (!checkRemoteGroup(level, rm_g, parentGroup)) continue;
 
 						group = createGroupObject(rm_g);
+						groups.push(group);
+						groupsByVal[group.value] = group;
+					}
+				}
+
+				// If we have custom grouping, just add the groups provided
+				if (hasCustomGrouping) {
+					var cm_g;
+					for (var o = 0, clength = self.groups[level].groups.length; o < clength; o++) {
+						cm_g = self.groups[level].groups[o];
+
+						// For each parent, walk up the hierarchy of group parents and
+						// confirm that this sub-group belongs there
+						if (!checkRemoteGroup(level, cm_g, parentGroup)) continue;
+
+						group = createGroupObject(cm_g);
 						groups.push(group);
 						groupsByVal[group.value] = group;
 					}
@@ -2939,7 +2965,7 @@ var DobyGrid = function (options) {
 			// Do not create groups when the grid is empty.
 			//
 			var groups = [];
-			if (self.groups.length && self.items.length) {
+			if (self.groups.length && (self.items.length || hasCustomGrouping)) {
 
 				extractGroups(newRows, null, function (result) {
 					groups = result;
@@ -3100,7 +3126,7 @@ var DobyGrid = function (options) {
 		 * @param	{array}		options		- List of grouping objects
 		 *
 		 */
-		this.setGrouping = function (options) {
+		this.setGrouping = function (options, custom) {
 			// Is grouping enabled
 			if (!grid.options.groupable) throw new Error('Cannot execute "setGrouping" because "options.groupable" is disabled.');
 
@@ -3125,10 +3151,17 @@ var DobyGrid = function (options) {
 
 				col = getColumnById(options[i].column_id);
 
-				if (col === undefined) {
+				// Don't care for a column id, if we're setting a custom grouping
+				if (!custom && col === undefined) {
 					throw new Error('Cannot add grouping for column "' + options[i].column_id + '" because no such column could be found.');
-				} else if (col.groupable === false) {
+				} else if (!custom && col.groupable === false) {
 					throw new Error('Cannot add grouping for column "' + col.id + '" because "options.groupable" is disabled for that column.');
+				}
+
+				if (custom && !options[i].getter) {
+					throw new Error('Cannot add custom grouping: a getter function must be provided for each grouping option');
+				} else if (custom && !options[i].formatter) {
+					throw new Error('Cannot add custom grouping: a formatter function must be provided for each grouping option');
 				}
 
 				// If there are custom heights set for groupings - enable variable row height
@@ -3142,7 +3175,7 @@ var DobyGrid = function (options) {
 				if (!toggledGroupsByLevel[i]) toggledGroupsByLevel[i] = {};
 
 				// Extend using a default grouping object and add to groups
-				groups.push(createGroupingObject(options[i]));
+				groups.push(createGroupingObject(options[i], custom));
 			}
 
 			// Consider groupings changed if the number of groupings changed
@@ -5553,6 +5586,10 @@ var DobyGrid = function (options) {
 			var isToggler = $(e.target).hasClass(CLS.grouptoggle) || $(e.target).closest('.' + CLS.grouptoggle).length;
 
 			if (isToggler) {
+				self.trigger('groupheaderclick', e, {
+					item: item
+				});
+
 				if (item.collapsed) {
 					self.collection.expandGroup(item[self.options.idProperty]);
 				} else {
@@ -8731,6 +8768,26 @@ var DobyGrid = function (options) {
 		}
 	};
 
+	/**
+	 * Sets a custom grouping for the grid data view.
+	 * @method setCustomGrouping
+	 * @memberof DobyGrid
+	 *
+	 * @param	{array}		options		- List of grouping objects
+	 *
+	 * @returns {object}
+	 */
+	this.setCustomGrouping = function (options) {
+
+		if (!options || !options.length) {
+			throw new Error('There must be at least one grouping option to set custom grouping');
+		}
+
+		hasCustomGrouping = true;
+		this.collection.setGrouping(options, true);
+
+		return this;
+	};
 
 	/**
 	 * Validates and sets up options for frozen columns and rows
@@ -8769,6 +8826,7 @@ var DobyGrid = function (options) {
 	 * @returns {object}
 	 */
 	this.setGrouping = function (options) {
+		hasCustomGrouping = false;
 		this.collection.setGrouping(options);
 		return this;
 	};
