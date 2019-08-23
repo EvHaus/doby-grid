@@ -21,15 +21,15 @@
 	},
 	"devDependencies": {
 		"bower": "latest",
-		"grunt": "0.4.5",
-		"grunt-browserify": "^4.0.1",
-		"grunt-contrib-jasmine": "^0.9.2",
-		"grunt-contrib-jshint": "^0.11.3",
-		"grunt-contrib-less": "^1.1.0",
-		"grunt-contrib-uglify": "^0.11.0",
-		"grunt-contrib-watch": "^0.6.1",
-		"grunt-jscs": "^2.5.0",
-		"grunt-lesslint": "^2.0.0"
+		"grunt": "1.0.4",
+		"grunt-browserify": "^5.3.0",
+		"grunt-contrib-jasmine": "^2.1.0",
+		"grunt-contrib-jshint": "^2.1.0",
+		"grunt-contrib-less": "^2.0.0",
+		"grunt-contrib-uglify": "^4.0.1",
+		"grunt-contrib-watch": "^1.1.0",
+		"grunt-jscs": "^3.0.1",
+		"grunt-lesslint": "^4.0.0"
 	},
 	"licenses": [{
 		"type": "MIT",
