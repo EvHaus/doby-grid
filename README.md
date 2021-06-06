@@ -7,7 +7,7 @@ Doby Grid is a Javascript module for rendering a dynamic, data-driven grid. It's
 
 ---
 
-This project is no longer being supported or maintained. Documentation will be available at http://www.dobyjs.com/#grid until Sept, 2017. After that, the only place for documentation will be in https://github.com/EvNaverniouk/doby-website
+This project is no longer being supported or maintained. Documentation can we found inside https://github.com/EvNaverniouk/doby-website
 
 If you want to take over ownership of the project, don't hesitate to contact me. Otherwise, fork away!
 
